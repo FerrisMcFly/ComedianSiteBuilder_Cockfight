@@ -1,6 +1,7 @@
 // Pulls podcast episodes and YouTube videos into the database.
 // Used by the hourly scheduled function and by the admin's "Import now" button.
 import { XMLParser } from "fast-xml-parser";
+import { importShows } from "./shows.mjs";
 
 const xml = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@", textNodeName: "#text", parseTagValue: false, trimValues: true });
 const UA = { "User-Agent": "Mozilla/5.0 (compatible; ComicTable/1.0; +https://cockfightpodcast.com)" };
@@ -223,7 +224,7 @@ export async function runSources(db, sources) {
   const results = [];
   for (const src of sources) {
     let status, ok = true;
-    try { status = src.kind === "podcast" ? await importPodcast(db, src) : await importYouTube(db, src); }
+    try { status = src.kind === "podcast" ? await importPodcast(db, src) : src.kind === "shows" ? await importShows(db, src) : await importYouTube(db, src); }
     catch (e) { ok = false; status = "Error: " + (e.message || String(e)); }
     await db.from("sources").update({ last_run_at: new Date().toISOString(), last_status: status }).eq("id", src.id);
     results.push({ id: src.id, kind: src.kind, label: src.label || src.url, ok, status });
