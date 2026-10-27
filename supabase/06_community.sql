@@ -19,6 +19,9 @@ update sites set profile = profile || jsonb_build_object(
     'support_label', 'Patreon')
   where id = 'cockfight' and not (profile ? 'support_url');
 
+-- People can be hidden from the site without deleting them
+alter table hosts add column if not exists hidden boolean not null default false;
+
 -- ========== Announcements: a list any front end can show its own way ==========
 create table if not exists announcements (
   id uuid primary key default gen_random_uuid(),

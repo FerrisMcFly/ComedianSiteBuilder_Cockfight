@@ -65,7 +65,7 @@
     ]).then(function (r) {
       var s = r[0][0] || { id: cfg.site, features: {}, profile: {}, theme: {}, community: {} };
       var today = todayISO();
-      var people = r[1].map(function (h) {
+      var people = r[1].filter(visible).map(function (h) {
         return { id: h.id, name: h.name, title: h.title || "", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "",
           socials: { instagram: h.instagram || "", youtube: h.youtube || "", tiktok: h.tiktok || "", twitter: h.twitter || "", website: h.website || "" } };
       });

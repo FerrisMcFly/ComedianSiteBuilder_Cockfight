@@ -409,9 +409,11 @@ tr.cancel td { text-decoration: line-through; color: #777; }
       <a class="btn" href="#chat" data-view="chat" data-feat="chat" hidden>Chat Room</a>
       <a class="btn patreon" href="https://www.patreon.com/CockFightPod" target="_blank" rel="noopener">★ Patreon ★</a>
       <span class="nav-label">THE HOSTS:</span>
+      <div id="hostNav" style="display:contents">
       <a class="btn" href="#colum" data-view="colum">Colum</a>
       <a class="btn" href="#lev" data-view="lev">Lev</a>
       <a class="btn" href="#tristan" data-view="tristan">Tristan</a>
+      </div>
       <div class="badge">This site is<br><b>Y2K COMPLIANT</b></div>
       <div class="burst">NEW EPISODE EVERY WEEK!!</div>
     </nav>
@@ -755,6 +757,8 @@ tr.cancel td { text-decoration: line-through; color: #777; }
   function renderHosts() {
     var all = $("allTour"); all.textContent = "";
     var cards = $("chefCards"); cards.textContent = "";
+    var hn = $("hostNav"); hn.textContent = "";
+    HOST_ORDER.forEach(function (k) { if (COMICS[k]) hn.appendChild(el("a", { class: "btn", href: "#" + k, "data-view": k, text: COMICS[k].name.split(" ")[0] })); });
     HOST_ORDER.forEach(function (k) {
       var c = COMICS[k]; if (!c) return;
       var first = c.name.split(" ")[0], up = upcoming(k);
@@ -848,6 +852,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     CSB.load().then(function (d) {
       if (d.episodes.length) EPISODES = d.episodes.map(function (e) { return { n: e.number, t: e.title, d: e.posted, len: e.length, url: e.link, pat: e.patreon, blurb: e.description }; });
       SHOWS = d.shows.map(function (x) { return { host: x.person, date: x.date, time: x.time, city: x.city, venue: x.venue, url: x.tickets, status: x.status, note: x.note }; });
+      if (d.people.length) HOST_ORDER = [];
       d.people.forEach(function (h) {
         COMICS[h.id] = { name: h.name, title: h.title || "Comedian", bio: h.bio, status: h.status, photo: h.photo,
           instagram: h.socials.instagram, youtube: h.socials.youtube, tiktok: h.socials.tiktok, twitter: h.socials.twitter, website: h.socials.website };

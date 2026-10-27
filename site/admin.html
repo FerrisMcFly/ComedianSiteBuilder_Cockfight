@@ -187,6 +187,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
 .person-top { display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
 .avatar { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; background: var(--bg); border: 1px solid var(--line); flex: none; display: grid; place-items: center; color: var(--muted); font-size: 11px; text-align: center; }
+form.card.is-hidden { opacity: .7; }
 .merch-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .merch-row:first-child { border-top: 0; }
 .merch-row img, .merch-row .ph { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: var(--bg); }
@@ -225,12 +226,47 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
   .side-foot { margin: 0; width: 100%; border-top: 0; padding: 6px 4px 0; display: flex; justify-content: space-between; flex-wrap: wrap; }
   main { padding: 18px max(14px, env(safe-area-inset-right, 0px)) 80px max(14px, env(safe-area-inset-left, 0px)); }
   .c2, .c3, .c4, .c5, .c6, .c7, .c8, .c9 { grid-column: span 12; }
-  .slot { grid-template-columns: 1fr 1fr auto; }
+  .slot, .drawer .slot { grid-template-columns: 160px 1fr auto; }
   .slot .url { grid-column: 1 / -1; grid-row: 2; }
   .slot .rm { grid-column: 3; grid-row: 1; }
   h1 { font-size: 26px; } .hello { font-size: 28px; }
   .cal { width: 100%; }
 }
+/* add-shows panel */
+.drawer-wrap { position: fixed; inset: 0; z-index: 50; }
+.drawer-backdrop { position: absolute; inset: 0; background: rgba(20, 16, 12, .38); }
+.drawer { position: absolute; top: 0; right: 0; bottom: 0; width: min(560px, 100%); background: var(--panel); box-shadow: -12px 0 40px rgba(0,0,0,.18);
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.drawer-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px 6px; }
+.drawer-head h2 { margin: 0; font-size: 24px; }
+.drawer-body { overflow-y: auto; padding: 14px 22px 22px; }
+.drawer-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+.drawer-foot .btn.primary { margin-left: auto; }
+.steps { display: flex; gap: 6px; list-style: none; margin: 0; padding: 6px 22px 10px; border-bottom: 1px solid var(--line); }
+.steps li { flex: 1; }
+.steps button { width: 100%; display: flex; align-items: center; gap: 7px; background: none; border: 0; padding: 6px 0; font-weight: 650; font-size: 13px; color: var(--muted); cursor: pointer; text-align: left; border-bottom: 3px solid var(--line); }
+.steps button:disabled { cursor: default; }
+.steps li.on button { color: var(--text); border-bottom-color: var(--accent); }
+.steps li.done button { color: var(--ok); border-bottom-color: var(--ok); }
+.dotnum { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--bg); flex: none; }
+.steps li.on .dotnum { background: var(--accent); color: var(--accent-ink); }
+.steps li.done .dotnum { background: var(--ok); color: #fff; }
+.run-summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--bg); border-radius: 12px; padding: 10px 12px; }
+.chip.on { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+details.quiet > summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+.drawer .cal { width: 100%; max-width: 360px; }
+.drawer .slot { grid-template-columns: 148px minmax(0, 1fr) auto; }
+.drawer .slot input[type=time] { min-width: 0; }
+/* row menu */
+details.menu { position: relative; display: inline-block; }
+details.menu > summary { list-style: none; }
+details.menu > summary::-webkit-details-marker { display: none; }
+.menu-pop { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.16); padding: 4px; min-width: 240px; display: grid; }
+.menu-pop button { background: none; border: 0; text-align: left; padding: 9px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.menu-pop button:hover { background: var(--bg); }
+.menu-pop button.danger { color: var(--accent); }
+td select.status.st-sold_out, td select.status.st-cancelled { color: var(--accent); }
+td select.status.st-few_left { color: var(--warn); }
 @media (min-width: 881px) { .app { background: linear-gradient(90deg, var(--panel) 236px, transparent 236px); } }
 /* phones: table rows become stacked cards */
 @media (max-width: 640px) {
@@ -419,7 +455,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
     const btn = h("button", { class: "btn primary big", type: "submit", text: "Log in" });
     const form = h("form", { class: "card login stack", onsubmit: async (e) => {
       e.preventDefault(); btn.disabled = true;
-      let who = user.value.trim(); if (!who.includes("@")) who = who.toLowerCase() + "@cockfightpodcast.com";
+      let who = user.value.trim(); if (!who.includes("@")) who = who.toLowerCase() + "@" + (CFG.LOGIN_DOMAIN || "cockfightpodcast.com");
       const r = await sb.auth.signInWithPassword({ email: who, password: pass.value });
       btn.disabled = false;
       if (r.error) return showLogin("Wrong username or password.");
@@ -467,7 +503,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
     { id: "profile", group: "Your site", label: "Profile", ico: "🪪", render: viewProfile },
     { id: "announce", group: "Your site", label: "Announcements", ico: "📣", render: viewAnnounce },
     { id: "links", group: "Your site", label: "Links", ico: "🔗", render: viewLinks },
-    { id: "theme", group: "Your site", label: "Theme", ico: "🎨", render: viewTheme },
+    { id: "theme", group: "Your site", label: "Design settings", ico: "🎨", render: viewTheme },
     { id: "forum", group: "Community", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
     { id: "chat", group: "Community", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
     { id: "moderation", group: "Community", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
@@ -546,20 +582,19 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
   /* ======================================================
      SHOWS
      ====================================================== */
-  const run = { host: null, venue: null, days: new Set(), slots: [], month: null, adding: false };
+  const run = { open: false, step: 1, host: null, venue: null, days: new Set(), slots: [], month: null, showPaste: false };
   const list = { host: "all", past: false, q: "" };
   let editingShow = null, dupOf = null; // dupOf: the show being duplicated (its copy shows up right below it)
+  let redrawShows = () => {};
   const STATUS = [["on_sale", "On sale"], ["few_left", "Few left"], ["sold_out", "Sold out"], ["free", "Free"], ["cancelled", "Cancelled"]];
 
   function viewShows(main) {
-    if (!run.host || !S.hosts.find((x) => x.id === run.host)) run.host = store.get("csb_host_" + sid()) || (S.hosts[0] || {}).id;
-    if (!S.hosts.find((x) => x.id === run.host)) run.host = (S.hosts[0] || {}).id;
-    if (!run.month) { const d = new Date(); run.month = new Date(d.getFullYear(), d.getMonth(), 1); }
-    const addCard = h("section", { class: "card", id: "addRun" });
     const listCard = h("section", { class: "card" });
-    main.append(head("Shows", "Add a whole run at a club in one go. Past shows drop off your site on their own."), h("div", { class: "stack" }, addCard, listCard));
-    const redraw = () => { drawRun(addCard, redraw); drawShowList(listCard, redraw); };
-    redraw();
+    main.append(head("Shows", "Your upcoming shows. Past ones drop off your site on their own.",
+      h("button", { class: "btn primary big", type: "button", id: "addShowsBtn", text: "+ Add shows", onclick: () => openRun() })), listCard);
+    redrawShows = () => drawShowList(listCard, redrawShows);
+    redrawShows();
+    if (run.open) drawPanel();
   }
 
   async function loadSlots(venueId) {
@@ -574,114 +609,142 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
     return DEFAULT_TIMES[dow].slice();
   }
   function setDay(date, on, times) {
-    if (on) { run.days.add(date); if (!run.slots.some((s) => s.date === date)) for (const t of times || timesFor(run.venue, parseISO(date).getDay())) run.slots.push({ date, time: t, url: "", status: "on_sale" }); }
+    if (on) { run.days.add(date); if (!run.slots.some((s) => s.date === date)) for (const t of times || timesFor(run.venue, parseISO(date).getDay())) run.slots.push({ date, time: t, url: "" }); }
     else { run.days.delete(date); run.slots = run.slots.filter((s) => s.date !== date); }
   }
   const sortedSlots = () => run.slots.slice().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 
-  function drawRun(card, redraw) {
-    card.replaceChildren();
-    card.append(h("h2", { text: "Add shows" }), h("p", { class: "sub", text: "Pick the club, tap the days, and paste your ticket links. That's it." }));
-
-    // 1. who
-    if (S.hosts.length > 1) {
-      card.append(h("div", { class: "step" }, h("div", { class: "step-label" }, h("span", { class: "step-num", text: "1" }), "Who's performing?"),
-        h("div", { class: "seg", role: "group", "aria-label": "Comedian" }, S.hosts.map((x) => h("button", { type: "button", "aria-pressed": String(run.host === x.id), text: x.name,
-          onclick: () => { run.host = x.id; store.set("csb_host_" + sid(), x.id); redraw(); } })))));
+  /* ---------- the "Add shows" panel: one step at a time ---------- */
+  let panelReturnFocus = null;
+  function openRun(prefill) {
+    if (!run.host || !S.hosts.find((x) => x.id === run.host)) run.host = store.get("csb_host_" + sid()) || (S.hosts[0] || {}).id;
+    if (!S.hosts.find((x) => x.id === run.host)) run.host = (S.hosts[0] || {}).id;
+    if (prefill) {
+      run.venue = null; run.days.clear(); run.slots = []; run.showPaste = false;
+      Object.assign(run, prefill);
     }
-    const n = (k) => String(S.hosts.length > 1 ? k + 1 : k);
+    if (!run.month) { const d = new Date(); run.month = new Date(d.getFullYear(), d.getMonth(), 1); }
+    run.step = !run.venue ? 1 : run.slots.length && run.step === 3 ? 3 : 2;
+    run.open = true;
+    panelReturnFocus = document.activeElement;
+    drawPanel();
+  }
+  function closeRun() {
+    run.open = false;
+    const p = $("runPanel"); if (p) p.remove();
+    document.body.style.overflow = "";
+    if (panelReturnFocus && panelReturnFocus.focus) panelReturnFocus.focus();
+  }
+  function resetRun() { run.venue = null; run.days.clear(); run.slots = []; run.step = 1; run.showPaste = false; }
 
-    // 2. where
-    const where = h("div", { class: "step" }, h("div", { class: "step-label" }, h("span", { class: "step-num", text: n(1) }), "Where?"));
-    if (run.venue) {
-      where.append(h("div", { class: "picked" }, h("div", null, h("b", { text: run.venue.name }), h("div", { class: "hint", text: venueCity(run.venue) + (isNewClub(run.venue) ? " · newly added club" : "") })),
-        h("button", { class: "btn sm", type: "button", text: "Change", onclick: () => { run.venue = null; run.days.clear(); run.slots = []; redraw(); setTimeout(() => $("clubSearch") && $("clubSearch").focus()); } })));
+  function drawPanel() {
+    let wrap = $("runPanel");
+    if (!wrap) {
+      wrap = h("div", { id: "runPanel", class: "drawer-wrap" });
+      wrap.addEventListener("keydown", (e) => { if (e.key === "Escape" && !(e.target.classList && e.target.classList.contains("club-search"))) closeRun(); });
+      document.body.append(wrap);
+    }
+    document.body.style.overflow = "hidden";
+    const n = run.slots.length;
+    const steps = [[1, "Club"], [2, "Dates"], [3, "Times & tickets"]];
+    const canGo = (k) => k === 1 || (k === 2 && run.venue) || (k === 3 && run.venue && n);
+    const progress = h("ol", { class: "steps" }, steps.map(([k, label]) => h("li", { class: k === run.step ? "on" : k < run.step ? "done" : "" },
+      h("button", { type: "button", disabled: !canGo(k) || k === run.step, onclick: () => { run.step = k; drawPanel(); } }, h("span", { class: "dotnum", text: k < run.step ? "✓" : String(k) }), label))));
+    const who = S.hosts.find((x) => x.id === run.host);
+    const summary = run.venue ? h("div", { class: "run-summary" },
+      h("div", null, h("b", { text: run.venue.name }), h("div", { class: "hint", text: venueCity(run.venue) + (S.hosts.length > 1 && who ? " · " + who.name : "") })),
+      h("button", { class: "btn ghost sm", type: "button", text: "Change", onclick: () => { run.step = 1; drawPanel(); } })) : null;
+
+    let body, footer;
+    if (run.step === 1) {
+      const pick = async (v) => {
+        const changed = !run.venue || run.venue.id !== v.id;
+        run.venue = v; await loadSlots(v.id);
+        if (changed) { const days = [...run.days]; run.slots = []; run.days.clear(); days.forEach((d) => setDay(d, true)); }
+        run.step = 2; drawPanel();
+      };
+      const recent = recentVenues(run.host).filter((v) => !run.venue || v.id !== run.venue.id);
+      body = h("div", { class: "stack" },
+        S.hosts.length > 1 ? h("div", { class: "field" }, h("span", { text: "Who's performing?" }),
+          h("div", { class: "seg", role: "group", "aria-label": "Comedian" }, S.hosts.map((x) => h("button", { type: "button", "aria-pressed": String(run.host === x.id), text: x.name,
+            onclick: () => { run.host = x.id; store.set("csb_host_" + sid(), x.id); drawPanel(); } })))) : null,
+        h("div", { class: "field" }, h("span", { text: "Which club?" }), clubPicker(pick)),
+        recent.length ? h("div", { class: "field" }, h("span", { text: "Recent clubs" }), h("div", { class: "chips" }, recent.map((v) => h("button", { class: "chip", type: "button", onclick: () => pick(v) }, v.name, h("small", { class: "hint", text: " · " + v.city }))))) : null,
+        run.venue ? h("button", { class: "btn ghost sm", type: "button", style: "justify-self:start", text: "Keep " + run.venue.name + " →", onclick: () => { run.step = 2; drawPanel(); } }) : null);
+      footer = h("div", { class: "drawer-foot" }, h("span", { class: "hint", text: "Can't find it? Type the name and choose “Add as a new club”." }));
+      setTimeout(() => { const i = $("clubSearch"); i && i.focus(); });
+    } else if (run.step === 2) {
+      const chosen = [...run.days].sort();
+      const pasteTA = h("textarea", { placeholder: "Fri Nov 6 — 7:00 PM, 9:30 PM\nSat Nov 7 — 6:00 PM, 8:30 PM", "aria-label": "Showtimes text" });
+      body = h("div", { class: "stack" }, summary,
+        h("div", { class: "field" }, h("span", { text: "Tap the days you're playing" }), calendar(run.month, drawPanel)),
+        chosen.length ? h("div", { class: "chips" }, chosen.map((d) => h("button", { class: "chip on", type: "button", "aria-label": "Remove " + niceDate(d), onclick: () => { setDay(d, false); drawPanel(); } }, shortDate(d) + "  ✕"))) : h("p", { class: "hint", text: "Green dots mark days you already have a show." }),
+        h("details", { class: "quiet" }, h("summary", { text: "Or paste the showtimes from the club's website" }),
+          h("div", { class: "stack", style: "gap:8px;margin-top:8px" }, pasteTA, h("button", { class: "btn sm", type: "button", style: "justify-self:start", text: "Fill in from this text", onclick: () => {
+            const found = parseShowtimes(pasteTA.value);
+            if (!found.length) { toast("Couldn't find any dates in that. Try lines like “Fri Nov 6 7:00 PM, 9:30 PM”.", { bad: true }); return; }
+            for (const f of found) { setDay(f.date, false); setDay(f.date, true, f.times.length ? f.times : null); }
+            const d0 = parseISO(found[0].date); run.month = new Date(d0.getFullYear(), d0.getMonth(), 1);
+            run.step = 3; drawPanel(); toast("Found " + run.slots.length + " shows. Check the times.");
+          } }))));
+      footer = h("div", { class: "drawer-foot" },
+        h("button", { class: "btn ghost", type: "button", text: "← Back", onclick: () => { run.step = 1; drawPanel(); } }),
+        h("button", { class: "btn primary big", type: "button", id: "toTimes", disabled: !n, text: n ? "Next: times & tickets (" + n + " show" + (n > 1 ? "s" : "") + ")" : "Pick at least one day", onclick: () => { run.step = 3; drawPanel(); } }));
     } else {
-      where.append(clubPicker(async (v) => { run.venue = v; await loadSlots(v.id); for (const d of [...run.days]) { run.slots = run.slots.filter((s) => s.date !== d); setDay(d, true); } redraw(); }));
-      const recent = recentVenues(run.host);
-      if (recent.length) where.append(h("div", { class: "chips" }, h("span", { class: "hint", text: "Recent:" }), recent.map((v) => h("button", { class: "chip", type: "button", text: v.name, onclick: async () => { run.venue = v; await loadSlots(v.id); redraw(); } }))));
-    }
-    card.append(where);
-    if (!run.venue) return;
-
-    // 3. when
-    const when = h("div", { class: "step" }, h("div", { class: "step-label" }, h("span", { class: "step-num", text: n(2) }), "Which days?", h("span", { class: "hint", style: "font-weight:400", text: "Tap to pick. Green dots are shows you already have." })));
-    when.append(h("div", { class: "cal-wrap" }, calendar(run.month, redraw), calendar(new Date(run.month.getFullYear(), run.month.getMonth() + 1, 1), redraw, true)));
-    const pasteTimes = h("details", null, h("summary", { class: "hint", style: "cursor:pointer", text: "Or paste showtimes from the club's page" }),
-      (() => {
-        const ta = h("textarea", { placeholder: "Fri Nov 6 — 7:00 PM, 9:30 PM\nSat Nov 7 — 6:00 PM, 8:30 PM", "aria-label": "Showtimes text" });
-        const msg = h("div", { class: "hint" });
-        return h("div", { class: "paste", style: "margin-top:8px" }, ta, h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Fill in from this text", onclick: () => {
-          const found = parseShowtimes(ta.value);
-          if (!found.length) { msg.textContent = "Couldn't spot any dates in that. Try lines like “Fri Nov 6 7:00 PM, 9:30 PM”."; return; }
-          for (const f of found) { run.slots = run.slots.filter((s) => s.date !== f.date); run.days.delete(f.date); setDay(f.date, true, f.times.length ? f.times : null); }
-          run.month = (() => { const d = parseISO(found[0].date); return new Date(d.getFullYear(), d.getMonth(), 1); })();
-          redraw(); toast("Found " + found.length + " day" + (found.length > 1 ? "s" : "") + " and " + found.reduce((a, f) => a + Math.max(1, f.times.length), 0) + " shows.");
-        } }), msg));
-      })());
-    when.append(pasteTimes);
-    card.append(when);
-    if (!run.slots.length) return;
-
-    // 4. times + links
-    const slots = sortedSlots();
-    const grid = h("div", { class: "slots" });
-    let lastDay = "";
-    for (const s of slots) {
-      if (s.date !== lastDay) {
-        lastDay = s.date;
-        const day = s.date;
-        grid.append(h("div", { class: "slot-day" }, h("span", { text: niceDate(day) }), h("button", { class: "btn ghost sm", type: "button", text: "+ another time", onclick: () => {
-          const ts = run.slots.filter((x) => x.date === day).map((x) => x.time).sort(); const last = ts[ts.length - 1] || "19:00";
-          const [H, M] = last.split(":").map(Number); const mins = Math.min(23 * 60 + 30, H * 60 + M + 150); const nt = pad(Math.floor(mins / 60)) + ":" + pad(mins % 60);
-          run.slots.push({ date: day, time: nt, url: "", status: "on_sale" }); redraw();
-        } })));
+      const slotsBox = h("div", { class: "slots" });
+      let lastDay = "";
+      for (const s of sortedSlots()) {
+        if (s.date !== lastDay) {
+          lastDay = s.date; const day = s.date;
+          slotsBox.append(h("div", { class: "slot-day" }, h("span", { text: niceDate(day) }), h("button", { class: "btn ghost sm", type: "button", text: "+ time", onclick: () => {
+            const ts = run.slots.filter((x) => x.date === day).map((x) => x.time).sort(); const last = ts[ts.length - 1] || "19:00";
+            const [H, M] = last.split(":").map(Number); const mins = Math.min(23 * 60 + 30, H * 60 + M + 150);
+            run.slots.push({ date: day, time: pad(Math.floor(mins / 60)) + ":" + pad(mins % 60), url: "" }); drawPanel();
+          } })));
+        }
+        slotsBox.append(h("div", { class: "slot" },
+          h("input", { type: "time", value: s.time, step: "300", "aria-label": "Time on " + shortDate(s.date), oninput: (e) => { s.time = e.target.value; } }),
+          h("input", { type: "url", class: "url", value: s.url, placeholder: "Ticket link (optional)", "aria-label": "Ticket link for " + shortDate(s.date) + " " + (to12(s.time) || ""), oninput: (e) => { s.url = e.target.value.trim(); e.target.classList.remove("bad"); } }),
+          h("button", { class: "btn ghost sm rm", type: "button", "aria-label": "Remove this show", text: "✕", onclick: () => { run.slots.splice(run.slots.indexOf(s), 1); if (!run.slots.some((x) => x.date === s.date)) run.days.delete(s.date); if (!run.slots.length) run.step = 2; drawPanel(); } })));
       }
-      const tIn = h("input", { type: "time", value: s.time, step: "300", "aria-label": "Time on " + shortDate(s.date), oninput: (e) => { s.time = e.target.value; } });
-      const uIn = h("input", { type: "url", class: "url", value: s.url, placeholder: "Ticket link", "aria-label": "Ticket link for " + shortDate(s.date) + " " + to12(s.time), oninput: (e) => { s.url = e.target.value.trim(); e.target.classList.remove("bad"); } });
-      const stIn = h("select", { "aria-label": "Status", onchange: (e) => { s.status = e.target.value; } }, STATUS.map(([v, l]) => h("option", { value: v, text: l, selected: s.status === v })));
-      const rm = h("button", { class: "btn ghost sm rm", type: "button", "aria-label": "Remove this show", text: "✕", onclick: () => { run.slots.splice(run.slots.indexOf(s), 1); if (!run.slots.some((x) => x.date === s.date)) run.days.delete(s.date); redraw(); } });
-      grid.append(h("div", { class: "slot" }, tIn, uIn, stIn, rm));
-    }
-    const links = h("textarea", { id: "pasteLinks", placeholder: "https://tickets.example.com/show/1\nhttps://tickets.example.com/show/2\n…", "aria-label": "Ticket links, one per line" });
-    const linkMsg = h("div", { class: "hint" });
-    const oneLink = h("input", { type: "url", placeholder: "https://… one link for every show", "aria-label": "One ticket link for every show" });
-    card.append(h("div", { class: "step" }, h("div", { class: "step-label" }, h("span", { class: "step-num", text: n(3) }), "Times & ticket links", h("span", { class: "hint", style: "font-weight:400", text: run.venue && S.slotCache[run.venue.id] && S.slotCache[run.venue.id].length ? "Times filled in from this club's usual showtimes." : "Times filled in with typical showtimes. Adjust as needed." })),
-      h("div", { class: "paste" },
-        h("b", { text: "Paste all your ticket links at once" }),
-        h("div", { class: "hint", text: "One per line, in show order. They drop into the shows below from top to bottom." }),
-        links,
-        h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Fill in links", onclick: () => {
+      const links = h("textarea", { id: "pasteLinks", placeholder: "Paste your ticket links here, one per line", "aria-label": "Ticket links, one per line" });
+      const pasteBox = h("div", { class: "paste" }, h("div", { class: "hint", text: "One per line, in the same order as the shows below. Paste just one link and it's used for every show." }), links,
+        h("div", { class: "btns" }, h("button", { class: "btn sm primary", type: "button", text: "Fill in links", onclick: () => {
           const urls = links.value.split(/\s+/).map((x) => x.trim()).filter((x) => /^https?:\/\//i.test(x));
-          if (!urls.length) { linkMsg.textContent = "No links found. Each one should start with https://"; return; }
-          const ordered = sortedSlots(); ordered.forEach((s, i) => { if (urls[i]) s.url = urls[i]; });
+          if (!urls.length) { toast("No links found. Each one should start with https://", { bad: true }); return; }
+          const ordered = sortedSlots();
+          if (urls.length === 1) ordered.forEach((s) => { s.url = urls[0]; });
+          else ordered.forEach((s, i) => { if (urls[i]) s.url = urls[i]; });
+          run.showPaste = false; drawPanel();
           const extra = urls.length - ordered.length;
-          redraw();
-          toast(extra > 0 ? "Filled " + ordered.length + " shows. " + extra + " extra link" + (extra > 1 ? "s were" : " was") + " left over." : urls.length < ordered.length ? "Filled " + urls.length + " of " + ordered.length + " shows." : "Filled all " + urls.length + " ticket links.");
-        } }), linkMsg),
-        h("details", null, h("summary", { class: "hint", style: "cursor:pointer", text: "Same link for every show?" }), h("div", { class: "btns", style: "margin-top:8px" }, oneLink, h("button", { class: "btn sm", type: "button", text: "Use for all", onclick: () => { const u = oneLink.value.trim(); if (!/^https?:\/\//i.test(u)) { oneLink.classList.add("bad"); return; } run.slots.forEach((s) => { s.url = u; }); redraw(); } })))),
-      grid));
+          toast(urls.length === 1 ? "Using that link for all " + ordered.length + " shows." : extra > 0 ? "Filled " + ordered.length + " shows. " + extra + " extra link" + (extra > 1 ? "s were" : " was") + " left over." : urls.length < ordered.length ? "Filled " + urls.length + " of " + ordered.length + " shows." : "Filled all " + urls.length + " ticket links.");
+        } }), h("button", { class: "btn sm ghost", type: "button", text: "Cancel", onclick: () => { run.showPaste = false; drawPanel(); } })));
+      const msg = h("div", { class: "err" });
+      const save = h("button", { class: "btn primary big", type: "button", id: "saveRun", text: "Add " + n + " show" + (n === 1 ? "" : "s"), onclick: async () => {
+        msg.textContent = "";
+        if (run.slots.some((s) => s.url && !/^https?:\/\//i.test(s.url))) { msg.textContent = "One of the ticket links doesn't start with https://"; return; }
+        const v = run.venue;
+        const rows = sortedSlots().map((s) => ({ site_id: sid(), host: run.host, date: s.date, time: to12(s.time), venue: v.name, city: venueCity(v), venue_id: v.id, url: s.url || null, status: "on_sale" }));
+        save.disabled = true;
+        try {
+          await q(sb.from("shows").insert(rows));
+          await reload.shows(); delete S.slotCache[v.id];
+          const who = first(run.host), where = v.name;
+          resetRun(); closeRun(); redrawShows(); refreshNav(); confetti();
+          toast("🎤 " + rows.length + " show" + (rows.length > 1 ? "s" : "") + " live for " + who + " at " + where + "!");
+        } catch (e) { msg.textContent = errText(e); save.disabled = false; }
+      } });
+      body = h("div", { class: "stack" }, summary,
+        run.showPaste ? pasteBox : h("button", { class: "btn", type: "button", style: "justify-self:start", id: "openPaste", text: "📋 Paste all ticket links at once", onclick: () => { run.showPaste = true; drawPanel(); setTimeout(() => $("pasteLinks") && $("pasteLinks").focus()); } }),
+        h("p", { class: "hint", style: "margin:0", text: S.slotCache[run.venue.id] && S.slotCache[run.venue.id].length ? "Times are this club's usual showtimes. Change any that are off." : "Times are typical showtimes. Change any that are off." }),
+        slotsBox, msg);
+      footer = h("div", { class: "drawer-foot" }, h("button", { class: "btn ghost", type: "button", text: "← Back", onclick: () => { run.step = 2; drawPanel(); } }), save);
+    }
 
-    // save
-    const msg = h("div", { class: "err" });
-    const count = run.slots.length;
-    const save = h("button", { class: "btn primary big", type: "button", text: "Add " + count + " show" + (count === 1 ? "" : "s") + " for " + first(run.host), onclick: async () => {
-      msg.textContent = "";
-      const badUrl = run.slots.find((s) => s.url && !/^https?:\/\//i.test(s.url));
-      if (badUrl) { msg.textContent = "One of the ticket links doesn't start with https://"; return; }
-      const v = run.venue;
-      const rows = sortedSlots().map((s) => ({ site_id: sid(), host: run.host, date: s.date, time: to12(s.time), venue: v.name, city: venueCity(v), venue_id: v.id, url: s.url || null, status: s.status || "on_sale" }));
-      save.disabled = true;
-      try {
-        await q(sb.from("shows").insert(rows));
-        await reload.shows(); delete S.slotCache[v.id];
-        const where = v.name;
-        run.days.clear(); run.slots = []; run.venue = null;
-        redraw(); refreshNav(); confetti();
-        toast("🎤 " + rows.length + " show" + (rows.length > 1 ? "s" : "") + " live for " + first(rows[0].host) + " at " + where + "!");
-      } catch (e) { msg.textContent = errText(e); save.disabled = false; }
-    } });
-    card.append(h("div", { class: "step" }, msg, h("div", { class: "btns" }, save, h("button", { class: "btn ghost", type: "button", text: "Start over", onclick: () => { run.days.clear(); run.slots = []; redraw(); } }))));
+    const panel = h("aside", { class: "drawer", role: "dialog", "aria-modal": "true", "aria-label": "Add shows" },
+      h("div", { class: "drawer-head" }, h("h2", { text: "Add shows" }), h("button", { class: "btn ghost sm", type: "button", "aria-label": "Close", text: "✕", onclick: closeRun })),
+      progress, h("div", { class: "drawer-body" }, body), footer);
+    wrap.replaceChildren(h("div", { class: "drawer-backdrop", onclick: closeRun }), panel);
   }
 
   const isNewClub = (v) => !!(v && v.created_by_site && !v.verified);
@@ -781,15 +844,15 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
     return h("div", null, wrap, newBox);
   }
 
-  function calendar(month, redraw, isSecond) {
+  function calendar(month, redraw) {
     const y = month.getFullYear(), m = month.getMonth();
     const firstDow = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
-    const t0 = today();
+    const t0 = today(), now = new Date();
     const booked = new Set(S.shows.filter((s) => s.host === run.host).map((s) => s.date));
     const headRow = h("div", { class: "cal-head" },
-      !isSecond ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Previous month", text: "‹", disabled: y === new Date().getFullYear() && m <= new Date().getMonth(), onclick: () => { run.month = new Date(y, m - 1, 1); redraw(); } }) : h("span"),
+      h("button", { class: "btn ghost sm", type: "button", "aria-label": "Previous month", text: "‹", disabled: y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth()), onclick: () => { run.month = new Date(y, m - 1, 1); redraw(); } }),
       h("span", { text: MONTH_FULL[m] + " " + y }),
-      isSecond ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Next month", text: "›", onclick: () => { run.month = new Date(y, m, 1); redraw(); } }) : h("span"));
+      h("button", { class: "btn ghost sm", type: "button", "aria-label": "Next month", text: "›", onclick: () => { run.month = new Date(y, m + 1, 1); redraw(); } }));
     const grid = h("div", { class: "cal-grid" }, ["S", "M", "T", "W", "T", "F", "S"].map((d) => h("div", { class: "cal-dow", text: d })));
     for (let i = 0; i < firstDow; i++) grid.append(h("span"));
     for (let d = 1; d <= days; d++) {
@@ -804,62 +867,65 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
     const t0 = today();
     const base = S.shows.filter((s) => list.past || s.date >= t0);
     const chips = S.hosts.length > 1 ? h("div", { class: "seg", role: "group", "aria-label": "Filter by comedian" },
-      h("button", { type: "button", "aria-pressed": String(list.host === "all"), text: "Everyone (" + base.length + ")", onclick: () => { list.host = "all"; redraw(); } }),
-      S.hosts.map((x) => h("button", { type: "button", "aria-pressed": String(list.host === x.id), text: first(x.id) + " (" + base.filter((s) => s.host === x.id).length + ")", onclick: () => { list.host = x.id; redraw(); } }))) : h("span");
+      h("button", { type: "button", "aria-pressed": String(list.host === "all"), text: "Everyone", onclick: () => { list.host = "all"; redraw(); } }),
+      S.hosts.map((x) => h("button", { type: "button", "aria-pressed": String(list.host === x.id), text: first(x.id), onclick: () => { list.host = x.id; redraw(); } }))) : h("span");
     const search = h("input", { type: "search", class: "search", placeholder: "Search city or club", value: list.q, "aria-label": "Search shows" });
     const past = h("label", { class: "check" }, h("input", { type: "checkbox", checked: list.past, onchange: (e) => { list.past = e.target.checked; redraw(); } }), "Show past");
     const pastCount = S.shows.filter((s) => s.date < t0).length;
-    const clear = pastCount ? h("button", { class: "btn sm ghost danger", type: "button", text: "Clear " + pastCount + " past", onclick: async () => {
+    const clear = pastCount && list.past ? h("button", { class: "btn sm ghost danger", type: "button", text: "Clear " + pastCount + " past", onclick: async () => {
       const gone = S.shows.filter((s) => s.date < t0);
       try { await q(sb.from("shows").delete().eq("site_id", sid()).lt("date", t0)); await reload.shows(); redraw(); refreshNav();
         toast("Cleared " + gone.length + " past shows.", { action: { label: "Undo", run: () => restore(gone, redraw) } }); } catch (e) { toast(errText(e), { bad: true }); }
     } }) : null;
     const tbody = h("tbody");
+    const count = h("span", { class: "hint" });
     const draw = () => {
       const qq = list.q.toLowerCase();
       const rows = base.filter((s) => (list.host === "all" || s.host === list.host) && (!qq || ((s.city || "") + " " + (s.venue || "")).toLowerCase().includes(qq)))
         .sort((a, b) => (a.date + to24(a.time)).localeCompare(b.date + to24(b.time)));
+      count.textContent = rows.length + " show" + (rows.length === 1 ? "" : "s");
       tbody.replaceChildren();
       let lastM = "";
       for (const s of rows) {
         const mo = monthLabel(s.date);
-        if (mo !== lastM) { tbody.append(h("tr", { class: "month" }, h("td", { colspan: "7", text: mo }))); lastM = mo; }
+        if (mo !== lastM) { tbody.append(h("tr", { class: "month" }, h("td", { colspan: "6", text: mo }))); lastM = mo; }
         tbody.append(editingShow === s.id ? editRow(s, redraw) : showRow(s, redraw, t0));
         if (dupOf === s.id) tbody.append(editRow(s, redraw, true));
       }
-      if (!rows.length) tbody.append(h("tr", null, h("td", { colspan: "7" }, empty(S.shows.length ? "Nothing matches" : "No shows yet", S.shows.length ? "" : "Add your first run above. It takes about 30 seconds."))));
+      if (!rows.length) tbody.append(h("tr", null, h("td", { colspan: "6" }, S.shows.length ? empty("Nothing matches", "") :
+        h("div", { class: "empty" }, h("b", { text: "No shows yet" }), "Add a whole weekend at a club in about 30 seconds.", h("div", { style: "margin-top:12px" }, h("button", { class: "btn primary", type: "button", text: "+ Add shows", onclick: () => openRun() }))))));
     };
     search.addEventListener("input", () => { list.q = search.value; draw(); });
     draw();
-    card.replaceChildren(h("h2", { text: list.past ? "All shows" : "Upcoming shows" }), h("div", { class: "toolbar" }, chips, h("div", { class: "btns" }, search, past, clear)),
-      h("div", { class: "tablewrap" }, h("table", null, h("thead", null, h("tr", null, ["Date", "Time", S.hosts.length > 1 ? "Who" : "", "Club", "Tickets", "Status", ""].map((x) => h("th", { text: x })))), tbody)));
+    card.replaceChildren(h("div", { class: "toolbar" }, chips, h("div", { class: "btns" }, search, past, clear, count)),
+      h("div", { class: "tablewrap" }, h("table", { class: "shows-table" }, h("thead", null, h("tr", null, ["When", S.hosts.length > 1 ? "Who" : "", "Club", "Tickets", "Status", ""].map((x) => h("th", { text: x })))), tbody)));
   }
 
   function showRow(s, redraw, t0) {
-    const status = h("select", { class: "status", "aria-label": "Status", onchange: async (e) => {
-      try { await q(sb.from("shows").update({ status: e.target.value }).eq("id", s.id)); s.status = e.target.value; toast("Marked " + STATUS.find((x) => x[0] === s.status)[1].toLowerCase() + "."); }
+    const status = h("select", { class: "status st-" + (s.status || "on_sale"), "aria-label": "Status", onchange: async (e) => {
+      try { await q(sb.from("shows").update({ status: e.target.value }).eq("id", s.id)); s.status = e.target.value; e.target.className = "status st-" + s.status; toast("Marked " + STATUS.find((x) => x[0] === s.status)[1].toLowerCase() + "."); }
       catch (err) { toast(errText(err), { bad: true }); e.target.value = s.status; }
     } }, STATUS.map(([v, l]) => h("option", { value: v, text: l, selected: (s.status || "on_sale") === v })));
-    return h("tr", { class: s.date < t0 ? "past" : "" },
-      h("td", { class: "nowrap", text: shortDate(s.date) }),
-      h("td", { class: "nowrap", text: s.time || "—" }),
-      h("td", { class: "nowrap", text: S.hosts.length > 1 ? first(s.host) : "" }),
-      h("td", { class: "wrap-any" }, h("div", { text: s.venue || "—" }), h("div", { class: "hint", text: s.city || "" })),
-      h("td", null, s.url ? h("a", { href: s.url, target: "_blank", rel: "noopener", text: "Link ↗" }) : h("span", { class: "pill warn", text: "Add link" })),
-      h("td", null, status),
-      h("td", { class: "actions" },
-        h("button", { class: "btn ghost sm", type: "button", text: "Edit", onclick: () => { editingShow = s.id; dupOf = null; redraw(); } }),
-        h("button", { class: "btn ghost sm", type: "button", text: "Duplicate", title: "Copy this show (same club, date and details) so you only change the time", onclick: () => { dupOf = s.id; editingShow = null; redraw(); } }),
-        h("button", { class: "btn ghost sm", type: "button", text: "More here", title: "Add more shows at this club", onclick: async () => {
-          const v = venueById(s.venue_id); if (v) { run.venue = v; await loadSlots(v.id); } run.host = s.host; run.days.clear(); run.slots = [];
-          const d = parseISO(s.date); run.month = new Date(d.getFullYear(), d.getMonth(), 1); redraw();
-          const c = $("addRun"); c && c.scrollIntoView && c.scrollIntoView({ behavior: "smooth", block: "start" });
+    const menu = h("details", { class: "menu" }, h("summary", { class: "btn ghost sm", "aria-label": "More actions", text: "⋯" }),
+      h("div", { class: "menu-pop" },
+        h("button", { type: "button", text: "Duplicate (same night, new time)", onclick: () => { dupOf = s.id; editingShow = null; redraw(); } }),
+        h("button", { type: "button", text: "Add more shows at this club", onclick: async () => {
+          const v = venueById(s.venue_id); if (v) await loadSlots(v.id);
+          const d = parseISO(s.date); openRun({ host: s.host, venue: v || null, month: new Date(d.getFullYear(), d.getMonth(), 1) });
         } }),
-        h("button", { class: "btn ghost sm danger", type: "button", text: "Delete", onclick: async () => {
+        h("button", { type: "button", class: "danger", text: "Delete", onclick: async () => {
           try { await q(sb.from("shows").delete().eq("id", s.id)); await reload.shows(); redraw(); refreshNav();
             toast("Deleted " + shortDate(s.date) + " in " + (s.city || s.venue) + ".", { action: { label: "Undo", run: () => restore([s], redraw) } }); }
           catch (e) { toast(errText(e), { bad: true }); }
         } })));
+    menu.addEventListener("toggle", () => { if (menu.open) document.querySelectorAll("details.menu[open]").forEach((m) => { if (m !== menu) m.open = false; }); });
+    return h("tr", { class: s.date < t0 ? "past" : "" },
+      h("td", { class: "nowrap" }, h("b", { text: shortDate(s.date) }), h("div", { class: "hint", text: s.time || "Time TBA" })),
+      h("td", { class: "nowrap", text: S.hosts.length > 1 ? first(s.host) : "" }),
+      h("td", { class: "wrap-any" }, h("div", { text: s.venue || "—" }), h("div", { class: "hint", text: s.city || "" })),
+      h("td", null, s.url ? h("a", { href: s.url, target: "_blank", rel: "noopener", text: "Link ↗" }) : h("button", { class: "pill warn", type: "button", style: "border:0;cursor:pointer", text: "+ Add link", onclick: () => { editingShow = s.id; dupOf = null; redraw(); } })),
+      h("td", null, status),
+      h("td", { class: "actions" }, h("button", { class: "btn ghost sm", type: "button", text: "Edit", onclick: () => { editingShow = s.id; dupOf = null; redraw(); } }), menu));
   }
   async function restore(rows, redraw) {
     try { await q(sb.from("shows").insert(rows.map(({ id, ...r }) => r))); await reload.shows(); redraw(); refreshNav(); toast("Restored."); } catch (e) { toast(errText(e), { bad: true }); }
@@ -894,7 +960,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
       } catch (e) { toast(errText(e), { bad: true }); }
     };
     const tr = h("tr", { class: "editing" },
-      h("td", null, isCopy ? h("div", { class: "pill ok", style: "margin-bottom:6px", text: "Copy" }) : null, date), h("td", null, time), h("td", null, host), clubCell,
+      h("td", null, isCopy ? h("div", { class: "pill ok", style: "margin-bottom:6px", text: "New show" }) : null, h("div", { class: "stack", style: "gap:6px" }, date, time)), h("td", null, host), clubCell,
       h("td", null, url, isCopy && s.url ? h("div", { class: "hint", text: "Same link as the original. Paste the new one if it's different." }) : null), h("td", null, status),
       h("td", { class: "actions" }, h("button", { class: "btn primary sm", type: "button", text: isCopy ? "Add show" : "Save", onclick: save }), " ", h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: cancel })));
     tr.addEventListener("keydown", (e) => {
@@ -1145,22 +1211,39 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
   }
   const SOC = [["instagram", "Instagram", "https://www.instagram.com/…"], ["youtube", "YouTube", "https://www.youtube.com/@…"], ["tiktok", "TikTok", "https://www.tiktok.com/@…"], ["twitter", "X / Twitter", "https://x.com/…"], ["website", "Linktree or website", "https://linktr.ee/…"]];
   function viewPeople(main) {
-    const addBtn = h("button", { class: "btn", type: "button", text: "+ Add a person", onclick: async () => {
-      const name = "New Person";
-      const id = sid() + "-" + Date.now().toString(36);
-      try { await q(sb.from("hosts").insert({ id, site_id: sid(), name, title: "Comedian", bio: "", sort: S.hosts.length })); await reload.hosts(); route(); toast("Added. Fill in their details below."); } catch (e) { toast(errText(e), { bad: true }); }
+    const addBox = h("div");
+    const addBtn = h("button", { class: "btn primary", type: "button", text: "+ Add a person", onclick: () => {
+      const name = h("input", { id: "newPersonName", placeholder: "Full name", maxlength: "60" }), title = h("input", { placeholder: "Comedian", value: "Comedian" });
+      const msg = h("div", { class: "err" });
+      addBox.replaceChildren(h("form", { class: "card stack", onsubmit: async (e) => {
+        e.preventDefault(); msg.textContent = "";
+        const n = name.value.trim(); if (!n) { name.classList.add("bad"); name.focus(); return; }
+        let id = slug(n.split(" ")[0]) || "person"; while (S.hosts.some((x) => x.id === id)) id = id + "-" + Math.floor(Math.random() * 900 + 100);
+        try { await q(sb.from("hosts").insert({ id: sid() + "-" + id, site_id: sid(), name: n, title: title.value.trim() || "Comedian", bio: "", sort: S.hosts.length }));
+          await reload.hosts(); route(); toast(n + " added. Fill in their bio and photo below."); }
+        catch (err) { msg.textContent = errText(err); }
+      } }, h("h2", { text: "Add a person" }), h("p", { class: "sub", text: "Comics, co-hosts, producers: anyone you want on the site with their own page and show dates." }),
+        h("div", { class: "grid" }, field("Name", name, "c7"), field("Title", title, "c5")), msg,
+        h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add person" }), h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => addBox.replaceChildren() }))));
+      name.focus();
     } });
-    main.append(head("People", "Bios, photos and socials. Leave Status blank and the site writes it from their show dates.", addBtn));
+    main.append(head("People", "Everyone on your site. Each person gets their own page, bio, photo, socials and show dates.", addBtn), addBox);
     const grid = h("div", { class: "people" }); main.append(grid);
-    for (const x of S.hosts) {
+    if (!S.hosts.length) grid.append(h("section", { class: "card" }, empty("No one here yet", "Add the first person above.")));
+    S.hosts.forEach((x, idx) => {
       const inp = { name: h("input", { value: x.name, required: true }), title: h("input", { value: x.title || "", placeholder: "Comedian" }), status: h("input", { value: x.status || "", placeholder: "Automatic" }), bio: h("textarea", { value: x.bio || "" }) };
       for (const [k, , ph] of SOC) inp[k] = h("input", { type: "url", value: x[k] || "", placeholder: ph });
-      let pic = x.photo_url ? h("img", { class: "avatar", src: x.photo_url, alt: "" }) : h("div", { class: "avatar", text: "Built-in photo" });
+      let pic = x.photo_url ? h("img", { class: "avatar", src: x.photo_url, alt: "" }) : h("div", { class: "avatar", text: "No photo" });
       const file = h("input", { type: "file", accept: "image/*", style: "display:none" });
       file.addEventListener("change", () => { if (file.files[0]) { const im = h("img", { class: "avatar", src: URL.createObjectURL(file.files[0]), alt: "" }); pic.replaceWith(im); pic = im; } });
       const msg = h("div", { class: "err" });
       const save = h("button", { class: "btn primary", type: "submit", text: "Save " + x.name.split(" ")[0] });
-      grid.append(h("form", { class: "card stack", onsubmit: async (e) => {
+      const showCount = S.shows.filter((s) => s.host === x.id).length;
+      const swap = async (a, b) => {
+        const A = S.hosts[a], B = S.hosts[b];
+        try { await q(sb.from("hosts").update({ sort: b }).eq("id", A.id)); await q(sb.from("hosts").update({ sort: a }).eq("id", B.id)); await reload.hosts(); route(); } catch (e) { toast(errText(e), { bad: true }); }
+      };
+      const card = h("form", { class: "card stack" + (x.hidden ? " is-hidden" : ""), onsubmit: async (e) => {
         e.preventDefault(); save.disabled = true; msg.textContent = "";
         const row = { name: inp.name.value.trim(), title: inp.title.value.trim() || "Comedian", status: inp.status.value.trim() || null, bio: inp.bio.value.trim() };
         for (const [k] of SOC) row[k] = inp[k].value.trim() || null;
@@ -1168,10 +1251,28 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
         catch (err) { msg.textContent = errText(err); }
         save.disabled = false;
       } },
-        h("div", { class: "person-top" }, pic, h("div", null, h("b", { text: x.name }), h("div", { style: "margin-top:6px" }, h("label", { class: "btn sm" }, "Change photo", file)))),
+        h("div", { class: "person-top" }, pic, h("div", { style: "min-width:0;flex:1" }, h("b", { text: x.name }), x.hidden ? h("span", { class: "pill", style: "margin-left:6px", text: "Hidden" }) : null,
+          h("div", { class: "hint", text: showCount ? showCount + " show" + (showCount > 1 ? "s" : "") : "No shows yet" }),
+          h("div", { class: "btns", style: "margin-top:6px;gap:4px" }, h("label", { class: "btn sm" }, "Change photo", file),
+            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " earlier", text: "↑", disabled: idx === 0, onclick: () => swap(idx, idx - 1) }),
+            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " later", text: "↓", disabled: idx === S.hosts.length - 1, onclick: () => swap(idx, idx + 1) })))),
         h("div", { class: "grid" }, field("Name", inp.name, "c6"), field("Title", inp.title, "c6"), field("Status", inp.status, "c12"), field("Bio", inp.bio, "c12")),
-        h("div", { class: "grid" }, SOC.map(([k, l]) => field(l, inp[k], "c12"))), msg, h("div", { class: "btns" }, save)));
-    }
+        h("details", { class: "quiet" }, h("summary", { text: "Social links" }), h("div", { class: "grid", style: "margin-top:8px" }, SOC.map(([k, l]) => field(l, inp[k], "c12")))),
+        msg,
+        h("div", { class: "btns" }, save,
+          h("button", { class: "btn ghost", type: "button", text: x.hidden ? "Show on site" : "Hide from site", title: "Hidden people keep their info and shows, but don't appear on your site", onclick: async () => {
+            try { await q(sb.from("hosts").update({ hidden: !x.hidden }).eq("id", x.id)); await reload.hosts(); route(); toast(x.hidden ? x.name + " is back on your site." : x.name + " is hidden from your site."); } catch (e) { toast(errText(e), { bad: true }); }
+          } }),
+          h("button", { class: "btn ghost danger", type: "button", text: "Remove…", onclick: (e) => {
+            const zone = e.currentTarget.parentNode;
+            zone.replaceWith(h("div", { class: "newclub stack", style: "gap:8px" }, h("b", { text: "Remove " + x.name + "?" }),
+              h("span", { class: "hint", text: showCount ? "This also deletes their " + showCount + " show" + (showCount > 1 ? "s" : "") + ". To keep everything, use Hide from site instead." : "Their page goes away. This can't be undone." }),
+              h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Remove " + x.name.split(" ")[0], onclick: async () => {
+                try { await q(sb.from("hosts").delete().eq("id", x.id)); await reload.hosts(); await reload.shows(); route(); toast(x.name + " removed."); } catch (er) { toast(errText(er), { bad: true }); }
+              } }), h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: () => route() }))));
+          } })));
+      grid.append(card);
+    });
   }
 
   /* ======================================================
@@ -1337,10 +1438,10 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
   async function viewTheme(main) {
     const theme = await loadTheme();
     if (!theme || !Array.isArray(theme.settings)) {
-      main.append(head("Theme", "Settings that belong to your site's design."), h("section", { class: "card" }, empty("Nothing to set", "Your site's design doesn't have any extra settings.")));
+      main.append(head("Design settings", "Switches that belong to your site's design."), h("section", { class: "card" }, empty("Nothing to set", "Your site's design doesn't have any extra settings.")));
       return;
     }
-    main.append(head("Theme: " + (theme.name || "Your design"), theme.description || "Settings that belong to your site's design."));
+    main.append(head("Design settings", (theme.name ? theme.name + ". " : "") + "These switches come with your site's design, so a different design will have different ones."));
     const vals = Object.assign({}, S.site.theme || {});
     const inputs = {};
     const rows = theme.settings.map((st) => {
@@ -1351,7 +1452,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
       else input = (inputs[st.key] = h("input", { value: v ?? "", placeholder: st.placeholder || "", "aria-label": st.label, style: "max-width:260px" }));
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), input);
     });
-    const save = h("button", { class: "btn primary", type: "submit", text: "Save theme settings" });
+    const save = h("button", { class: "btn primary", type: "submit", text: "Save design settings" });
     main.append(h("form", { class: "card stack", onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true;
       const out = {};
@@ -1644,8 +1745,44 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
       } });
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), h("label", { class: "switch" }, box, h("span")));
     })));
-    main.append(h("div", { class: "stack" }, siteCard, feats));
+    main.append(h("div", { class: "stack" }, siteCard, feats, teamCard()));
     if (S.isPlatform) main.querySelector(".stack").append(clubsReview());
+  }
+  const loginEmail = (u) => { u = String(u || "").trim(); return u.includes("@") ? u.toLowerCase() : u.toLowerCase() + "@" + (CFG.LOGIN_DOMAIN || "cockfightpodcast.com"); };
+  async function teamCall(body) {
+    const r = await fetch("/.netlify/functions/team", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: JSON.stringify({ site_id: sid(), ...body }) });
+    const out = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(out.error || (r.status === 404 ? "Team management isn't set up yet. See the setup steps." : "Something went wrong (" + r.status + ")."));
+    return out;
+  }
+  function teamCard() {
+    const card = h("section", { class: "card" }, h("h2", { text: "Team" }), h("p", { class: "hint", text: "Loading…" }));
+    async function draw() {
+      let res;
+      try { res = await teamCall({ action: "list" }); }
+      catch (e) { card.replaceChildren(h("h2", { text: "Team" }), h("p", { class: "sub", text: "Who can log in to this admin." }), h("p", { class: "err", text: /Failed to fetch|NetworkError|Load failed/.test(e.message) ? "Team management isn't set up yet. See the setup steps." : e.message })); return; }
+      const owner = res.you_are === "owner";
+      const user = h("input", { id: "teamUser", placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
+      const pass = h("input", { id: "teamPass", type: "text", placeholder: "at least 8 characters", "aria-label": "Starting password" });
+      const role = h("select", { "aria-label": "Role", style: "width:auto" }, h("option", { value: "editor", text: "Editor: can edit everything" }), h("option", { value: "owner", text: "Owner: can also manage the team" }));
+      const msg = h("div", { class: "err" });
+      card.replaceChildren(h("h2", { text: "Team" }), h("p", { class: "sub", text: "Who can log in to this admin." }),
+        h("div", null, res.team.map((m) => h("div", { class: "switch-row" },
+          h("div", null, h("b", { text: m.email.replace("@" + (CFG.LOGIN_DOMAIN || "cockfightpodcast.com"), "") }), m.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null,
+            h("div", { class: "hint", text: (m.role === "owner" ? "Owner" : "Editor") + (m.last_sign_in ? " · last in " + ago(m.last_sign_in) : " · hasn't logged in yet") })),
+          owner && !m.you ? sure("Remove", async () => { try { await teamCall({ action: "remove", user_id: m.user_id }); toast("Removed from the team."); draw(); } catch (e) { toast(e.message, { bad: true }); } }) : null))),
+        owner ? h("div", { class: "newclub stack", style: "gap:10px;margin-top:12px" }, h("b", { text: "Add someone" }),
+          h("div", { class: "grid" }, field("Username or email", user, "c6"), field("Starting password", pass, "c6"), h("div", { class: "field c12" }, h("span", { text: "Access" }), role)),
+          h("div", { class: "hint", text: "Send them their username and password yourself. If they already have a login, the password is ignored." }), msg,
+          h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Add to team", onclick: async (e) => {
+            msg.textContent = "";
+            if (!user.value.trim()) { user.classList.add("bad"); user.focus(); return; }
+            const b = e.currentTarget; b.disabled = true;
+            try { await teamCall({ action: "add", email: loginEmail(user.value), password: pass.value, role: role.value }); toast(user.value.trim() + " can log in now."); draw(); }
+            catch (er) { msg.textContent = er.message; b.disabled = false; }
+          } }))) : h("p", { class: "hint", text: "Only owners can add or remove people." }));
+    }
+    draw(); return card;
   }
   function clubsReview() {
     const card = h("section", { class: "card" });

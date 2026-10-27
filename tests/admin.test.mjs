@@ -76,50 +76,76 @@ test("home shows a greeting, stats and to-dos", async () => {
 
 test("adding a weekend run: club search, calendar, learned times, pasted links", async () => {
   const { w, d, db } = await open("#shows");
-  btn(d, /^Lev Fer$/).click(); await wait();
-  const search = d.getElementById("clubSearch");
-  set(w, search, "laugh bos"); await wait();
-  const opts = [...d.querySelectorAll(".combo-item")].map((o) => o.textContent);
+  d.getElementById("addShowsBtn").click(); await wait();
+  const panel = () => d.getElementById("runPanel");
+  assert.ok(panel(), "the add-shows panel opens");
+  assert.match(panel().querySelector(".steps li.on").textContent, /Club/);
+  btn(d, /^Lev Fer$/, panel()).click(); await wait();
+  set(w, d.getElementById("clubSearch"), "laugh bos"); await wait();
+  const opts = [...d.querySelectorAll("#clubList .combo-item")].map((o) => o.textContent);
   assert.match(opts[0], /Laugh Boston/); assert.match(opts.at(-1), /Add “laugh bos” as a new club/);
-  d.querySelector(".combo-item").click(); await wait(60);
-  assert.match(d.querySelector(".picked").textContent, /Laugh Boston/);
+  d.querySelector("#clubList .combo-item").click(); await wait(60);
+  assert.match(panel().querySelector(".steps li.on").textContent, /Dates/);
+  assert.match(panel().querySelector(".run-summary").textContent, /Laugh Boston.*Boston, MA.*Lev Fer/);
+  assert.equal(d.getElementById("toTimes").disabled, true);
   d.querySelector(`.day[data-date="${fri}"]`).click(); await wait();
   d.querySelector(`.day[data-date="${sat}"]`).click(); await wait();
-  const times = [...d.querySelectorAll(".slot input[type=time]")].map((i) => i.value);
+  assert.match(d.getElementById("toTimes").textContent, /4 shows/);
+  d.getElementById("toTimes").click(); await wait();
+  const times = [...panel().querySelectorAll(".slot input[type=time]")].map((i) => i.value);
   assert.deepEqual(times, ["19:30", "22:00", "19:00", "21:30"]); // Fri learned from this club, Sat typical
+  d.getElementById("openPaste").click(); await wait();
   set(w, d.getElementById("pasteLinks"), "https://t/a\nhttps://t/b\nhttps://t/c\nhttps://t/d\nhttps://t/e");
   btn(d, /^Fill in links$/).click(); await wait();
   assert.match(d.getElementById("toast").textContent, /1 extra link was left over/);
-  const save = btn(d, /^Add 4 shows for Lev$/); assert.ok(save);
-  save.click(); await wait(80);
+  assert.equal(d.getElementById("saveRun").textContent, "Add 4 shows");
+  d.getElementById("saveRun").click(); await wait(80);
   const added = db.shows.filter((s) => s.id !== "s0");
   assert.equal(added.length, 4);
   assert.deepEqual(added.map((s) => [s.date, s.time, s.url]), [[fri, "7:30 PM", "https://t/a"], [fri, "10:00 PM", "https://t/b"], [sat, "7:00 PM", "https://t/c"], [sat, "9:30 PM", "https://t/d"]]);
   assert.ok(added.every((s) => s.venue_id === "v1" && s.city === "Boston, MA" && s.host === "lev" && s.site_id === "cockfight"));
   assert.match(d.getElementById("toast").textContent, /4 shows live for Lev at Laugh Boston/);
+  assert.equal(panel(), null, "the panel closes after saving");
   assert.equal(d.querySelectorAll("tbody tr:not(.month)").length, 4);
+});
+
+test("one pasted link is used for every show", async () => {
+  const { w, d, db } = await open("#shows");
+  d.getElementById("addShowsBtn").click(); await wait();
+  set(w, d.getElementById("clubSearch"), "comedy works"); await wait();
+  d.querySelector("#clubList .combo-item").click(); await wait(60);
+  d.querySelector(`.day[data-date="${fri}"]`).click(); await wait();
+  d.getElementById("toTimes").click(); await wait();
+  d.getElementById("openPaste").click(); await wait();
+  set(w, d.getElementById("pasteLinks"), "https://club/all-shows");
+  btn(d, /^Fill in links$/).click(); await wait();
+  d.getElementById("saveRun").click(); await wait(80);
+  const added = db.shows.filter((s) => s.venue_id === "v2");
+  assert.equal(added.length, 2); assert.ok(added.every((s) => s.url === "https://club/all-shows"));
 });
 
 test("a new club can be added on the spot", async () => {
   const { w, d, db } = await open("#shows");
+  d.getElementById("addShowsBtn").click(); await wait();
   set(w, d.getElementById("clubSearch"), "Big Room Austin"); await wait();
   btn(d, /as a new club/).click(); await wait();
   set(w, d.getElementById("ncCity"), "Austin"); set(w, d.getElementById("ncState"), "tx");
   btn(d, /^Save club$/).click(); await wait(60);
   const v = db.venues.find((x) => x.name === "Big Room Austin");
   assert.equal(v.state, "TX"); assert.equal(v.status, "approved"); assert.equal(v.verified, false); assert.equal(v.created_by_site, "cockfight");
-  assert.match(d.querySelector(".picked").textContent, /Big Room Austin/);
+  assert.match(d.querySelector(".run-summary").textContent, /Big Room Austin/);
 });
 
 test("adding a club that's already listed suggests the existing one", async () => {
   const { w, d, db } = await open("#shows");
+  d.getElementById("addShowsBtn").click(); await wait();
   set(w, d.getElementById("clubSearch"), "Comedy Works Downtown Denver CO"); await wait();
   btn(d, /as a new club/).click(); await wait();
   set(w, d.getElementById("ncName"), "comedy works downtown"); set(w, d.getElementById("ncCity"), "Denver");
   btn(d, /^Save club$/).click(); await wait();
   assert.match(d.body.textContent, /Did you mean one of these\?/);
   btn(d, /Comedy Works Downtown · Denver, CO/).click(); await wait(40);
-  assert.match(d.querySelector(".picked").textContent, /Comedy Works Downtown/);
+  assert.match(d.querySelector(".run-summary").textContent, /Comedy Works Downtown/);
   assert.equal(db.venues.length, 2);
 });
 
@@ -145,7 +171,7 @@ test("status change, edit, delete and undo on the list", async () => {
 test("duplicate copies everything and moves the time; edit can change the club", async () => {
   const { w, d, db } = await open("#shows", (db) => db.shows.push({ id: "s7", site_id: "cockfight", host: "lev", date: sat, time: "7:00 PM", venue: "Laugh Boston", city: "Boston, MA", venue_id: "v1", url: "https://t/7", status: "few_left", note: "18+" }));
   let row = [...d.querySelectorAll("tbody tr")].find((tr) => /7:00 PM/.test(tr.textContent) && /Laugh Boston/.test(tr.textContent));
-  btn(d, /^Duplicate$/, row).click(); await wait();
+  btn(d, /^Duplicate/, row).click(); await wait();
   const copy = d.querySelector("tr.editing");
   assert.equal(copy.querySelector('input[type=time]').value, "21:00");
   assert.equal(copy.querySelector('input[type=date]').value, sat);
@@ -186,7 +212,7 @@ test("profile and theme settings save to the site", async () => {
   set(w, d.querySelector("main input"), "The funniest podcast"); d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
   assert.equal(db.sites[0].profile.tagline, "The funniest podcast");
   w.location.hash = "theme"; await wait(80);
-  assert.match(d.querySelector("h1").textContent, /90s Cantina/);
+  assert.match(d.querySelector("h1").textContent, /Design settings/); assert.match(d.querySelector(".page-head .sub").textContent, /90s Cantina/);
   const splash = d.querySelector('input[aria-label="Rooster splash screen"]'); splash.checked = false;
   d.querySelector('select[aria-label="Scrolling banner speed"]').value = "fast";
   d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
@@ -229,4 +255,26 @@ test("moderation saves house rules; chat can be closed", async () => {
   assert.equal(db.sites[0].community.chat_open, false);
   set(w, d.querySelector('input[aria-label="Message"]'), "Hello fans"); d.querySelector("main form.btns").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
   assert.equal(db.chat_messages[0].is_mod, true); assert.equal(db.chat_messages[0].author, "Colum Tyrrell");
+});
+
+test("people: add, hide, remove", async () => {
+  const { w, d, db } = await open("#people");
+  btn(d, /^\+ Add a person$/).click(); await wait();
+  set(w, d.getElementById("newPersonName"), "Sam Guest");
+  d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  const sam = db.hosts.find((x) => x.name === "Sam Guest");
+  assert.ok(sam); assert.equal(sam.site_id, "cockfight"); assert.equal(sam.sort, 3); assert.match(sam.id, /^cockfight-sam/);
+  let card = [...d.querySelectorAll(".people form")].find((f) => /Sam Guest/.test(f.textContent));
+  btn(d, /^Hide from site$/, card).click(); await wait(60);
+  assert.equal(db.hosts.find((x) => x.name === "Sam Guest").hidden, true);
+  card = [...d.querySelectorAll(".people form")].find((f) => /Sam Guest/.test(f.textContent));
+  btn(d, /^Remove…$/, card).click(); await wait();
+  btn(d, /^Remove Sam$/).click(); await wait(60);
+  assert.ok(!db.hosts.find((x) => x.name === "Sam Guest"));
+});
+
+test("team section explains when it isn't set up yet", async () => {
+  const { d } = await open("#settings");
+  await wait(80);
+  assert.match(d.body.textContent, /Team management isn't set up yet/);
 });

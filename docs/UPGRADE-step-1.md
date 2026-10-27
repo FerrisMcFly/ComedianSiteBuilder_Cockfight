@@ -12,8 +12,8 @@ In Supabase, open **SQL Editor → New query**. Paste in each file from the `sup
 
 Each should say "Success." Your live site keeps working the whole time.
 
-## 2. Give Netlify the import key
-Auto-import runs on Netlify and needs a private key to write new episodes into the database.
+## 2. Give Netlify the private key
+Auto-import and the Team page run on Netlify and need a private key to work with the database.
 
 1. In Supabase, go to **Project Settings → API keys** and copy the **service_role** key (it may be labeled "secret").
    **Keep this key private.** Never paste it into a page, a chat with anyone, or GitHub.
@@ -32,27 +32,25 @@ Go to **cockfightpodcast.com/admin** and log in.
 - **Settings:** turn sections on or off. Merch starts off; turn it on when you have items to add. As the platform owner, you'll also see **Recently added clubs** here, where you can fix typos or remove duplicates.
 
 ## How show entry works now
-**Shows → Add shows:**
-1. Pick who's performing.
-2. Search for the club. If it's not listed, add it right there. It goes straight into the shared club database for every comic. If it looks like a club that's already listed, you'll get a "Did you mean…?" first.
-3. Tap the days on the calendar. Times fill in from that club's usual showtimes, so the more shows get entered, the better the guesses get.
-4. Paste all your ticket links at once, one per line.
-5. Click **Add shows**.
+Click **+ Add shows** on the Shows page. A panel walks you through three steps:
+1. **Club:** pick who's performing, then search for the club. If it's not listed, add it right there. It goes straight into the shared club database. If it looks like a club that's already listed, you'll get a "Did you mean…?" first.
+2. **Dates:** tap the days on the calendar. Green dots mark days that already have a show.
+3. **Times & tickets:** times fill in from that club's usual showtimes. Click **Paste all ticket links at once** and paste them one per line, or paste a single link to use it for every show. Then click **Add shows**.
 
-Each show also has a status (on sale, few left, sold out, free, cancelled) that you can change from the list.
+In the list, change a show's status (on sale, few left, sold out, free, cancelled) right from its row. **Edit** changes anything, and the **⋯** menu has **Duplicate** (same night, new time), **Add more shows at this club**, and **Delete** (with Undo).
 
 ## The admin, section by section
-- **Content:** Shows, Podcast, Videos, Merch, People.
+- **Content:** Shows, Podcast, Videos, Merch, and People (add, reorder, hide or remove anyone on the site).
 - **Your site:**
   - **Profile:** tagline, about, contact, and your support link (Patreon, Ko-fi…).
   - **Announcements:** a list with optional links, start/end dates and pinning. Cockfight shows them in the scrolling banner, with the pinned one as the NEW!! line.
   - **Links:** a link-in-bio list.
-  - **Theme:** settings that belong to the design. For Cockfight: splash screen, music, banner speed, visitor counter, support banner, cursor trail, webmaster credit.
+  - **Design settings:** switches that belong to the design. For Cockfight: splash screen, music, banner speed, visitor counter, support banner, cursor trail, webmaster credit.
 - **Community:**
   - **Forum:** pin, lock, move and delete topics; edit, delete and ban from any post; reply or start topics as a host (with a Host badge); create, rename, reorder, lock and hide boards.
   - **Chat room:** watch it live, chat as a host, delete messages, ban, slow mode, open/close, clear.
   - **Moderation:** house rules (forum open, protect host names, slow mode, banned words), the ban list, and a log of every moderator action.
-- **Settings:** turn whole sections on or off. Chat starts off; turn it on when you're ready.
+- **Settings:** turn whole sections on or off (chat starts off), and manage your **Team**, meaning who can log in. Owners can add people with a username and starting password, as an Editor or another Owner, and can remove them.
 
 ## For a different front end
 Everything a front end needs comes from `site/sdk/csb.js`: one call to `CSB.load()` returns the profile, people, shows, episodes, videos, merch, announcements, links and boards, already filtered for the public. `CSB.forum` and `CSB.chat` run the community. A front end lists its own settings in `theme.json`, and the admin's Theme page builds itself from that file.
