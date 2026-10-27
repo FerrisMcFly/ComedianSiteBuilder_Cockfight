@@ -447,3 +447,32 @@ test("whole-show events, and a comic's date from another site can be hidden here
   assert.ok(ev.every((s) => s.host === null && JSON.stringify(s.lineup) === JSON.stringify(["colum-tyrrell", "lev-fer", "tristan-bowling"])), JSON.stringify(ev));
   assert.match(d.getElementById("toast").textContent, /live for Cockfight at Laugh Boston/);
 });
+
+test("show finder: watch a page for someone, then add or ignore what it found", async () => {
+  const { w, d, db } = await open("#shows", (db) => {
+    db.found_shows = [{ id: "f1", site_id: "cockfight", comic_id: "lev-fer", key: "a", date: fri, time: "8:00 PM", venue: "Zanies", city: "Chicago, IL", url: "https://t/z", status: "on_sale", state: "new" },
+                      { id: "f2", site_id: "cockfight", comic_id: "lev-fer", key: "b", date: sat, time: "8:00 PM", venue: "Zanies", city: "Chicago, IL", state: "new" }];
+  });
+  let posted = null;
+  w.fetch = async (u, o) => { posted = JSON.parse(o.body); return { ok: true, json: async () => ({ results: [{ ok: true, status: "0 new to check" }] }) }; };
+  await wait(60);
+  const main = d.querySelector("main");
+  assert.match(main.textContent, /Found 2 new shows/);
+  // add one: it becomes Lev's show on this site
+  const row = [...main.querySelectorAll(".switch-row")].find((r) => r.textContent.includes(shortDay(fri)));
+  btn(d, /^Add$/, row).click(); await wait(80);
+  const added = db.shows.find((s) => s.venue === "Zanies");
+  assert.ok(added); assert.equal(added.host, "lev"); assert.equal(added.url, "https://t/z");
+  assert.equal(db.found_shows.find((f) => f.id === "f1").state, "added");
+  btn(d, /^Ignore$/).click(); await wait(60);
+  assert.equal(db.found_shows.find((f) => f.id === "f2").state, "ignored");
+
+  // start watching a page for Tristan, asking first
+  d.getElementById("finderWho").value = "tristan";
+  set(w, d.getElementById("finderUrl"), "https://club.example/calendar");
+  d.getElementById("finderAdd").click(); await wait(80);
+  const src = db.sources.find((x) => x.kind === "shows");
+  assert.deepEqual([src.url, src.host, src.comic_id, src.auto_add, src.match_all], ["https://club.example/calendar", "tristan", "tristan-bowling", false, false]);
+  assert.equal(posted.kind, "shows");
+});
+function shortDay(iso) { const d = new Date(iso + "T12:00:00"); return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()] + " " + d.getDate(); }

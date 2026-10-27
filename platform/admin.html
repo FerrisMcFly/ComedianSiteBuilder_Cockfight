@@ -652,11 +652,90 @@ td select.status.st-few_left { color: var(--warn); }
 
   function viewShows(main) {
     const listCard = h("section", { class: "card" });
+    const foundCard = h("div"), finder = h("div");
     main.append(head("Shows", "Your upcoming shows. Past ones drop off your site on their own.",
-      h("button", { class: "btn primary big", type: "button", id: "addShowsBtn", text: "+ Add shows", onclick: () => openRun() })), listCard);
-    redrawShows = () => drawShowList(listCard, redrawShows);
+      h("button", { class: "btn primary big", type: "button", id: "addShowsBtn", text: "+ Add shows", onclick: () => openRun() })), h("div", { class: "stack" }, foundCard, listCard, finder));
+    redrawShows = () => { drawShowList(listCard, redrawShows); drawFound(foundCard); drawFinder(finder); };
     redrawShows();
     if (run.open) drawPanel();
+  }
+
+  /* ---------- show finder: pages ComicTable checks for new dates ---------- */
+  const hostForComic = (c) => S.hosts.find((x) => x.comic_id === c);
+  async function drawFound(box) {
+    let found = [];
+    try { found = await q(sb.from("found_shows").select("*").eq("state", "new").gte("date", today()).order("date", { ascending: true })); } catch (e) { box.replaceChildren(); return; }
+    found = found.filter((f) => (f.comic_id ? !!hostForComic(f.comic_id) : f.site_id === sid()));
+    if (!found.length) { box.replaceChildren(); return; }
+    const add = async (list) => {
+      const rows = list.map((f) => { const who = f.comic_id ? hostForComic(f.comic_id) : null;
+        return { site_id: sid(), host: who ? who.id : null, lineup: who ? null : crew(), date: f.date, time: f.time, venue: f.venue, city: f.city, venue_id: f.venue_id, url: f.url, status: f.status || "on_sale" }; });
+      await q(sb.from("shows").insert(rows));
+      await q(sb.from("found_shows").update({ state: "added" }).in("id", list.map((f) => f.id)));
+      await reload.shows(); redrawShows(); refreshNav();
+    };
+    box.replaceChildren(h("section", { class: "card", style: "border-color:var(--accent)" },
+      h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "🔎 Found " + found.length + " new show" + (found.length === 1 ? "" : "s") }),
+        found.length > 1 ? h("button", { class: "btn primary sm", type: "button", text: "Add all " + found.length, onclick: async (e) => { e.currentTarget.disabled = true; try { await add(found); toast("Added " + found.length + " shows. They're live."); confetti(); } catch (er) { toast(errText(er), { bad: true }); } } }) : null),
+      h("p", { class: "sub", text: "ComicTable spotted these on the pages you asked it to watch. Add the ones that are right." }),
+      h("div", null, found.map((f) => h("div", { class: "switch-row" },
+        h("div", { style: "min-width:0" }, h("b", { text: shortDate(f.date) + (f.time ? " at " + f.time : "") + " · " + (f.venue || f.city || "Show") }),
+          h("div", { class: "hint wrap-any", text: [f.comic_id ? (hostForComic(f.comic_id) || {}).name : "Whole show", f.city, f.status === "sold_out" ? "Sold out" : "", f.title && f.title !== (hostForComic(f.comic_id) || {}).name ? "Listed as “" + f.title + "”" : ""].filter(Boolean).join(" · ") }),
+          f.url ? h("a", { class: "hint", href: f.url, target: "_blank", rel: "noopener", text: "Ticket link ↗" }) : null),
+        h("div", { class: "btns" },
+          h("button", { class: "btn primary sm", type: "button", text: "Add", onclick: async (e) => { e.currentTarget.disabled = true; try { await add([f]); toast("Added. It's live."); } catch (er) { toast(errText(er), { bad: true }); } } }),
+          h("button", { class: "btn ghost sm", type: "button", text: "Ignore", onclick: async () => { try { await q(sb.from("found_shows").update({ state: "ignored" }).eq("id", f.id)); drawFound(box); } catch (er) { toast(errText(er), { bad: true }); } } })))))));
+  }
+  function drawFinder(box) {
+    const srcs = S.sources.filter((x) => x.kind === "shows" && (x.site_id === sid() || (x.comic_id && hostForComic(x.comic_id))));
+    const whoOf = (src) => src.comic_id ? ((hostForComic(src.comic_id) || {}).name || "Someone") : "Whole show";
+    const who = h("select", { id: "finderWho", "aria-label": "Whose shows", style: "width:auto" },
+      S.hosts.map((x) => h("option", { value: x.id, text: x.name })), S.hosts.length > 1 ? h("option", { value: EVENT, text: "Whole show" }) : null);
+    const url = h("input", { type: "url", id: "finderUrl", placeholder: "https://… their tour page, a club's calendar, Eventbrite, or a .ics calendar link", "aria-label": "Page to check" });
+    const auto = h("select", { id: "finderMode", "aria-label": "When it finds a show", style: "width:auto" },
+      h("option", { value: "ask", text: "Let me check them first" }), h("option", { value: "auto", text: "Add them automatically" }));
+    const allMine = h("input", { type: "checkbox", id: "finderAll" });
+    const msg = h("div", { class: "err" });
+    box.replaceChildren(h("section", { class: "card" },
+      h("div", { class: "toolbar", style: "margin-bottom:4px" }, h("h2", { style: "margin:0", text: "Find shows automatically" }),
+        srcs.length > 1 ? h("button", { class: "btn sm", type: "button", text: "Check all now", onclick: () => importNow("shows", redrawShows) }) : null),
+      h("p", { class: "sub", text: "Point ComicTable at the pages where dates get listed and it checks them every hour. On a club's calendar it only picks up shows that mention the comic's name." }),
+      srcs.length ? h("div", null, srcs.map((src) => {
+        const isErr = src.last_status && /^Error/.test(src.last_status);
+        let host = src.url; try { host = new URL(src.url).hostname.replace(/^www\./, ""); } catch (e) {}
+        return h("div", { class: "switch-row", style: "flex-wrap:wrap;align-items:start" },
+          h("div", { style: "min-width:0;flex:1 1 260px" },
+            h("div", { class: "btns", style: "gap:6px" }, h("b", { text: whoOf(src) + " · " + host }),
+              !src.enabled ? h("span", { class: "pill", text: "Paused" }) : !src.last_status ? h("span", { class: "pill", text: "Not checked yet" }) : isErr ? h("span", { class: "pill red", text: "Problem" }) : h("span", { class: "pill ok", text: "Working" }),
+              h("span", { class: "pill", text: src.auto_add ? "Adds automatically" : "Asks first" })),
+            h("div", { class: "hint wrap-any", text: src.url }),
+            src.site_id !== sid() ? h("div", { class: "hint", text: "Set up on " + siteName(src.site_id) + ". Dates it finds show here too." }) : null,
+            isErr ? h("div", { class: "err", style: "font-size:13px", text: src.last_status.replace(/^Error:\s*/, "") })
+              : src.last_run_at ? h("div", { class: "hint", text: "Last check " + new Date(src.last_run_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + (src.last_status ? ": " + src.last_status : "") }) : null),
+          h("div", { class: "btns" },
+            h("button", { class: "btn sm", type: "button", text: "Check now", onclick: () => importNow("shows", redrawShows, src.id) }),
+            h("button", { class: "btn ghost sm", type: "button", text: src.auto_add ? "Ask me first" : "Add automatically", onclick: async () => { try { await q(sb.from("sources").update({ auto_add: !src.auto_add }).eq("id", src.id)); await reload.sources(); redrawShows(); } catch (e) { toast(errText(e), { bad: true }); } } }),
+            h("button", { class: "btn ghost sm", type: "button", text: src.enabled ? "Pause" : "Resume", onclick: async () => { try { await q(sb.from("sources").update({ enabled: !src.enabled }).eq("id", src.id)); await reload.sources(); redrawShows(); } catch (e) { toast(errText(e), { bad: true }); } } }),
+            sure("Stop checking", async () => { try { await q(sb.from("sources").delete().eq("id", src.id)); await reload.sources(); redrawShows(); toast("Stopped checking that page. Shows already added stay."); } catch (er) { toast(errText(er), { bad: true }); } })));
+      })) : null,
+      h("div", { class: srcs.length ? "newclub stack" : "stack", style: "gap:10px;margin-top:" + (srcs.length ? "12px" : "4px") },
+        srcs.length ? h("b", { text: "Watch another page" }) : null,
+        h("div", { class: "btns" }, S.hosts.length > 1 ? who : null, h("div", { style: "flex:1 1 300px" }, url)),
+        h("div", { class: "btns" }, h("label", { class: "hint", style: "display:flex;gap:6px;align-items:center" }, "When it finds one:", auto),
+          h("label", { class: "check" }, allMine, "Every show on this page is theirs (their own tour page)")),
+        msg,
+        h("div", { class: "btns" }, h("button", { class: "btn primary", type: "button", id: "finderAdd", text: "Start checking", onclick: async (e) => {
+          const u = url.value.trim(); msg.textContent = "";
+          if (!/^https?:\/\//i.test(u)) { url.classList.add("bad"); msg.textContent = "Paste the full link, starting with https://"; return; }
+          const hv = S.hosts.length > 1 ? who.value : (S.hosts[0] || {}).id;
+          const comic_id = hv && hv !== EVENT ? hostComic(hv) : null;
+          if (srcs.some((x) => x.url.replace(/\/+$/, "") === u.replace(/\/+$/, "") && (x.comic_id || null) === comic_id)) { msg.textContent = "That page is already being checked for them."; return; }
+          e.currentTarget.disabled = true;
+          try {
+            const created = await q(sb.from("sources").insert({ site_id: sid(), kind: "shows", url: u, host: comic_id ? hv : null, comic_id, auto_add: auto.value === "auto", match_all: allMine.checked }).select().single());
+            await reload.sources(); redrawShows(); importNow("shows", redrawShows, created && created.id);
+          } catch (er) { msg.textContent = errText(er); e.currentTarget.disabled = false; }
+        } })))));
   }
 
   async function loadSlots(venueId) {
@@ -1053,20 +1132,20 @@ td select.status.st-few_left { color: var(--warn); }
      IMPORT SOURCES (podcast + YouTube)
      ====================================================== */
   async function importNow(kind, onDone, sourceId) {
-    const noun = kind === "podcast" ? "episodes" : "videos";
+    const noun = kind === "podcast" ? "episodes" : kind === "shows" ? "shows" : "videos";
     toast("Checking for new " + noun + "…");
     try {
       const r = await fetch("/.netlify/functions/import-now", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: JSON.stringify({ site_id: sid(), kind, source_id: sourceId || null }) });
       const body = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(body.error || ("Import failed (" + r.status + ")"));
       const results = body.results || [];
-      await reload.sources(); kind === "podcast" ? await reload.episodes() : await reload.videos();
+      await reload.sources(); kind === "podcast" ? await reload.episodes() : kind === "shows" ? await reload.shows() : await reload.videos();
       onDone(); refreshNav();
       if (!results.length) return toast(body.message || "Nothing to import.");
       const bad = results.filter((x) => !x.ok), nNew = results.reduce((a, x) => a + (x.ok ? parseInt(x.status, 10) || 0 : 0), 0);
       if (results.length === 1 && bad.length) return toast(bad[0].status.replace(/^Error:\s*/, ""), { bad: true });
       if (nNew) confetti();
-      const what = results.length === 1 ? results[0].status : nNew + " new " + noun + " from " + results.length + " " + (kind === "podcast" ? "feeds" : "channels");
+      const what = results.length === 1 ? results[0].status : nNew + " new " + noun + " from " + results.length + " " + (kind === "podcast" ? "feeds" : kind === "shows" ? "pages" : "channels");
       toast((nNew ? "🎉 " : "You're up to date. ") + what + (bad.length ? " · " + bad.length + " had a problem (see below)" : ""), bad.length ? { bad: true } : {});
     } catch (e) { toast(/Failed to fetch|NetworkError|Load failed|404/.test(e.message) ? "The import service isn't set up yet. See the setup steps." : errText(e), { bad: true }); }
   }

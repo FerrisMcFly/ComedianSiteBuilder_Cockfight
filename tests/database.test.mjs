@@ -27,7 +27,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -236,4 +236,15 @@ test("the one-file upgrade runs on a v1 database, twice", async () => {
   assert.equal((await fresh.query("select count(*)::int n from comics")).rows[0].n, (await fresh.query("select count(*)::int n from hosts")).rows[0].n);
   assert.equal((await fresh.query("select count(*)::int n from hosts where comic_id is null")).rows[0].n, 0);
   await fresh.close();
+});
+
+test("show finder: show sources and found shows follow the same rules as shows", async () => {
+  assert.equal(await as(OWNER, `insert into sources (site_id, kind, url, comic_id, auto_add) values ('cockfight', 'shows', 'https://club.example/cal', 'tristan-bowling', false)`), "ok");
+  assert.match(await as(OWNER, `insert into sources (site_id, kind, url) values ('cockfight', 'tiktok', 'https://x')`), /check/i);
+  assert.equal(await as(OWNER, `insert into found_shows (site_id, comic_id, key, date, venue) values ('cockfight', 'tristan-bowling', 'k1', current_date + 2, 'Zanies')`), "ok");
+  // COMIC isn't on any site with Tristan any more, so they see nothing
+  assert.equal((await rows(COMIC, "select count(*)::int n from found_shows where comic_id = 'tristan-bowling'"))[0].n, 0);
+  assert.equal((await rows(OWNER, "select count(*)::int n from found_shows"))[0].n, 1);
+  // the same listing is only kept once
+  assert.match(await as(OWNER, `insert into found_shows (site_id, comic_id, key, date) values ('cockfight', 'tristan-bowling', 'k1', current_date + 2)`), /duplicate|unique/i);
 });
