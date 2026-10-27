@@ -70,3 +70,17 @@ test("forum and chat rules", async () => {
   assert.match(await as(null, chat("Fan11", "d11")), /closed/);
   assert.match(await as(null, "select * from bans"), /permission denied/);
 });
+
+test("the all-in-one upgrade file runs on the live setup", async () => {
+  const fresh = new PGlite();
+  await fresh.exec(`create role anon; create role authenticated; create schema auth; create table auth.users (id uuid primary key, email text);
+    create function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
+    create schema storage; create table storage.buckets (id text primary key, name text, public boolean);
+    create table storage.objects (id serial primary key, bucket_id text, name text); alter table storage.objects enable row level security;`);
+  await fresh.exec(file("01_setup.sql")); await fresh.exec(file("02_seed.sql"));
+  await fresh.exec(`insert into auth.users values ('${OWNER}', 'owner@x'); insert into admins (user_id) values ('${OWNER}');`);
+  await fresh.exec(file("UPGRADE_V1_ALL.sql"));
+  await fresh.exec(file("UPGRADE_V1_ALL.sql"));
+  assert.equal((await fresh.query("select count(*)::int n from venues")).rows[0].n, 109);
+  assert.equal((await fresh.query("select count(*)::int n from boards")).rows[0].n, 4);
+});
