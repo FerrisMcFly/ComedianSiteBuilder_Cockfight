@@ -6,8 +6,8 @@ import { after } from "node:test";
 const opened = [];
 after(() => opened.forEach((w) => w.close()));
 
-const sdk = readFileSync(new URL("../site/sdk/csb.js", import.meta.url), "utf8");
-const html = readFileSync(new URL("../site/index.html", import.meta.url), "utf8")
+const sdk = readFileSync(new URL("../platform/sdk/csb.js", import.meta.url), "utf8");
+const html = readFileSync(new URL("../sites/cockfight/index.html", import.meta.url), "utf8")
   .replace('<script src="config.js"></script>', '<script>window.COCKFIGHT_CONFIG={SITE_ID:"cockfight",SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
   .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "")
   .replace('<script src="sdk/csb.js"></script>', () => "<script>" + sdk.replace(/<\/script/g, "<\\/script") + "</script>");

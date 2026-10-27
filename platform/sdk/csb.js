@@ -16,7 +16,7 @@
   "use strict";
   var cfg = {};
   function init(o) {
-    o = o || root.CSB_CONFIG || root.COCKFIGHT_CONFIG || {};
+    o = o || root.CSB_CONFIG || root.COMICTABLE_CONFIG || root.COCKFIGHT_CONFIG || {};
     cfg = { url: String(o.SUPABASE_URL || o.url || "").replace(/\/$/, ""), key: o.SUPABASE_ANON_KEY || o.key || "", site: o.SITE_ID || o.site || "" };
     return CSB;
   }

@@ -6,7 +6,7 @@ import { after } from "node:test";
 const opened = [];
 after(() => opened.forEach((w) => w.close()));
 
-const html = readFileSync(new URL("../site/admin.html", import.meta.url), "utf8")
+const html = readFileSync(new URL("../platform/admin.html", import.meta.url), "utf8")
   .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "").replace('<script src="config.js"></script>', '<script>window.COCKFIGHT_CONFIG={SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>');
 
 function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
@@ -61,7 +61,7 @@ async function open(hash = "", prep, theme = THEME_JSON) {
   await new Promise((r) => setTimeout(r, 80));
   return { w: dom.window, d: dom.window.document, db };
 }
-const THEME_JSON = JSON.parse(readFileSync(new URL("../site/theme.json", import.meta.url), "utf8"));
+const THEME_JSON = JSON.parse(readFileSync(new URL("../sites/cockfight/theme.json", import.meta.url), "utf8"));
 const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
 const btn = (d, re, scope = d) => [...scope.querySelectorAll("button")].find((b) => re.test(b.textContent));
 const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", { bubbles: true })); };

@@ -22,7 +22,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -83,4 +83,18 @@ test("the all-in-one upgrade file runs on the live setup", async () => {
   await fresh.exec(file("UPGRADE_V1_ALL.sql"));
   assert.equal((await fresh.query("select count(*)::int n from venues")).rows[0].n, 109);
   assert.equal((await fresh.query("select count(*)::int n from boards")).rows[0].n, 4);
+});
+
+test("only platform admins can create sites, and a new site comes ready to use", async () => {
+  assert.match(await as(COMIC, `select create_site('sneaky', 'Sneaky')`), /Only ComicTable platform admins/);
+  assert.equal(await as(OWNER, `select create_site('john-smith', 'John Smith', 'johnsmithcomedy.com')`), "ok");
+  assert.match(await as(OWNER, `select create_site('john-smith', 'Again')`), /already a site/);
+  assert.match(await as(OWNER, `select create_site('Bad Id!', 'Bad')`), /lowercase letters/);
+  const site = (await q("select * from sites where id = 'john-smith'"))[0];
+  assert.equal(site.domain, "johnsmithcomedy.com"); assert.equal(site.features.forum, false);
+  assert.equal((await q(`select role from admins where site_id = 'john-smith' and user_id = '${OWNER}'`))[0].role, "owner");
+  assert.equal((await q("select count(*)::int n from boards where site_id = 'john-smith'"))[0].n, 3);
+  // the new site's owner can now add shows there, and Cockfight's data is untouched
+  assert.equal(await as(OWNER, `insert into hosts (id, site_id, name) values ('john-smith-john', 'john-smith', 'John Smith')`), "ok");
+  assert.equal((await q("select count(*)::int n from hosts where site_id = 'cockfight'"))[0].n, 3);
 });
