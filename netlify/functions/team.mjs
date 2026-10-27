@@ -27,7 +27,9 @@ export default async (req) => {
   const db = createClient(url, key, { auth: { persistSession: false } });
   const { data: who, error: authErr } = await db.auth.getUser(token);
   if (authErr || !who?.user) return json(401, { error: "Your login expired. Log in again." });
-  const { data: me } = await db.from("admins").select("role").eq("user_id", who.user.id).eq("site_id", site).maybeSingle();
+  let { data: me } = await db.from("admins").select("role").eq("user_id", who.user.id).eq("site_id", site).maybeSingle();
+  // ComicTable super admins can manage every site's team without being on it
+  if (!me) { const { data: sup } = await db.from("platform_admins").select("user_id").eq("user_id", who.user.id).maybeSingle(); if (sup) me = { role: "owner" }; }
   if (!me) return json(403, { error: "You're not an admin of this site." });
 
   if (body.action === "list") {

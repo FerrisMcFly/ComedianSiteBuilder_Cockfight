@@ -31,7 +31,8 @@ create table if not exists platform_admins (user_id uuid primary key references 
 alter table platform_admins enable row level security;
 drop policy if exists "see self" on platform_admins;
 create policy "see self" on platform_admins for select to authenticated using (user_id = auth.uid());
-insert into platform_admins (user_id) select distinct user_id from admins on conflict do nothing;
+-- Only on the very first run: later runs must not turn every site admin into a platform admin.
+insert into platform_admins (user_id) select distinct user_id from admins where not exists (select 1 from platform_admins) on conflict do nothing;
 
 create or replace function public.is_site_admin(sid text) returns boolean
 language sql stable security definer set search_path = public as $$

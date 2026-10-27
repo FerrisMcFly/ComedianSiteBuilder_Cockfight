@@ -97,7 +97,7 @@ test("only platform admins can create sites, and a new site comes ready to use",
   assert.match(await as(OWNER, `select create_site('Bad Id!', 'Bad')`), /lowercase letters/);
   const site = (await q("select * from sites where id = 'john-smith'"))[0];
   assert.equal(site.domain, "johnsmithcomedy.com"); assert.equal(site.features.forum, false);
-  assert.equal((await q(`select role from admins where site_id = 'john-smith' and user_id = '${OWNER}'`))[0].role, "owner");
+  assert.equal((await q(`select count(*)::int n from admins where site_id = 'john-smith'`))[0].n, 0, "the super admin isn't put on the comic's team");
   assert.equal((await q("select count(*)::int n from boards where site_id = 'john-smith'"))[0].n, 3);
   // the new site's owner can now add shows there, and Cockfight's data is untouched
   assert.equal(await as(OWNER, `insert into hosts (id, site_id, name) values ('john-smith-john', 'john-smith', 'John Smith')`), "ok");
@@ -141,4 +141,21 @@ test("fans join a site's list with their city, and the comic sees who's near eac
   const tok = (await q("select token from fans where email = 'ny@x.com'"))[0].token;
   assert.equal((await rows(null, `select leave_fans('${tok}') r`))[0].r, true);
   assert.equal((await q("select count(*)::int n from fans"))[0].n, 1);
+});
+
+test("super admins manage every site; a comic's team only sees their own", async () => {
+  await q(`insert into sites (id, name) values ('jane', 'Jane') on conflict do nothing`);
+  await q(`insert into hosts (id, site_id, name) values ('jane-jane', 'jane', 'Jane') on conflict do nothing`);
+  await q(`insert into admins (user_id, site_id, role) values ('${COMIC}', 'jane', 'owner') on conflict do nothing`);
+  // OWNER is a super admin and isn't on Jane's team, but can still edit her site
+  assert.equal(await as(OWNER, `update hosts set bio = 'hi' where id = 'jane-jane'`), "ok");
+  assert.equal((await q("select bio from hosts where id = 'jane-jane'"))[0].bio, "hi");
+  // Jane's team can't touch Cockfight
+  assert.equal(await as(COMIC, `update hosts set bio = 'hacked' where site_id = 'cockfight'`), "ok");
+  assert.equal((await q("select count(*)::int n from hosts where bio = 'hacked'"))[0].n, 0);
+  // the super admin list is for super admins only
+  assert.equal((await rows(OWNER, "select * from platform_admin_list()")).length, 1);
+  assert.equal((await rows(COMIC, "select * from platform_admin_list()")).length, 0);
+  assert.match(await as(COMIC, `select remove_platform_admin('${OWNER}')`), /Only super admins/);
+  assert.match(await as(OWNER, `select remove_platform_admin('${OWNER}')`), /can't remove yourself/);
 });

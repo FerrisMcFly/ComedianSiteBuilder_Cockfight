@@ -17,7 +17,8 @@ export default async (req) => {
   const { data: who, error: authErr } = await db.auth.getUser(token);
   if (authErr || !who?.user) return json(401, { error: "Your login expired. Log in again." });
   const { data: adminRow } = await db.from("admins").select("site_id").eq("user_id", who.user.id).eq("site_id", body.site_id).maybeSingle();
-  if (!adminRow) return json(403, { error: "You're not an admin of this site." });
+  const { data: sup } = adminRow ? { data: null } : await db.from("platform_admins").select("user_id").eq("user_id", who.user.id).maybeSingle();
+  if (!adminRow && !sup) return json(403, { error: "You're not an admin of this site." });
   let q = db.from("sources").select("*").eq("site_id", body.site_id).eq("enabled", true);
   if (body.source_id) q = q.eq("id", body.source_id);
   else if (body.kind) q = q.eq("kind", body.kind);

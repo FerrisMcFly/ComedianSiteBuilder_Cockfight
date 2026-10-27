@@ -1,5 +1,37 @@
--- Lets platform admins (you) create a new comic's site from the admin, in one step.
--- Run once in Supabase → SQL Editor. Safe to run again.
+-- Lets platform admins (you) create a new comic's site from the admin, in one step, and gives
+-- platform admins full access to every site. Run once in Supabase → SQL Editor. Safe to run again.
+
+-- Each site's team can manage only that site. Platform admins (ComicTable's super admins) can manage all of them.
+create or replace function public.is_site_admin(sid text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from admins where user_id = auth.uid() and site_id = sid)
+      or exists (select 1 from platform_admins where user_id = auth.uid());
+$$;
+
+-- Who the super admins are, for the admin's All sites page (only super admins can see this)
+create or replace function public.platform_admin_list()
+returns table (user_id uuid, email text, you boolean) language sql stable security definer set search_path = public as $$
+  select p.user_id, u.email::text, p.user_id = auth.uid()
+  from platform_admins p join auth.users u on u.id = p.user_id
+  where exists (select 1 from platform_admins where user_id = auth.uid())
+  order by u.email;
+$$;
+revoke all on function public.platform_admin_list() from public;
+grant execute on function public.platform_admin_list() to authenticated;
+
+create or replace function public.remove_platform_admin(p_user uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from platform_admins where user_id = auth.uid()) then
+    raise exception 'Only super admins can do that.' using errcode = 'P0001';
+  end if;
+  if p_user = auth.uid() then
+    raise exception 'You can''t remove yourself.' using errcode = 'P0001';
+  end if;
+  delete from platform_admins where user_id = p_user;
+end $$;
+revoke all on function public.remove_platform_admin(uuid) from public;
+grant execute on function public.remove_platform_admin(uuid) to authenticated;
 
 create or replace function public.create_site(p_id text, p_name text, p_domain text default null)
 returns void language plpgsql security definer set search_path = public as $$
@@ -16,8 +48,8 @@ begin
   insert into sites (id, name, domain, features)
     values (p_id, p_name, nullif(trim(coalesce(p_domain, '')), ''),
             '{"shows": true, "podcast": true, "videos": true, "merch": false, "forum": false, "chat": false}');
-  -- whoever creates it starts as its owner, so they can set it up and add the comic to the team
-  insert into admins (user_id, site_id, role) values (auth.uid(), p_id, 'owner');
+  -- No team row for you: platform admins can already manage every site (see is_site_admin below),
+  -- and staying off the team keeps you out of the comic's team list.
   insert into boards (site_id, id, name, description, sort) values
     (p_id, 'general', 'General', 'Talk about anything', 0),
     (p_id, 'shows', 'Live Shows', 'Going to a show? Saw one? Post here', 1),

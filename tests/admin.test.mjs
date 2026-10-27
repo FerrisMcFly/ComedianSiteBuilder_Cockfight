@@ -382,3 +382,12 @@ test("fan list: who's near each show, copy their emails, find and remove fans", 
   rm.click(); rm.click(); await wait(30);
   assert.deepEqual(db.fans.map((f) => f.email), ["a@x.com"]);
 });
+
+test("super admins see every site, comics only their own", async () => {
+  const addJane = (db) => db.sites.push({ id: "jane", name: "Jane Doe", features: { shows: true } });
+  const sup = await open("", addJane);
+  assert.deepEqual([...sup.d.querySelectorAll("select[aria-label=Site] option")].map((o) => o.textContent).sort(), ["Cockfight", "Jane Doe"]);
+  const comic = await open("", (db) => { addJane(db); db.platform_admins = []; });
+  assert.equal(comic.d.querySelector("select[aria-label=Site]"), null, "a comic on one site gets no site switcher");
+  assert.equal(comic.d.querySelector(".brand").textContent, "Cockfight");
+});

@@ -493,14 +493,17 @@ td select.status.st-few_left { color: var(--warn); }
     S.token = session.access_token;
     S.user = session.user.email.split("@")[0];
     try {
-      const mine = await q(sb.from("admins").select("site_id").eq("user_id", session.user.id));
-      if (!mine.length) { await sb.auth.signOut(); return showLogin("This login isn't an admin of any site yet."); }
-      S.sites = await q(sb.from("sites").select("*").in("id", mine.map((m) => m.site_id)));
+      const [mine, plat] = await Promise.all([
+        q(sb.from("admins").select("site_id").eq("user_id", session.user.id)),
+        q(sb.from("platform_admins").select("user_id").eq("user_id", session.user.id))]);
+      S.isPlatform = plat.length > 0;
+      if (!mine.length && !S.isPlatform) { await sb.auth.signOut(); return showLogin("This login isn't an admin of any site yet."); }
+      // Super admins get every site; everyone else gets only the sites they're on the team of.
+      S.sites = S.isPlatform ? await q(sb.from("sites").select("*").order("name", { ascending: true }))
+        : await q(sb.from("sites").select("*").in("id", mine.map((m) => m.site_id)));
       const pick = store.get("csb_site");
       // On a comic's own /admin, open that comic's site; on the ComicTable admin, the last one used.
       S.site = (CFG.SITE_ID && S.sites.find((s) => s.id === CFG.SITE_ID)) || S.sites.find((s) => s.id === pick) || S.sites[0];
-      const plat = await q(sb.from("platform_admins").select("user_id").eq("user_id", session.user.id));
-      S.isPlatform = plat.length > 0;
       await loadAll();
     } catch (e) {
       root.replaceChildren(h("div", { class: "login-wrap" }, h("div", { class: "card login stack" }, h("h1", { text: "Couldn't load your site" }), h("p", { class: "err", text: errText(e) }),
@@ -1973,7 +1976,7 @@ td select.status.st-few_left { color: var(--warn); }
         if (r.error) throw r.error;
         const features = Object.fromEntries(kinds.map(([k]) => [k, boxes[k].checked]));
         await q(sb.from("sites").update({ features }).eq("id", sl));
-        S.sites = await q(sb.from("sites").select("*").in("id", [...S.sites.map((x) => x.id), sl]));
+        S.sites = await q(sb.from("sites").select("*").order("name", { ascending: true }));
         toast(nm + " is set up. Add the comics next.");
         await switchSite(sl, "people");
       } catch (er) {
@@ -1982,7 +1985,7 @@ td select.status.st-few_left { color: var(--warn); }
       }
     } },
       h("h2", { text: "Start a new site" }),
-      h("p", { class: "sub", text: "Makes the comic's space on ComicTable: their shows, podcast, videos and fans, kept separate from everyone else's. You start as its owner, and you can add the comic to its team after." }),
+      h("p", { class: "sub", text: "Makes the comic's space on ComicTable: their shows, podcast, videos and fans, kept separate from everyone else's. Then add the comic in that site's Settings → Team. As a super admin you can manage every site without being on its team." }),
       h("div", { class: "grid" }, field("Comic or show name", name, "c6"), field("Site id (used in the launch settings)", id, "c6"), field("Their web address", dom, "c12")),
       h("div", null, h("b", { text: "What's on their site" }), h("div", { class: "btns", style: "margin-top:8px" }, kinds.map(([k, l]) => h("label", { class: "pill", style: "cursor:pointer;gap:6px;display:inline-flex;align-items:center" }, boxes[k], l)))),
       h("div", { class: "hint", text: "You can change any of this later in that site's Settings." }), msg, h("div", { class: "btns" }, btn));
@@ -2007,21 +2010,27 @@ td select.status.st-few_left { color: var(--warn); }
     }
     const set = (el, v) => { el.value = v; el.dispatchEvent(new Event("input")); };
     drawRequests();
-    wrap.append(reqCard, listCard, form);
+    const supCard = h("section", { class: "card" });
+    (async () => {
+      let list;
+      try { list = await q(sb.rpc("platform_admin_list")); } catch (e) { return; }
+      supCard.replaceChildren(h("h2", { text: "Super admins" }), h("p", { class: "sub", text: "People who can see and manage every site on ComicTable. Keep this to just you, and anyone you'd trust with every comic's account." }),
+        h("div", null, list.map((u) => h("div", { class: "switch-row" }, h("div", null, h("b", { text: u.email }), u.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null),
+          u.you ? null : sure("Remove", async () => { try { await q(sb.rpc("remove_platform_admin", { p_user: u.user_id })); toast(u.email + " is no longer a super admin."); route(); } catch (e) { toast(errText(e), { bad: true }); } })))));
+    })();
+    wrap.append(reqCard, listCard, form, supCard);
     try {
       const sites = await q(sb.from("sites").select("*").order("created_at", { ascending: true }));
       const counts = async (t, sidv, extra) => { let qq = sb.from(t).select("id", { count: "exact", head: true }).eq("site_id", sidv); if (extra) qq = extra(qq); const r = await qq; return r.error ? 0 : r.count || 0; };
       const rows = await Promise.all(sites.map(async (st) => {
         const [people, shows, srcs] = await Promise.all([counts("hosts", st.id), counts("shows", st.id, (x) => x.gte("date", today())), counts("sources", st.id)]);
-        const mine = S.sites.some((x) => x.id === st.id);
         const steps = [["Comics added", people > 0], ["Podcast or YouTube connected", srcs > 0], ["Web address set", !!st.domain]];
         return h("div", { class: "switch-row", style: "flex-wrap:wrap;align-items:flex-start" },
           h("div", { style: "flex:1 1 280px" }, h("b", { text: st.name }), st.id === sid() ? h("span", { class: "pill", style: "margin-left:6px", text: "Open now" }) : null,
             h("div", { class: "hint", text: (st.domain || "No address yet") + " · id: " + st.id + " · " + people + (people === 1 ? " comic" : " comics") + " · " + shows + " upcoming show" + (shows === 1 ? "" : "s") }),
             h("div", { class: "btns", style: "margin-top:6px;gap:6px" }, steps.map(([t, ok]) => h("span", { class: "pill" + (ok ? "" : " warn"), text: (ok ? "✓ " : "○ ") + t })))),
           h("div", { class: "btns" },
-            mine ? (st.id === sid() ? null : h("button", { class: "btn sm", type: "button", text: "Open", onclick: () => switchSite(st.id, "home") }))
-              : h("span", { class: "hint", text: "You're not on this site's team" }),
+            st.id === sid() ? null : h("button", { class: "btn sm", type: "button", text: "Open", onclick: () => switchSite(st.id, "home") }),
             st.domain ? h("a", { class: "btn sm ghost", href: "https://" + st.domain, target: "_blank", rel: "noopener", text: "Visit ↗" }) : null));
       }));
       listCard.replaceChildren(h("h2", { text: "Sites (" + sites.length + ")" }), h("div", null, rows));
