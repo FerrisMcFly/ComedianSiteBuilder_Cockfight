@@ -11,7 +11,7 @@ const cfg = (dir) => { const w = {}; new Function("window", readFileSync(join(di
 test("a comic's build has their front end, the data kit and their config", () => {
   const out = build("cockfight");
   for (const f of ["index.html", "theme.json", "sdk/csb.js"]) assert.ok(existsSync(join(out, f)), f);
-  assert.match(readFileSync(join(out, "_redirects"), "utf8"), /\/admin\s+https:\/\/comictable\.com\/admin/);
+  assert.match(readFileSync(join(out, "_redirects"), "utf8"), /\/admin\s+https:\/\/comictable\.com\/login/);
   assert.ok(!existsSync(join(out, "site.json")));
   assert.equal(cfg(out).SITE_ID, "cockfight");
   assert.equal(cfg(out).LOGIN_DOMAIN, "comictable.com");
@@ -20,7 +20,9 @@ test("a comic's build has their front end, the data kit and their config", () =>
 test("the ComicTable admin build has the admin at / and every site's theme", () => {
   const out = build("platform");
   assert.match(readFileSync(join(out, "index.html"), "utf8"), /ComicTable/);
-  assert.match(readFileSync(join(out, "admin.html"), "utf8"), /Log in to update your site/);
+  assert.match(readFileSync(join(out, "app.html"), "utf8"), /Log in to update your site/);
+  const r = readFileSync(join(out, "_redirects"), "utf8");
+  assert.match(r, /^\/login\s+\/app\.html\s+200$/m); assert.match(r, /^\/dashboard\s+\/app\.html\s+200$/m); assert.match(r, /^\/admin\s+\/login\s+301$/m);
   assert.ok(existsSync(join(out, "themes/cockfight.json")));
   assert.equal(cfg(out).PLATFORM, true);
   assert.equal(cfg(out).SITE_ID, undefined);

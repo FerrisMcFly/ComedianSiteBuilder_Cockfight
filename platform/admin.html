@@ -454,8 +454,17 @@ td select.status.st-few_left { color: var(--warn); }
     hosts: async () => { S.hosts = await q(sb.from("hosts").select("*").eq("site_id", sid()).order("sort", { ascending: true })); }
   };
 
+  /* ============ addresses ============ */
+  // On comictable.com the login lives at /login and the app at /dashboard (both are this same page).
+  function setPath(which) {
+    if (!CFG.PLATFORM || !history.replaceState) return;
+    const p = which === "login" ? "/login" : "/dashboard";
+    if (location.pathname !== p) history.replaceState(null, "", p + (which === "login" ? "" : location.hash));
+  }
+
   /* ============ login ============ */
   function showLogin(msg) {
+    setPath("login"); document.title = "Log in · ComicTable";
     const user = h("input", { id: "lgUser", autocomplete: "username", autocapitalize: "none", spellcheck: "false", required: true });
     const pass = h("input", { id: "lgPass", type: "password", autocomplete: "current-password", required: true });
     const btn = h("button", { class: "btn primary big", type: "submit", text: "Log in" });
@@ -472,7 +481,8 @@ td select.status.st-few_left { color: var(--warn); }
     } },
       h("div", { class: "ct-mark", text: "ComicTable" }), h("div", null, h("h1", { text: "Welcome back 🎤" }), h("p", { class: "sub", text: "Log in to update your site." })),
       field("Username or email", user), field("Password", pass), msg ? h("div", { class: "err", text: msg }) : null, btn);
-    root.replaceChildren(h("div", { class: "login-wrap" }, form));
+    root.replaceChildren(h("div", { class: "login-wrap" }, h("div", { class: "stack", style: "width:100%;max-width:380px;justify-items:center" }, form,
+      CFG.PLATFORM ? h("a", { class: "hint", href: "/", text: "Back to comictable.com" }) : null)));
     user.focus();
   }
 
@@ -531,6 +541,7 @@ td select.status.st-few_left { color: var(--warn); }
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
 
   function route() {
+    setPath("dashboard"); document.title = S.site.name + " · ComicTable";
     const cur = current();
     let lastGroup = null;
     const nav = visible().flatMap((s) => {

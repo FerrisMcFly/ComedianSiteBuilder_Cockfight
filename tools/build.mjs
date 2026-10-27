@@ -23,7 +23,8 @@ mkdirSync(out, { recursive: true });
 if (id === "platform") {
   // comictable.com: the front page at /, the admin at /admin
   cpSync(join(root, "platform", "home"), out, { recursive: true });
-  cpSync(join(root, "platform", "admin.html"), join(out, "admin.html"));
+  // the app is one page, served at /login and /dashboard
+  cpSync(join(root, "platform", "admin.html"), join(out, "app.html"));
   cpSync(join(root, "platform", "sdk"), join(out, "sdk"), { recursive: true });
   // Each site's front end says which extras and design settings it has; the admin reads these per site.
   mkdirSync(join(out, "themes"));
@@ -32,8 +33,8 @@ if (id === "platform") {
     if (existsSync(t)) cpSync(t, join(out, "themes", s + ".json"));
   }
   writeConfig(out, { PLATFORM: true, ...logins, ...db }, "the ComicTable admin");
-  writeFileSync(join(out, "_headers"), "/admin*\n  X-Robots-Tag: noindex, nofollow\n");
-  writeFileSync(join(out, "_redirects"), "/admin  /admin.html  200\n");
+  writeFileSync(join(out, "_headers"), ["/app.html", "/login", "/dashboard"].map((p) => p + "\n  X-Robots-Tag: noindex, nofollow\n").join(""));
+  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/admin  /login  301", "/admin.html  /login  301"].join("\n") + "\n");
   console.log(`Built the ComicTable admin into ${out} (${sites.length} site${sites.length === 1 ? "" : "s"} known)`);
 } else {
   const siteDir = join(root, "sites", id);
@@ -48,7 +49,8 @@ if (id === "platform") {
     // ComicTable's admin has its own home: send /admin there.
     writeFileSync(join(out, "_redirects"), `/admin  ${platform.admin_url}  302\n/admin.html  ${platform.admin_url}  302\n`);
   } else {
-    cpSync(join(root, "platform", "admin.html"), join(out, "admin.html"));
+    // the app is one page, served at /login and /dashboard
+  cpSync(join(root, "platform", "admin.html"), join(out, "app.html"));
   }
   writeConfig(out, { SITE_ID: site.id, SITE_NAME: site.name, ...logins, ...db }, site.name);
   console.log(`Built ${site.name} (${id}) into ${out}`);
