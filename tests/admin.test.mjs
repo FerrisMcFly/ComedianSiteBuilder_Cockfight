@@ -30,7 +30,7 @@ function makeDb() {
     const f = []; let op = "select", payload, single = false;
     const b = {
       select() { return b; }, order() { return b; }, limit() { return b; }, single() { single = true; return b; },
-      eq(k, v) { f.push((r) => r[k] === v); return b; }, lt(k, v) { f.push((r) => r[k] < v); return b; }, in(k, vs) { f.push((r) => vs.includes(r[k])); return b; },
+      eq(k, v) { f.push((r) => r[k] === v); return b; }, gte(k, v) { f.push((r) => r[k] >= v); return b; }, lt(k, v) { f.push((r) => r[k] < v); return b; }, in(k, vs) { f.push((r) => vs.includes(r[k])); return b; },
       insert(r) { op = "insert"; payload = [].concat(r).map((x) => ({ id: "n" + (++n), ...x })); return b; },
       update(r) { op = "update"; payload = r; return b; }, upsert(r) { op = "upsert"; payload = r; return b; }, delete() { op = "delete"; return b; },
       then(res, rej) {
@@ -46,7 +46,8 @@ function makeDb() {
     return b;
   };
   const client = { auth: { getSession: async () => ({ data: { session: { access_token: "tok", user: { id: "u1", email: "ferris@x.com" } } } }), signOut: async () => {}, onAuthStateChange() {} },
-    rpc: async (name, args) => name === "venue_slots" && args.v === "v1" ? { data: [{ dow: 5, show_time: "7:30 PM", uses: 3 }, { dow: 5, show_time: "10:00 PM", uses: 2 }], error: null } : { data: [], error: null },
+    rpc: async (name, args) => name === "create_site" ? (db.sites.push({ id: args.p_id, name: args.p_name, domain: args.p_domain, features: {}, created_at: "2026-10-27" }), db.admins.push({ user_id: "u1", site_id: args.p_id, role: "owner" }), { data: null, error: null })
+      : name === "venue_slots" && args.v === "v1" ? { data: [{ dow: 5, show_time: "7:30 PM", uses: 3 }, { dow: 5, show_time: "10:00 PM", uses: 2 }], error: null } : { data: [], error: null },
     from, storage: { from: () => ({}) } };
   return { db, client };
 }
@@ -69,8 +70,8 @@ const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", 
 test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open();
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  assert.equal(d.querySelectorAll(".nav-btn").length, 14);
-  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Content", "Community", "Site extras"]);
+  assert.equal(d.querySelectorAll(".nav-btn").length, 15);
+  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Content", "Community", "Site extras", "ComicTable"]);
   assert.match(d.body.textContent, /Connect your podcast/);
 });
 
@@ -331,4 +332,27 @@ test("videos can be removed, undone, and put back", async () => {
   assert.ok(cardOf("Bad clip") && !cardOf("Keep me"));
   btn(d, /^Put back$/, cardOf("Bad clip")).click(); await wait(40);
   assert.equal(db.videos.find((v) => v.id === "v2").hidden, false);
+});
+
+test("platform admins can start a new comic's site and land on it ready to set up", async () => {
+  const { w, d, db } = await open("#sites");
+  await wait(60);
+  assert.match(d.querySelector("main").textContent, /Sites \(1\)/);
+  assert.match(d.querySelector("main").textContent, /○ Podcast or YouTube connected/);
+  set(w, d.getElementById("nsName"), "Jane Doe");
+  assert.equal(d.getElementById("nsId").value, "jane-doe");
+  set(w, d.getElementById("nsDomain"), "https://www.JaneDoeComedy.com/");
+  d.getElementById("nsF_forum").checked = true;
+  btn(d, /^Create site$/).click(); await wait(120);
+  const site = db.sites.find((x) => x.id === "jane-doe");
+  assert.equal(site.domain, "janedoecomedy.com");
+  assert.equal(site.features.forum, true); assert.equal(site.features.chat, false);
+  assert.equal(d.querySelector(".brand").textContent, "Jane Doe");
+  assert.equal(w.location.hash, "#people");
+  assert.ok(d.querySelector("select[aria-label=Site]"), "site switcher appears once you have two sites");
+});
+
+test("people who aren't platform admins never see All sites", async () => {
+  const { d } = await open("", (db) => { db.platform_admins = []; });
+  assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /All sites/.test(b.textContent)));
 });
