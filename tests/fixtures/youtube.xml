@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <entry><id>yt:video:AAAAAAAAAAA</id><yt:videoId>AAAAAAAAAAA</yt:videoId><title>Colum Tyrrell - Crowd Work in Charlotte</title>
+  <published>2026-10-20T15:00:00+00:00</published>
+  <media:group><media:title>x</media:title><media:thumbnail url="https://i2.ytimg.com/vi/AAAAAAAAAAA/hqdefault.jpg" width="480" height="360"/></media:group></entry>
+ <entry><id>yt:video:BBBBBBBBBBB</id><yt:videoId>BBBBBBBBBBB</yt:videoId><title>Cockfight E91 Clip</title>
+  <published>2026-10-23T15:00:00+00:00</published><media:group/></entry>
+</feed>

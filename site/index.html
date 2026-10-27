@@ -272,6 +272,20 @@ table.t90 tr:nth-child(even) td { background: #fff1b8; }
 .socials { margin-top: 14px; background: var(--navy); border: 4px ridge var(--silver); padding: 10px; display: grid; gap: 8px; }
 .socials b { font-family: var(--display); color: var(--wall-a); font-size: 18px; text-shadow: 2px 2px 0 #000; }
 
+/* videos & merch */
+.vgrid, .mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.vcard, .mcard { display: block; background: var(--silver); border: 3px outset #fff; padding: 6px; color: #000 !important; text-decoration: none; font-family: var(--comic); font-weight: 700; font-size: 14px; }
+.vcard:hover, .mcard:hover { background: var(--wall-a); }
+.vcard img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; border: 2px inset #fff; background: #000; }
+.mcard img, .mcard .mph { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; border: 2px inset #fff; background: #fff; }
+.vcard span, .mcard span { display: block; margin-top: 6px; overflow-wrap: anywhere; }
+.vcard small, .mcard small { display: block; font-weight: 400; font-size: 12px; }
+.vcard.star { border-color: var(--hot); }
+.tag { display: inline-block; font-family: var(--comic); font-weight: 700; font-size: 11px; padding: 1px 6px; color: #fff; background: var(--chili); white-space: nowrap; }
+.tag.few { background: var(--hot); animation: blink 1s steps(1) infinite; }
+.tag.free { background: var(--verde); }
+tr.cancel td { text-decoration: line-through; color: #777; }
+
 /* forum */
 .forum { font-family: Verdana, Geneva, sans-serif; font-size: 13px; }
 .forum-bar { background: var(--navy); color: #fff; padding: 6px 8px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; border: 2px outset var(--silver); }
@@ -369,9 +383,11 @@ table.t90 tr:nth-child(even) td { background: #fff1b8; }
   <div class="grid">
     <nav class="nav" aria-label="Site">
       <a class="btn" href="#home" data-view="home">Home</a>
-      <a class="btn" href="#episodes" data-view="episodes">Episodes</a>
-      <a class="btn" href="#tour" data-view="tour">Tour Dates</a>
-      <a class="btn" href="#forum" data-view="forum">Forums</a>
+      <a class="btn" href="#episodes" data-view="episodes" data-feat="podcast">Episodes</a>
+      <a class="btn" href="#tour" data-view="tour" data-feat="shows">Tour Dates</a>
+      <a class="btn" href="#videos" data-view="videos" data-feat="videos" hidden>Videos</a>
+      <a class="btn" href="#merch" data-view="merch" data-feat="merch" hidden>Merch</a>
+      <a class="btn" href="#forum" data-view="forum" data-feat="forum">Forums</a>
       <a class="btn patreon" href="https://www.patreon.com/CockFightPod" target="_blank" rel="noopener">★ Patreon ★</a>
       <span class="nav-label">THE HOSTS:</span>
       <a class="btn" href="#colum" data-view="colum">Colum</a>
@@ -395,15 +411,17 @@ table.t90 tr:nth-child(even) td { background: #fff1b8; }
           <p><b>Cockfight</b> is a weekly comedy podcast with stand-up comics Colum Tyrrell, Lev Fer and Tristan Bowling. Rated 4.5 stars on Apple Podcasts. <b>Explicit.</b></p>
           <p id="headline"><span class="blink">NEW!!</span> <span id="headlineText"></span></p>
           <ul class="facts">
-            <li><a href="#episodes" data-view="episodes">Episodes</a>: every recent episode with a link to listen</li>
-            <li><a href="#tour" data-view="tour">Tour Dates</a>: where the guys are performing and where to get tickets</li>
-            <li><a href="#forum" data-view="forum">Forums</a>: talk to other fans about the show</li>
+            <li data-feat="podcast"><a href="#episodes" data-view="episodes">Episodes</a>: every recent episode with a link to listen</li>
+            <li data-feat="shows"><a href="#tour" data-view="tour">Tour Dates</a>: where the guys are performing and where to get tickets</li>
+            <li data-feat="videos" hidden><a href="#videos" data-view="videos">Videos</a>: the latest clips and uploads</li>
+            <li data-feat="merch" hidden><a href="#merch" data-view="merch">Merch</a>: shirts, stickers and more</li>
+            <li data-feat="forum"><a href="#forum" data-view="forum">Forums</a>: talk to other fans about the show</li>
             <li><a href="https://www.patreon.com/CockFightPod" target="_blank" rel="noopener">Patreon</a>: support the show</li>
           </ul>
           <div class="listen-row">
             <a class="ext" href="https://podcasts.apple.com/us/podcast/cockfight/id1792746019" target="_blank" rel="noopener">▶ Listen on Apple Podcasts</a>
             <a class="ext patreon-ext" href="https://www.patreon.com/CockFightPod" target="_blank" rel="noopener">★ Support on Patreon</a>
-            <a class="ext" href="#forum" data-view="forum">✍ Visit the Forums</a>
+            <a class="ext" href="#forum" data-view="forum" data-feat="forum">✍ Visit the Forums</a>
           </div>
         </section>
         <hr class="rainbow">
@@ -441,10 +459,30 @@ table.t90 tr:nth-child(even) td { background: #fff1b8; }
         </section>
       </div>
 
+      <!-- VIDEOS -->
+      <div class="view" id="v-videos" hidden>
+        <section>
+          <h2>Videos</h2>
+          <p class="comic small">Clips, sets and full episodes. Click one to watch it on YouTube.</p>
+          <div class="vgrid" id="videoGrid"></div>
+        </section>
+      </div>
+
+      <!-- MERCH -->
+      <div class="view" id="v-merch" hidden>
+        <section>
+          <h2>Merch</h2>
+          <p class="comic small">Click an item to buy it from the official store.</p>
+          <div class="mgrid" id="merchGrid"></div>
+        </section>
+      </div>
+
       <!-- COMIC PAGES -->
+      <div id="hostViews">
       <div class="view" id="v-colum" hidden></div>
       <div class="view" id="v-lev" hidden></div>
       <div class="view" id="v-tristan" hidden></div>
+      </div>
 
       <!-- FORUM -->
       <div class="view forum" id="v-forum" hidden>
@@ -468,13 +506,7 @@ table.t90 tr:nth-child(even) td { background: #fff1b8; }
   </footer>
 </div>
 
-<script>
-// Supabase connection for cockfightpodcast.com. The anon key is meant to be public.
-window.COCKFIGHT_CONFIG = {
-  SUPABASE_URL: "https://hzslcnroupkunufbmclw.supabase.co",
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6c2xjbnJvdXBrdW51ZmJtY2x3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNzUwMTYsImV4cCI6MjEwODY1MTAxNn0.YuhUQLFJyn5Amhod9oijrhLykEFwFV_CC1XaY_y0SVE"
-};
-</script>
+<script src="config.js"></script>
 <script>
 (function () {
   "use strict";
@@ -643,10 +675,22 @@ window.COCKFIGHT_CONFIG = {
       t.appendChild(el("tr", null, [
         showWho ? el("td", null, [el("a", { href: "#" + s.host, "data-view": s.host, text: (COMICS[s.host] || {}).name || s.host })]) : null,
         el("td", { text: showDate(s.date) }), el("td", { text: s.time || "" }), el("td", { text: s.city || "" }), el("td", { text: s.venue || "" }),
-        el("td", null, [s.url ? el("a", { class: "tix", href: s.url, target: "_blank", rel: "noopener", text: "🎟 Get Tix" }) : "Tix soon"])
+        el("td", null, [ticketCell(s)])
       ]));
+      if (s.status === "cancelled") t.lastChild.className = "cancel";
     });
     return el("div", { class: "tablewrap" }, [t]);
+  }
+  function ticketCell(s) {
+    if (s.status === "sold_out") return el("span", { class: "tag", text: "SOLD OUT" });
+    if (s.status === "cancelled") return el("span", { class: "tag", text: "CANCELLED" });
+    var bits = [];
+    if (s.url) bits.push(el("a", { class: "tix", href: s.url, target: "_blank", rel: "noopener", text: s.status === "free" ? "🎟 RSVP" : "🎟 Get Tix" }));
+    else bits.push(document.createTextNode("Tix soon"));
+    if (s.status === "few_left") { bits.push(document.createTextNode(" ")); bits.push(el("span", { class: "tag few", text: "FEW LEFT!" })); }
+    if (s.status === "free") { bits.push(document.createTextNode(" ")); bits.push(el("span", { class: "tag free", text: "FREE" })); }
+    if (s.note) bits.push(el("div", { class: "small", text: s.note }));
+    return el("span", null, bits);
   }
   function noDates(who) {
     return el("div", { class: "sold-none" }, [
@@ -681,7 +725,9 @@ window.COCKFIGHT_CONFIG = {
         el("img", { class: "photo", src: photoFor(k), alt: "Photo of " + c.name, width: "320", height: "320" }),
         el("b", { text: c.name }), el("small", { text: c.title + (up.length ? " • On tour now" : "") })
       ]));
-      var v = $("v-" + k); v.textContent = "";
+      var v = $("v-" + k);
+      if (!v) { v = el("div", { class: "view", id: "v-" + k, hidden: true }); $("hostViews").appendChild(v); }
+      v.textContent = "";
       v.appendChild(el("section", null, [
         el("h2", { text: c.name }),
         el("div", { class: "profile" }, [
@@ -703,7 +749,38 @@ window.COCKFIGHT_CONFIG = {
     $("headlineText").textContent = SETTINGS.headline || "";
     $("headline").hidden = !SETTINGS.headline;
   }
-  function renderAll() { renderSettings(); renderEpisodes(); renderHosts(); }
+  var VIDEOS = [], MERCH = [], FEATURES = { shows: true, podcast: true, videos: false, merch: false, forum: true };
+  function renderVideos() {
+    var g = $("videoGrid"); g.textContent = "";
+    var list = VIDEOS.filter(function (v) { return !v.hidden; }).sort(function (a, b) { return (b.featured - a.featured) || String(b.published || "").localeCompare(String(a.published || "")); });
+    list.forEach(function (v) {
+      g.appendChild(el("a", { class: "vcard" + (v.featured ? " star" : ""), href: v.url || ("https://www.youtube.com/watch?v=" + v.youtube_id), target: "_blank", rel: "noopener" }, [
+        el("img", { src: v.thumbnail_url || ("https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg"), alt: "", loading: "lazy" }),
+        el("span", { text: (v.featured ? "⭐ " : "") + v.title }), v.published ? el("small", { text: epDate(v.published) }) : null
+      ]));
+    });
+    if (!list.length) g.appendChild(el("div", { class: "empty-board", text: "No videos yet. Check back soon!" }));
+  }
+  function renderMerch() {
+    var g = $("merchGrid"); g.textContent = "";
+    var list = MERCH.filter(function (m) { return !m.hidden; });
+    list.forEach(function (m) {
+      g.appendChild(el(m.url ? "a" : "div", { class: "mcard", href: m.url || null, target: m.url ? "_blank" : null, rel: m.url ? "noopener" : null }, [
+        m.image_url ? el("img", { src: m.image_url, alt: "", loading: "lazy" }) : el("div", { class: "mph" }),
+        el("span", { text: m.name }), el("small", { text: (m.price || "") + (m.url ? " • Buy now ►" : "") })
+      ]));
+    });
+    if (!list.length) g.appendChild(el("div", { class: "empty-board", text: "Merch coming soon!" }));
+  }
+  function featOn(k) { return FEATURES[k] !== false; }
+  function applyFeatures() {
+    var hasVids = VIDEOS.some(function (v) { return !v.hidden; }), hasMerch = MERCH.some(function (m) { return !m.hidden; });
+    var on = { shows: featOn("shows"), podcast: featOn("podcast"), videos: !!FEATURES.videos && hasVids, merch: !!FEATURES.merch && hasMerch, forum: featOn("forum") };
+    document.querySelectorAll("[data-feat]").forEach(function (x) { x.hidden = !on[x.getAttribute("data-feat")]; });
+    VIEW_OFF = Object.keys(on).filter(function (k) { return !on[k]; }).map(function (k) { return { shows: "tour", podcast: "episodes" }[k] || k; });
+  }
+  var VIEW_OFF = ["videos", "merch"];
+  function renderAll() { renderSettings(); renderEpisodes(); renderHosts(); renderVideos(); renderMerch(); applyFeatures(); }
   renderAll();
 
   /* ================= LIVE CONTENT (cockfightpodcast.com) ================= */
@@ -718,15 +795,23 @@ window.COCKFIGHT_CONFIG = {
         return b || [];
       }); });
   }
+  var SITE = CFG.SITE_ID || "cockfight", BY_SITE = "&site_id=eq." + encodeURIComponent(SITE);
   if (LIVE) {
+    var optional = function (p) { return p.catch(function () { return []; }); }; // tables from the platform upgrade
     Promise.all([
-      rest("episodes?select=*&order=num.desc"),
-      rest("shows?select=*&order=date.asc"),
-      rest("hosts?select=*"),
-      rest("settings?select=*")
+      rest("episodes?select=*&order=num.desc" + BY_SITE),
+      rest("shows?select=*&order=date.asc" + BY_SITE),
+      rest("hosts?select=*&order=sort.asc" + BY_SITE),
+      rest("settings?select=*" + BY_SITE),
+      optional(rest("sites?select=*&id=eq." + encodeURIComponent(SITE))),
+      optional(rest("videos?select=*&order=published.desc&limit=60" + BY_SITE)),
+      optional(rest("merch?select=*&order=sort.asc" + BY_SITE))
     ]).then(function (r) {
-      if (r[0].length) EPISODES = r[0].map(function (e) { return { n: e.num, t: e.title, d: e.posted, len: e.length || "", url: e.url || "", pat: e.patreon || "", blurb: e.blurb || "" }; });
-      SHOWS = r[1].map(function (x) { return { host: x.host, date: x.date, time: x.time || "", city: x.city || "", venue: x.venue || "", url: x.url || "" }; });
+      var eps = r[0].filter(function (e) { return !e.hidden; });
+      if (eps.length) EPISODES = eps.map(function (e) { return { n: e.num, t: e.title, d: e.posted, len: e.length || "", url: e.url || e.audio_url || "", pat: e.patreon || "", blurb: e.blurb || "" }; });
+      SHOWS = r[1].map(function (x) { return { host: x.host, date: x.date, time: x.time || "", city: x.city || "", venue: x.venue || "", url: x.url || "", status: x.status || "on_sale", note: x.note || "" }; });
+      if (r[4][0] && r[4][0].features) FEATURES = r[4][0].features;
+      VIDEOS = r[5] || []; MERCH = r[6] || [];
       r[2].forEach(function (h) {
         COMICS[h.id] = { name: h.name, title: h.title || "Comedian", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "", instagram: h.instagram || "", youtube: h.youtube || "", tiktok: h.tiktok || "", twitter: h.twitter || "", website: h.website || "" };
         if (HOST_ORDER.indexOf(h.id) < 0) { HOST_ORDER.push(h.id); }
@@ -742,9 +827,9 @@ window.COCKFIGHT_CONFIG = {
   }
 
   /* ================= ROUTER ================= */
-  var VIEWS = ["home", "episodes", "tour", "colum", "lev", "tristan", "forum"];
   function show(v) {
-    if (VIEWS.indexOf(v) < 0) v = "home";
+    var VIEWS = [].map.call(document.querySelectorAll(".main .view"), function (x) { return x.id.slice(2); });
+    if (VIEWS.indexOf(v) < 0 || VIEW_OFF.indexOf(v) >= 0) v = "home";
     VIEWS.forEach(function (x) { $("v-" + x).hidden = x !== v; });
     document.querySelectorAll(".nav .btn").forEach(function (a) { if (a.dataset.view === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     if (v === "forum") forumStart();
@@ -946,7 +1031,7 @@ window.COCKFIGHT_CONFIG = {
     var A = { mode: "supabase", canWrite: true, canDelete: false };
     A.kick = function () { pollers.forEach(function (go) { go(); }); };
     A.threads = function (cb, err) {
-      return poll(function () { return q("threads?select=*&order=last_at.desc&limit=300"); }, function (rows) {
+      return poll(function () { return q("threads?select=*&order=last_at.desc&limit=300&site_id=eq." + encodeURIComponent(SITE)); }, function (rows) {
         cb(rows.map(function (r) { return { id: r.id, board: r.board, title: r.title, author: r.author, createdAt: r.created_at, lastAt: r.last_at, lastBy: r.last_by, replies: r.replies }; }));
       }, err);
     };
@@ -956,10 +1041,10 @@ window.COCKFIGHT_CONFIG = {
       }, err);
     };
     A.newThread = function (t, body) {
-      return q("threads", { method: "POST", headers: Object.assign({ Prefer: "return=representation" }, H), body: JSON.stringify({ board: t.board, title: t.title, author: t.author, created_at: t.createdAt, last_at: t.createdAt, last_by: t.author, replies: 0 }) })
-        .then(function (rows) { var id = rows[0].id; return q("posts", { method: "POST", body: JSON.stringify({ thread_id: id, author: t.author, body: body, created_at: t.createdAt }) }).then(function () { return id; }); });
+      return q("threads", { method: "POST", headers: Object.assign({ Prefer: "return=representation" }, H), body: JSON.stringify({ site_id: SITE, board: t.board, title: t.title, author: t.author, created_at: t.createdAt, last_at: t.createdAt, last_by: t.author, replies: 0 }) })
+        .then(function (rows) { var id = rows[0].id; return q("posts", { method: "POST", body: JSON.stringify({ site_id: SITE, thread_id: id, author: t.author, body: body, created_at: t.createdAt }) }).then(function () { return id; }); });
     };
-    A.reply = function (id, p) { return q("posts", { method: "POST", body: JSON.stringify({ thread_id: id, author: p.author, body: p.body, created_at: p.createdAt }) }).then(function () { A.kick(); }); };
+    A.reply = function (id, p) { return q("posts", { method: "POST", body: JSON.stringify({ site_id: SITE, thread_id: id, author: p.author, body: p.body, created_at: p.createdAt }) }).then(function () { A.kick(); }); };
     A.remove = function () { return Promise.reject(new Error("Delete topics from the Supabase dashboard.")); };
     return A;
   }

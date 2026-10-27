@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+<channel><title>Cockfight</title>
+<item>
+  <title>Big Night Out | E92</title>
+  <pubDate>Thu, 29 Oct 2026 10:00:00 -0000</pubDate>
+  <guid isPermaLink="false">abc-92</guid>
+  <itunes:duration>4803</itunes:duration>
+  <enclosure url="https://traffic.megaphone.fm/ABC92.mp3" type="audio/mpeg" length="1"/>
+  <description><![CDATA[<p>The guys finally go to the Knicks game and Tristan gets thrown out.</p><p>Cockfight Podcast Patreon for Part 2: https://www.patreon.com/CockFightPod/membership</p><p>Colum: https://www.instagram.com/columtyrrell</p><p>Learn more about your ad choices. Visit megaphone.fm/adchoices</p>]]></description>
+</item>
+<item>
+  <title>Marathon Chainsaw | E91</title>
+  <pubDate>Thu, 22 Oct 2026 10:00:00 -0000</pubDate>
+  <guid isPermaLink="false">abc-91</guid>
+  <itunes:duration>01:20:03</itunes:duration>
+  <enclosure url="https://traffic.megaphone.fm/ABC91.mp3" type="audio/mpeg" length="1"/>
+  <description><![CDATA[<p>Cockfight Podcast Patreon for Part 2: https://www.patreon.com/CockFightPod/membership</p>]]></description>
+</item>
+<item>
+  <title>Lev vs. Cumtown | E84 Part 2</title>
+  <pubDate>Thu, 03 Sep 2026 10:00:00 -0000</pubDate>
+  <guid isPermaLink="false">abc-84</guid>
+  <itunes:duration>01:05:46</itunes:duration>
+  <description><![CDATA[Cockfight Podcast Patreon for Part 1: https://www.patreon.com/CockFightPod/membership]]></description>
+</item>
+</channel></rss>
