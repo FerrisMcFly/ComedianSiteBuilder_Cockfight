@@ -427,7 +427,8 @@ td select.status.st-few_left { color: var(--warn); }
   async function q(p) { const r = await p; if (r.error) throw r.error; return r.data; }
   const sid = () => S.site.id;
   // Usernames become user@<site's domain>; anyone can also log in with a full email.
-  const loginDom = () => (S.site && S.site.domain) || CFG.LOGIN_DOMAIN || "cockfightpodcast.com";
+  const LOGIN_DOMAINS = [CFG.LOGIN_DOMAIN || "comictable.com", ...(CFG.OLDER_LOGIN_DOMAINS || ["cockfightpodcast.com"])].filter((d, i, a) => d && a.indexOf(d) === i);
+  const loginDom = () => LOGIN_DOMAINS[0];
 
   async function loadAll() {
     const site = sid();
@@ -460,8 +461,11 @@ td select.status.st-few_left { color: var(--warn); }
     const btn = h("button", { class: "btn primary big", type: "submit", text: "Log in" });
     const form = h("form", { class: "card login stack", onsubmit: async (e) => {
       e.preventDefault(); btn.disabled = true;
-      let who = user.value.trim(); if (!who.includes("@")) who = who.toLowerCase() + "@" + (CFG.LOGIN_DOMAIN || "cockfightpodcast.com");
-      const r = await sb.auth.signInWithPassword({ email: who, password: pass.value });
+      // A plain username is tried as user@comictable.com, then at older login domains (Cockfight's).
+      const typed = user.value.trim();
+      const tries = typed.includes("@") ? [typed] : LOGIN_DOMAINS.map((d) => typed.toLowerCase() + "@" + d);
+      let r = { error: true };
+      for (const email of tries) { r = await sb.auth.signInWithPassword({ email, password: pass.value }); if (!r.error) break; }
       btn.disabled = false;
       if (r.error) return showLogin("Wrong username or password.");
       boot();
@@ -1834,7 +1838,7 @@ td select.status.st-few_left { color: var(--warn); }
       const msg = h("div", { class: "err" });
       card.replaceChildren(h("h2", { text: "Team" }), h("p", { class: "sub", text: "Who can log in to this admin." }),
         h("div", null, res.team.map((m) => h("div", { class: "switch-row" },
-          h("div", null, h("b", { text: m.email.replace("@" + loginDom(), "") }), m.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null,
+          h("div", null, h("b", { text: LOGIN_DOMAINS.reduce((e, d) => e.replace("@" + d, ""), m.email) }), m.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null,
             h("div", { class: "hint", text: (m.role === "owner" ? "Owner" : "Editor") + (m.last_sign_in ? " · last in " + ago(m.last_sign_in) : " · hasn't logged in yet") })),
           owner && !m.you ? sure("Remove", async () => { try { await teamCall({ action: "remove", user_id: m.user_id }); toast("Removed from the team."); draw(); } catch (e) { toast(e.message, { bad: true }); } }) : null))),
         owner ? h("div", { class: "newclub stack", style: "gap:10px;margin-top:12px" }, h("b", { text: "Add someone" }),
@@ -1897,7 +1901,25 @@ td select.status.st-few_left { color: var(--warn); }
 
     // ---- list of sites with a launch checklist ----
     const listCard = h("section", { class: "card" }, h("h2", { text: "Sites" }), h("p", { class: "hint", text: "Loading…" }));
-    wrap.append(listCard, form);
+    // ---- "Get your site" requests from comictable.com ----
+    const reqCard = h("section", { class: "card" });
+    async function drawRequests() {
+      let reqs;
+      try { reqs = await q(sb.from("site_requests").select("*").eq("handled", false).order("created_at", { ascending: false })); }
+      catch (e) { reqCard.replaceChildren(); return; }
+      reqCard.replaceChildren(h("h2", { text: "Requests from comictable.com" + (reqs.length ? " (" + reqs.length + ")" : "") }),
+        reqs.length ? h("div", null, reqs.map((r) => h("div", { class: "switch-row", style: "flex-wrap:wrap;align-items:flex-start" },
+          h("div", { style: "flex:1 1 320px" }, h("b", { text: r.name }), h("span", { class: "hint", style: "margin-left:8px", text: ago(r.created_at) }),
+            h("div", null, h("a", { href: "mailto:" + r.email, text: r.email })),
+            r.act ? h("div", { class: "hint", text: r.act }) : null, r.links ? h("div", { class: "hint", text: r.links }) : null, r.note ? h("div", { style: "margin-top:4px;white-space:pre-wrap", text: r.note }) : null),
+          h("div", { class: "btns" },
+            h("button", { class: "btn sm", type: "button", text: "Start their site", onclick: () => { set(name, r.name); form.scrollIntoView({ behavior: "smooth" }); name.focus(); } }),
+            h("button", { class: "btn sm ghost", type: "button", text: "Mark handled", onclick: async () => { try { await q(sb.from("site_requests").update({ handled: true }).eq("id", r.id)); drawRequests(); } catch (e) { toast(errText(e), { bad: true }); } } })))))
+          : empty("No new requests", "When a comic fills in the form on comictable.com, it shows up here."));
+    }
+    const set = (el, v) => { el.value = v; el.dispatchEvent(new Event("input")); };
+    drawRequests();
+    wrap.append(reqCard, listCard, form);
     try {
       const sites = await q(sb.from("sites").select("*").order("created_at", { ascending: true }));
       const counts = async (t, sidv, extra) => { let qq = sb.from(t).select("id", { count: "exact", head: true }).eq("site_id", sidv); if (extra) qq = extra(qq); const r = await qq; return r.error ? 0 : r.count || 0; };

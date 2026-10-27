@@ -13,6 +13,11 @@ async function as(uid, sql) {
   catch (e) { await db.exec("reset role"); return e.message.split("\n")[0]; }
 }
 
+async function rows(uid, sql) {
+  await db.exec(uid ? `set test.uid = '${uid}'; set role authenticated;` : "reset test.uid; set role anon;");
+  try { return (await db.query(sql)).rows; } finally { await db.exec("reset role"); }
+}
+
 test("all database files run, and the upgrades can run twice", async () => {
   db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create schema auth; create table auth.users (id uuid primary key, email text);
@@ -97,4 +102,12 @@ test("only platform admins can create sites, and a new site comes ready to use",
   // the new site's owner can now add shows there, and Cockfight's data is untouched
   assert.equal(await as(OWNER, `insert into hosts (id, site_id, name) values ('john-smith-john', 'john-smith', 'John Smith')`), "ok");
   assert.equal((await q("select count(*)::int n from hosts where site_id = 'cockfight'"))[0].n, 3);
+});
+
+test("anyone can ask for a site from comictable.com, only platform admins can read the requests", async () => {
+  assert.equal(await as(null, `insert into site_requests (name, email, act) values ('Jane Doe', 'jane@x.com', 'Stand-up and a podcast')`), "ok");
+  assert.match(await as(null, `insert into site_requests (name, email) values ('Spam', 'not-an-email')`), /check|violat/i);
+  await assert.rejects(rows(null, `select * from site_requests`), /permission denied/);
+  assert.equal((await rows(COMIC, `select count(*)::int n from site_requests`))[0].n, 0);
+  assert.equal((await rows(OWNER, `select count(*)::int n from site_requests`))[0].n, 1);
 });

@@ -14,13 +14,16 @@ const sites = readdirSync(join(root, "sites")).filter((d) => existsSync(join(roo
 const writeConfig = (dir, cfg, label) => writeFileSync(join(dir, "config.js"),
   "// Made by tools/build.mjs for " + label + ". The anon key is meant to be public; the database's security rules protect the data.\n" +
   "window.COMICTABLE_CONFIG = window.COCKFIGHT_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n");
+const logins = { LOGIN_DOMAIN: platform.login_domain || "comictable.com", OLDER_LOGIN_DOMAINS: platform.older_login_domains || [] };
 const db = { SUPABASE_URL: platform.supabase_url, SUPABASE_ANON_KEY: platform.supabase_anon_key };
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 
 if (id === "platform") {
-  cpSync(join(root, "platform", "admin.html"), join(out, "index.html"));
+  // comictable.com: the front page at /, the admin at /admin
+  cpSync(join(root, "platform", "home"), out, { recursive: true });
+  cpSync(join(root, "platform", "admin.html"), join(out, "admin.html"));
   cpSync(join(root, "platform", "sdk"), join(out, "sdk"), { recursive: true });
   // Each site's front end says which extras and design settings it has; the admin reads these per site.
   mkdirSync(join(out, "themes"));
@@ -28,9 +31,9 @@ if (id === "platform") {
     const t = join(root, "sites", s, "theme.json");
     if (existsSync(t)) cpSync(t, join(out, "themes", s + ".json"));
   }
-  writeConfig(out, { PLATFORM: true, LOGIN_DOMAIN: platform.login_domain || "", ...db }, "the ComicTable admin");
-  writeFileSync(join(out, "_headers"), "/*\n  X-Robots-Tag: noindex, nofollow\n");
-  writeFileSync(join(out, "_redirects"), "/admin  /  301\n");
+  writeConfig(out, { PLATFORM: true, ...logins, ...db }, "the ComicTable admin");
+  writeFileSync(join(out, "_headers"), "/admin*\n  X-Robots-Tag: noindex, nofollow\n");
+  writeFileSync(join(out, "_redirects"), "/admin  /admin.html  200\n");
   console.log(`Built the ComicTable admin into ${out} (${sites.length} site${sites.length === 1 ? "" : "s"} known)`);
 } else {
   const siteDir = join(root, "sites", id);
@@ -47,6 +50,6 @@ if (id === "platform") {
   } else {
     cpSync(join(root, "platform", "admin.html"), join(out, "admin.html"));
   }
-  writeConfig(out, { SITE_ID: site.id, SITE_NAME: site.name, LOGIN_DOMAIN: site.login_domain || site.domain || "", ...db }, site.name);
+  writeConfig(out, { SITE_ID: site.id, SITE_NAME: site.name, ...logins, ...db }, site.name);
   console.log(`Built ${site.name} (${id}) into ${out}`);
 }

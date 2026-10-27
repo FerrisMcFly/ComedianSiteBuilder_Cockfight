@@ -30,3 +30,27 @@ grant execute on function public.create_site(text, text, text) to authenticated;
 drop policy if exists "platform admins edit sites" on sites;
 create policy "platform admins edit sites" on sites for update to authenticated
   using (public.is_platform_admin()) with check (public.is_platform_admin());
+
+-- "Get your site" requests from the comictable.com front page.
+-- Anyone can send one; only platform admins can read them.
+create table if not exists site_requests (
+  id bigint generated always as identity primary key,
+  name text not null check (length(name) between 1 and 120),
+  email text not null check (email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' and length(email) <= 200),
+  act text check (length(act) <= 200),
+  links text check (length(links) <= 1000),
+  note text check (length(note) <= 2000),
+  handled boolean not null default false,
+  created_at timestamptz not null default now()
+);
+alter table site_requests enable row level security;
+drop policy if exists "anyone can ask" on site_requests;
+create policy "anyone can ask" on site_requests for insert to anon, authenticated with check (handled = false);
+drop policy if exists "platform admins read" on site_requests;
+create policy "platform admins read" on site_requests for select to authenticated using (public.is_platform_admin());
+drop policy if exists "platform admins update" on site_requests;
+create policy "platform admins update" on site_requests for update to authenticated using (public.is_platform_admin()) with check (public.is_platform_admin());
+drop policy if exists "platform admins delete" on site_requests;
+create policy "platform admins delete" on site_requests for delete to authenticated using (public.is_platform_admin());
+grant insert on site_requests to anon, authenticated;
+grant select, update, delete on site_requests to authenticated;

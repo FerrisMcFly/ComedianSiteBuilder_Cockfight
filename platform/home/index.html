@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ComicTable · Websites for comedians</title>
+<meta name="description" content="ComicTable builds comedians their own website, then gives them easy tools to keep it full: shows and ticket links, podcast episodes, videos, merch and a place for fans.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Schibsted+Grotesk:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ComicTable front page. One idea: the comic's index card setlist. Everything else stays quiet. */
+:root {
+  --ink: #1f2a5a;      /* ballpoint blue: all text */
+  --ink-soft: #4b5582;
+  --paper: #fffefa;    /* index card */
+  --rule: #b9d2ec;     /* card lines */
+  --margin: #e0504c;   /* the card's red line, and the one accent */
+  --page: #eef1f5;     /* cool grey room */
+  --line: #d3d9e3;
+  --pen: "Nanum Pen Script", "Comic Sans MS", cursive;
+  --sans: "Schibsted Grotesk", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
+body { margin: 0; background: var(--page); color: var(--ink); font: 400 18px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--margin); outline-offset: 3px; border-radius: 4px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* top bar */
+.top { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+.logo { font-weight: 900; font-size: 22px; letter-spacing: -0.02em; text-decoration: none; display: inline-flex; align-items: baseline; gap: 2px; }
+.logo i { font-style: normal; color: var(--margin); }
+.top nav { display: flex; gap: 22px; align-items: center; font-weight: 500; font-size: 16px; }
+.top nav a { text-decoration: none; }
+.top nav a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* buttons */
+.btn { display: inline-block; font: 700 17px/1 var(--sans); padding: 15px 22px; border-radius: 10px; border: 2px solid var(--ink); text-decoration: none; cursor: pointer; background: transparent; color: var(--ink); }
+.btn.solid { background: var(--ink); color: var(--paper); }
+.btn.solid:hover { background: #2c3a78; }
+.btn:not(.solid):hover { background: #fff; }
+
+/* hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 56px; align-items: center; padding: 48px 0 96px; }
+h1 { font-weight: 900; font-size: clamp(44px, 6.4vw, 82px); line-height: 0.98; letter-spacing: -0.035em; margin: 0 0 24px; }
+.lede { font-size: 21px; line-height: 1.5; color: var(--ink-soft); max-width: 31em; margin: 0 0 32px; }
+.ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* the setlist card: the one loud thing on the page */
+.card-stage { display: flex; justify-content: center; }
+.setlist {
+  position: relative; width: min(100%, 470px); padding: 22px 30px 30px;
+  background: var(--paper);
+  box-shadow: 0 1px 0 #e2e6ee, 0 18px 40px -18px rgba(31, 42, 90, .45);
+  transform: rotate(-2.2deg); border-radius: 3px;
+  font-family: var(--pen); font-size: 32px; line-height: 36px; color: var(--ink);
+  --row: 36px;
+}
+.setlist h2 { font: inherit; font-size: 40px; line-height: 44px; margin: 0 -30px 6px; padding: 0 30px 6px; border-bottom: 2px solid var(--margin); }
+/* each item sits on its own ruled line, plus one empty line at the bottom like a real card */
+.setlist ol { list-style: none; margin: 0 -30px; padding: 0 30px var(--row); background: repeating-linear-gradient(to bottom, transparent 0 calc(var(--row) - 1px), var(--rule) calc(var(--row) - 1px) var(--row)); }
+.setlist li { padding-top: 2px; height: var(--row); }
+.setlist li { white-space: nowrap; }
+.setlist s { text-decoration: none; position: relative; color: var(--ink-soft); }
+.setlist s::after { content: ""; position: absolute; left: -4px; right: -6px; top: 52%; height: 3px; background: var(--ink); border-radius: 3px; transform: rotate(-1.5deg) scaleX(0); transform-origin: left; animation: strike .45s ease-out forwards; }
+.setlist li:nth-child(1) s::after { animation-delay: .7s; }
+.setlist li:nth-child(2) s::after { animation-delay: 1.15s; }
+@keyframes strike { to { transform: rotate(-1.5deg) scaleX(1); } }
+.setlist .closer { color: var(--margin); }
+.tape { position: absolute; width: 96px; height: 28px; top: -12px; left: 50%; margin-left: -48px; background: rgba(243, 211, 107, .78); transform: rotate(3deg); }
+
+/* sections */
+section.band { padding: 88px 0; border-top: 1px solid var(--line); }
+h2.big { font-weight: 900; font-size: clamp(32px, 4.2vw, 50px); line-height: 1.04; letter-spacing: -0.03em; margin: 0 0 18px; max-width: 18em; }
+.intro { color: var(--ink-soft); max-width: 36em; margin: 0 0 48px; font-size: 19px; }
+
+.tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px 64px; }
+.tool h3 { font-size: 21px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
+.tool p { margin: 0; color: var(--ink-soft); max-width: 30em; }
+
+.yours { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 64px; align-items: start; }
+.yours ul { list-style: none; margin: 0; padding: 0; }
+.yours li { padding: 18px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 30px 1fr; gap: 10px; }
+.yours li:last-child { border-bottom: 1px solid var(--line); }
+.yours li::before { content: "✓"; font-family: var(--pen); font-size: 30px; line-height: 24px; color: var(--margin); }
+.yours b { display: block; font-size: 19px; }
+.yours span { color: var(--ink-soft); }
+
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; counter-reset: s; }
+.steps li { counter-increment: s; }
+.steps li::before { content: counter(s); display: block; font-family: var(--pen); font-size: 64px; line-height: 1; color: var(--margin); margin-bottom: 8px; }
+.steps h3 { margin: 0 0 6px; font-size: 21px; }
+.steps p { margin: 0; color: var(--ink-soft); }
+
+.running { display: flex; gap: 24px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 26px 30px; }
+.running b { font-size: 24px; letter-spacing: -0.01em; }
+.running p { margin: 4px 0 0; color: var(--ink-soft); }
+
+/* request form */
+.ask { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 64px; align-items: start; }
+form { display: grid; gap: 16px; }
+label { display: grid; gap: 6px; font-weight: 500; font-size: 16px; }
+label small { font-weight: 400; color: var(--ink-soft); }
+input, textarea { font: 400 17px/1.4 var(--sans); color: var(--ink); background: #fff; border: 1.5px solid var(--line); border-radius: 10px; padding: 13px 14px; width: 100%; }
+input:focus, textarea:focus { border-color: var(--ink); outline: none; box-shadow: 0 0 0 3px var(--rule); }
+textarea { min-height: 96px; resize: vertical; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.msg { min-height: 1.5em; font-weight: 500; }
+.msg.bad { color: #b3261e; }
+.done { font-family: var(--pen); font-size: 40px; line-height: 1.1; }
+
+footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--ink-soft); font-size: 15px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .yours, .ask { grid-template-columns: 1fr; gap: 40px; }
+  .hero { padding: 24px 0 72px; }
+  .card-stage { order: -1; }
+  .tools { grid-template-columns: 1fr; gap: 28px; }
+  .steps { grid-template-columns: 1fr; gap: 28px; }
+  section.band { padding: 64px 0; }
+}
+@media (max-width: 520px) {
+  .wrap { padding: 0 16px; }
+  body { font-size: 17px; }
+  .top nav .hide-sm { display: none; }
+  .setlist { font-size: 26px; line-height: 30px; --row: 30px; padding: 18px 20px 22px; }
+  .setlist h2 { font-size: 32px; line-height: 36px; margin: 0 -20px 4px; padding: 0 20px 4px; }
+  .setlist ol { margin: 0 -20px; padding: 0 20px var(--row); }
+  .two { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="/" aria-label="ComicTable home">Comic<i>Table</i></a>
+    <nav aria-label="Main">
+      <a class="hide-sm" href="#tools">What you get</a>
+      <a class="hide-sm" href="#ask">Get a site</a>
+      <a href="/admin">Log in</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <h1>A website that's actually yours.</h1>
+        <p class="lede">ComicTable builds comedians a site that looks like them, on their own web address. Then it gives them easy tools to keep it full: every show and ticket link, every episode, every upload, and a place for fans to hang out.</p>
+        <div class="ctas">
+          <a class="btn solid" href="#ask">Get your site</a>
+          <a class="btn" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See one live</a>
+        </div>
+      </div>
+      <div class="card-stage" aria-hidden="true">
+        <div class="setlist">
+          <span class="tape"></span>
+          <h2>new set</h2>
+          <ol>
+            <li><s>link in bio</s></li>
+            <li><s>post dates on IG + pray</s></li>
+            <li>my own .com</li>
+            <li>new eps post themselves</li>
+            <li class="closer">closer: merch</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="tools">
+      <h2 class="big">Built for how comics actually work.</h2>
+      <p class="intro">Three shows a weekend, a different ticket link for each, a podcast every Tuesday. The admin is made to handle that from your phone in a couple of minutes.</p>
+      <div class="tools">
+        <div class="tool"><h3>Shows in three taps</h3><p>Pick the club from a list of comedy clubs we already know, tap your dates, and paste your ticket links. Showtimes fill themselves in. Sold out? Change it from the list.</p></div>
+        <div class="tool"><h3>Podcast and YouTube that update themselves</h3><p>Connect your feed and your channels once. New episodes and videos show up on their own, and each comic's channel shows on their own page.</p></div>
+        <div class="tool"><h3>A page for everyone on the show</h3><p>Photos, bios, socials, and their own upcoming dates. Add a guest host or a new co-host whenever you want.</p></div>
+        <div class="tool"><h3>Your fans, in your place</h3><p>A forum and a live chat room on your own site, with your name on the door. You set the rules and you hold the ban hammer.</p></div>
+        <div class="tool"><h3>Merch and links</h3><p>Show what you sell and send people straight to your store, with whatever else they should click.</p></div>
+        <div class="tool"><h3>A design nobody else has</h3><p>No templates. Your front end is designed for your act, whether that's slick and minimal or a 90s cantina with a chicken.</p></div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="yours">
+        <div>
+          <h2 class="big">Your name on the door. Ours in the small print.</h2>
+          <p class="intro" style="margin-bottom:0">Some platforms put comics on a page of their app, under their logo. ComicTable runs in the background of your site and stays out of the spotlight.</p>
+        </div>
+        <ul>
+          <li><div><b>Your web address</b><span>Fans go to yourname.com, not a profile on someone else's site.</span></div></li>
+          <li><div><b>Any ticket link works</b><span>We don't sell tickets, so we never come between you and the club.</span></div></li>
+          <li><div><b>Your community</b><span>Fans join your forum and your chat room, not a feed full of other acts.</span></div></li>
+          <li><div><b>No gatekeeper</b><span>You don't need an agent or a manager to get a site.</span></div></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="band">
+      <h2 class="big">How it starts</h2>
+      <p class="intro">You talk, we build, you take it from there.</p>
+      <ol class="steps">
+        <li><h3>Tell us about your act</h3><p>Your style, your podcast, your socials, and what you want people to feel when they land on your site.</p></li>
+        <li><h3>We build your site</h3><p>We design your front end with you and hook up your shows, episodes and videos, so it's full on day one.</p></li>
+        <li><h3>You run it</h3><p>Log in, add a weekend of shows in a minute, and get back to writing.</p></li>
+      </ol>
+    </section>
+
+    <section class="band">
+      <div class="running">
+        <div><b>Cockfight</b><p>A comedy podcast with Colum Tyrrell, Lev Fer and Tristan Bowling. The first site on ComicTable.</p></div>
+        <a class="btn" href="https://cockfightpodcast.com" target="_blank" rel="noopener">Visit cockfightpodcast.com</a>
+      </div>
+    </section>
+
+    <section class="band" id="ask">
+      <div class="ask">
+        <div>
+          <h2 class="big">Want a site?</h2>
+          <p class="intro">Tell us a bit about what you do. We'll get back to you by email to talk it through.</p>
+        </div>
+        <div id="askBox">
+          <form id="askForm" novalidate>
+            <div class="two">
+              <label>Your name<input id="aName" name="name" autocomplete="name" required maxlength="120"></label>
+              <label>Email<input id="aEmail" name="email" type="email" autocomplete="email" required maxlength="200"></label>
+            </div>
+            <label>What do you do? <small>Stand-up, a podcast, sketch, all of it</small><input id="aAct" name="act" maxlength="200"></label>
+            <label>Where can we see you? <small>Instagram, YouTube, your podcast</small><input id="aLinks" name="links" maxlength="1000"></label>
+            <label>Anything else<textarea id="aNote" name="note" maxlength="2000"></textarea></label>
+            <div class="msg" id="aMsg" role="status" aria-live="polite"></div>
+            <div><button class="btn solid" type="submit" id="aSend">Send</button></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>© <span id="yr"></span> ComicTable. Websites for comedians.</span>
+    <a href="/admin">Comics: log in</a>
+  </footer>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  "use strict";
+  document.getElementById("yr").textContent = new Date().getFullYear();
+  var CFG = window.COMICTABLE_CONFIG || {};
+  var form = document.getElementById("askForm"), msg = document.getElementById("aMsg"), send = document.getElementById("aSend");
+  function val(id) { return document.getElementById(id).value.trim(); }
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    msg.className = "msg"; msg.textContent = "";
+    var row = { name: val("aName"), email: val("aEmail"), act: val("aAct") || null, links: val("aLinks") || null, note: val("aNote") || null };
+    if (!row.name) { msg.className = "msg bad"; msg.textContent = "Add your name so we know who's asking."; document.getElementById("aName").focus(); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)) { msg.className = "msg bad"; msg.textContent = "Add an email we can reply to."; document.getElementById("aEmail").focus(); return; }
+    send.disabled = true; send.textContent = "Sending…";
+    try {
+      var r = await fetch(CFG.SUPABASE_URL + "/rest/v1/site_requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: CFG.SUPABASE_ANON_KEY, Authorization: "Bearer " + CFG.SUPABASE_ANON_KEY, Prefer: "return=minimal" },
+        body: JSON.stringify(row)
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      document.getElementById("askBox").innerHTML = '<p class="done">Got it, ' + row.name.split(" ")[0].replace(/[<>&"]/g, "") + '.</p><p class="intro">We\'ll email you at ' + row.email.replace(/[<>&"]/g, "") + ' soon.</p>';
+    } catch (err) {
+      send.disabled = false; send.textContent = "Send";
+      msg.className = "msg bad"; msg.textContent = "That didn't send. Check your connection and try again.";
+    }
+  });
+})();
+</script>
+</body>
+</html>
