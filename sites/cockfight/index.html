@@ -326,6 +326,13 @@ tr.cancel td { text-decoration: line-through; color: #777; }
 .fform label { font-weight: 700; font-size: 12px; }
 .fform input, .fform textarea, .fform select { font-family: var(--serif); font-size: 15px; border: 2px inset var(--silver); padding: 4px; background: #fff; color: #000; max-width: 100%; box-sizing: border-box; }
 .fnote { font-size: 11px; color: #444; }
+.fanbox { max-width: 420px; margin: 16px auto 0; }
+.fanbox b.comic { font-size: 17px; color: var(--chili); }
+.fanpicks { display: grid; background: #fff; border: 1px solid #99a; }
+.fanpicks:empty { display: none; }
+.fanpicks button { text-align: left; background: #fff; border: 0; border-bottom: 1px dotted #99a; padding: 5px 8px; font-family: var(--serif); font-size: 15px; cursor: pointer; color: #000; }
+.fanpicks button:hover, .fanpicks button:focus { background: #ffef9f; outline: none; }
+.fanbox .ok { color: #070; }
 .ferr { color: var(--chili); font-weight: 700; font-size: 12px; }
 .empty-board { padding: 16px; text-align: center; background: #fff; border: 2px inset var(--silver); font-family: var(--comic); }
 
@@ -481,6 +488,19 @@ tr.cancel td { text-decoration: line-through; color: #777; }
           <p id="liveNote" class="ferr" hidden></p>
           <div id="allTour"></div>
           <p class="small comic">Past shows drop off automatically. Shows sell out, so grab tickets early.</p>
+          <form class="fform fanbox" id="fanBox" data-feat="fans" hidden novalidate>
+            <b class="comic">📬 Get an email when we're playing near you!</b>
+            <label for="fanEmail">Your email</label>
+            <input id="fanEmail" type="email" autocomplete="email" maxlength="200" placeholder="you@email.com">
+            <label for="fanCity">Your city</label>
+            <input id="fanCity" autocomplete="off" maxlength="60" placeholder="Start typing, like Boston" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="fanPicks">
+            <div id="fanPicks" class="fanpicks" role="listbox" aria-label="Cities"></div>
+            <label for="fanRadius">How far would you drive?</label>
+            <select id="fanRadius"><option value="25">25 miles</option><option value="50" selected>50 miles</option><option value="100">100 miles</option><option value="250">250 miles</option></select>
+            <div><button class="fbtn" type="submit" id="fanSend">Sign me up</button></div>
+            <p class="ferr" id="fanMsg" role="status" aria-live="polite"></p>
+            <p class="fnote">Only emails about shows near you. Reply anytime to get off the list.</p>
+          </form>
         </section>
       </div>
 
@@ -846,11 +866,57 @@ tr.cancel td { text-decoration: line-through; color: #777; }
   function featOn(k) { return FEATURES[k] !== false; }
   function applyFeatures() {
     var hasVids = VIDEOS.some(function (v) { return !v.hidden; }), hasMerch = MERCH.some(function (m) { return !m.hidden; });
-    var on = { shows: featOn("shows"), podcast: featOn("podcast"), videos: !!FEATURES.videos && hasVids, merch: !!FEATURES.merch && hasMerch, forum: featOn("forum"), chat: !!FEATURES.chat && LIVE };
+    var on = { shows: featOn("shows"), podcast: featOn("podcast"), videos: !!FEATURES.videos && hasVids, merch: !!FEATURES.merch && hasMerch, forum: featOn("forum"), chat: !!FEATURES.chat && LIVE, fans: !!FEATURES.fans && LIVE && !!window.CSB };
     document.querySelectorAll("[data-feat]").forEach(function (x) { x.hidden = !on[x.getAttribute("data-feat")]; });
     VIEW_OFF = Object.keys(on).filter(function (k) { return !on[k]; }).map(function (k) { return { shows: "tour", podcast: "episodes" }[k] || k; });
   }
   var VIEW_OFF = ["videos", "merch", "chat"];
+
+  /* ================= FAN LIST SIGN-UP (only when the site has it on) ================= */
+  (function () {
+    var box = $("fanBox"); if (!box) return;
+    var city = $("fanCity"), picks = $("fanPicks"), msg = $("fanMsg"), chosen = null, timer = null, seq = 0;
+    function say(t, ok) { msg.textContent = t; msg.className = ok ? "ferr ok" : "ferr"; }
+    function choose(p) { chosen = p; city.value = p.label; picks.textContent = ""; city.setAttribute("aria-expanded", "false"); }
+    city.addEventListener("input", function () {
+      chosen = null; clearTimeout(timer);
+      var q = city.value, my = ++seq;
+      timer = setTimeout(function () {
+        CSB.fans.places(q).then(function (list) {
+          if (my !== seq) return;
+          picks.textContent = "";
+          list.forEach(function (p) { picks.appendChild(el("button", { type: "button", role: "option", text: p.label, onclick: function () { choose(p); $("fanRadius").focus(); } })); });
+          city.setAttribute("aria-expanded", list.length ? "true" : "false");
+        }, function () {});
+      }, 200);
+    });
+    city.addEventListener("keydown", function (e) { if (e.key === "ArrowDown" && picks.firstChild) { e.preventDefault(); picks.firstChild.focus(); } });
+    picks.addEventListener("keydown", function (e) {
+      var b = document.activeElement;
+      if (e.key === "ArrowDown" && b.nextSibling) { e.preventDefault(); b.nextSibling.focus(); }
+      if (e.key === "ArrowUp") { e.preventDefault(); (b.previousSibling || city).focus(); }
+    });
+    box.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var email = $("fanEmail").value.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { say("Type your email so we can reach you."); $("fanEmail").focus(); return; }
+      if (!chosen) { say("Pick your city from the list as you type."); city.focus(); return; }
+      $("fanSend").disabled = true; say("");
+      CSB.fans.join({ email: email, placeId: chosen.id, radius: +$("fanRadius").value }).then(function (r) {
+        $("fanSend").disabled = false;
+        say(r === "updated" ? "Updated! We'll use " + chosen.label + " from now on." : "You're on the list! We'll email you when we're near " + chosen.label + ".", true);
+      }, function (er) { $("fanSend").disabled = false; say(er.message || "That didn't go through. Try again."); });
+    });
+    // "stop emailing me" links come here as ?leave=<token>
+    var tok = (location.search.match(/[?&]leave=([0-9a-f-]{36})/i) || [])[1];
+    if (tok && window.CSB) {
+      CSB.init(window.COMICTABLE_CONFIG || window.COCKFIGHT_CONFIG || {});
+      CSB.fans.leave(tok).then(function (gone) {
+        box.hidden = false; location.hash = "tour";
+        say(gone ? "Done. You're off the list and won't get any more emails." : "You were already off the list.", true);
+      }, function () {});
+    }
+  })();
   function renderAll() { renderSettings(); renderEpisodes(); renderHosts(); renderVideos(); renderMerch(); applyFeatures(); }
   renderAll();
 

@@ -27,7 +27,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -110,4 +110,35 @@ test("anyone can ask for a site from comictable.com, only platform admins can re
   await assert.rejects(rows(null, `select * from site_requests`), /permission denied/);
   assert.equal((await rows(COMIC, `select count(*)::int n from site_requests`))[0].n, 0);
   assert.equal((await rows(OWNER, `select count(*)::int n from site_requests`))[0].n, 1);
+});
+
+test("fans join a site's list with their city, and the comic sees who's near each show", async () => {
+  const boston = (await rows(null, "select id from places where name = 'Boston' and state = 'MA'"))[0].id;
+  const nyc = (await rows(null, "select id from places where name = 'New York' and state = 'NY'"))[0].id;
+  // clubs get a position from their city
+  const club = (await q("select id, lat from venues where name = 'Laugh Boston'"))[0];
+  assert.ok(club && club.lat > 42 && club.lat < 43, "Laugh Boston has a map position");
+  // sign-ups are off until the site turns the fan list on
+  assert.match(await as(null, `select join_fans('cockfight', 'a@x.com', ${boston})`), /isn't taking sign-ups/);
+  await q(`update sites set features = features || '{"fans": true}' where id = 'cockfight'`);
+  assert.equal((await rows(null, `select join_fans('cockfight', 'A@x.com', ${boston}) r`))[0].r, "joined");
+  assert.equal((await rows(null, `select join_fans('cockfight', 'a@x.com', ${boston}, 100) r`))[0].r, "updated");
+  assert.equal((await rows(null, `select join_fans('cockfight', 'ny@x.com', ${nyc}, 25) r`))[0].r, "joined");
+  assert.match(await as(null, `select join_fans('cockfight', 'nope', ${boston})`), /doesn't look right/);
+  assert.match(await as(null, `select join_fans('cockfight', 'b@x.com', -1)`), /Pick your city/);
+  // nobody but the site's admins can read the list
+  await assert.rejects(rows(null, "select * from fans"), /permission denied/);
+  assert.equal((await rows(COMIC, "select count(*)::int n from fans"))[0].n, 0);
+  assert.equal((await rows(OWNER, "select count(*)::int n from fans"))[0].n, 2);
+  // a show at Laugh Boston reaches the Boston fan but not the one in New York who said 25 miles
+  const host = (await q("select id from hosts where site_id = 'cockfight' limit 1"))[0].id;
+  const show = (await q(`insert into shows (site_id, host, date, venue, venue_id) values ('cockfight', '${host}', current_date + 7, 'Laugh Boston', '${club.id}') returning id`))[0].id;
+  const near = await rows(OWNER, "select * from fans_near_shows('cockfight')");
+  assert.equal(near.find((r) => r.show_id === show).fans, 1);
+  assert.deepEqual((await rows(OWNER, `select email from fans_near_show('${show}')`)).map((r) => r.email), ["a@x.com"]);
+  assert.equal((await rows(COMIC, `select count(*)::int n from fans_near_show('${show}')`))[0].n, 0);
+  // one-click leave
+  const tok = (await q("select token from fans where email = 'ny@x.com'"))[0].token;
+  assert.equal((await rows(null, `select leave_fans('${tok}') r`))[0].r, true);
+  assert.equal((await q("select count(*)::int n from fans"))[0].n, 1);
 });

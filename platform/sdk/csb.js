@@ -8,6 +8,7 @@
  *   <script src="sdk/csb.js"></script>
  *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards }
  *   CSB.forum.threads("general"), CSB.forum.newTopic({...}), CSB.chat.subscribe(fn), CSB.chat.send({...})
+ *   CSB.fans.places("bos"), CSB.fans.join({ email, placeId, radius })   // fan list, when site.features.fans is on
  *
  * Every list comes back already filtered for the public: hidden items removed, past shows dropped,
  * announcements outside their start/end dates left out, and everything sorted the way the admin set it.
@@ -158,6 +159,24 @@
     }
   };
 
-  var CSB = { init: init, load: load, forum: forum, chat: chat, device: device, name: name, api: api, version: "1.0" };
+  /* ---------------- fan list ---------------- */
+  // A sign-up box needs two calls: fans.places("bos") while they type their city, then fans.join(...).
+  var fans = {
+    // Towns and cities matching what they've typed, biggest first: [{ id, label }]
+    places: function (q, limit) {
+      q = String(q || "").trim().replace(/[%*,()]/g, "");
+      if (q.length < 2) return Promise.resolve([]);
+      return api("places?select=id,name,state,country,population&name=ilike." + encodeURIComponent(q + "*") + "&order=population.desc&limit=" + (limit || 8))
+        .then(function (rows) { return rows.map(function (p) { return { id: p.id, name: p.name, label: p.name + (p.state ? ", " + p.state : "") + (p.country !== "US" ? " (" + p.country + ")" : "") }; }); });
+    },
+    // { email, placeId, radius: 25 | 50 | 100 | 250 } → "joined" or "updated"
+    join: function (o) {
+      return api("rpc/join_fans", { method: "POST", body: { p_site: cfg.site, p_email: o.email, p_place: o.placeId, p_radius: o.radius || 50 } });
+    },
+    // For a "stop emailing me" link: ?leave=<token>
+    leave: function (token) { return api("rpc/leave_fans", { method: "POST", body: { p_token: token } }); }
+  };
+
+  var CSB = { init: init, load: load, forum: forum, chat: chat, fans: fans, device: device, name: name, api: api, version: "1.1" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

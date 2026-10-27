@@ -46,7 +46,9 @@ function makeDb() {
     return b;
   };
   const client = { auth: { getSession: async () => ({ data: { session: { access_token: "tok", user: { id: "u1", email: "ferris@x.com" } } } }), signOut: async () => {}, onAuthStateChange() {} },
-    rpc: async (name, args) => name === "create_site" ? (db.sites.push({ id: args.p_id, name: args.p_name, domain: args.p_domain, features: {}, created_at: "2026-10-27" }), db.admins.push({ user_id: "u1", site_id: args.p_id, role: "owner" }), { data: null, error: null })
+    rpc: async (name, args) => name === "fans_near_shows" ? { data: db.shows.filter((x) => x.date >= fri).map((x) => ({ show_id: x.id, fans: (db.fans || []).length })), error: null }
+      : name === "fans_near_show" ? { data: JSON.parse(JSON.stringify(db.fans || [])), error: null }
+      : name === "create_site" ? (db.sites.push({ id: args.p_id, name: args.p_name, domain: args.p_domain, features: {}, created_at: "2026-10-27" }), db.admins.push({ user_id: "u1", site_id: args.p_id, role: "owner" }), { data: null, error: null })
       : name === "venue_slots" && args.v === "v1" ? { data: [{ dow: 5, show_time: "7:30 PM", uses: 3 }, { dow: 5, show_time: "10:00 PM", uses: 2 }], error: null } : { data: [], error: null },
     from, storage: { from: () => ({}) } };
   return { db, client };
@@ -355,4 +357,28 @@ test("platform admins can start a new comic's site and land on it ready to set u
 test("people who aren't platform admins never see All sites", async () => {
   const { d } = await open("", (db) => { db.platform_admins = []; });
   assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /All sites/.test(b.textContent)));
+});
+
+test("fan list: who's near each show, copy their emails, find and remove fans", async () => {
+  const { w, d, db } = await open("#fans", (db) => {
+    db.sites[0].features.fans = true;
+    db.shows.push({ id: "s9", site_id: "cockfight", host: "lev", date: fri, time: "7:30 PM", venue: "Laugh Boston", city: "Boston, MA", venue_id: "v1", status: "on_sale" });
+    db.fans = [{ id: "f1", site_id: "cockfight", email: "a@x.com", city: "Boston", state: "MA", radius_mi: 50, created_at: new Date().toISOString() },
+               { id: "f2", site_id: "cockfight", email: "b@x.com", city: "Cambridge", state: "MA", radius_mi: 25, created_at: "2026-01-01T00:00:00Z" }];
+  });
+  let copied = null;
+  Object.defineProperty(w.navigator, "clipboard", { value: { writeText: async (t) => { copied = t; } } });
+  await wait(60);
+  const main = d.querySelector("main");
+  assert.match(main.textContent, /2fans on your list/);
+  assert.match(main.textContent, /1joined this week/);
+  assert.match(main.textContent, /Laugh Boston.*2 fans nearby/);
+  assert.match(main.textContent, /Boston, MA · 1/);
+  btn(d, /^Copy emails$/).click(); await wait(30);
+  assert.equal(copied, "a@x.com, b@x.com");
+  set(w, main.querySelector("input[type=search]"), "cambridge");
+  assert.ok(!/a@x\.com/.test(main.querySelector(".card:last-child").textContent));
+  const rm = btn(d, /^Remove$/, main.querySelector(".card:last-child"));
+  rm.click(); rm.click(); await wait(30);
+  assert.deepEqual(db.fans.map((f) => f.email), ["a@x.com"]);
 });
