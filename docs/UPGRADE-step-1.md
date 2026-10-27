@@ -28,7 +28,7 @@ Merge the pull request on GitHub, titled "Platform v1". Netlify deploys it in ab
 Go to **cockfightpodcast.com/admin** and log in.
 
 - **Podcast → Connect your podcast:** paste `https://podcasts.apple.com/us/podcast/cockfight/id1792746019`, then click **Connect**. It checks every hour after that, and **Check now** runs it right away.
-- **Videos → Connect your YouTube channel:** paste the show's channel link.
+- **Videos → Connect your YouTube channels:** paste the show's channel link, then add each person's channel and pick whose it is. Their videos also show on their page.
 - **Settings:** turn sections on or off. Merch starts off; turn it on when you have items to add. As the platform owner, you'll also see **Recently added clubs** here, where you can fix typos or remove duplicates.
 
 ## How show entry works now
@@ -40,20 +40,31 @@ Click **+ Add shows** on the Shows page. A panel walks you through three steps:
 In the list, change a show's status (on sale, few left, sold out, free, cancelled) right from its row. **Edit** changes anything, and the **⋯** menu has **Duplicate** (same night, new time), **Add more shows at this club**, and **Delete** (with Undo).
 
 ## The admin, section by section
+**Platform tools (every site gets these):**
 - **Content:** Shows, Podcast, Videos, Merch, and People (add, reorder, hide or remove anyone on the site).
-- **Your site:**
-  - **Profile:** tagline, about, contact, and your support link (Patreon, Ko-fi…).
-  - **Announcements:** a list with optional links, start/end dates and pinning. Cockfight shows them in the scrolling banner, with the pinned one as the NEW!! line.
-  - **Links:** a link-in-bio list.
-  - **Design settings:** switches that belong to the design. For Cockfight: splash screen, music, banner speed, visitor counter, support banner, cursor trail, webmaster credit.
 - **Community:**
   - **Forum:** pin, lock, move and delete topics; edit, delete and ban from any post; reply or start topics as a host (with a Host badge); create, rename, reorder, lock and hide boards.
   - **Chat room:** watch it live, chat as a host, delete messages, ban, slow mode, open/close, clear.
   - **Moderation:** house rules (forum open, protect host names, slow mode, banned words), the ban list, and a log of every moderator action.
+- **Profile:** tagline, about, contact, and your support link (Patreon, Ko-fi…).
 - **Settings:** turn whole sections on or off (chat starts off), and manage your **Team**, meaning who can log in. Owners can add people with a username and starting password, as an Editor or another Owner, and can remove them.
+
+**Site extras (only when a site's own front end uses them):** a front end lists what it supports in its `theme.json`. Cockfight's lists:
+- **Announcements:** news with optional links, start/end dates and pinning. On Cockfight they scroll in the banner, with the pinned one as the NEW!! line.
+- **Links:** a link list. On Cockfight it's the Links box on the home page.
+- **Design settings:** Cockfight's own switches: splash screen, music, banner speed, visitor counter, support banner, cursor trail, webmaster credit.
+
+A site whose front end doesn't list any of these never sees them.
 
 ## For a different front end
 Everything a front end needs comes from `site/sdk/csb.js`: one call to `CSB.load()` returns the profile, people, shows, episodes, videos, merch, announcements, links and boards, already filtered for the public. `CSB.forum` and `CSB.chat` run the community. A front end lists its own settings in `theme.json`, and the admin's Theme page builds itself from that file.
+
+## Later database upgrades
+Each new feature that needs the database changed comes with its own small file in `supabase/`. Run it in the SQL Editor (paste, Run) **before** merging the pull request that uses it. They're all safe to run twice.
+
+| File | What it adds |
+|---|---|
+| `07_more_sources.sql` | Several podcasts and YouTube channels per site, channels that belong to a person, and channel names on videos |
 
 ## If something goes wrong
 - **"Couldn't load your site" in the admin:** `04_platform.sql` hasn't been run yet.

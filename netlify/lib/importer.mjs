@@ -87,6 +87,11 @@ export function parsePodcastFeed(body) {
   }).filter((e) => e.title && e.posted);
 }
 
+export function feedTitle(body) {
+  const doc = xml.parse(body);
+  return text(doc?.rss?.channel?.title) || text(doc?.feed?.author?.name) || text(doc?.feed?.title) || "";
+}
+
 export function parseYouTubeFeed(body) {
   const doc = xml.parse(body);
   return arr(doc?.feed?.entry).map((e) => {
@@ -141,14 +146,23 @@ export async function youtubeChannelId(url) {
 
 /* ---------------- database writes ---------------- */
 
+async function nameSource(db, src, name) {
+  if (name && !src.label) { await db.from("sources").update({ label: name }).eq("id", src.id); src.label = name; }
+}
+
 async function importPodcast(db, src) {
   const { feedUrl, appleLinks } = await resolvePodcast(src.url);
-  const items = parsePodcastFeed(await get(feedUrl));
-  const { data: existing, error } = await db.from("episodes").select("*").eq("site_id", src.site_id);
+  const body = await get(feedUrl);
+  const items = parsePodcastFeed(body);
+  const showName = feedTitle(body);
+  await nameSource(db, src, showName);
+  const { data: all, error } = await db.from("episodes").select("*").eq("site_id", src.site_id);
   if (error) throw error;
-  const byGuid = new Map(existing.filter((e) => e.guid).map((e) => [e.guid, e]));
-  const byNum = new Map(existing.filter((e) => e.num !== null).map((e) => [e.num, e]));
-  let maxNum = Math.max(0, ...existing.map((e) => e.num || 0));
+  // Episode numbers only line up within the same podcast; older rows from before multi-podcast support have no source.
+  const mine = all.filter((e) => !e.source_id || e.source_id === src.id);
+  const byGuid = new Map(all.filter((e) => e.guid).map((e) => [e.guid, e]));
+  const byNum = new Map(mine.filter((e) => e.num !== null).map((e) => [e.num, e]));
+  let maxNum = Math.max(0, ...mine.map((e) => e.num || 0));
   const now = new Date().toISOString();
   let added = 0, updated = 0;
   // oldest first, so new episodes without a number get the next number in order
@@ -159,6 +173,8 @@ async function importPodcast(db, src) {
       // Only fill what's empty; anything typed in the admin wins.
       const patch = {};
       if (!match.guid) patch.guid = it.guid;
+      if (!match.source_id) patch.source_id = src.id;
+      if (!match.show_name && showName) patch.show_name = showName;
       if (!match.url && link) patch.url = link;
       if (!match.length && it.length) patch.length = it.length;
       if (!match.blurb && it.blurb) patch.blurb = it.blurb;
@@ -168,29 +184,35 @@ async function importPodcast(db, src) {
       if (Object.keys(patch).length) {
         const r = await db.from("episodes").update(patch).eq("id", match.id);
         if (r.error) throw r.error;
-        updated++;
+        Object.assign(match, patch);
+        // only count it when something a fan would see got filled in
+        if (Object.keys(patch).some((k) => !["guid", "source_id", "show_name"].includes(k))) updated++;
       }
       continue;
     }
     const num = it.num ?? ++maxNum;
     if (num > maxNum) maxNum = num;
-    const row = { site_id: src.site_id, num, title: it.title, posted: it.posted, length: it.length, url: link, patreon: it.patreon,
+    const row = { site_id: src.site_id, source_id: src.id, show_name: showName || null, num, title: it.title, posted: it.posted, length: it.length, url: link, patreon: it.patreon,
       blurb: it.blurb, guid: it.guid, audio_url: it.audio_url, image_url: it.image_url, imported_at: now };
     const r = await db.from("episodes").insert(row);
     if (r.error) throw r.error;
-    byNum.set(num, row);
+    byNum.set(num, row); byGuid.set(it.guid, row);
     added++;
   }
   return `${added} new, ${updated} filled in (${items.length} in feed)`;
 }
 
 async function importYouTube(db, src) {
-  const channel = await youtubeChannelId(src.url);
-  const vids = parseYouTubeFeed(await get(`https://www.youtube.com/feeds/videos.xml?channel_id=${channel}`));
+  const channelId = await youtubeChannelId(src.url);
+  const body = await get(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`);
+  const vids = parseYouTubeFeed(body);
+  const channel = feedTitle(body);
+  await nameSource(db, src, channel);
   const { data: existing, error } = await db.from("videos").select("youtube_id").eq("site_id", src.site_id);
   if (error) throw error;
   const have = new Set(existing.map((v) => v.youtube_id));
-  const fresh = vids.filter((v) => !have.has(v.youtube_id)).map((v) => ({ ...v, site_id: src.site_id, imported_at: new Date().toISOString() }));
+  const fresh = vids.filter((v) => !have.has(v.youtube_id))
+    .map((v) => ({ ...v, site_id: src.site_id, source_id: src.id, channel: channel || src.label || null, host: src.host || null, imported_at: new Date().toISOString() }));
   if (fresh.length) { const r = await db.from("videos").insert(fresh); if (r.error) throw r.error; }
   return `${fresh.length} new (${vids.length} latest checked)`;
 }

@@ -784,6 +784,11 @@ tr.cancel td { text-decoration: line-through; color: #777; }
       ]));
       v.appendChild(el("hr", { class: "rainbow" }));
       v.appendChild(el("section", null, [el("h2", { text: first + "'s Tour Dates" }), up.length ? tourTable(up) : noDates(c.name)]));
+      var theirVids = (typeof VIDEOS !== "undefined" ? VIDEOS : []).filter(function (x) { return x.host === k && !x.hidden; }).slice(0, 4);
+      if (theirVids.length) {
+        v.appendChild(el("hr", { class: "rainbow" }));
+        v.appendChild(el("section", null, [el("h2", { text: first + "'s Latest Videos" }), el("div", { class: "vgrid" }, theirVids.map(vcard))]));
+      }
       v.appendChild(el("div", { class: "listen-row" }, [
         el("a", { class: "ext", href: SHOW_URL, target: "_blank", rel: "noopener", text: "▶ Hear " + first + " on the Podcast" }),
         el("a", { class: "ext patreon-ext", href: PATREON, target: "_blank", rel: "noopener", text: "★ Support on Patreon" }),
@@ -804,15 +809,28 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     lb.hidden = !(typeof LINKS !== "undefined" && LINKS.length);
   }
   var VIDEOS = [], MERCH = [], FEATURES = { shows: true, podcast: true, videos: false, merch: false, forum: true };
+  var VIDCH = "all";
+  function vcard(v) {
+    return el("a", { class: "vcard" + (v.featured ? " star" : ""), href: v.url || ("https://www.youtube.com/watch?v=" + v.youtube_id), target: "_blank", rel: "noopener" }, [
+      el("img", { src: v.thumbnail_url || ("https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg"), alt: "", loading: "lazy" }),
+      el("span", { text: (v.featured ? "⭐ " : "") + v.title }), el("small", { text: [v.published ? epDate(v.published) : "", v.channel || ""].filter(Boolean).join(" • ") })
+    ]);
+  }
   function renderVideos() {
     var g = $("videoGrid"); g.textContent = "";
-    var list = VIDEOS.filter(function (v) { return !v.hidden; }).sort(function (a, b) { return (b.featured - a.featured) || String(b.published || "").localeCompare(String(a.published || "")); });
-    list.forEach(function (v) {
-      g.appendChild(el("a", { class: "vcard" + (v.featured ? " star" : ""), href: v.url || ("https://www.youtube.com/watch?v=" + v.youtube_id), target: "_blank", rel: "noopener" }, [
-        el("img", { src: v.thumbnail_url || ("https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg"), alt: "", loading: "lazy" }),
-        el("span", { text: (v.featured ? "⭐ " : "") + v.title }), v.published ? el("small", { text: epDate(v.published) }) : null
-      ]));
+    var chans = [], personal = {};
+    VIDEOS.forEach(function (v) { if (v.channel && chans.indexOf(v.channel) < 0) chans.push(v.channel); if (v.channel && v.host) personal[v.channel] = true; });
+    chans.sort(function (a, b) { return (!!personal[a] - !!personal[b]) || a.localeCompare(b); }); // the show's channels first, then each person's
+    if (VIDCH !== "all" && chans.indexOf(VIDCH) < 0) VIDCH = "all";
+    var bar = $("videoChans");
+    if (!bar) { bar = el("div", { class: "listen-row", id: "videoChans", style: "margin-bottom:10px" }); g.parentNode.insertBefore(bar, g); }
+    bar.textContent = ""; bar.hidden = chans.length < 2;
+    if (chans.length > 1) ["all"].concat(chans).forEach(function (c) {
+      bar.appendChild(el("button", { class: "ext", type: "button", "aria-pressed": String(VIDCH === c), style: VIDCH === c ? "border-style:inset;background:var(--wall-a)" : null, text: c === "all" ? "All Channels" : c,
+        onclick: function () { VIDCH = c; renderVideos(); } }));
     });
+    var list = VIDEOS.filter(function (v) { return !v.hidden && (VIDCH === "all" || v.channel === VIDCH); }).sort(function (a, b) { return (b.featured - a.featured) || String(b.published || "").localeCompare(String(a.published || "")); });
+    list.forEach(function (v) { g.appendChild(vcard(v)); });
     if (!list.length) g.appendChild(el("div", { class: "empty-board", text: "No videos yet. Check back soon!" }));
   }
   function renderMerch() {
@@ -863,7 +881,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
         if (HOST_ORDER.indexOf(h.id) < 0) HOST_ORDER.push(h.id);
       });
       FEATURES = d.features || FEATURES;
-      VIDEOS = d.videos.map(function (v) { return { youtube_id: v.id, title: v.title, published: v.published, thumbnail_url: v.thumbnail, url: v.link, featured: v.featured, hidden: false }; });
+      VIDEOS = d.videos.map(function (v) { return { youtube_id: v.id, title: v.title, published: v.published, thumbnail_url: v.thumbnail, url: v.link, featured: v.featured, hidden: false, channel: v.channel, host: v.person }; });
       MERCH = d.merch.map(function (m) { return { name: m.name, price: m.price, image_url: m.image, url: m.link, hidden: false }; });
       if (d.boards.length) BOARDS = d.boards.map(function (b) { return { id: b.id, name: b.name, desc: b.description, locked: b.locked }; });
       // announcements: pinned ones become the NEW!! headline, all of them scroll in the banner

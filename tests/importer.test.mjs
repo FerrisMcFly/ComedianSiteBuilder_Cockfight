@@ -91,3 +91,28 @@ test("youtube import adds only new videos", async () => {
   assert.equal(res[0].ok, true, res[0].status);
   assert.equal(tables.videos.length, 2); assert.equal(tables.videos[1].youtube_id, "BBBBBBBBBBB");
 });
+
+test("two podcasts on one site keep their own numbering", async () => {
+  const feedA = readFileSync(new URL("./fixtures/podcast.xml", import.meta.url), "utf8");
+  const feedB = feedA.replace("<title>Cockfight</title>", "<title>Lev's Side Show</title>").replace(/abc-/g, "lev-").replace("Big Night Out", "Lev Alone");
+  globalThis.fetch = async (url) => ({ ok: true, status: 200, text: async () => (String(url).includes("lev") ? feedB : feedA), json: async () => ({}) });
+  const tables = { episodes: [], sources: [
+    { id: "s1", site_id: "cockfight", kind: "podcast", url: "https://feeds.example.com/cockfight", enabled: true },
+    { id: "s2", site_id: "cockfight", kind: "podcast", url: "https://feeds.example.com/lev", enabled: true }] };
+  const res = await runSources(fakeDb(tables), tables.sources);
+  assert.ok(res.every((r) => r.ok), JSON.stringify(res));
+  assert.equal(tables.episodes.length, 6);
+  const levs = tables.episodes.filter((e) => e.source_id === "s2");
+  assert.equal(levs.length, 3); assert.ok(levs.every((e) => e.show_name === "Lev's Side Show"));
+  assert.ok(levs.some((e) => e.num === 92 && e.title === "Lev Alone"));
+  assert.equal(tables.sources[0].label, "Cockfight"); assert.equal(tables.sources[1].label, "Lev's Side Show");
+});
+
+test("a person's channel tags its videos with that person", async () => {
+  const feed = readFileSync(new URL("./fixtures/youtube.xml", import.meta.url), "utf8").replace("<entry>", "<title>Lev Fer</title><author><name>Lev Fer</name></author><entry>");
+  globalThis.fetch = async () => ({ ok: true, status: 200, text: async () => feed });
+  const tables = { videos: [], sources: [{ id: "y2", site_id: "cockfight", kind: "youtube", url: "https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv", host: "lev", enabled: true }] };
+  await runSources(fakeDb(tables), tables.sources);
+  assert.equal(tables.videos.length, 2);
+  assert.ok(tables.videos.every((v) => v.host === "lev" && v.channel === "Lev Fer" && v.source_id === "y2"));
+});

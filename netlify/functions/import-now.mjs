@@ -1,4 +1,4 @@
-// POST /.netlify/functions/import-now  { site_id, source_id? }
+// POST /.netlify/functions/import-now  { site_id, source_id?, kind? }
 // Called by the admin's "Import now" button. Only that site's admins can run it.
 import { createClient } from "@supabase/supabase-js";
 import { runSources } from "../lib/importer.mjs";
@@ -20,6 +20,7 @@ export default async (req) => {
   if (!adminRow) return json(403, { error: "You're not an admin of this site." });
   let q = db.from("sources").select("*").eq("site_id", body.site_id).eq("enabled", true);
   if (body.source_id) q = q.eq("id", body.source_id);
+  else if (body.kind) q = q.eq("kind", body.kind);
   const { data: sources, error } = await q;
   if (error) return json(500, { error: error.message });
   if (!sources.length) return json(200, { results: [], message: "No import sources yet." });

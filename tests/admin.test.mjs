@@ -51,11 +51,11 @@ function makeDb() {
   return { db, client };
 }
 
-async function open(hash = "", prep) {
+async function open(hash = "", prep, theme = THEME_JSON) {
   const { db, client } = makeDb();
   if (prep) prep(db);
   const dom = new JSDOM(html, { runScripts: "dangerously", pretendToBeVisual: true, url: "https://cockfightpodcast.com/admin.html" + hash, beforeParse(w) {
-    w.supabase = { createClient: () => client }; w.fetch = async (u) => (/theme\.json/.test(u) ? { ok: true, json: async () => THEME_JSON } : { ok: false, json: async () => ({}) }); w.matchMedia = () => ({ matches: true }); w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {};
+    w.supabase = { createClient: () => client }; w.fetch = async (u) => (/theme\.json/.test(u) && theme ? { ok: true, json: async () => theme } : { ok: false, json: async () => ({}) }); w.matchMedia = () => ({ matches: true }); w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {};
   } });
   opened.push(dom.window);
   await new Promise((r) => setTimeout(r, 80));
@@ -70,7 +70,7 @@ test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open();
   assert.match(d.querySelector("h1").textContent, /ferris/);
   assert.equal(d.querySelectorAll(".nav-btn").length, 14);
-  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Content", "Your site", "Community"]);
+  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Content", "Community", "Site extras"]);
   assert.match(d.body.textContent, /Connect your podcast/);
 });
 
@@ -257,6 +257,30 @@ test("moderation saves house rules; chat can be closed", async () => {
   assert.equal(db.chat_messages[0].is_mod, true); assert.equal(db.chat_messages[0].author, "Colum Tyrrell");
 });
 
+test("people cards say Save changes, not the person's name", async () => {
+  const { d } = await open("#people");
+  const labels = [...d.querySelectorAll(".people form button[type=submit]")].map((b) => b.textContent);
+  assert.deepEqual([...new Set(labels)], ["Save changes"]);
+});
+
+test("several YouTube channels, each with an owner", async () => {
+  const { w, d, db } = await open("#videos");
+  w.fetch = async () => ({ ok: true, json: async () => ({ results: [] }) });
+  set(w, d.getElementById("youtubeSrc"), "https://www.youtube.com/@cockfightpod");
+  btn(d, /^Connect$/).click(); await wait(80);
+  set(w, d.getElementById("youtubeSrc"), "https://www.youtube.com/@LevFerOfficial");
+  d.getElementById("youtubeOwner").value = "lev";
+  btn(d, /^Connect$/).click(); await wait(80);
+  assert.deepEqual(db.sources.map((x) => [x.url, x.host]), [["https://www.youtube.com/@cockfightpod", null], ["https://www.youtube.com/@LevFerOfficial", "lev"]]);
+  assert.match(d.body.textContent, /Add another channel/);
+  assert.ok(btn(d, /^Check all now$/));
+  // the same link twice is refused
+  set(w, d.getElementById("youtubeSrc"), "https://www.youtube.com/@LevFerOfficial/");
+  btn(d, /^Connect$/).click(); await wait(40);
+  assert.match(d.body.textContent, /already connected/);
+  assert.equal(db.sources.length, 2);
+});
+
 test("people: add, hide, remove", async () => {
   const { w, d, db } = await open("#people");
   btn(d, /^\+ Add a person$/).click(); await wait();
@@ -269,7 +293,7 @@ test("people: add, hide, remove", async () => {
   assert.equal(db.hosts.find((x) => x.name === "Sam Guest").hidden, true);
   card = [...d.querySelectorAll(".people form")].find((f) => /Sam Guest/.test(f.textContent));
   btn(d, /^Remove…$/, card).click(); await wait();
-  btn(d, /^Remove Sam$/).click(); await wait(60);
+  btn(d, /^Yes, remove$/).click(); await wait(60);
   assert.ok(!db.hosts.find((x) => x.name === "Sam Guest"));
 });
 
@@ -277,4 +301,15 @@ test("team section explains when it isn't set up yet", async () => {
   const { d } = await open("#settings");
   await wait(80);
   assert.match(d.body.textContent, /Team management isn't set up yet/);
+});
+
+test("site extras only appear when the site's front end uses them", async () => {
+  const { d } = await open("", null, null);
+  const labels = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
+  assert.ok(!labels.some((l) => /Announcements|Links|Design settings/.test(l)), labels.join(","));
+  assert.ok(labels.some((l) => /Profile/.test(l)) && labels.some((l) => /Settings/.test(l)));
+  assert.doesNotMatch(d.querySelector("main").textContent, /Post an announcement/);
+  const only = await open("", null, { extras: ["links"] });
+  const l2 = [...only.d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
+  assert.ok(l2.some((l) => /Links/.test(l)) && !l2.some((l) => /Announcements|Design settings/.test(l)), l2.join(","));
 });

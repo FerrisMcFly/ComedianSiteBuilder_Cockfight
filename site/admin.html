@@ -492,6 +492,7 @@ td select.status.st-few_left { color: var(--warn); }
       return;
     }
     sb.auth.onAuthStateChange((_ev, s) => { if (s) S.token = s.access_token; });
+    await loadTheme();
     route();
   }
 
@@ -503,16 +504,18 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "videos", group: "Content", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
     { id: "merch", group: "Content", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
     { id: "people", group: "Content", label: "People", ico: "🎤", render: viewPeople },
-    { id: "profile", group: "Your site", label: "Profile", ico: "🪪", render: viewProfile },
-    { id: "announce", group: "Your site", label: "Announcements", ico: "📣", render: viewAnnounce },
-    { id: "links", group: "Your site", label: "Links", ico: "🔗", render: viewLinks },
-    { id: "theme", group: "Your site", label: "Design settings", ico: "🎨", render: viewTheme },
     { id: "forum", group: "Community", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
     { id: "chat", group: "Community", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
     { id: "moderation", group: "Community", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
+    // Extras only show up when this site's own front end says it uses them (in its theme.json)
+    { id: "announce", group: "Site extras", label: "Announcements", ico: "📣", extra: "announcements", render: viewAnnounce },
+    { id: "links", group: "Site extras", label: "Links", ico: "🔗", extra: "links", render: viewLinks },
+    { id: "theme", group: "Site extras", label: "Design settings", ico: "🎨", extra: "design", render: viewTheme },
+    { id: "profile", label: "Profile", ico: "🪪", render: viewProfile },
     { id: "settings", label: "Settings", ico: "⚙️", render: viewSettings }
   ];
-  const visible = () => SECTIONS.filter((s) => !s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat)));
+  const hasExtra = (x) => !!(THEME && (x === "design" ? Array.isArray(THEME.settings) && THEME.settings.length : Array.isArray(THEME.extras) && THEME.extras.includes(x)));
+  const visible = () => SECTIONS.filter((s) => (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
   const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
   window.addEventListener("hashchange", () => { if (S.site) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
@@ -559,16 +562,16 @@ td select.status.st-few_left { color: var(--warn); }
     const todo = [];
     if (F("shows")) { const n = up.filter((s) => !s.url).length; if (n) todo.push([n + " upcoming show" + (n > 1 ? "s" : "") + " with no ticket link", "shows"]); }
     if (F("podcast") && !S.sources.some((s) => s.kind === "podcast")) todo.push(["Connect your podcast so new episodes add themselves", "podcast"]);
-    if (F("videos") && !S.sources.some((s) => s.kind === "youtube")) todo.push(["Connect your YouTube channel", "videos"]);
+    if (F("videos") && !S.sources.some((s) => s.kind === "youtube")) todo.push(["Connect your YouTube channels", "videos"]);
     const bad = S.sources.filter((s) => s.last_status && /^Error/.test(s.last_status));
-    for (const s of bad) todo.push([(s.kind === "podcast" ? "Podcast" : "YouTube") + " import hit a problem: " + s.last_status.replace(/^Error:\s*/, ""), s.kind === "podcast" ? "podcast" : "videos"]);
+    for (const s of bad) todo.push([(s.label || (s.kind === "podcast" ? "Podcast" : "YouTube")) + " import hit a problem: " + s.last_status.replace(/^Error:\s*/, ""), s.kind === "podcast" ? "podcast" : "videos"]);
     main.append(
       h("div", { class: "page-head" }, h("div", null, h("h1", { class: "hello", text: hi + ", " + S.user + " 👋" }), h("p", { class: "sub", text: next ? "Next up: " + first(next.host) + " in " + (next.city || next.venue) + " " + relDay(next.date) + "." : "Here's your site at a glance." }))),
       h("div", { class: "stack" },
         h("div", { class: "btns" },
           F("shows") ? h("button", { class: "btn primary big", type: "button", text: "+ Add shows", onclick: () => go("shows") }) : null,
           F("podcast") ? h("button", { class: "btn big", type: "button", text: "+ Add an episode", onclick: () => { go("podcast"); } }) : null,
-          h("button", { class: "btn big", type: "button", text: "📣 Update announcement", onclick: () => go("announce") })),
+          hasExtra("announcements") ? h("button", { class: "btn big", type: "button", text: "📣 Post an announcement", onclick: () => go("announce") }) : null),
         stats.length ? h("div", { class: "stats" }, stats.map(([l, n, sec]) => h("button", { class: "stat", type: "button", style: "text-align:left;cursor:pointer", onclick: () => go(sec) }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l })))) : null,
         next ? h("section", { class: "card" }, h("h2", { text: "Next show" }),
           h("div", { class: "next" }, h("div", { class: "date-badge" }, h("div", null, h("small", { text: MON[parseISO(next.date).getMonth()] }), h("b", { text: parseISO(next.date).getDate() }))),
@@ -977,50 +980,68 @@ td select.status.st-few_left { color: var(--warn); }
   /* ======================================================
      IMPORT SOURCES (podcast + YouTube)
      ====================================================== */
-  async function importNow(kind, onDone) {
-    toast("Checking for new " + (kind === "podcast" ? "episodes" : "videos") + "…");
+  async function importNow(kind, onDone, sourceId) {
+    const noun = kind === "podcast" ? "episodes" : "videos";
+    toast("Checking for new " + noun + "…");
     try {
-      const src = S.sources.find((s) => s.kind === kind);
-      const r = await fetch("/.netlify/functions/import-now", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: JSON.stringify({ site_id: sid(), source_id: src && src.id }) });
+      const r = await fetch("/.netlify/functions/import-now", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: JSON.stringify({ site_id: sid(), kind, source_id: sourceId || null }) });
       const body = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(body.error || ("Import failed (" + r.status + ")"));
-      const res = (body.results || [])[0];
+      const results = body.results || [];
       await reload.sources(); kind === "podcast" ? await reload.episodes() : await reload.videos();
       onDone(); refreshNav();
-      if (!res) toast(body.message || "Nothing to import.");
-      else if (!res.ok) toast(res.status.replace(/^Error:\s*/, ""), { bad: true });
-      else { const nNew = parseInt(res.status, 10) || 0; if (nNew) confetti(); toast(nNew ? "🎉 " + res.status : "You're up to date. " + res.status); }
+      if (!results.length) return toast(body.message || "Nothing to import.");
+      const bad = results.filter((x) => !x.ok), nNew = results.reduce((a, x) => a + (x.ok ? parseInt(x.status, 10) || 0 : 0), 0);
+      if (results.length === 1 && bad.length) return toast(bad[0].status.replace(/^Error:\s*/, ""), { bad: true });
+      if (nNew) confetti();
+      const what = results.length === 1 ? results[0].status : nNew + " new " + noun + " from " + results.length + " " + (kind === "podcast" ? "feeds" : "channels");
+      toast((nNew ? "🎉 " : "You're up to date. ") + what + (bad.length ? " · " + bad.length + " had a problem (see below)" : ""), bad.length ? { bad: true } : {});
     } catch (e) { toast(/Failed to fetch|NetworkError|Load failed|404/.test(e.message) ? "The import service isn't set up yet. See the setup steps." : errText(e), { bad: true }); }
   }
   function sourceCard(kind, redraw) {
-    const src = S.sources.find((s) => s.kind === kind);
     const isPod = kind === "podcast";
+    const mine = S.sources.filter((s) => s.kind === kind);
     const card = h("section", { class: "card" });
-    if (!src) {
-      const input = h("input", { type: "url", id: kind + "Src", placeholder: isPod ? "https://podcasts.apple.com/us/podcast/…  or your RSS feed" : "https://www.youtube.com/@yourchannel" });
-      const msg = h("div", { class: "err" });
-      card.append(h("h2", { text: isPod ? "Connect your podcast" : "Connect your YouTube channel" }),
-        h("p", { class: "sub", text: isPod ? "Paste your Apple Podcasts link or RSS feed. New episodes get added on their own every hour, with dates, lengths and Apple links." : "Paste your channel link. New uploads show up on your site on their own every hour." }),
-        h("div", { class: "btns" }, input, h("button", { class: "btn primary", type: "button", text: "Connect", onclick: async () => {
-          const u = input.value.trim(); msg.textContent = "";
-          if (!/^https?:\/\//i.test(u) && !/^@/.test(u)) { input.classList.add("bad"); msg.textContent = "Paste the full link, starting with https://"; return; }
-          try { await q(sb.from("sources").insert({ site_id: sid(), kind, url: u })); await reload.sources(); redraw(); importNow(kind, redraw); }
-          catch (e) { msg.textContent = errText(e); }
-        } })), msg);
-      return card;
-    }
-    const when = src.last_run_at ? new Date(src.last_run_at) : null;
-    const status = !src.last_status ? h("span", { class: "pill", text: "Not checked yet" }) : /^Error/.test(src.last_status) ? h("span", { class: "pill red", text: src.last_status.replace(/^Error:\s*/, "") }) : h("span", { class: "pill ok", text: "Working" });
-    card.append(h("h2", { text: isPod ? "Podcast feed" : "YouTube channel" }),
-      h("p", { class: "sub" }, (src.enabled ? "Checked every hour. " : "Paused. ") + (when ? "Last check " + when.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + (src.last_status && !/^Error/.test(src.last_status) ? ": " + src.last_status : "") + "." : "")),
-      h("div", { class: "btns" }, status, h("span", { class: "hint wrap-any", text: src.url })),
-      h("div", { class: "btns", style: "margin-top:12px" },
-        h("button", { class: "btn primary", type: "button", text: "Check now", onclick: () => importNow(kind, redraw) }),
-        h("button", { class: "btn", type: "button", text: src.enabled ? "Pause" : "Resume", onclick: async () => { try { await q(sb.from("sources").update({ enabled: !src.enabled }).eq("id", src.id)); await reload.sources(); redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
-        h("button", { class: "btn ghost danger", type: "button", text: "Disconnect", onclick: async (e) => {
-          const b = e.currentTarget; if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Disconnect? Your " + (isPod ? "episodes" : "videos") + " stay."; return; }
-          try { await q(sb.from("sources").delete().eq("id", src.id)); await reload.sources(); redraw(); } catch (er) { toast(errText(er), { bad: true }); }
-        } })));
+    const ownerOptions = (sel) => [h("option", { value: "", text: "The show", selected: !sel })].concat(S.hosts.map((x) => h("option", { value: x.id, text: x.name, selected: sel === x.id })));
+    const head2 = h("div", { class: "toolbar", style: "margin-bottom:4px" }, h("h2", { style: "margin:0", text: mine.length ? (isPod ? "Podcast feeds" : "YouTube channels") : (isPod ? "Connect your podcast" : "Connect your YouTube channels") }),
+      mine.length > 1 ? h("button", { class: "btn sm", type: "button", text: "Check all now", onclick: () => importNow(kind, redraw) }) : null);
+    card.append(head2, h("p", { class: "sub", text: isPod
+      ? "Paste an Apple Podcasts link or RSS feed. New episodes add themselves every hour, with dates, lengths and Apple links. Got more than one show? Connect each one."
+      : "Connect as many channels as you like: the show's, and each person's. New uploads show up on their own every hour, and a person's videos also appear on their page." }));
+    if (mine.length) card.append(h("div", null, mine.map((src) => {
+      const when = src.last_run_at ? new Date(src.last_run_at) : null;
+      const isErr = src.last_status && /^Error/.test(src.last_status);
+      const owner = !isPod ? h("select", { "aria-label": "Whose channel", style: "width:auto;min-height:34px;padding:4px 8px;font-size:13px", onchange: async (e) => {
+        const host = e.target.value || null;
+        try { await q(sb.from("sources").update({ host }).eq("id", src.id)); await q(sb.from("videos").update({ host }).eq("source_id", src.id)); src.host = host; await reload.videos();
+          toast(host ? "Those videos now show on " + first(host) + "'s page too." : "Marked as the show's channel."); } catch (er) { toast(errText(er), { bad: true }); }
+      } }, ownerOptions(src.host)) : null;
+      return h("div", { class: "switch-row", style: "flex-wrap:wrap;align-items:start" },
+        h("div", { style: "min-width:0;flex:1 1 260px" },
+          h("div", { class: "btns", style: "gap:6px" }, h("b", { class: "wrap-any", text: src.label || (isPod ? "Podcast feed" : "YouTube channel") }),
+            !src.enabled ? h("span", { class: "pill", text: "Paused" }) : !src.last_status ? h("span", { class: "pill", text: "Not checked yet" }) : isErr ? h("span", { class: "pill red", text: "Problem" }) : h("span", { class: "pill ok", text: "Working" })),
+          h("div", { class: "hint wrap-any", text: src.url }),
+          isErr ? h("div", { class: "err", style: "font-size:13px", text: src.last_status.replace(/^Error:\s*/, "") })
+            : when ? h("div", { class: "hint", text: "Last check " + when.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + (src.last_status ? ": " + src.last_status : "") }) : null),
+        h("div", { class: "btns" }, owner ? h("label", { class: "hint", style: "display:flex;gap:6px;align-items:center" }, "Whose:", owner) : null,
+          h("button", { class: "btn sm", type: "button", text: "Check now", onclick: () => importNow(kind, redraw, src.id) }),
+          h("button", { class: "btn ghost sm", type: "button", text: src.enabled ? "Pause" : "Resume", onclick: async () => { try { await q(sb.from("sources").update({ enabled: !src.enabled }).eq("id", src.id)); await reload.sources(); redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
+          sure("Disconnect", async () => { try { await q(sb.from("sources").delete().eq("id", src.id)); await reload.sources(); redraw(); toast("Disconnected. The " + (isPod ? "episodes" : "videos") + " already imported stay."); } catch (er) { toast(errText(er), { bad: true }); } })));
+    })));
+    const input = h("input", { type: "url", id: kind + "Src", placeholder: isPod ? "https://podcasts.apple.com/us/podcast/…  or an RSS feed" : "https://www.youtube.com/@channel", "aria-label": isPod ? "Podcast link" : "YouTube channel link" });
+    const whose = !isPod ? h("select", { id: kind + "Owner", "aria-label": "Whose channel", style: "width:auto" }, ownerOptions(null)) : null;
+    const msg = h("div", { class: "err" });
+    card.append(h("div", { class: mine.length ? "newclub stack" : "stack", style: "gap:8px;margin-top:" + (mine.length ? "12px" : "4px") },
+      mine.length ? h("b", { text: isPod ? "Add another podcast" : "Add another channel" }) : null,
+      h("div", { class: "btns" }, h("div", { style: "flex:1 1 260px" }, input), whose, h("button", { class: "btn primary", type: "button", text: "Connect", onclick: async () => {
+        const u = input.value.trim(); msg.textContent = "";
+        if (!/^https?:\/\//i.test(u) && !/^@/.test(u)) { input.classList.add("bad"); msg.textContent = "Paste the full link, starting with https://"; return; }
+        if (mine.some((s) => s.url.replace(/\/+$/, "").toLowerCase() === u.replace(/\/+$/, "").toLowerCase())) { msg.textContent = "That one's already connected."; return; }
+        try {
+          const created = await q(sb.from("sources").insert({ site_id: sid(), kind, url: u, host: whose && whose.value ? whose.value : null }).select().single());
+          await reload.sources(); redraw(); importNow(kind, redraw, created && created.id);
+        } catch (e) { msg.textContent = errText(e); }
+      } })), msg));
     return card;
   }
 
@@ -1117,6 +1138,7 @@ td select.status.st-few_left { color: var(--warn); }
   /* ======================================================
      VIDEOS
      ====================================================== */
+  let VIDF = "all";
   function ytId(u) { const m = String(u).match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/); return m ? m[1] : null; }
   function viewVideos(main) {
     const wrap = h("div", { class: "stack" });
@@ -1136,13 +1158,20 @@ td select.status.st-few_left { color: var(--warn); }
                 await reload.videos(); toast("Added."); redraw(); } catch (e) { msg.textContent = errText(e); }
             } }))));
       })();
-      const grid = S.videos.length ? h("div", { class: "vids" }, S.videos.map((v) => h("div", { class: "vid" + (v.hidden ? " hidden" : "") },
+      const channels = [...new Set(S.videos.map((v) => v.channel || "").filter(Boolean))];
+      if (VIDF !== "all" && !channels.includes(VIDF)) VIDF = "all";
+      const shown = S.videos.filter((v) => VIDF === "all" || v.channel === VIDF);
+      const chipsRow = channels.length > 1 ? h("div", { class: "seg", role: "group", "aria-label": "Filter by channel", style: "margin-bottom:12px" },
+        h("button", { type: "button", "aria-pressed": String(VIDF === "all"), text: "All (" + S.videos.length + ")", onclick: () => { VIDF = "all"; redraw(); } }),
+        channels.map((c) => h("button", { type: "button", "aria-pressed": String(VIDF === c), text: c + " (" + S.videos.filter((v) => v.channel === c).length + ")", onclick: () => { VIDF = c; redraw(); } }))) : null;
+      const grid = S.videos.length ? h("div", null, chipsRow, h("div", { class: "vids" }, shown.map((v) => h("div", { class: "vid" + (v.hidden ? " hidden" : "") },
         h("a", { href: v.url, target: "_blank", rel: "noopener" }, h("img", { src: v.thumbnail_url || "", alt: "", loading: "lazy" })),
-        h("div", { class: "body" }, h("b", { class: "wrap-any", text: v.title }), h("span", { class: "hint", text: (v.published ? shortDate(v.published) : "") + (v.featured ? " · ⭐ Featured" : "") + (v.hidden ? " · Hidden" : "") }),
+        h("div", { class: "body" }, h("b", { class: "wrap-any", text: v.title }),
+          h("span", { class: "hint", text: [v.published ? shortDate(v.published) : "", v.channel || "", v.host ? first(v.host) + "'s page" : "", v.featured ? "⭐ Featured" : "", v.hidden ? "Hidden" : ""].filter(Boolean).join(" · ") }),
           h("div", { class: "btns" },
             h("button", { class: "btn sm", type: "button", text: v.featured ? "Unstar" : "⭐ Star", onclick: async () => { try { await q(sb.from("videos").update({ featured: !v.featured }).eq("id", v.id)); v.featured = !v.featured; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
-            h("button", { class: "btn sm ghost", type: "button", text: v.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("videos").update({ hidden: !v.hidden }).eq("id", v.id)); v.hidden = !v.hidden; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }))))))
-        : h("section", { class: "card" }, empty("No videos yet", "Connect your channel above."));
+            h("button", { class: "btn sm ghost", type: "button", text: v.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("videos").update({ hidden: !v.hidden }).eq("id", v.id)); v.hidden = !v.hidden; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } })))))))
+        : h("section", { class: "card" }, empty("No videos yet", "Connect a channel above."));
       wrap.replaceChildren(sourceCard("youtube", redraw), add, grid); refreshNav();
     };
     redraw();
@@ -1240,7 +1269,7 @@ td select.status.st-few_left { color: var(--warn); }
       const file = h("input", { type: "file", accept: "image/*", style: "display:none" });
       file.addEventListener("change", () => { if (file.files[0]) { const im = h("img", { class: "avatar", src: URL.createObjectURL(file.files[0]), alt: "" }); pic.replaceWith(im); pic = im; } });
       const msg = h("div", { class: "err" });
-      const save = h("button", { class: "btn primary", type: "submit", text: "Save " + x.name.split(" ")[0] });
+      const save = h("button", { class: "btn primary", type: "submit", text: "Save changes" });
       const showCount = S.shows.filter((s) => s.host === x.id).length;
       const swap = async (a, b) => {
         const A = S.hosts[a], B = S.hosts[b];
@@ -1270,7 +1299,7 @@ td select.status.st-few_left { color: var(--warn); }
             const zone = e.currentTarget.parentNode;
             zone.replaceWith(h("div", { class: "newclub stack", style: "gap:8px" }, h("b", { text: "Remove " + x.name + "?" }),
               h("span", { class: "hint", text: showCount ? "This also deletes their " + showCount + " show" + (showCount > 1 ? "s" : "") + ". To keep everything, use Hide from site instead." : "Their page goes away. This can't be undone." }),
-              h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Remove " + x.name.split(" ")[0], onclick: async () => {
+              h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Yes, remove", onclick: async () => {
                 try { await q(sb.from("hosts").delete().eq("id", x.id)); await reload.hosts(); await reload.shows(); route(); toast(x.name + " removed."); } catch (er) { toast(errText(er), { bad: true }); }
               } }), h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: () => route() }))));
           } })));
@@ -1357,7 +1386,7 @@ td select.status.st-few_left { color: var(--warn); }
   let ANN = null;
   async function viewAnnounce(main) {
     const theme = await loadTheme();
-    main.append(head("Announcements", theme && theme.shows_announcements_as ? "Your theme shows these as " + theme.shows_announcements_as + "." : "Short news for your fans. Your theme decides how they show up."));
+    main.append(head("Announcements", "Short news for your fans, like a new episode, a show added or a sale. Your site decides where they appear."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     const reloadAnn = async () => { ANN = await q(sb.from("announcements").select("*").eq("site_id", sid()).order("sort", { ascending: true })); };
     try { await reloadAnn(); } catch (e) { wrap.append(h("p", { class: "err", text: errText(e) })); return; }
@@ -1408,7 +1437,7 @@ td select.status.st-few_left { color: var(--warn); }
      ====================================================== */
   async function viewLinks(main) {
     const theme = await loadTheme();
-    main.append(head("Links", theme && theme.shows_links_as ? "Your theme shows these as " + theme.shows_links_as + "." : "Your link-in-bio list: socials, tickets, booking, anything."));
+    main.append(head("Links", "A list of links for your site: socials, booking, anything you want fans to find."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     let L = [];
     const reloadL = async () => { L = await q(sb.from("links").select("*").eq("site_id", sid()).order("sort", { ascending: true })); };
