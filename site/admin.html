@@ -530,7 +530,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
      ====================================================== */
   const run = { host: null, venue: null, days: new Set(), slots: [], month: null, adding: false };
   const list = { host: "all", past: false, q: "" };
-  let editingShow = null;
+  let editingShow = null, dupOf = null; // dupOf: the show being duplicated (its copy shows up right below it)
   const STATUS = [["on_sale", "On sale"], ["few_left", "Few left"], ["sold_out", "Sold out"], ["free", "Free"], ["cancelled", "Cancelled"]];
 
   function viewShows(main) {
@@ -690,10 +690,12 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
     return out;
   }
 
-  function clubPicker(onPick) {
+  function clubPicker(onPick, idBase) {
+    const base = idBase || "club";
+    const nc = base === "club" ? "nc" : base + "Nc"; // ids for the new-club form
     const wrap = h("div", { class: "combo" });
-    const input = h("input", { id: "clubSearch", placeholder: "Search clubs: “Laugh Boston”, “Improv”, “Denver”…", autocomplete: "off", role: "combobox", "aria-expanded": "false", "aria-controls": "clubList", "aria-label": "Search clubs" });
-    const listEl = h("div", { class: "combo-list", id: "clubList", role: "listbox", hidden: true });
+    const input = h("input", { id: base + "Search", class: "club-search", placeholder: "Search clubs: “Laugh Boston”, “Improv”, “Denver”…", autocomplete: "off", role: "combobox", "aria-expanded": "false", "aria-controls": base + "List", "aria-label": "Search clubs" });
+    const listEl = h("div", { class: "combo-list", id: base + "List", role: "listbox", hidden: true });
     const newBox = h("div");
     let items = [], sel = 0;
     const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ");
@@ -717,10 +719,10 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
     }
     function showNew() {
       listEl.hidden = true;
-      const name = h("input", { id: "ncName", value: input.value.trim(), required: true });
-      const city = h("input", { id: "ncCity", placeholder: "Boston", required: true });
-      const state = h("input", { id: "ncState", placeholder: "MA", maxlength: "3" });
-      const site = h("input", { id: "ncSite", type: "url", placeholder: "https://… (optional)" });
+      const name = h("input", { id: nc + "Name", value: input.value.trim(), required: true });
+      const city = h("input", { id: nc + "City", placeholder: "Boston", required: true });
+      const state = h("input", { id: nc + "State", placeholder: "MA", maxlength: "3" });
+      const site = h("input", { id: nc + "Site", type: "url", placeholder: "https://… (optional)" });
       const msg = h("div", { class: "err" });
       const save = h("button", { class: "btn primary", type: "button", text: "Save club", onclick: async () => {
         msg.textContent = "";
@@ -805,6 +807,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
         const mo = monthLabel(s.date);
         if (mo !== lastM) { tbody.append(h("tr", { class: "month" }, h("td", { colspan: "7", text: mo }))); lastM = mo; }
         tbody.append(editingShow === s.id ? editRow(s, redraw) : showRow(s, redraw, t0));
+        if (dupOf === s.id) tbody.append(editRow(s, redraw, true));
       }
       if (!rows.length) tbody.append(h("tr", null, h("td", { colspan: "7" }, empty(S.shows.length ? "Nothing matches" : "No shows yet", S.shows.length ? "" : "Add your first run above. It takes about 30 seconds."))));
     };
@@ -827,7 +830,8 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
       h("td", null, s.url ? h("a", { href: s.url, target: "_blank", rel: "noopener", text: "Link ↗" }) : h("span", { class: "pill warn", text: "Add link" })),
       h("td", null, status),
       h("td", { class: "actions" },
-        h("button", { class: "btn ghost sm", type: "button", text: "Edit", onclick: () => { editingShow = s.id; redraw(); } }),
+        h("button", { class: "btn ghost sm", type: "button", text: "Edit", onclick: () => { editingShow = s.id; dupOf = null; redraw(); } }),
+        h("button", { class: "btn ghost sm", type: "button", text: "Duplicate", title: "Copy this show (same club, date and details) so you only change the time", onclick: () => { dupOf = s.id; editingShow = null; redraw(); } }),
         h("button", { class: "btn ghost sm", type: "button", text: "More here", title: "Add more shows at this club", onclick: async () => {
           const v = venueById(s.venue_id); if (v) { run.venue = v; await loadSlots(v.id); } run.host = s.host; run.days.clear(); run.slots = [];
           const d = parseISO(s.date); run.month = new Date(d.getFullYear(), d.getMonth(), 1); redraw();
@@ -842,27 +846,44 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
   async function restore(rows, redraw) {
     try { await q(sb.from("shows").insert(rows.map(({ id, ...r }) => r))); await reload.shows(); redraw(); refreshNav(); toast("Restored."); } catch (e) { toast(errText(e), { bad: true }); }
   }
-  function editRow(s, redraw) {
+  function editRow(s, redraw, isCopy) {
+    let venue = { venue_id: s.venue_id, venue: s.venue, city: s.city };
     const host = S.hosts.length > 1 ? h("select", { "aria-label": "Who" }, S.hosts.map((x) => h("option", { value: x.id, text: first(x.id), selected: x.id === s.host }))) : null;
     const date = h("input", { type: "date", value: s.date, "aria-label": "Date" });
-    const time = h("input", { type: "time", step: "300", value: to24(s.time), "aria-label": "Time" });
+    const later = (() => { const t = to24(s.time) || "19:00"; const [H, M] = t.split(":").map(Number); const m = Math.min(23 * 60 + 30, H * 60 + M + 120); return pad(Math.floor(m / 60)) + ":" + pad(m % 60); })();
+    const time = h("input", { type: "time", step: "300", value: isCopy ? later : to24(s.time), "aria-label": "Time" });
     const url = h("input", { type: "url", value: s.url || "", placeholder: "Ticket link", "aria-label": "Ticket link" });
+    const status = h("select", { "aria-label": "Status" }, STATUS.map(([v, l]) => h("option", { value: v, text: l, selected: (s.status || "on_sale") === v })));
     const note = h("input", { value: s.note || "", placeholder: "Note (e.g. 18+, special guest)", "aria-label": "Note" });
-    const cancel = () => { editingShow = null; redraw(); };
+    const clubCell = h("td", { class: "wrap-any" });
+    const drawClub = () => clubCell.replaceChildren(h("div", { text: venue.venue || "—" }), h("div", { class: "hint", text: venue.city || "" }),
+      h("button", { class: "btn ghost sm", type: "button", text: "Change club", style: "margin:2px 0 4px -10px", onclick: () => {
+        clubCell.replaceChildren(clubPicker((v) => { venue = { venue_id: v.id, venue: v.name, city: venueCity(v) }; drawClub(); }, "editClub"));
+        setTimeout(() => $("editClubSearch") && $("editClubSearch").focus());
+      } }), note);
+    drawClub();
+    const cancel = () => { editingShow = null; dupOf = null; redraw(); };
     const save = async () => {
       if (!date.value) { date.classList.add("bad"); date.focus(); return; }
       if (url.value && !/^https?:\/\//i.test(url.value.trim())) { url.classList.add("bad"); url.focus(); return; }
+      const row = { host: host ? host.value : s.host, date: date.value, time: to12(time.value), url: url.value.trim() || null, note: note.value.trim() || null,
+        status: status.value, venue: venue.venue, city: venue.city, venue_id: venue.venue_id || null };
       try {
-        await q(sb.from("shows").update({ host: host ? host.value : s.host, date: date.value, time: to12(time.value), url: url.value.trim() || null, note: note.value.trim() || null }).eq("id", s.id));
-        editingShow = null; await reload.shows(); redraw(); toast("Saved. It's live.");
+        if (isCopy) await q(sb.from("shows").insert({ ...row, site_id: sid() }));
+        else await q(sb.from("shows").update(row).eq("id", s.id));
+        editingShow = null; dupOf = null; await reload.shows(); redraw(); refreshNav();
+        toast(isCopy ? "Added the " + (row.time || "new") + " show. It's live." : "Saved. It's live.");
       } catch (e) { toast(errText(e), { bad: true }); }
     };
     const tr = h("tr", { class: "editing" },
-      h("td", null, date), h("td", null, time), h("td", null, host), h("td", { class: "wrap-any" }, h("div", { text: s.venue || "" }), h("div", { class: "hint", text: s.city || "" }), note),
-      h("td", { colspan: "2" }, url),
-      h("td", { class: "actions" }, h("button", { class: "btn primary sm", type: "button", text: "Save", onclick: save }), " ", h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: cancel })));
-    tr.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); save(); } if (e.key === "Escape") cancel(); });
-    setTimeout(() => date.focus());
+      h("td", null, isCopy ? h("div", { class: "pill ok", style: "margin-bottom:6px", text: "Copy" }) : null, date), h("td", null, time), h("td", null, host), clubCell,
+      h("td", null, url, isCopy && s.url ? h("div", { class: "hint", text: "Same link as the original. Paste the new one if it's different." }) : null), h("td", null, status),
+      h("td", { class: "actions" }, h("button", { class: "btn primary sm", type: "button", text: isCopy ? "Add show" : "Save", onclick: save }), " ", h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: cancel })));
+    tr.addEventListener("keydown", (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains("club-search")) return; // the club search uses Enter / Escape itself
+      if (e.key === "Enter") { e.preventDefault(); save(); } if (e.key === "Escape") cancel();
+    });
+    setTimeout(() => { (isCopy ? time : date).focus(); if (isCopy && time.select) try { time.select(); } catch (e) {} });
     return tr;
   }
 

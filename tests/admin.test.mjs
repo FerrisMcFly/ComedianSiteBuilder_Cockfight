@@ -139,6 +139,29 @@ test("status change, edit, delete and undo on the list", async () => {
   assert.ok(db.shows.find((s) => s.venue === "Comedy Works Downtown"));
 });
 
+test("duplicate copies everything and moves the time; edit can change the club", async () => {
+  const { w, d, db } = await open("#shows", (db) => db.shows.push({ id: "s7", site_id: "cockfight", host: "lev", date: sat, time: "7:00 PM", venue: "Laugh Boston", city: "Boston, MA", venue_id: "v1", url: "https://t/7", status: "few_left", note: "18+" }));
+  let row = [...d.querySelectorAll("tbody tr")].find((tr) => /7:00 PM/.test(tr.textContent) && /Laugh Boston/.test(tr.textContent));
+  btn(d, /^Duplicate$/, row).click(); await wait();
+  const copy = d.querySelector("tr.editing");
+  assert.equal(copy.querySelector('input[type=time]').value, "21:00");
+  assert.equal(copy.querySelector('input[type=date]').value, sat);
+  btn(d, /^Add show$/, copy).click(); await wait(60);
+  const made = db.shows.filter((s) => s.date === sat && s.venue === "Laugh Boston");
+  assert.deepEqual(made.map((s) => s.time).sort(), ["7:00 PM", "9:00 PM"]);
+  const c = made.find((s) => s.time === "9:00 PM");
+  assert.equal(c.host, "lev"); assert.equal(c.venue_id, "v1"); assert.equal(c.city, "Boston, MA"); assert.equal(c.status, "few_left"); assert.equal(c.note, "18+"); assert.equal(c.url, "https://t/7"); assert.equal(c.site_id, "cockfight");
+  // edit: move the late show to another club
+  row = [...d.querySelectorAll("tbody tr")].find((tr) => /9:00 PM/.test(tr.textContent));
+  btn(d, /^Edit$/, row).click(); await wait();
+  btn(d, /^Change club$/).click(); await wait();
+  set(w, d.getElementById("editClubSearch"), "comedy works"); await wait();
+  d.querySelector("#editClubList .combo-item").click(); await wait();
+  btn(d, /^Save$/, d.querySelector("tr.editing")).click(); await wait(60);
+  const moved = db.shows.find((s) => s.time === "9:00 PM" && s.date === sat);
+  assert.equal(moved.venue, "Comedy Works Downtown"); assert.equal(moved.city, "Denver, CO"); assert.equal(moved.venue_id, "v2");
+});
+
 test("episodes, videos, merch, settings all render", async () => {
   const { w, d, db } = await open("#podcast");
   assert.match(d.body.textContent, /Connect your podcast/);
