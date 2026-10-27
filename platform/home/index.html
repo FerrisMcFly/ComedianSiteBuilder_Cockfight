@@ -4,259 +4,353 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ComicTable · Websites for comedians</title>
-<meta name="description" content="ComicTable builds comedians their own website, then gives them easy tools to keep it full: shows and ticket links, podcast episodes, videos, merch and a place for fans.">
+<meta name="description" content="ComicTable gives comedians their own website, designed to look like them, with easy tools for shows, ticket links, podcast episodes, videos, merch and a place for fans.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Schibsted+Grotesk:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800;900&family=Bowlby+One&family=Comic+Neue:wght@700&family=Playfair+Display:ital,wght@0,700;1,700&family=Special+Elite&display=swap" rel="stylesheet">
 <style>
-/* ComicTable front page. One idea: the comic's index card setlist. Everything else stays quiet. */
+/* ComicTable front page. The loud part is the try-it toy in the hero: one name, four very different sites.
+   Everything else is poster-flat: thick black lines, big type, a few strong colors. */
 :root {
-  --ink: #1f2a5a;      /* ballpoint blue: all text */
-  --ink-soft: #4b5582;
-  --paper: #fffefa;    /* index card */
-  --rule: #b9d2ec;     /* card lines */
-  --margin: #e0504c;   /* the card's red line, and the one accent */
-  --page: #eef1f5;     /* cool grey room */
-  --line: #d3d9e3;
-  --pen: "Nanum Pen Script", "Comic Sans MS", cursive;
-  --sans: "Schibsted Grotesk", system-ui, sans-serif;
+  --cobalt: #2a3cff;
+  --yellow: #ffe94a;
+  --pink: #ff4fa3;
+  --black: #000;
+  --white: #fff;
+  --display: "Bowlby One", Impact, sans-serif;
+  --sans: "Archivo", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
-body { margin: 0; background: var(--page); color: var(--ink); font: 400 18px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--white); color: var(--black); font: 400 18px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
 a { color: inherit; }
-:focus-visible { outline: 3px solid var(--margin); outline-offset: 3px; border-radius: 4px; }
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
 
-/* top bar */
+.btn { display: inline-block; font: 800 17px/1 var(--sans); padding: 15px 22px; border: 3px solid var(--black); background: var(--white); color: var(--black); text-decoration: none; cursor: pointer; box-shadow: 4px 4px 0 var(--black); transition: transform .08s, box-shadow .08s; }
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--black); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--black); }
+.btn.yellow { background: var(--yellow); }
+.btn.black { background: var(--black); color: var(--white); box-shadow: 4px 4px 0 var(--white); }
+
+/* ---------- hero ---------- */
+.hero { background: var(--cobalt); color: var(--white); border-bottom: 3px solid var(--black); overflow: hidden; }
 .top { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
-.logo { font-weight: 900; font-size: 22px; letter-spacing: -0.02em; text-decoration: none; display: inline-flex; align-items: baseline; gap: 2px; }
-.logo i { font-style: normal; color: var(--margin); }
-.top nav { display: flex; gap: 22px; align-items: center; font-weight: 500; font-size: 16px; }
+.logo { font: 400 26px/1 var(--display); text-decoration: none; }
+.top nav { display: flex; gap: 22px; align-items: center; font-weight: 700; font-size: 16px; }
 .top nav a { text-decoration: none; }
-.top nav a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.top nav a:hover { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 5px; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); gap: 48px; align-items: center; padding: 32px 0 72px; }
+h1 { font: 400 clamp(46px, 5.7vw, 76px)/0.92 var(--display); margin: 0 0 22px; letter-spacing: -0.02em; }
+h1 span { display: block; color: var(--yellow); }
+.lede { font-size: 20px; line-height: 1.5; max-width: 28em; margin: 0 0 28px; color: #e6e9ff; }
+.try { background: var(--white); color: var(--black); border: 3px solid var(--black); box-shadow: 6px 6px 0 var(--black); padding: 16px; max-width: 460px; }
+.try label { display: block; font-weight: 800; font-size: 15px; margin-bottom: 8px; }
+.try input { width: 100%; font: 400 26px/1.1 var(--display); padding: 10px 12px; border: 3px solid var(--black); background: var(--yellow); color: var(--black); border-radius: 0; }
+.try input:focus { outline: none; background: #fff38f; }
+.looks { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.looks button { font: 700 14px/1 var(--sans); padding: 9px 12px; border: 2px solid var(--black); background: var(--white); color: var(--black); cursor: pointer; }
+.looks button[aria-pressed="true"] { background: var(--black); color: var(--white); }
 
-/* buttons */
-.btn { display: inline-block; font: 700 17px/1 var(--sans); padding: 15px 22px; border-radius: 10px; border: 2px solid var(--ink); text-decoration: none; cursor: pointer; background: transparent; color: var(--ink); }
-.btn.solid { background: var(--ink); color: var(--paper); }
-.btn.solid:hover { background: #2c3a78; }
-.btn:not(.solid):hover { background: #fff; }
+/* the browser window holding the preview */
+.window { border: 3px solid var(--black); background: var(--white); box-shadow: 10px 10px 0 var(--black); transform: rotate(1.4deg); }
+.window .bar { display: flex; align-items: center; gap: 8px; border-bottom: 3px solid var(--black); padding: 9px 12px; background: var(--white); color: var(--black); font: 600 13px/1 var(--sans); }
+.window .bar i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--black); flex: none; }
+.window .bar i:nth-child(1) { background: var(--pink); } .window .bar i:nth-child(2) { background: var(--yellow); } .window .bar i:nth-child(3) { background: #3ddc84; }
+.window .url { margin-left: 8px; flex: 1; border: 2px solid var(--black); border-radius: 20px; padding: 6px 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.screen { position: relative; height: 400px; overflow: hidden; }
+.look { position: absolute; inset: 0; padding: 26px 28px; opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; }
+.look.on { opacity: 1; visibility: visible; }
+.look .row { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 9px 0; }
+.look .tix { white-space: nowrap; }
 
-/* hero */
-.hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 56px; align-items: center; padding: 48px 0 96px; }
-h1 { font-weight: 900; font-size: clamp(44px, 6.4vw, 82px); line-height: 0.98; letter-spacing: -0.035em; margin: 0 0 24px; }
-.lede { font-size: 21px; line-height: 1.5; color: var(--ink-soft); max-width: 31em; margin: 0 0 32px; }
-.ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+/* look 1: 90s */
+.l90 { background: #ffd23f radial-gradient(circle, #ff8a3d 2px, transparent 3px) 0 0 / 22px 22px; font-family: "Comic Neue", "Comic Sans MS", cursive; color: #1b1bb3; }
+.l90 .welcome { background: #1b1bb3; color: #fff; font-weight: 700; padding: 4px 0; overflow: hidden; white-space: nowrap; font-size: 15px; }
+.l90 .welcome b { display: inline-block; padding-left: 100%; animation: marq 10s linear infinite; }
+@keyframes marq { to { transform: translateX(-100%); } }
+.l90 .name { font: 700 46px/1 "Comic Neue", "Comic Sans MS", cursive; color: #e3122d; text-shadow: 3px 3px 0 #1b1bb3; margin: 16px 0 6px; text-align: center; overflow-wrap: anywhere; }
+.l90 .box { background: #fff; border: 4px ridge #1b1bb3; padding: 8px 14px; margin-top: 12px; }
+.l90 .box h4 { margin: 0 0 2px; color: #e3122d; font-size: 18px; }
+.l90 .row { border-top: 2px dotted #1b1bb3; font-weight: 700; font-size: 15px; }
+.l90 .tix { color: #1b1bb3; text-decoration: underline; }
+.l90 .counter { text-align: center; margin-top: 10px; font-weight: 700; font-size: 14px; }
+.l90 .counter span { background: #000; color: #3ddc84; font-family: monospace; padding: 2px 6px; letter-spacing: 2px; }
 
-/* the setlist card: the one loud thing on the page */
-.card-stage { display: flex; justify-content: center; }
-.setlist {
-  position: relative; width: min(100%, 470px); padding: 22px 30px 30px;
-  background: var(--paper);
-  box-shadow: 0 1px 0 #e2e6ee, 0 18px 40px -18px rgba(31, 42, 90, .45);
-  transform: rotate(-2.2deg); border-radius: 3px;
-  font-family: var(--pen); font-size: 32px; line-height: 36px; color: var(--ink);
-  --row: 36px;
-}
-.setlist h2 { font: inherit; font-size: 40px; line-height: 44px; margin: 0 -30px 6px; padding: 0 30px 6px; border-bottom: 2px solid var(--margin); }
-/* each item sits on its own ruled line, plus one empty line at the bottom like a real card */
-.setlist ol { list-style: none; margin: 0 -30px; padding: 0 30px var(--row); background: repeating-linear-gradient(to bottom, transparent 0 calc(var(--row) - 1px), var(--rule) calc(var(--row) - 1px) var(--row)); }
-.setlist li { padding-top: 2px; height: var(--row); }
-.setlist li { white-space: nowrap; }
-.setlist s { text-decoration: none; position: relative; color: var(--ink-soft); }
-.setlist s::after { content: ""; position: absolute; left: -4px; right: -6px; top: 52%; height: 3px; background: var(--ink); border-radius: 3px; transform: rotate(-1.5deg) scaleX(0); transform-origin: left; animation: strike .45s ease-out forwards; }
-.setlist li:nth-child(1) s::after { animation-delay: .7s; }
-.setlist li:nth-child(2) s::after { animation-delay: 1.15s; }
-@keyframes strike { to { transform: rotate(-1.5deg) scaleX(1); } }
-.setlist .closer { color: var(--margin); }
-.tape { position: absolute; width: 96px; height: 28px; top: -12px; left: 50%; margin-left: -48px; background: rgba(243, 211, 107, .78); transform: rotate(3deg); }
+/* look 2: late night */
+.lnight { background: #0b1b52 radial-gradient(ellipse at 50% -10%, #2e4aa8 0, transparent 60%); color: #f7e7c0; font-family: "Playfair Display", Georgia, serif; text-align: center; }
+.lnight .onair { font: 800 13px/1 var(--sans); letter-spacing: .14em; color: #ffcf5a; margin-top: 8px; }
+.lnight .name { font: italic 700 52px/1 "Playfair Display", Georgia, serif; margin: 12px 0 6px; color: #fff; overflow-wrap: anywhere; }
+.lnight .sub { font: 400 15px/1.4 var(--sans); color: #c9cfe8; margin-bottom: 18px; }
+.lnight .row { border-top: 1px solid rgba(247, 231, 192, .3); text-align: left; font-size: 17px; }
+.lnight .tix { font: 700 13px/1 var(--sans); background: #ffcf5a; color: #0b1b52; padding: 8px 12px; border-radius: 30px; }
+.lnight .ep { margin-top: 16px; font: 400 14px/1.4 var(--sans); color: #c9cfe8; }
 
-/* sections */
-section.band { padding: 88px 0; border-top: 1px solid var(--line); }
-h2.big { font-weight: 900; font-size: clamp(32px, 4.2vw, 50px); line-height: 1.04; letter-spacing: -0.03em; margin: 0 0 18px; max-width: 18em; }
-.intro { color: var(--ink-soft); max-width: 36em; margin: 0 0 48px; font-size: 19px; }
+/* look 3: clean */
+.lclean { background: #fff; color: #000; font-family: var(--sans); }
+.lclean .nav { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 700; }
+.lclean .nav span:last-child { display: flex; gap: 14px; color: #666; font-weight: 500; }
+.lclean .name { font: 900 64px/0.92 var(--sans); letter-spacing: -0.045em; margin: 34px 0 10px; overflow-wrap: anywhere; }
+.lclean .sub { color: #666; font-size: 15px; margin-bottom: 22px; }
+.lclean .row { border-top: 1px solid #ddd; font-size: 15px; }
+.lclean .row b { width: 72px; display: inline-block; }
+.lclean .tix { font-size: 13px; font-weight: 700; border-bottom: 2px solid #000; }
 
-.tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px 64px; }
-.tool h3 { font-size: 21px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
-.tool p { margin: 0; color: var(--ink-soft); max-width: 30em; }
+/* look 4: zine */
+.lzine { background: #e9e6df url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E"); color: #111; font-family: "Special Elite", "Courier New", monospace; }
+.lzine .name { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 18px; transform: rotate(-2deg); }
+.lzine .name span { font: 400 40px/1 var(--display); padding: 4px 6px; background: #fff; border: 1px solid #111; }
+.lzine .name span:nth-child(3n+1) { background: #111; color: #e9e6df; font-family: "Special Elite", monospace; }
+.lzine .name span:nth-child(4n+2) { background: #ff4fa3; transform: rotate(4deg); font-family: "Playfair Display", serif; font-style: italic; }
+.lzine .name span:nth-child(5n+3) { transform: rotate(-5deg); }
+.lzine .name span.sp { background: none; border: 0; width: 10px; padding: 0; }
+.lzine .scrap { background: #fff; padding: 10px 14px; transform: rotate(1deg); box-shadow: 2px 3px 0 rgba(0,0,0,.25); }
+.lzine .scrap h4 { margin: 0 0 4px; font-size: 18px; text-decoration: underline wavy; }
+.lzine .row { border-top: 1px dashed #111; font-size: 15px; }
+.lzine .tix { background: #111; color: #fff; padding: 2px 6px; }
+.lzine .ep { margin-top: 16px; transform: rotate(-1deg); font-size: 15px; }
 
-.yours { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 64px; align-items: start; }
-.yours ul { list-style: none; margin: 0; padding: 0; }
-.yours li { padding: 18px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 30px 1fr; gap: 10px; }
-.yours li:last-child { border-bottom: 1px solid var(--line); }
-.yours li::before { content: "✓"; font-family: var(--pen); font-size: 30px; line-height: 24px; color: var(--margin); }
-.yours b { display: block; font-size: 19px; }
-.yours span { color: var(--ink-soft); }
+/* ---------- sections ---------- */
+section.band { padding: 96px 0; border-bottom: 3px solid var(--black); }
+h2 { font: 400 clamp(38px, 5vw, 64px)/0.95 var(--display); letter-spacing: -0.015em; margin: 0 0 18px; max-width: 14em; }
+.intro { font-size: 20px; max-width: 32em; margin: 0 0 48px; }
 
-.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; counter-reset: s; }
-.steps li { counter-increment: s; }
-.steps li::before { content: counter(s); display: block; font-family: var(--pen); font-size: 64px; line-height: 1; color: var(--margin); margin-bottom: 8px; }
-.steps h3 { margin: 0 0 6px; font-size: 21px; }
-.steps p { margin: 0; color: var(--ink-soft); }
+.admin { background: var(--yellow); }
+.feats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 3px solid var(--black); background: var(--white); box-shadow: 8px 8px 0 var(--black); }
+.feat { padding: 26px 26px 30px; border-right: 3px solid var(--black); border-bottom: 3px solid var(--black); }
+.feat:nth-child(3n) { border-right: 0; }
+.feat:nth-last-child(-n+3) { border-bottom: 0; }
+.feat h3 { font: 900 24px/1.1 var(--sans); letter-spacing: -0.02em; margin: 0 0 8px; }
+.feat p { margin: 0; }
+.feat .demo { margin-top: 16px; font: 700 14px/1 var(--sans); display: flex; flex-wrap: wrap; gap: 6px; }
+.feat .demo span { border: 2px solid var(--black); padding: 6px 8px; }
+.feat .demo span.hit { background: var(--cobalt); color: var(--white); }
 
-.running { display: flex; gap: 24px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 26px 30px; }
-.running b { font-size: 24px; letter-spacing: -0.01em; }
-.running p { margin: 4px 0 0; color: var(--ink-soft); }
+.yours { background: var(--black); color: var(--white); }
+.yours ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 3px solid var(--white); }
+.yours li { padding: 28px 28px 32px 0; border-bottom: 3px solid var(--white); }
+.yours li:nth-child(odd) { border-right: 3px solid var(--white); }
+.yours li:nth-child(even) { padding-left: 28px; }
+.yours b { display: block; font: 400 30px/1 var(--display); color: var(--yellow); margin-bottom: 8px; }
+.yours span { color: #d6d6d6; }
 
-/* request form */
-.ask { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 64px; align-items: start; }
-form { display: grid; gap: 16px; }
-label { display: grid; gap: 6px; font-weight: 500; font-size: 16px; }
-label small { font-weight: 400; color: var(--ink-soft); }
-input, textarea { font: 400 17px/1.4 var(--sans); color: var(--ink); background: #fff; border: 1.5px solid var(--line); border-radius: 10px; padding: 13px 14px; width: 100%; }
-input:focus, textarea:focus { border-color: var(--ink); outline: none; box-shadow: 0 0 0 3px var(--rule); }
-textarea { min-height: 96px; resize: vertical; }
+.live { background: var(--pink); }
+.live-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: end; }
+.live p { font-size: 20px; max-width: 30em; margin: 0; }
+
+.ask { background: var(--cobalt); color: var(--white); }
+.ask-grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 56px; align-items: start; }
+.ask .intro { color: #e6e9ff; }
+form { background: var(--white); color: var(--black); border: 3px solid var(--black); box-shadow: 8px 8px 0 var(--black); padding: 24px; display: grid; gap: 16px; }
+label { display: grid; gap: 6px; font-weight: 800; font-size: 15px; }
+label small { font-weight: 500; color: #555; }
+input, textarea { font: 400 17px/1.4 var(--sans); color: var(--black); background: var(--white); border: 2px solid var(--black); padding: 12px; width: 100%; border-radius: 0; }
+input:focus, textarea:focus { outline: none; background: #fffbd6; box-shadow: 3px 3px 0 var(--cobalt); }
+textarea { min-height: 90px; resize: vertical; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.msg { min-height: 1.5em; font-weight: 500; }
-.msg.bad { color: #b3261e; }
-.done { font-family: var(--pen); font-size: 40px; line-height: 1.1; }
+.msg { min-height: 1.4em; font-weight: 700; color: #c0003c; }
+.done { font: 400 44px/1 var(--display); margin: 0 0 10px; }
 
-footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--ink-soft); font-size: 15px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+footer { padding: 28px 0 40px; font-weight: 600; font-size: 15px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
-@media (max-width: 860px) {
-  .hero, .yours, .ask { grid-template-columns: 1fr; gap: 40px; }
-  .hero { padding: 24px 0 72px; }
-  .card-stage { order: -1; }
-  .tools { grid-template-columns: 1fr; gap: 28px; }
-  .steps { grid-template-columns: 1fr; gap: 28px; }
+@media (max-width: 900px) {
+  .hero-grid, .ask-grid, .live-grid { grid-template-columns: 1fr; }
+  .hero-grid { padding-bottom: 56px; }
+  .window { transform: none; }
+  .feats { grid-template-columns: 1fr; }
+  .feat { border-right: 0 !important; border-bottom: 3px solid var(--black) !important; }
+  .feat:last-child { border-bottom: 0 !important; }
+  .yours ul { grid-template-columns: 1fr; }
+  .yours li, .yours li:nth-child(odd), .yours li:nth-child(even) { border-right: 0; padding: 24px 0; }
   section.band { padding: 64px 0; }
 }
 @media (max-width: 520px) {
   .wrap { padding: 0 16px; }
-  body { font-size: 17px; }
   .top nav .hide-sm { display: none; }
-  .setlist { font-size: 26px; line-height: 30px; --row: 30px; padding: 18px 20px 22px; }
-  .setlist h2 { font-size: 32px; line-height: 36px; margin: 0 -20px 4px; padding: 0 20px 4px; }
-  .setlist ol { margin: 0 -20px; padding: 0 20px var(--row); }
+  .screen { height: 400px; }
+  .look { padding: 20px 18px; }
+  .l90 .name { font-size: 36px; } .lnight .name { font-size: 40px; } .lclean .name { font-size: 46px; } .lzine .name span { font-size: 30px; }
   .two { grid-template-columns: 1fr; }
+  .window { box-shadow: 6px 6px 0 var(--black); }
 }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <a class="logo" href="/" aria-label="ComicTable home">Comic<i>Table</i></a>
-    <nav aria-label="Main">
-      <a class="hide-sm" href="#tools">What you get</a>
-      <a class="hide-sm" href="#ask">Get a site</a>
-      <a href="/admin">Log in</a>
-    </nav>
-  </header>
-
-  <main>
-    <section class="hero">
+<header class="hero">
+  <div class="wrap">
+    <div class="top">
+      <a class="logo" href="/">ComicTable</a>
+      <nav aria-label="Main">
+        <a class="hide-sm" href="#admin">How it works</a>
+        <a class="hide-sm" href="#ask">Get a site</a>
+        <a href="/admin">Log in</a>
+      </nav>
+    </div>
+    <div class="hero-grid">
       <div>
-        <h1>A website that's actually yours.</h1>
-        <p class="lede">ComicTable builds comedians a site that looks like them, on their own web address. Then it gives them easy tools to keep it full: every show and ticket link, every episode, every upload, and a place for fans to hang out.</p>
-        <div class="ctas">
-          <a class="btn solid" href="#ask">Get your site</a>
-          <a class="btn" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See one live</a>
+        <h1>Websites for <span>comedians.</span></h1>
+        <p class="lede">Your shows, your podcast, your videos and your fans, on a site that looks like you and nobody else. Type your name and see.</p>
+        <div class="try">
+          <label for="tryName">Your name</label>
+          <input id="tryName" value="Jane Doe" maxlength="28" autocomplete="off" spellcheck="false">
+          <div class="looks" role="group" aria-label="Try a look">
+            <button type="button" data-look="0" aria-pressed="true">90s</button>
+            <button type="button" data-look="1" aria-pressed="false">Late night</button>
+            <button type="button" data-look="2" aria-pressed="false">Clean</button>
+            <button type="button" data-look="3" aria-pressed="false">Zine</button>
+          </div>
         </div>
       </div>
-      <div class="card-stage" aria-hidden="true">
-        <div class="setlist">
-          <span class="tape"></span>
-          <h2>new set</h2>
-          <ol>
-            <li><s>link in bio</s></li>
-            <li><s>post dates on IG + pray</s></li>
-            <li>my own .com</li>
-            <li>new eps post themselves</li>
-            <li class="closer">closer: merch</li>
-          </ol>
+
+      <div class="window" aria-label="Preview of your site">
+        <div class="bar"><i></i><i></i><i></i><span class="url" id="tryUrl">janedoe.com</span></div>
+        <div class="screen">
+          <div class="look l90 on">
+            <div class="welcome"><b>★ Welcome to the OFFICIAL homepage of <span data-name></span>! ★ New dates added!! ★</b></div>
+            <div class="name" data-name></div>
+            <div class="box"><h4>Tour dates</h4>
+              <div class="row"><span>Fri Nov 6 · Comedy Cellar, NYC</span><span class="tix">Tickets</span></div>
+              <div class="row"><span>Sat Nov 7 · The Stand, NYC</span><span class="tix">Tickets</span></div></div>
+            <div class="box"><h4>New episode!!</h4><div style="font-weight:700;font-size:15px">Ep. 112: The Airport Story</div></div>
+            <div class="counter">You are visitor <span>000417</span></div>
+          </div>
+          <div class="look lnight">
+            <div class="onair">LIVE ON TOUR</div>
+            <div class="name" data-name></div>
+            <div class="sub">Stand-up comedian and host of a podcast your mom listens to</div>
+            <div class="row"><span>Fri, Nov 6 · Comedy Cellar</span><span class="tix">Tickets</span></div>
+            <div class="row"><span>Sat, Nov 7 · The Stand</span><span class="tix">Tickets</span></div>
+            <div class="row"><span>Fri, Nov 13 · Laugh Boston</span><span class="tix">Tickets</span></div>
+            <div class="ep">Latest episode · The Airport Story</div>
+          </div>
+          <div class="look lclean">
+            <div class="nav"><span data-name></span><span><span>Shows</span><span>Podcast</span><span>Videos</span></span></div>
+            <div class="name" data-name></div>
+            <div class="sub">Comedian. New hour on tour this fall.</div>
+            <div class="row"><span><b>Nov 6</b>Comedy Cellar, New York</span><span class="tix">Tickets</span></div>
+            <div class="row"><span><b>Nov 7</b>The Stand, New York</span><span class="tix">Tickets</span></div>
+            <div class="row"><span><b>Nov 13</b>Laugh Boston, Boston</span><span class="tix">Tickets</span></div>
+          </div>
+          <div class="look lzine">
+            <div class="name" id="zineName"></div>
+            <div class="scrap"><h4>catch me live</h4>
+              <div class="row"><span>11/6 comedy cellar</span><span class="tix">tix</span></div>
+              <div class="row"><span>11/7 the stand</span><span class="tix">tix</span></div>
+              <div class="row"><span>11/13 laugh boston</span><span class="tix">tix</span></div></div>
+            <div class="ep">new ep out: the airport story</div>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
+  </div>
+</header>
 
-    <section class="band" id="tools">
-      <h2 class="big">Built for how comics actually work.</h2>
-      <p class="intro">Three shows a weekend, a different ticket link for each, a podcast every Tuesday. The admin is made to handle that from your phone in a couple of minutes.</p>
-      <div class="tools">
-        <div class="tool"><h3>Shows in three taps</h3><p>Pick the club from a list of comedy clubs we already know, tap your dates, and paste your ticket links. Showtimes fill themselves in. Sold out? Change it from the list.</p></div>
-        <div class="tool"><h3>Podcast and YouTube that update themselves</h3><p>Connect your feed and your channels once. New episodes and videos show up on their own, and each comic's channel shows on their own page.</p></div>
-        <div class="tool"><h3>A page for everyone on the show</h3><p>Photos, bios, socials, and their own upcoming dates. Add a guest host or a new co-host whenever you want.</p></div>
-        <div class="tool"><h3>Your fans, in your place</h3><p>A forum and a live chat room on your own site, with your name on the door. You set the rules and you hold the ban hammer.</p></div>
-        <div class="tool"><h3>Merch and links</h3><p>Show what you sell and send people straight to your store, with whatever else they should click.</p></div>
-        <div class="tool"><h3>A design nobody else has</h3><p>No templates. Your front end is designed for your act, whether that's slick and minimal or a 90s cantina with a chicken.</p></div>
+<main>
+  <section class="band admin" id="admin">
+    <div class="wrap">
+      <h2>The boring part takes two minutes.</h2>
+      <p class="intro">You get an admin made for comics with three shows a weekend, a different ticket link for each, and a podcast every week. It works from your phone.</p>
+      <div class="feats">
+        <div class="feat"><h3>Shows</h3><p>Pick the club, tap your dates, paste the ticket links. Showtimes fill themselves in.</p>
+          <div class="demo" aria-hidden="true"><span>Thu</span><span class="hit">Fri</span><span class="hit">Sat</span><span>Sun</span></div></div>
+        <div class="feat"><h3>Podcast</h3><p>Connect your feed once. Every new episode posts itself, with its description and a listen link.</p></div>
+        <div class="feat"><h3>YouTube</h3><p>Connect as many channels as you have. New uploads show up on their own, and each comic's channel lands on their page.</p></div>
+        <div class="feat"><h3>People</h3><p>A page for every comic on the show, with photo, bio, socials and their own dates.</p></div>
+        <div class="feat"><h3>Forum and chat</h3><p>Fans hang out on your site. You pin, lock, delete and ban.</p></div>
+        <div class="feat"><h3>Merch</h3><p>Show what you sell and send people straight to your store.</p></div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="band">
-      <div class="yours">
-        <div>
-          <h2 class="big">Your name on the door. Ours in the small print.</h2>
-          <p class="intro" style="margin-bottom:0">Some platforms put comics on a page of their app, under their logo. ComicTable runs in the background of your site and stays out of the spotlight.</p>
-        </div>
-        <ul>
-          <li><div><b>Your web address</b><span>Fans go to yourname.com, not a profile on someone else's site.</span></div></li>
-          <li><div><b>Any ticket link works</b><span>We don't sell tickets, so we never come between you and the club.</span></div></li>
-          <li><div><b>Your community</b><span>Fans join your forum and your chat room, not a feed full of other acts.</span></div></li>
-          <li><div><b>No gatekeeper</b><span>You don't need an agent or a manager to get a site.</span></div></li>
-        </ul>
+  <section class="band yours">
+    <div class="wrap">
+      <h2>It's your site. We're the plumbing.</h2>
+      <p class="intro" style="color:#d6d6d6">ComicTable runs in the background. Your fans see you.</p>
+      <ul>
+        <li><b>Your address</b><span>Fans go to yourname.com, not a profile on someone else's app.</span></li>
+        <li><b>Any ticket link</b><span>We don't sell tickets, so we don't get between you and the club.</span></li>
+        <li><b>Your crowd</b><span>Your forum and chat room, with your rules. No feed of other acts.</span></li>
+        <li><b>No gatekeepers</b><span>You don't need an agent or a manager to get a site.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band live">
+    <div class="wrap live-grid">
+      <div>
+        <h2>See one live.</h2>
+        <p>Cockfight is a comedy podcast with Colum Tyrrell, Lev Fer and Tristan Bowling, and the first site on ComicTable. Yes, it has a chicken.</p>
       </div>
-    </section>
+      <a class="btn black" href="https://cockfightpodcast.com" target="_blank" rel="noopener">Go to cockfightpodcast.com</a>
+    </div>
+  </section>
 
-    <section class="band">
-      <h2 class="big">How it starts</h2>
-      <p class="intro">You talk, we build, you take it from there.</p>
-      <ol class="steps">
-        <li><h3>Tell us about your act</h3><p>Your style, your podcast, your socials, and what you want people to feel when they land on your site.</p></li>
-        <li><h3>We build your site</h3><p>We design your front end with you and hook up your shows, episodes and videos, so it's full on day one.</p></li>
-        <li><h3>You run it</h3><p>Log in, add a weekend of shows in a minute, and get back to writing.</p></li>
-      </ol>
-    </section>
-
-    <section class="band">
-      <div class="running">
-        <div><b>Cockfight</b><p>A comedy podcast with Colum Tyrrell, Lev Fer and Tristan Bowling. The first site on ComicTable.</p></div>
-        <a class="btn" href="https://cockfightpodcast.com" target="_blank" rel="noopener">Visit cockfightpodcast.com</a>
+  <section class="band ask" id="ask">
+    <div class="wrap ask-grid">
+      <div>
+        <h2>Want one?</h2>
+        <p class="intro">Tell us what you do and where to find you. We'll email you to talk about your site.</p>
       </div>
-    </section>
-
-    <section class="band" id="ask">
-      <div class="ask">
-        <div>
-          <h2 class="big">Want a site?</h2>
-          <p class="intro">Tell us a bit about what you do. We'll get back to you by email to talk it through.</p>
-        </div>
-        <div id="askBox">
-          <form id="askForm" novalidate>
-            <div class="two">
-              <label>Your name<input id="aName" name="name" autocomplete="name" required maxlength="120"></label>
-              <label>Email<input id="aEmail" name="email" type="email" autocomplete="email" required maxlength="200"></label>
-            </div>
-            <label>What do you do? <small>Stand-up, a podcast, sketch, all of it</small><input id="aAct" name="act" maxlength="200"></label>
-            <label>Where can we see you? <small>Instagram, YouTube, your podcast</small><input id="aLinks" name="links" maxlength="1000"></label>
-            <label>Anything else<textarea id="aNote" name="note" maxlength="2000"></textarea></label>
-            <div class="msg" id="aMsg" role="status" aria-live="polite"></div>
-            <div><button class="btn solid" type="submit" id="aSend">Send</button></div>
-          </form>
-        </div>
+      <div id="askBox">
+        <form id="askForm" novalidate>
+          <div class="two">
+            <label>Your name<input id="aName" autocomplete="name" maxlength="120"></label>
+            <label>Email<input id="aEmail" type="email" autocomplete="email" maxlength="200"></label>
+          </div>
+          <label>What do you do? <small>Stand-up, a podcast, sketch, all of it</small><input id="aAct" maxlength="200"></label>
+          <label>Where can we see you? <small>Instagram, YouTube, your podcast</small><input id="aLinks" maxlength="1000"></label>
+          <label>Anything else<textarea id="aNote" maxlength="2000"></textarea></label>
+          <div class="msg" id="aMsg" role="status" aria-live="polite"></div>
+          <div><button class="btn yellow" type="submit" id="aSend">Send</button></div>
+        </form>
       </div>
-    </section>
-  </main>
+    </div>
+  </section>
+</main>
 
-  <footer>
-    <span>© <span id="yr"></span> ComicTable. Websites for comedians.</span>
-    <a href="/admin">Comics: log in</a>
-  </footer>
+<div class="wrap">
+  <footer><span>© <span id="yr"></span> ComicTable</span><a href="/admin">Comics: log in</a></footer>
 </div>
 
 <script src="config.js"></script>
 <script>
 (function () {
   "use strict";
-  document.getElementById("yr").textContent = new Date().getFullYear();
+  var $ = function (s) { return document.querySelector(s); };
+  $("#yr").textContent = new Date().getFullYear();
+
+  /* ---- the try-it toy ---- */
+  var input = $("#tryName"), looks = document.querySelectorAll(".look"), btns = document.querySelectorAll(".looks button");
+  var cur = 0, timer = null;
+  function draw() {
+    var n = input.value.trim() || "Your Name";
+    document.querySelectorAll("[data-name]").forEach(function (el) { el.textContent = n; });
+    $("#tryUrl").textContent = (n.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "") || "yourname") + ".com";
+    var z = $("#zineName"); z.replaceChildren();
+    n.split("").forEach(function (ch) { var s = document.createElement("span"); if (ch === " ") s.className = "sp"; else s.textContent = ch; z.append(s); });
+  }
+  function show(i) {
+    cur = i;
+    looks.forEach(function (l, j) { l.classList.toggle("on", j === i); });
+    btns.forEach(function (b, j) { b.setAttribute("aria-pressed", String(j === i)); });
+  }
+  function stop() { clearInterval(timer); timer = null; }
+  btns.forEach(function (b) { b.addEventListener("click", function () { stop(); show(+b.dataset.look); }); });
+  input.addEventListener("input", draw);
+  input.addEventListener("focus", function () { if (input.value === "Jane Doe") input.select(); });
+  draw();
+  if (!window.matchMedia || !window.matchMedia("(prefers-reduced-motion: reduce)").matches) timer = setInterval(function () { show((cur + 1) % looks.length); }, 2600);
+
+  /* ---- "Want one?" form → site_requests ---- */
   var CFG = window.COMICTABLE_CONFIG || {};
-  var form = document.getElementById("askForm"), msg = document.getElementById("aMsg"), send = document.getElementById("aSend");
+  var msg = $("#aMsg"), send = $("#aSend");
   function val(id) { return document.getElementById(id).value.trim(); }
-  form.addEventListener("submit", async function (e) {
-    e.preventDefault();
-    msg.className = "msg"; msg.textContent = "";
+  $("#askForm").addEventListener("submit", async function (e) {
+    e.preventDefault(); msg.textContent = "";
     var row = { name: val("aName"), email: val("aEmail"), act: val("aAct") || null, links: val("aLinks") || null, note: val("aNote") || null };
-    if (!row.name) { msg.className = "msg bad"; msg.textContent = "Add your name so we know who's asking."; document.getElementById("aName").focus(); return; }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)) { msg.className = "msg bad"; msg.textContent = "Add an email we can reply to."; document.getElementById("aEmail").focus(); return; }
+    if (!row.name) { msg.textContent = "Add your name so we know who's asking."; $("#aName").focus(); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)) { msg.textContent = "Add an email we can reply to."; $("#aEmail").focus(); return; }
     send.disabled = true; send.textContent = "Sending…";
     try {
       var r = await fetch(CFG.SUPABASE_URL + "/rest/v1/site_requests", {
@@ -265,10 +359,13 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--i
         body: JSON.stringify(row)
       });
       if (!r.ok) throw new Error(String(r.status));
-      document.getElementById("askBox").innerHTML = '<p class="done">Got it, ' + row.name.split(" ")[0].replace(/[<>&"]/g, "") + '.</p><p class="intro">We\'ll email you at ' + row.email.replace(/[<>&"]/g, "") + ' soon.</p>';
+      var d = document.createElement("p"), p = document.createElement("p");
+      d.className = "done"; d.textContent = "Got it, " + row.name.split(" ")[0] + ".";
+      p.className = "intro"; p.textContent = "We'll email you at " + row.email + " soon.";
+      $("#askBox").replaceChildren(d, p);
     } catch (err) {
       send.disabled = false; send.textContent = "Send";
-      msg.className = "msg bad"; msg.textContent = "That didn't send. Check your connection and try again.";
+      msg.textContent = "That didn't send. Check your connection and try again.";
     }
   });
 })();
