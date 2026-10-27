@@ -1,0 +1,8 @@
+# Netlify reads this when the site deploys from GitHub.
+[build]
+  publish = "site"
+
+[[headers]]
+  for = "/admin.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
