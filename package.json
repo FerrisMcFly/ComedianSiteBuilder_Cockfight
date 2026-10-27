@@ -1,0 +1,16 @@
+{
+  "name": "comictable",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-force-exit tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.45.4",
+    "fast-xml-parser": "4.5.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "jsdom": "24.1.3"
+  }
+}
