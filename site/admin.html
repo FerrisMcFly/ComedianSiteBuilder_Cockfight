@@ -576,7 +576,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
     // 2. where
     const where = h("div", { class: "step" }, h("div", { class: "step-label" }, h("span", { class: "step-num", text: n(1) }), "Where?"));
     if (run.venue) {
-      where.append(h("div", { class: "picked" }, h("div", null, h("b", { text: run.venue.name }), h("div", { class: "hint", text: venueCity(run.venue) + (run.venue.status === "pending" ? " · new club, waiting for review" : "") })),
+      where.append(h("div", { class: "picked" }, h("div", null, h("b", { text: run.venue.name }), h("div", { class: "hint", text: venueCity(run.venue) + (isNewClub(run.venue) ? " · newly added club" : "") })),
         h("button", { class: "btn sm", type: "button", text: "Change", onclick: () => { run.venue = null; run.days.clear(); run.slots = []; redraw(); setTimeout(() => $("clubSearch") && $("clubSearch").focus()); } })));
     } else {
       where.append(clubPicker(async (v) => { run.venue = v; await loadSlots(v.id); for (const d of [...run.days]) { run.slots = run.slots.filter((s) => s.date !== d); setDay(d, true); } redraw(); }));
@@ -666,6 +666,20 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
     card.append(h("div", { class: "step" }, msg, h("div", { class: "btns" }, save, h("button", { class: "btn ghost", type: "button", text: "Start over", onclick: () => { run.days.clear(); run.slots = []; redraw(); } }))));
   }
 
+  const isNewClub = (v) => !!(v && v.created_by_site && !v.verified);
+  // "The Comedy Club at Duckworth's" ~ "duckworths comedy club": compare the words that matter
+  const clubKey = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/['’]/g, "").replace(/[^a-z0-9 ]/g, " ")
+    .split(/\s+/).filter((w) => w && !["the", "a", "at", "and", "of", "comedy", "club", "clubs", "lounge", "theater", "theatre", "house", "room", "bar", "co"].includes(w));
+  function similarClubs(name, city) {
+    const k = clubKey(name), c = String(city || "").trim().toLowerCase();
+    if (!k.length) return [];
+    return S.venues.filter((v) => {
+      if (c && String(v.city).toLowerCase() !== c) return false;
+      const vk = clubKey(v.name); if (!vk.length) return false;
+      const shared = k.filter((w) => vk.includes(w)).length;
+      return shared / Math.min(k.length, vk.length) >= 0.6;
+    }).slice(0, 3);
+  }
   function recentVenues(host) {
     const seen = new Set(), out = [];
     for (const s of S.shows.slice().sort((a, b) => b.date.localeCompare(a.date))) {
@@ -697,7 +711,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
     }
     function draw() {
       listEl.replaceChildren(...items.map((v, i) => h("button", { class: "combo-item", type: "button", role: "option", "aria-selected": String(i === sel), onmousedown: (e) => e.preventDefault(), onclick: () => onPick(v) },
-        h("span", null, v.name, v.status === "pending" ? h("small", { text: "  (new)" }) : null), h("small", { text: venueCity(v) }))),
+        h("span", null, v.name, isNewClub(v) ? h("small", { text: "  (new)" }) : null), h("small", { text: venueCity(v) }))),
         h("button", { class: "combo-item new", type: "button", role: "option", "aria-selected": String(sel === items.length), onmousedown: (e) => e.preventDefault(), onclick: () => showNew() }, "+ Add “" + input.value.trim() + "” as a new club"));
       listEl.hidden = false; input.setAttribute("aria-expanded", "true");
     }
@@ -712,12 +726,19 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
         msg.textContent = "";
         if (!name.value.trim()) { name.classList.add("bad"); name.focus(); return; }
         if (!city.value.trim()) { city.classList.add("bad"); city.focus(); return; }
+        const twins = save.dataset.anyway ? [] : similarClubs(name.value, city.value);
+        if (twins.length) {
+          msg.replaceChildren(h("span", { class: "hint", style: "color:var(--text)", text: "Did you mean one of these? " }),
+            ...twins.map((v) => h("button", { class: "chip", type: "button", style: "margin:4px 6px 0 0", text: v.name + " · " + venueCity(v), onclick: () => onPick(v) })));
+          save.dataset.anyway = "1"; save.textContent = "No, add it as a new club";
+          return;
+        }
         save.disabled = true;
         const row = { name: name.value.trim(), city: city.value.trim(), state: state.value.trim().toUpperCase() || null, website: site.value.trim() || null,
-          status: S.isPlatform ? "approved" : "pending", created_by_site: sid() };
+          status: "approved", verified: false, created_by_site: sid() };
         try {
           const created = await q(sb.from("venues").insert(row).select().single());
-          await reload.venues(); toast("Saved " + created.name + "." + (created.status === "pending" ? " It's ready to use now." : ""));
+          await reload.venues(); toast("Added " + created.name + " to the club database.");
           onPick(venueById(created.id) || created);
         } catch (e) { msg.textContent = /already exists/.test(errText(e)) ? "That club is already on the list. Search for it above." : errText(e); save.disabled = false; }
       } });
@@ -1186,13 +1207,15 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
   function clubsReview() {
     const card = h("section", { class: "card" });
     const draw = () => {
-      const pending = S.venues.filter((v) => v.status === "pending");
-      card.replaceChildren(h("h2", { text: "New clubs to review" }), h("p", { class: "sub", text: "Clubs added by comics. Approve them to share with every site on the platform." }),
-        pending.length ? h("div", null, pending.map((v) => h("div", { class: "switch-row" }, h("div", null, h("b", { text: v.name }), h("div", { class: "hint", text: venueCity(v) + (v.website ? " · " + v.website : "") })),
-          h("div", { class: "btns" },
-            h("button", { class: "btn sm primary", type: "button", text: "Approve", onclick: async () => { try { await q(sb.from("venues").update({ status: "approved" }).eq("id", v.id)); await reload.venues(); draw(); toast("Approved " + v.name + "."); } catch (e) { toast(errText(e), { bad: true }); } } }),
-            h("button", { class: "btn sm ghost danger", type: "button", text: "Remove", onclick: async () => { try { await q(sb.from("venues").delete().eq("id", v.id)); await reload.venues(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } })))))
-          : empty("Nothing waiting", S.venues.length + " clubs on the shared list."));
+      const fresh = S.venues.filter((v) => v.created_by_site && !v.verified).sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
+      card.replaceChildren(h("h2", { text: "Recently added clubs" }), h("p", { class: "sub", text: "Clubs comics added. They're already in the shared database; check them over, fix typos, or remove duplicates." }),
+        fresh.length ? h("div", null, fresh.map((v) => {
+          const nm = h("input", { value: v.name, "aria-label": "Club name" }), ct = h("input", { value: v.city, "aria-label": "City" }), st = h("input", { value: v.state || "", "aria-label": "State", maxlength: "3", style: "width:70px" });
+          return h("div", { class: "switch-row", style: "flex-wrap:wrap" }, h("div", { class: "btns", style: "flex:1 1 320px" }, nm, ct, st),
+            h("div", { class: "btns" },
+              h("button", { class: "btn sm primary", type: "button", text: "Looks good", onclick: async () => { try { await q(sb.from("venues").update({ name: nm.value.trim(), city: ct.value.trim(), state: st.value.trim().toUpperCase() || null, verified: true }).eq("id", v.id)); await reload.venues(); draw(); toast("Checked " + nm.value.trim() + "."); } catch (e) { toast(errText(e), { bad: true }); } } }),
+              h("button", { class: "btn sm ghost danger", type: "button", text: "Remove", onclick: async () => { try { await q(sb.from("venues").delete().eq("id", v.id)); await reload.venues(); draw(); toast("Removed. Shows already entered there keep their details."); } catch (e) { toast(errText(e), { bad: true }); } } })));
+        })) : empty("Nothing new", S.venues.length + " clubs in the shared database."));
     };
     draw(); return card;
   }

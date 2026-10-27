@@ -94,19 +94,21 @@ create table if not exists venues (
 );
 create unique index if not exists venues_name_city on venues (lower(name), lower(city), coalesce(lower(state), ''));
 alter table venues enable row level security;
+-- Any site admin can add a club and it's shared with every site right away (unverified until a platform admin checks it).
+-- The site that added an unverified club can still fix or remove it; platform admins can edit anything.
 drop policy if exists "read venues" on venues;
 create policy "read venues" on venues for select using (
   status = 'approved' or public.is_site_admin(created_by_site) or public.is_platform_admin());
 drop policy if exists "add venues" on venues;
 create policy "add venues" on venues for insert to authenticated with check (
-  public.is_platform_admin() or (status = 'pending' and public.is_site_admin(created_by_site)));
+  public.is_platform_admin() or (verified = false and public.is_site_admin(created_by_site)));
 drop policy if exists "edit venues" on venues;
 create policy "edit venues" on venues for update to authenticated using (
-  public.is_platform_admin() or (status = 'pending' and public.is_site_admin(created_by_site)))
-  with check (public.is_platform_admin() or (status = 'pending' and public.is_site_admin(created_by_site)));
+  public.is_platform_admin() or (verified = false and public.is_site_admin(created_by_site)))
+  with check (public.is_platform_admin() or (verified = false and public.is_site_admin(created_by_site)));
 drop policy if exists "remove venues" on venues;
 create policy "remove venues" on venues for delete to authenticated using (
-  public.is_platform_admin() or (status = 'pending' and public.is_site_admin(created_by_site)));
+  public.is_platform_admin() or (verified = false and public.is_site_admin(created_by_site)));
 
 -- ========== Shows: link to a club, add status ==========
 alter table shows add column if not exists venue_id uuid references venues(id) on delete set null;

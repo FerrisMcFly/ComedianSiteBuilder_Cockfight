@@ -28,12 +28,12 @@ Go to **cockfightpodcast.com/admin** and log in.
 
 - **Podcast → Connect your podcast:** paste `https://podcasts.apple.com/us/podcast/cockfight/id1792746019`, then click **Connect**. It checks every hour after that, and **Check now** runs it right away.
 - **Videos → Connect your YouTube channel:** paste the show's channel link.
-- **Settings:** turn sections on or off. Merch starts off; turn it on when you have items to add.
+- **Settings:** turn sections on or off. Merch starts off; turn it on when you have items to add. As the platform owner, you'll also see **Recently added clubs** here, where you can fix typos or remove duplicates.
 
 ## How show entry works now
 **Shows → Add shows:**
 1. Pick who's performing.
-2. Search for the club. If it's not on the list, add it right there.
+2. Search for the club. If it's not listed, add it right there. It goes straight into the shared club database for every comic. If it looks like a club that's already listed, you'll get a "Did you mean…?" first.
 3. Tap the days on the calendar. Times fill in from that club's usual showtimes, so the more shows get entered, the better the guesses get.
 4. Paste all your ticket links at once, one per line.
 5. Click **Add shows**.

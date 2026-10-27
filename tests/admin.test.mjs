@@ -104,8 +104,20 @@ test("a new club can be added on the spot", async () => {
   set(w, d.getElementById("ncCity"), "Austin"); set(w, d.getElementById("ncState"), "tx");
   btn(d, /^Save club$/).click(); await wait(60);
   const v = db.venues.find((x) => x.name === "Big Room Austin");
-  assert.equal(v.state, "TX"); assert.equal(v.status, "approved"); // platform admin
+  assert.equal(v.state, "TX"); assert.equal(v.status, "approved"); assert.equal(v.verified, false); assert.equal(v.created_by_site, "cockfight");
   assert.match(d.querySelector(".picked").textContent, /Big Room Austin/);
+});
+
+test("adding a club that's already listed suggests the existing one", async () => {
+  const { w, d, db } = await open("#shows");
+  set(w, d.getElementById("clubSearch"), "Comedy Works Downtown Denver CO"); await wait();
+  btn(d, /as a new club/).click(); await wait();
+  set(w, d.getElementById("ncName"), "comedy works downtown"); set(w, d.getElementById("ncCity"), "Denver");
+  btn(d, /^Save club$/).click(); await wait();
+  assert.match(d.body.textContent, /Did you mean one of these\?/);
+  btn(d, /Comedy Works Downtown · Denver, CO/).click(); await wait(40);
+  assert.match(d.querySelector(".picked").textContent, /Comedy Works Downtown/);
+  assert.equal(db.venues.length, 2);
 });
 
 test("pasted showtimes text fills days and times", async () => {
