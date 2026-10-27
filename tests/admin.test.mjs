@@ -313,3 +313,22 @@ test("site extras only appear when the site's front end uses them", async () => 
   const l2 = [...only.d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
   assert.ok(l2.some((l) => /Links/.test(l)) && !l2.some((l) => /Announcements|Design settings/.test(l)), l2.join(","));
 });
+
+test("videos can be removed, undone, and put back", async () => {
+  const { w, d, db } = await open("#videos", (db) => {
+    db.videos.push({ id: "v1", site_id: "cockfight", youtube_id: "AAAAAAAAAAA", title: "Keep me", published: "2026-10-20", hidden: false },
+                   { id: "v2", site_id: "cockfight", youtube_id: "BBBBBBBBBBB", title: "Bad clip", published: "2026-10-21", hidden: false });
+  });
+  await wait(40);
+  const cardOf = (t) => [...d.querySelectorAll(".vid")].find((c) => c.textContent.includes(t));
+  btn(d, /^Remove$/, cardOf("Bad clip")).click(); await wait(40);
+  assert.equal(db.videos.find((v) => v.id === "v2").hidden, true);
+  assert.ok(!cardOf("Bad clip"), "removed videos leave the list");
+  d.querySelector("#toast button").click(); await wait(40);
+  assert.equal(db.videos.find((v) => v.id === "v2").hidden, false);
+  btn(d, /^Remove$/, cardOf("Bad clip")).click(); await wait(40);
+  btn(d, /^Removed \(1\)$/).click(); await wait(20);
+  assert.ok(cardOf("Bad clip") && !cardOf("Keep me"));
+  btn(d, /^Put back$/, cardOf("Bad clip")).click(); await wait(40);
+  assert.equal(db.videos.find((v) => v.id === "v2").hidden, false);
+});
