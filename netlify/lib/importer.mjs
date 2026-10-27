@@ -208,11 +208,13 @@ async function importYouTube(db, src) {
   const vids = parseYouTubeFeed(body);
   const channel = feedTitle(body);
   await nameSource(db, src, channel);
-  const { data: existing, error } = await db.from("videos").select("youtube_id").eq("site_id", src.site_id);
+  // A comic's own channel shows on every site they're on, so skip videos they already have anywhere.
+  const mine = src.comic_id ? db.from("videos").select("youtube_id").or(`site_id.eq.${src.site_id},comic_id.eq.${src.comic_id}`) : db.from("videos").select("youtube_id").eq("site_id", src.site_id);
+  const { data: existing, error } = await mine;
   if (error) throw error;
   const have = new Set(existing.map((v) => v.youtube_id));
   const fresh = vids.filter((v) => !have.has(v.youtube_id))
-    .map((v) => ({ ...v, site_id: src.site_id, source_id: src.id, channel: channel || src.label || null, host: src.host || null, imported_at: new Date().toISOString() }));
+    .map((v) => ({ ...v, site_id: src.site_id, source_id: src.id, channel: channel || src.label || null, host: src.host || null, comic_id: src.comic_id || null, imported_at: new Date().toISOString() }));
   if (fresh.length) { const r = await db.from("videos").insert(fresh); if (r.error) throw r.error; }
   return `${fresh.length} new (${vids.length} latest checked)`;
 }

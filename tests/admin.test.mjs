@@ -18,7 +18,9 @@ function makeDb() {
   const db = {
     sites: [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com", features: { shows: true, podcast: true, videos: true, merch: true, forum: true, chat: true }, profile: {}, theme: {}, community: {} }],
     admins: [{ user_id: "u1", site_id: "cockfight" }], platform_admins: [{ user_id: "u1" }],
-    hosts: [{ id: "colum", site_id: "cockfight", name: "Colum Tyrrell", sort: 0 }, { id: "lev", site_id: "cockfight", name: "Lev Fer", sort: 1 }, { id: "tristan", site_id: "cockfight", name: "Tristan Bowling", sort: 2 }],
+    hosts: [{ id: "colum", site_id: "cockfight", comic_id: "colum-tyrrell", name: "Colum Tyrrell", sort: 0 }, { id: "lev", site_id: "cockfight", comic_id: "lev-fer", name: "Lev Fer", sort: 1 },
+      { id: "tristan", site_id: "cockfight", comic_id: "tristan-bowling", name: "Tristan Bowling", bio: "Shared bio", sort: 2 }],
+    comics: [{ id: "colum-tyrrell", name: "Colum Tyrrell" }, { id: "lev-fer", name: "Lev Fer" }, { id: "tristan-bowling", name: "Tristan Bowling", bio: "Shared bio" }, { id: "daniel-bridge-gadd", name: "Daniel Bridge-Gadd" }],
     shows: [{ id: "s0", site_id: "cockfight", host: "lev", date: "2026-01-02", time: "7:00 PM", venue: "Laugh Boston", city: "Boston, MA", venue_id: "v1", url: "https://t/0", status: "on_sale" }],
     episodes: [{ id: "e1", site_id: "cockfight", num: 91, title: "Marathon Chainsaw", posted: "2026-10-22" }],
     videos: [], merch: [], sources: [], settings: [], threads: [], posts: [], announcements: [], links: [], bans: [], mod_log: [], chat_messages: [],
@@ -30,7 +32,9 @@ function makeDb() {
     const f = []; let op = "select", payload, single = false;
     const b = {
       select() { return b; }, order() { return b; }, limit() { return b; }, single() { single = true; return b; },
-      eq(k, v) { f.push((r) => r[k] === v); return b; }, gte(k, v) { f.push((r) => r[k] >= v); return b; }, lt(k, v) { f.push((r) => r[k] < v); return b; }, in(k, vs) { f.push((r) => vs.includes(r[k])); return b; },
+      eq(k, v) { f.push((r) => r[k] === v); return b; }, neq(k, v) { f.push((r) => r[k] !== v); return b; },
+      ilike(k, v) { const re = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$", "i"); f.push((r) => re.test(r[k] || "")); return b; },
+      like(k, v) { const re = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$"); f.push((r) => re.test(r[k] || "")); return b; }, gte(k, v) { f.push((r) => r[k] >= v); return b; }, lt(k, v) { f.push((r) => r[k] < v); return b; }, in(k, vs) { f.push((r) => vs.includes(r[k])); return b; },
       insert(r) { op = "insert"; payload = [].concat(r).map((x) => ({ id: "n" + (++n), ...x })); return b; },
       update(r) { op = "update"; payload = r; return b; }, upsert(r) { op = "upsert"; payload = r; return b; }, delete() { op = "delete"; return b; },
       then(res, rej) {
@@ -46,7 +50,9 @@ function makeDb() {
     return b;
   };
   const client = { auth: { getSession: async () => ({ data: { session: { access_token: "tok", user: { id: "u1", email: "ferris@x.com" } } } }), signOut: async () => {}, onAuthStateChange() {} },
-    rpc: async (name, args) => name === "fans_near_shows" ? { data: db.shows.filter((x) => x.date >= fri).map((x) => ({ show_id: x.id, fans: (db.fans || []).length })), error: null }
+    rpc: async (name, args) => name === "site_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.site_id === args.p_site))), error: null }
+      : name === "site_videos" ? { data: JSON.parse(JSON.stringify(db.videos.filter((x) => x.site_id === args.p_site))), error: null }
+      : name === "fans_near_shows" ? { data: db.shows.filter((x) => x.date >= fri).map((x) => ({ show_id: x.id, fans: (db.fans || []).length })), error: null }
       : name === "fans_near_show" ? { data: JSON.parse(JSON.stringify(db.fans || [])), error: null }
       : name === "create_site" ? (db.sites.push({ id: args.p_id, name: args.p_name, domain: args.p_domain, features: {}, created_at: "2026-10-27" }), db.admins.push({ user_id: "u1", site_id: args.p_id, role: "owner" }), { data: null, error: null })
       : name === "venue_slots" && args.v === "v1" ? { data: [{ dow: 5, show_time: "7:30 PM", uses: 3 }, { dow: 5, show_time: "10:00 PM", uses: 2 }], error: null } : { data: [], error: null },
@@ -287,10 +293,11 @@ test("several YouTube channels, each with an owner", async () => {
 test("people: add, hide, remove", async () => {
   const { w, d, db } = await open("#people");
   btn(d, /^\+ Add a person$/).click(); await wait();
-  set(w, d.getElementById("newPersonName"), "Sam Guest");
-  d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  set(w, d.getElementById("newPersonName"), "Sam Guest"); await wait(60);
+  d.getElementById("createPerson").click(); await wait(80);
   const sam = db.hosts.find((x) => x.name === "Sam Guest");
   assert.ok(sam); assert.equal(sam.site_id, "cockfight"); assert.equal(sam.sort, 3); assert.match(sam.id, /^cockfight-sam/);
+  assert.equal(sam.comic_id, "sam-guest"); assert.ok(db.comics.find((c) => c.id === "sam-guest"), "a new person is a new comic on ComicTable");
   let card = [...d.querySelectorAll(".people form")].find((f) => /Sam Guest/.test(f.textContent));
   btn(d, /^Hide from site$/, card).click(); await wait(60);
   assert.equal(db.hosts.find((x) => x.name === "Sam Guest").hidden, true);
@@ -390,4 +397,53 @@ test("super admins see every site, comics only their own", async () => {
   const comic = await open("", (db) => { addJane(db); db.platform_admins = []; });
   assert.equal(comic.d.querySelector("select[aria-label=Site]"), null, "a comic on one site gets no site switcher");
   assert.equal(comic.d.querySelector(".brand").textContent, "Cockfight");
+});
+
+test("people: add someone already on ComicTable, and edit a shared profile or this site's own bio", async () => {
+  const { w, d, db } = await open("#people", (db) => {
+    db.sites.push({ id: "apes", name: "Modern Apes", features: {} });
+    db.hosts.push({ id: "apes-daniel", site_id: "apes", comic_id: "daniel-bridge-gadd", name: "Daniel Bridge-Gadd", sort: 0 });
+  });
+  btn(d, /^\+ Add a person$/).click(); await wait();
+  set(w, d.getElementById("newPersonName"), "dani"); await wait(80);
+  assert.match(d.querySelector("main").textContent, /Daniel Bridge-Gadd.*Already on ComicTable: Modern Apes/);
+  btn(d, /^Add to Cockfight$/).click(); await wait(80);
+  const dan = db.hosts.find((x) => x.site_id === "cockfight" && x.comic_id === "daniel-bridge-gadd");
+  assert.ok(dan, "the existing comic joins this site, no duplicate made");
+  assert.equal(db.comics.filter((c) => /daniel/.test(c.id)).length, 1);
+
+  // Tristan's card: shared bio edits the comic
+  let card = () => [...d.querySelectorAll(".people form")].find((f) => /Tristan Bowling/.test(f.querySelector("b").textContent));
+  card().querySelector("textarea").value = "Updated everywhere";
+  card().dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.equal(db.comics.find((c) => c.id === "tristan-bowling").bio, "Updated everywhere");
+  // a site-only bio goes on this site's row
+  const c2 = card(); c2.querySelector("textarea").value = "Cockfight-only bio";
+  [...c2.querySelectorAll("label.check input")][0].checked = true;
+  c2.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const t = db.hosts.find((x) => x.id === "tristan");
+  assert.equal(t.bio, "Cockfight-only bio"); assert.equal(t.own_bio, true);
+  assert.equal(db.comics.find((c) => c.id === "tristan-bowling").bio, "Updated everywhere");
+});
+
+test("whole-show events, and a comic's date from another site can be hidden here only", async () => {
+  const { w, d, db } = await open("#shows", (db) => {
+    db.site_hidden = [];
+    db.sites.push({ id: "apes", name: "Modern Apes", features: {} });
+    // Tristan's date added on Modern Apes shows up in Cockfight's list (the real site_shows does this)
+    db.shows.push({ id: "ma1", site_id: "cockfight", host: "tristan", comic_id: "tristan-bowling", date: fri, time: "8:00 PM", venue: "Zanies", city: "Chicago, IL", status: "on_sale" });
+  });
+  const ma = db.shows.find((s) => s.id === "ma1"); ma.site_id = "apes"; // shown here, added there
+  d.getElementById("addShowsBtn").click(); await wait();
+  const panel = () => d.getElementById("runPanel");
+  btn(d, /Whole show/, panel()).click(); await wait();
+  set(w, d.getElementById("clubSearch"), "laugh bos"); await wait();
+  d.querySelector("#clubList .combo-item").click(); await wait(60);
+  d.querySelector(`.day[data-date="${sat}"]`).click(); await wait();
+  d.getElementById("toTimes").click(); await wait();
+  d.getElementById("saveRun").click(); await wait(80);
+  const ev = db.shows.filter((s) => s.date === sat && s.venue === "Laugh Boston");
+  assert.ok(ev.length >= 1);
+  assert.ok(ev.every((s) => s.host === null && JSON.stringify(s.lineup) === JSON.stringify(["colum-tyrrell", "lev-fer", "tristan-bowling"])), JSON.stringify(ev));
+  assert.match(d.getElementById("toast").textContent, /live for Cockfight at Laugh Boston/);
 });

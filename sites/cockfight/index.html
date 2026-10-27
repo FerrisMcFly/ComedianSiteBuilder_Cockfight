@@ -341,7 +341,6 @@ tr.cancel td { text-decoration: line-through; color: #777; }
 .counter span { font-family: var(--mono); font-weight: 700; background: #222; color: #f33; padding: 1px 4px; }
 .foot { background: var(--chili); color: #fff; border-top: 6px ridge var(--wall-b); padding: 14px 12px; text-align: center; font-size: 13px; }
 .foot a { color: #ff0; }
-.ring { font-family: var(--comic); font-weight: 700; font-size: 14px; margin: 8px 0; }
 .powered { margin-top: 8px; font-family: var(--comic); font-size: 12px; }
 .powered a { color: #fff !important; text-decoration: none; background: #000; border: 2px outset var(--silver); padding: 2px 8px; display: inline-block; }
 .powered a:hover { background: var(--hot); }
@@ -437,8 +436,9 @@ tr.cancel td { text-decoration: line-through; color: #777; }
         </div>
         <div class="construction"><div>🚧 SITE UNDER CONSTRUCTION 🚧<br>Please excuse our dust!! Thanks for your patience</div></div>
         <section>
-          <h2>Welcome Amigos!!</h2>
-          <p><b>Cockfight</b> is a weekly comedy podcast with stand-up comics Colum Tyrrell, Lev Fer and Tristan Bowling. Rated 4.5 stars on Apple Podcasts. <b>Explicit.</b></p>
+          <h2 class="center">Welcome Amigos!!</h2>
+          <!-- The admin's Profile → About replaces this text when it's filled in -->
+          <p id="aboutText"><b>Cockfight</b> is a weekly comedy podcast with stand-up comics Colum Tyrrell, Lev Fer and Tristan Bowling. Rated 4.5 stars on Apple Podcasts. <b>Explicit.</b></p>
           <p id="headline"><span class="blink">NEW!!</span> <span id="headlineText"></span></p>
           <ul class="facts">
             <li data-feat="podcast"><a href="#episodes" data-view="episodes">Episodes</a>: every recent episode with a link to listen</li>
@@ -560,11 +560,10 @@ tr.cancel td { text-decoration: line-through; color: #777; }
   </div>
 
   <footer class="foot">
-    <div class="ring">&lt;&lt; Prev &nbsp;|&nbsp; ★ The Comedy Podcast WebRing ★ &nbsp;|&nbsp; Next &gt;&gt;</div>
     <div><button class="secret" id="mute" type="button" aria-label="Toggle music">©</button> 1998–2026 Cockfight Podcast. All Rights Reserved. Webmaster: <span id="webmaster">Cousin Danny</span></div>
     <div class="now-playing" id="np">♫ now playing: cucaracha.mid</div>
     <div class="netscape">Best viewed in Netscape Navigator 4.0 at 800×600</div>
-    <div class="powered"><a href="https://github.com/FerrisMcFly/ComedianSiteBuilder_Cockfight" target="_blank" rel="noopener">🪑 Powered by ComicTable</a></div>
+    <div class="powered">🪑 Powered by ComicTable</div>
   </footer>
 </div>
 
@@ -704,7 +703,8 @@ tr.cancel td { text-decoration: line-through; color: #777; }
   function photoFor(k) { return (COMICS[k] && COMICS[k].photo) || PHOTOS[k] || ""; }
   function upcoming(host) {
     var t = todayISO();
-    return SHOWS.filter(function (s) { return s.date >= t && (!host || s.host === host); })
+    // a person's dates include live shows they're in
+    return SHOWS.filter(function (s) { return s.date >= t && (!host || s.host === host || (s.event && (s.lineup || []).indexOf(host) >= 0)); })
       .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
   }
 
@@ -782,6 +782,12 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     var cards = $("chefCards"); cards.textContent = "";
     var hn = $("hostNav"); hn.textContent = "";
     HOST_ORDER.forEach(function (k) { if (COMICS[k]) hn.appendChild(el("a", { class: "btn", href: "#" + k, "data-view": k, text: COMICS[k].name.split(" ")[0] })); });
+    // live shows with the whole crew come first
+    var t0 = todayISO(), events = SHOWS.filter(function (s) { return s.event && s.date >= t0; });
+    if (events.length) {
+      all.appendChild(el("h3", { class: "comic", text: "🎉 Cockfight LIVE" }));
+      all.appendChild(tourTable(events));
+    }
     HOST_ORDER.forEach(function (k) {
       var c = COMICS[k]; if (!c) return;
       var first = c.name.split(" ")[0], up = upcoming(k);
@@ -938,7 +944,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     CSB.init(CFG);
     CSB.load().then(function (d) {
       if (d.episodes.length) EPISODES = d.episodes.map(function (e) { return { n: e.number, t: e.title, d: e.posted, len: e.length, url: e.link, pat: e.patreon, blurb: e.description }; });
-      SHOWS = d.shows.map(function (x) { return { host: x.person, date: x.date, time: x.time, city: x.city, venue: x.venue, url: x.tickets, status: x.status, note: x.note }; });
+      SHOWS = d.shows.map(function (x) { return { host: x.person, event: x.event, lineup: x.lineup, date: x.date, time: x.time, city: x.city, venue: x.venue, url: x.tickets, status: x.status, note: x.note }; });
       if (d.people.length) HOST_ORDER = [];
       d.people.forEach(function (h) {
         COMICS[h.id] = { name: h.name, title: h.title || "Comedian", bio: h.bio, status: h.status, photo: h.photo,
@@ -955,6 +961,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
       SETTINGS.headlineLink = pinned.length ? pinned[0].link : "";
       if (d.announcements.length) SETTINGS.marquee = d.announcements.map(function (a) { return a.text; }).join(" ••• ") + " •••";
       PROFILE = d.profile || {}; LINKS = d.links || [];
+      if (PROFILE.about && $("aboutText")) $("aboutText").textContent = PROFILE.about;
       if (PROFILE.support_url) { PATREON = PROFILE.support_url; document.querySelectorAll('a[href^="https://www.patreon.com/CockFightPod"]').forEach(function (x) { x.href = PROFILE.support_url; }); }
       applyTheme(d.theme || {});
       try { localStorage.setItem("cf_theme", JSON.stringify(d.theme || {})); } catch (e) {}

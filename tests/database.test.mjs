@@ -27,7 +27,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -135,8 +135,8 @@ test("fans join a site's list with their city, and the comic sees who's near eac
   const show = (await q(`insert into shows (site_id, host, date, venue, venue_id) values ('cockfight', '${host}', current_date + 7, 'Laugh Boston', '${club.id}') returning id`))[0].id;
   const near = await rows(OWNER, "select * from fans_near_shows('cockfight')");
   assert.equal(near.find((r) => r.show_id === show).fans, 1);
-  assert.deepEqual((await rows(OWNER, `select email from fans_near_show('${show}')`)).map((r) => r.email), ["a@x.com"]);
-  assert.equal((await rows(COMIC, `select count(*)::int n from fans_near_show('${show}')`))[0].n, 0);
+  assert.deepEqual((await rows(OWNER, `select email from fans_near_show('${show}', 'cockfight')`)).map((r) => r.email), ["a@x.com"]);
+  assert.equal((await rows(COMIC, `select count(*)::int n from fans_near_show('${show}', 'cockfight')`))[0].n, 0);
   // one-click leave
   const tok = (await q("select token from fans where email = 'ny@x.com'"))[0].token;
   assert.equal((await rows(null, `select leave_fans('${tok}') r`))[0].r, true);
@@ -158,4 +158,82 @@ test("super admins manage every site; a comic's team only sees their own", async
   assert.equal((await rows(COMIC, "select * from platform_admin_list()")).length, 0);
   assert.match(await as(COMIC, `select remove_platform_admin('${OWNER}')`), /Only super admins/);
   assert.match(await as(OWNER, `select remove_platform_admin('${OWNER}')`), /can't remove yourself/);
+});
+
+test("comics: one profile and one set of dates, on every site they're part of", async () => {
+  // Cockfight's people became comics
+  const tristan = (await q("select comic_id from hosts where site_id = 'cockfight' and name ilike 'tristan%'"))[0].comic_id;
+  assert.equal(tristan, "tristan-bowling");
+  // a second show with Tristan and a new co-host; COMIC runs it
+  await q(`insert into sites (id, name) values ('apes', 'Modern Apes') on conflict do nothing`);
+  await q(`insert into admins (user_id, site_id, role) values ('${COMIC}', 'apes', 'owner') on conflict do nothing`);
+  assert.equal(await as(COMIC, `insert into comics (id, name, bio) values ('daniel-bridge-gadd', 'Daniel Bridge-Gadd', 'Daniel''s bio')`), "ok");
+  assert.equal(await as(COMIC, `insert into hosts (id, site_id, comic_id, sort) values ('apes-tristan', 'apes', '${tristan}', 0), ('apes-daniel', 'apes', 'daniel-bridge-gadd', 1)`), "ok");
+  const apesT = (await q("select * from hosts where id = 'apes-tristan'"))[0];
+  assert.equal(apesT.name, "Tristan Bowling", "joining a site copies the comic's profile");
+
+  // Modern Apes adds a Tristan date once: it shows on both sites
+  const venue = (await q("select id from venues where name = 'Laugh Boston'"))[0].id;
+  assert.equal(await as(COMIC, `insert into shows (site_id, host, date, time, venue, venue_id) values ('apes', 'apes-tristan', current_date + 3, '8:00 PM', 'Laugh Boston', '${venue}')`), "ok");
+  const id = (await q("select id from shows where host = 'apes-tristan'"))[0].id;
+  const onCF = (await rows(null, "select r from site_shows('cockfight') r")).map((x) => x.r).find((r) => r.id === id);
+  assert.ok(onCF, "Tristan's Modern Apes date is on Cockfight too");
+  assert.equal(onCF.host, (await q("select id from hosts where site_id = 'cockfight' and comic_id = 'tristan-bowling'"))[0].id, "and it points at his Cockfight page");
+  assert.ok((await rows(null, "select r from site_shows('apes') r")).some((x) => x.r.id === id));
+
+  // Cockfight's team (OWNER, a super admin here) can edit it, and so can COMIC who isn't on Cockfight
+  assert.equal(await as(COMIC, `update shows set status = 'few_left' where id = '${id}'`), "ok");
+  assert.equal((await q(`select status from shows where id = '${id}'`))[0].status, "few_left");
+
+  // Daniel's dates don't leak onto Cockfight
+  await q(`insert into shows (site_id, host, date, venue) values ('apes', 'apes-daniel', current_date + 4, 'Somewhere')`);
+  assert.ok(!(await rows(null, "select r from site_shows('cockfight') r")).some((x) => x.r.venue === "Somewhere"));
+  // and COMIC can't touch Cockfight-only comics' dates
+  const lev = (await q("select id from hosts where site_id = 'cockfight' and name ilike 'lev%'"))[0].id;
+  await q(`insert into shows (site_id, host, date, venue) values ('cockfight', '${lev}', current_date + 5, 'Lev Room')`);
+  assert.equal(await as(COMIC, `update shows set venue = 'hacked' where venue = 'Lev Room'`), "ok");
+  assert.equal((await q("select count(*)::int n from shows where venue = 'hacked'"))[0].n, 0);
+
+  // a show event belongs to the site, with a lineup
+  await q(`insert into shows (site_id, date, venue, lineup) values ('apes', current_date + 6, 'Apes LIVE', array['tristan-bowling', 'daniel-bridge-gadd'])`);
+  const ev = (await rows(null, "select r from site_shows('apes') r")).map((x) => x.r).find((r) => r.venue === "Apes LIVE");
+  assert.equal(ev.event, true); assert.deepEqual(ev.lineup_hosts, ["apes-tristan", "apes-daniel"]);
+  assert.ok(!(await rows(null, "select r from site_shows('cockfight') r")).some((x) => x.r.venue === "Apes LIVE"), "events stay on their own site");
+
+  // shared bio by default, a site can write its own
+  assert.equal(await as(COMIC, `update comics set bio = 'New shared bio' where id = 'tristan-bowling'`), "ok");
+  assert.equal((await q("select bio from hosts where comic_id = 'tristan-bowling' and site_id = 'cockfight'"))[0].bio, "New shared bio");
+  await q(`update hosts set bio = 'Cockfight chef bio', own_bio = true where comic_id = 'tristan-bowling' and site_id = 'cockfight'`);
+  await q(`update comics set bio = 'Newer shared bio', photo_url = 'https://p/t.jpg' where id = 'tristan-bowling'`);
+  const [cf, ap] = [(await q("select * from hosts where comic_id = 'tristan-bowling' and site_id = 'cockfight'"))[0], (await q("select * from hosts where id = 'apes-tristan'"))[0]];
+  assert.equal(cf.bio, "Cockfight chef bio"); assert.equal(ap.bio, "Newer shared bio");
+  assert.equal(cf.photo_url, "https://p/t.jpg"); assert.equal(ap.photo_url, "https://p/t.jpg");
+  await q(`update hosts set own_bio = false where comic_id = 'tristan-bowling' and site_id = 'cockfight'`);
+  assert.equal((await q("select bio from hosts where comic_id = 'tristan-bowling' and site_id = 'cockfight'"))[0].bio, "Newer shared bio");
+
+  // hiding a date on one site only
+  assert.equal(await as(OWNER, `insert into site_hidden (site_id, kind, item_id) values ('cockfight', 'show', '${id}')`), "ok");
+  assert.ok(!(await rows(null, "select r from site_shows('cockfight') r")).some((x) => x.r.id === id));
+  assert.ok((await rows(null, "select r from site_shows('apes') r")).some((x) => x.r.id === id));
+
+  // moving a date to someone else moves it to their comic
+  const moved = (await q(`insert into shows (site_id, host, date, venue) values ('apes', 'apes-tristan', current_date + 9, 'Move Me') returning id`))[0].id;
+  await q(`update shows set host = 'apes-daniel' where id = '${moved}'`);
+  assert.equal((await q(`select comic_id from shows where id = '${moved}'`))[0].comic_id, "daniel-bridge-gadd");
+  // taking Tristan off Modern Apes keeps his dates
+  await q("delete from hosts where id = 'apes-tristan'");
+  assert.equal((await q(`select comic_id from shows where id = '${id}'`))[0].comic_id, "tristan-bowling");
+  assert.ok(!(await rows(null, "select r from site_shows('apes') r")).some((x) => x.r.id === id));
+});
+
+test("the one-file upgrade runs on a v1 database, twice", async () => {
+  const fresh = new PGlite();
+  await fresh.exec(`create role anon; create role authenticated; create schema auth; create table auth.users (id uuid primary key, email text);
+    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
+    create schema storage; create table storage.buckets (id text primary key, name text, public boolean);
+    create table storage.objects (id serial primary key, bucket_id text, name text); alter table storage.objects enable row level security;`);
+  for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql", "UPGRADE_V1_ALL.sql", "UPGRADE_V2_ALL.sql", "UPGRADE_V2_ALL.sql"]) await fresh.exec(file(f));
+  assert.equal((await fresh.query("select count(*)::int n from comics")).rows[0].n, (await fresh.query("select count(*)::int n from hosts")).rows[0].n);
+  assert.equal((await fresh.query("select count(*)::int n from hosts where comic_id is null")).rows[0].n, 0);
+  await fresh.close();
 });

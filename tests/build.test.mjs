@@ -32,3 +32,9 @@ test("the ComicTable admin build has the admin at / and every site's theme", () 
 test("an unknown site fails the build loudly", () => {
   assert.throws(() => build("nobody-here"));
 });
+
+test("the one-file database upgrade is up to date with its parts", () => {
+  const before = readFileSync("supabase/UPGRADE_V2_ALL.sql", "utf8");
+  execFileSync("node", ["tools/bundle-upgrade.mjs"]);
+  assert.equal(readFileSync("supabase/UPGRADE_V2_ALL.sql", "utf8"), before, "run node tools/bundle-upgrade.mjs");
+});

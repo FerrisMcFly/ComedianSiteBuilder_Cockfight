@@ -7,6 +7,7 @@
  *   <script src="config.js"></script>          // window.COCKFIGHT_CONFIG = { SITE_ID, SUPABASE_URL, SUPABASE_ANON_KEY }
  *   <script src="sdk/csb.js"></script>
  *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards }
+ *   shows: each has person (a solo date) or event: true with lineup (a show by the whole site, like a live podcast).
  *   CSB.forum.threads("general"), CSB.forum.newTopic({...}), CSB.chat.subscribe(fn), CSB.chat.send({...})
  *   CSB.fans.places("bos"), CSB.fans.join({ email, placeId, radius })   // fan list, when site.features.fans is on
  *
@@ -56,9 +57,11 @@
     return Promise.all([
       api("sites?select=id,name,domain,features,profile,theme,community&id=eq." + encodeURIComponent(cfg.site)),
       api("hosts?select=*&order=sort.asc&" + site()),
-      api("shows?select=*&order=date.asc&date=gte." + todayISO() + "&" + site()),
+      // site_shows / site_videos include the dates and channels of every comic on this site, even ones added on their other sites.
+      // Before that database upgrade, fall back to this site's own rows.
+      api("rpc/site_shows", { method: "POST", body: { p_site: cfg.site } }).catch(function () { return api("shows?select=*&order=date.asc&date=gte." + todayISO() + "&" + site()); }),
       api("episodes?select=*&order=num.desc&hidden=is.false&" + site()),
-      optional(api("videos?select=*&order=published.desc&hidden=is.false&limit=100&" + site())),
+      optional(api("rpc/site_videos", { method: "POST", body: { p_site: cfg.site } }).catch(function () { return api("videos?select=*&order=published.desc&hidden=is.false&limit=100&" + site()); })),
       optional(api("merch?select=*&order=sort.asc&hidden=is.false&" + site())),
       optional(api("announcements?select=*&order=sort.asc&" + site())),
       optional(api("links?select=*&order=sort.asc&hidden=is.false&" + site())),
@@ -71,7 +74,8 @@
           socials: { instagram: h.instagram || "", youtube: h.youtube || "", tiktok: h.tiktok || "", twitter: h.twitter || "", website: h.website || "" } };
       });
       var shows = r[2].filter(function (x) { return x.date >= today; }).map(function (x) {
-        return { id: x.id, person: x.host, date: x.date, time: x.time || "", venue: x.venue || "", city: x.city || "", venueId: x.venue_id || null,
+        // person: whose solo date it is. event: a show by the whole site (a live podcast), with lineup = people ids.
+        return { id: x.id, person: x.host || "", event: !!x.event, lineup: x.lineup_hosts || [], date: x.date, time: x.time || "", venue: x.venue || "", city: x.city || "", venueId: x.venue_id || null,
           tickets: x.url || "", status: x.status || "on_sale", note: x.note || "" };
       }).sort(function (a, b) { return (a.date + timeKey(a.time)).localeCompare(b.date + timeKey(b.time)); });
       var announcements = r[6].filter(function (a) { return (!a.starts_on || a.starts_on <= today) && (!a.ends_on || a.ends_on >= today); })

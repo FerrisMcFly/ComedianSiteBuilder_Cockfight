@@ -23,7 +23,8 @@ async function load(data, fail, reject) {
       if (fail && fail.includes(t)) return { ok: false, status: 400, text: async () => JSON.stringify({ message: "column site_id does not exist" }) };
       if (o.method === "POST") {
         if (reject && reject[t]) return { ok: false, status: 400, text: async () => JSON.stringify({ message: reject[t] }) };
-        if (t.startsWith("rpc/")) { (data.rpcCalls = data.rpcCalls || []).push([t, JSON.parse(o.body)]); return { ok: true, status: 200, text: async () => JSON.stringify(data.rpc ? data.rpc[t] : null) }; }
+        if (t.startsWith("rpc/")) { (data.rpcCalls = data.rpcCalls || []).push([t, JSON.parse(o.body)]); const out = data.rpc && t in data.rpc ? data.rpc[t] : t === "rpc/site_shows" ? (data.shows || []) : t === "rpc/site_videos" ? (data.videos || []).filter((v) => !v.hidden) : null;
+          return { ok: true, status: 200, text: async () => JSON.stringify(out) }; }
         if (t === "chat_messages") (data.chat_messages = data.chat_messages || []).push({ id: "m" + Date.now(), ...JSON.parse(o.body), created_at: new Date().toISOString() });
         return { ok: true, status: 201, text: async () => (t === "threads" ? JSON.stringify([{ id: "th1" }]) : "") };
       }
@@ -71,7 +72,7 @@ test("forum posts carry the site", async () => {
   d.getElementById("ntName").value = "Fan"; d.getElementById("ntTitle").value = "Hi"; d.getElementById("ntBody").value = "yo";
   d.getElementById("ntForm").dispatchEvent(new w.Event("submit", { cancelable: true })); await new Promise((r) => setTimeout(r, 120));
   assert.ok(calls.some((c) => c.startsWith("GET threads") && c.includes("site_id=eq.cockfight")));
-  assert.ok(calls.filter((c) => c.startsWith("POST")).length === 2);
+  assert.ok(calls.filter((c) => c.startsWith("POST") && !c.includes("rpc/")).length === 2);
 });
 
 test("before the database upgrade runs, the site keeps its built-in content", async () => {
@@ -170,6 +171,21 @@ test("fans can join the fan list with their city when the site has it on", async
   const pick = d.querySelector("#fanPicks button"); assert.equal(pick.textContent, "Boston, MA"); pick.click();
   d.getElementById("fanRadius").value = "100";
   box.dispatchEvent(new w.Event("submit", { cancelable: true })); await new Promise((r) => setTimeout(r, 30));
-  assert.deepEqual(data.rpcCalls[0], ["rpc/join_fans", { p_site: "cockfight", p_email: "fan@x.com", p_place: 4930956, p_radius: 100 }]);
+  assert.deepEqual(data.rpcCalls.find((c) => c[0] === "rpc/join_fans"), ["rpc/join_fans", { p_site: "cockfight", p_email: "fan@x.com", p_place: 4930956, p_radius: 100 }]);
   assert.match(d.getElementById("fanMsg").textContent, /You're on the list! We'll email you when we're near Boston, MA/);
+});
+
+test("a live show by the whole crew gets its own spot, and shows on each person's page", async () => {
+  const data = { ...base, shows: [...base.shows, { id: "ev", event: true, lineup_hosts: ["colum", "lev"], date: future(12), time: "8:00 PM", city: "Chicago, IL", venue: "Cockfight LIVE at Zanies", url: "https://t/ev", status: "on_sale" }] };
+  const { d } = await load(data);
+  assert.match(d.getElementById("allTour").textContent, /Cockfight LIVE.*Zanies/);
+  assert.match(d.getElementById("v-colum").textContent, /Zanies/);
+  assert.doesNotMatch(d.getElementById("v-cockfight-new1").textContent, /Zanies/);
+});
+
+test("the home page intro comes from Profile → About when it's filled in", async () => {
+  const plain = await load(base);
+  assert.match(plain.d.getElementById("aboutText").textContent, /weekly comedy podcast/);
+  const { d } = await load({ ...base, sites: [{ id: "cockfight", features: { shows: true }, profile: { about: "Three idiots and a microphone." } }] });
+  assert.equal(d.getElementById("aboutText").textContent, "Three idiots and a microphone.");
 });
