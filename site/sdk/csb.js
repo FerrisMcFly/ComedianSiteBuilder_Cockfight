@@ -80,9 +80,9 @@
         site: { id: s.id, name: s.name, domain: s.domain },
         features: s.features || {}, profile: s.profile || {}, theme: s.theme || {}, community: s.community || {},
         people: people, shows: shows,
-        episodes: r[3].filter(visible).map(function (e) { return { id: e.id, number: e.num, title: e.title, posted: e.posted, length: e.length || "", link: e.url || e.audio_url || "", audio: e.audio_url || "", image: e.image_url || "", patreon: e.patreon || "", description: e.blurb || "" }; }),
+        episodes: r[3].filter(visible).map(function (e) { return { id: e.id, number: e.num, title: e.title, posted: e.posted, length: e.length || "", link: e.url || e.audio_url || "", audio: e.audio_url || "", image: e.image_url || "", patreon: e.patreon || "", description: e.blurb || "", show: e.show_name || "" }; }),
         videos: r[4].filter(visible).sort(function (a, b) { return (b.featured - a.featured) || String(b.published || "").localeCompare(String(a.published || "")); })
-          .map(function (v) { return { id: v.youtube_id, title: v.title, published: v.published, thumbnail: v.thumbnail_url || ("https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg"), link: v.url || ("https://www.youtube.com/watch?v=" + v.youtube_id), featured: !!v.featured }; }),
+          .map(function (v) { return { id: v.youtube_id, title: v.title, published: v.published, thumbnail: v.thumbnail_url || ("https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg"), link: v.url || ("https://www.youtube.com/watch?v=" + v.youtube_id), featured: !!v.featured, channel: v.channel || "", person: v.host || "" }; }),
         merch: r[5].filter(visible).map(function (m) { return { id: m.id, name: m.name, price: m.price || "", image: m.image_url || "", link: m.url || "" }; }),
         announcements: announcements,
         links: r[7].filter(visible).map(function (l) { return { id: l.id, label: l.label, url: l.url, icon: l.icon || "" }; }),

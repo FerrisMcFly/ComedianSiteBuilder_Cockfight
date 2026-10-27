@@ -257,6 +257,30 @@ test("moderation saves house rules; chat can be closed", async () => {
   assert.equal(db.chat_messages[0].is_mod, true); assert.equal(db.chat_messages[0].author, "Colum Tyrrell");
 });
 
+test("people cards say Save changes, not the person's name", async () => {
+  const { d } = await open("#people");
+  const labels = [...d.querySelectorAll(".people form button[type=submit]")].map((b) => b.textContent);
+  assert.deepEqual([...new Set(labels)], ["Save changes"]);
+});
+
+test("several YouTube channels, each with an owner", async () => {
+  const { w, d, db } = await open("#videos");
+  w.fetch = async () => ({ ok: true, json: async () => ({ results: [] }) });
+  set(w, d.getElementById("youtubeSrc"), "https://www.youtube.com/@cockfightpod");
+  btn(d, /^Connect$/).click(); await wait(80);
+  set(w, d.getElementById("youtubeSrc"), "https://www.youtube.com/@LevFerOfficial");
+  d.getElementById("youtubeOwner").value = "lev";
+  btn(d, /^Connect$/).click(); await wait(80);
+  assert.deepEqual(db.sources.map((x) => [x.url, x.host]), [["https://www.youtube.com/@cockfightpod", null], ["https://www.youtube.com/@LevFerOfficial", "lev"]]);
+  assert.match(d.body.textContent, /Add another channel/);
+  assert.ok(btn(d, /^Check all now$/));
+  // the same link twice is refused
+  set(w, d.getElementById("youtubeSrc"), "https://www.youtube.com/@LevFerOfficial/");
+  btn(d, /^Connect$/).click(); await wait(40);
+  assert.match(d.body.textContent, /already connected/);
+  assert.equal(db.sources.length, 2);
+});
+
 test("people: add, hide, remove", async () => {
   const { w, d, db } = await open("#people");
   btn(d, /^\+ Add a person$/).click(); await wait();
@@ -269,7 +293,7 @@ test("people: add, hide, remove", async () => {
   assert.equal(db.hosts.find((x) => x.name === "Sam Guest").hidden, true);
   card = [...d.querySelectorAll(".people form")].find((f) => /Sam Guest/.test(f.textContent));
   btn(d, /^Remove…$/, card).click(); await wait();
-  btn(d, /^Remove Sam$/).click(); await wait(60);
+  btn(d, /^Yes, remove$/).click(); await wait(60);
   assert.ok(!db.hosts.find((x) => x.name === "Sam Guest"));
 });
 

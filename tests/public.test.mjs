@@ -138,3 +138,16 @@ test("chat room shows messages, sends, and shows the chat's rules", async () => 
   assert.ok(calls.some((c) => c.startsWith("POST chat_messages")));
   assert.equal(data.chat_messages.at(-1).author, "TacoKing"); assert.equal(data.chat_messages.at(-1).site_id, "cockfight"); assert.ok(data.chat_messages.at(-1).device);
 });
+
+test("videos can be filtered by channel, and a person's videos show on their page", async () => {
+  const data = { ...base,
+    videos: [{ youtube_id: "AAAAAAAAAAA", title: "Show clip", published: "2026-10-20", channel: "Cockfight" }, { youtube_id: "BBBBBBBBBBB", title: "Lev set", published: "2026-10-21", channel: "Lev Fer", host: "lev" }] };
+  const { d } = await load(data);
+  const chips = [...d.querySelectorAll("#videoChans button")].map((b) => b.textContent);
+  assert.deepEqual(chips, ["All Channels", "Cockfight", "Lev Fer"]);
+  [...d.querySelectorAll("#videoChans button")].find((b) => b.textContent === "Lev Fer").click();
+  assert.deepEqual([...d.querySelectorAll("#videoGrid .vcard span")].map((x) => x.textContent), ["Lev set"]);
+  assert.match(d.getElementById("v-lev").textContent, /Lev's Latest Videos/);
+  assert.match(d.getElementById("v-lev").textContent, /Lev set/);
+  assert.doesNotMatch(d.getElementById("v-lev").textContent, /Show clip/);
+});

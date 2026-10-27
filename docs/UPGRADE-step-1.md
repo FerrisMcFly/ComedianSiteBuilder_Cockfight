@@ -28,7 +28,7 @@ Merge the pull request on GitHub, titled "Platform v1". Netlify deploys it in ab
 Go to **cockfightpodcast.com/admin** and log in.
 
 - **Podcast → Connect your podcast:** paste `https://podcasts.apple.com/us/podcast/cockfight/id1792746019`, then click **Connect**. It checks every hour after that, and **Check now** runs it right away.
-- **Videos → Connect your YouTube channel:** paste the show's channel link.
+- **Videos → Connect your YouTube channels:** paste the show's channel link, then add each person's channel and pick whose it is. Their videos also show on their page.
 - **Settings:** turn sections on or off. Merch starts off; turn it on when you have items to add. As the platform owner, you'll also see **Recently added clubs** here, where you can fix typos or remove duplicates.
 
 ## How show entry works now
@@ -54,6 +54,13 @@ In the list, change a show's status (on sale, few left, sold out, free, cancelle
 
 ## For a different front end
 Everything a front end needs comes from `site/sdk/csb.js`: one call to `CSB.load()` returns the profile, people, shows, episodes, videos, merch, announcements, links and boards, already filtered for the public. `CSB.forum` and `CSB.chat` run the community. A front end lists its own settings in `theme.json`, and the admin's Theme page builds itself from that file.
+
+## Later database upgrades
+Each new feature that needs the database changed comes with its own small file in `supabase/`. Run it in the SQL Editor (paste, Run) **before** merging the pull request that uses it. They're all safe to run twice.
+
+| File | What it adds |
+|---|---|
+| `07_more_sources.sql` | Several podcasts and YouTube channels per site, channels that belong to a person, and channel names on videos |
 
 ## If something goes wrong
 - **"Couldn't load your site" in the admin:** `04_platform.sql` hasn't been run yet.
