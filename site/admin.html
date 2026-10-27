@@ -1138,7 +1138,7 @@ td select.status.st-few_left { color: var(--warn); }
   /* ======================================================
      VIDEOS
      ====================================================== */
-  let VIDF = "all";
+  let VIDF = "all", VIDREMOVED = false;
   function ytId(u) { const m = String(u).match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/); return m ? m[1] : null; }
   function viewVideos(main) {
     const wrap = h("div", { class: "stack" });
@@ -1158,19 +1158,35 @@ td select.status.st-few_left { color: var(--warn); }
                 await reload.videos(); toast("Added."); redraw(); } catch (e) { msg.textContent = errText(e); }
             } }))));
       })();
-      const channels = [...new Set(S.videos.map((v) => v.channel || "").filter(Boolean))];
+      const live = S.videos.filter((v) => !v.hidden), removed = S.videos.filter((v) => v.hidden);
+      if (VIDREMOVED && !removed.length) VIDREMOVED = false;
+      const pool = VIDREMOVED ? removed : live;
+      const channels = [...new Set(pool.map((v) => v.channel || "").filter(Boolean))];
       if (VIDF !== "all" && !channels.includes(VIDF)) VIDF = "all";
-      const shown = S.videos.filter((v) => VIDF === "all" || v.channel === VIDF);
-      const chipsRow = channels.length > 1 ? h("div", { class: "seg", role: "group", "aria-label": "Filter by channel", style: "margin-bottom:12px" },
-        h("button", { type: "button", "aria-pressed": String(VIDF === "all"), text: "All (" + S.videos.length + ")", onclick: () => { VIDF = "all"; redraw(); } }),
-        channels.map((c) => h("button", { type: "button", "aria-pressed": String(VIDF === c), text: c + " (" + S.videos.filter((v) => v.channel === c).length + ")", onclick: () => { VIDF = c; redraw(); } }))) : null;
-      const grid = S.videos.length ? h("div", null, chipsRow, h("div", { class: "vids" }, shown.map((v) => h("div", { class: "vid" + (v.hidden ? " hidden" : "") },
+      const shown = pool.filter((v) => VIDF === "all" || v.channel === VIDF);
+      const setHidden = async (v, hidden) => {
+        await q(sb.from("videos").update({ hidden }).eq("id", v.id)); v.hidden = hidden; redraw(); refreshNav();
+      };
+      const chipsRow = channels.length > 1 ? h("div", { class: "seg", role: "group", "aria-label": "Filter by channel" },
+        h("button", { type: "button", "aria-pressed": String(VIDF === "all"), text: "All (" + pool.length + ")", onclick: () => { VIDF = "all"; redraw(); } }),
+        channels.map((c) => h("button", { type: "button", "aria-pressed": String(VIDF === c), text: c + " (" + pool.filter((v) => v.channel === c).length + ")", onclick: () => { VIDF = c; redraw(); } }))) : h("span");
+      const removedToggle = removed.length ? h("button", { class: "btn sm ghost", type: "button", text: VIDREMOVED ? "← Back to your videos" : "Removed (" + removed.length + ")", onclick: () => { VIDREMOVED = !VIDREMOVED; VIDF = "all"; redraw(); } }) : null;
+      const card = (v) => h("div", { class: "vid" },
         h("a", { href: v.url, target: "_blank", rel: "noopener" }, h("img", { src: v.thumbnail_url || "", alt: "", loading: "lazy" })),
         h("div", { class: "body" }, h("b", { class: "wrap-any", text: v.title }),
-          h("span", { class: "hint", text: [v.published ? shortDate(v.published) : "", v.channel || "", v.host ? first(v.host) + "'s page" : "", v.featured ? "⭐ Featured" : "", v.hidden ? "Hidden" : ""].filter(Boolean).join(" · ") }),
-          h("div", { class: "btns" },
-            h("button", { class: "btn sm", type: "button", text: v.featured ? "Unstar" : "⭐ Star", onclick: async () => { try { await q(sb.from("videos").update({ featured: !v.featured }).eq("id", v.id)); v.featured = !v.featured; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
-            h("button", { class: "btn sm ghost", type: "button", text: v.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("videos").update({ hidden: !v.hidden }).eq("id", v.id)); v.hidden = !v.hidden; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } })))))))
+          h("span", { class: "hint", text: [v.published ? shortDate(v.published) : "", v.channel || "", v.host ? first(v.host) + "'s page" : "", v.featured && !v.hidden ? "⭐ Featured" : ""].filter(Boolean).join(" · ") }),
+          VIDREMOVED
+            ? h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Put back", onclick: async () => { try { await setHidden(v, false); toast("Back on your site."); } catch (e) { toast(errText(e), { bad: true }); } } }))
+            : h("div", { class: "btns" },
+                h("button", { class: "btn sm", type: "button", text: v.featured ? "Unstar" : "⭐ Star", onclick: async () => { try { await q(sb.from("videos").update({ featured: !v.featured }).eq("id", v.id)); v.featured = !v.featured; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
+                h("button", { class: "btn sm ghost danger", type: "button", text: "Remove", onclick: async () => {
+                  try { await setHidden(v, true); toast("Removed “" + v.title + "” from your site.", { action: { label: "Undo", run: async () => { try { await setHidden(v, false); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
+                  catch (e) { toast(errText(e), { bad: true }); }
+                } }))));
+      const grid = S.videos.length ? h("section", { class: "card" },
+          h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: VIDREMOVED ? "Removed videos" : "Your videos" }), h("div", { class: "btns" }, chipsRow, removedToggle)),
+          VIDREMOVED ? h("p", { class: "sub", text: "These stay off your site, and new imports won't bring them back. Put one back any time." }) : null,
+          shown.length ? h("div", { class: "vids" }, shown.map(card)) : empty(VIDREMOVED ? "Nothing removed" : "No videos showing", VIDREMOVED ? "" : "Everything here has been removed. See Removed to put some back."))
         : h("section", { class: "card" }, empty("No videos yet", "Connect a channel above."));
       wrap.replaceChildren(sourceCard("youtube", redraw), add, grid); refreshNav();
     };
