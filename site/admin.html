@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Comedian Site Builder Admin</title>
+<title>ComicTable</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
 <style>
@@ -49,6 +49,9 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.015em; }
 .app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
 .side { background: var(--panel); border-right: 1px solid var(--line); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .brand { font-weight: 800; font-size: 18px; padding: 2px 10px 2px; }
+.ct-mark { font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: -.01em; color: var(--accent); }
+.ct-mark::before { content: "🪑 "; }
+.ct-mark.sm { font-size: 13px; }
 .brand-sub { font-size: 12px; color: var(--muted); padding: 0 10px 14px; }
 .nav-btn { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; background: none; border: 0; border-radius: 10px; padding: 9px 10px; cursor: pointer; color: var(--muted); font-weight: 600; }
 .nav-btn .ico { width: 20px; text-align: center; }
@@ -461,7 +464,7 @@ td select.status.st-few_left { color: var(--warn); }
       if (r.error) return showLogin("Wrong username or password.");
       boot();
     } },
-      h("div", null, h("h1", { text: "Welcome back 🎤" }), h("p", { class: "sub", text: "Log in to update your site." })),
+      h("div", { class: "ct-mark", text: "ComicTable" }), h("div", null, h("h1", { text: "Welcome back 🎤" }), h("p", { class: "sub", text: "Log in to update your site." })),
       field("Username or email", user), field("Password", pass), msg ? h("div", { class: "err", text: msg }) : null, btn);
     root.replaceChildren(h("div", { class: "login-wrap" }, form));
     user.focus();
@@ -529,7 +532,7 @@ td select.status.st-few_left { color: var(--warn); }
     const main = h("main", { id: "main" });
     root.replaceChildren(h("div", { class: "app" },
       h("aside", { class: "side" }, h("div", { class: "brand", text: S.site.name }), h("div", { class: "brand-sub", text: S.site.domain || "Your site" }), siteSwitch, nav,
-        h("div", { class: "side-foot" }, h("span", { text: "Logged in as " + S.user }),
+        h("div", { class: "side-foot" }, h("span", { class: "ct-mark sm", text: "ComicTable" }), h("span", { text: "Logged in as " + S.user }),
           h("div", { class: "links" }, h("a", { href: S.site.domain ? "https://" + S.site.domain : "./", target: "_blank", rel: "noopener", text: "View site ↗" }),
             h("a", { href: "#", onclick: async (e) => { e.preventDefault(); await sb.auth.signOut(); S.site = null; showLogin(); }, text: "Log out" })))),
       main));

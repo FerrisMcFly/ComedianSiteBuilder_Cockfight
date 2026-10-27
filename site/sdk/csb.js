@@ -1,5 +1,5 @@
 /*
- * Comedian Site Builder: public data kit.
+ * ComicTable: public data kit.
  *
  * Any front end (theme) can load a comedian's content and run their forum and chat with this one file.
  * No build step and no dependencies. Live chat uses supabase-js if the page loads it, otherwise it polls.

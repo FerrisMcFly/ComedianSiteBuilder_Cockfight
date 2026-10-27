@@ -1,4 +1,4 @@
-# Platform v1: turning it on
+# ComicTable v1: turning it on
 
 This update adds the club database, the new admin, podcast and YouTube auto-import, merch, section switches, the full forum controls and the chat room. Do these in order. It takes about 10 minutes.
 

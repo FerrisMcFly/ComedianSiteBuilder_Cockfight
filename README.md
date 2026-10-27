@@ -1,4 +1,4 @@
-# Comedian Site Builder
+# ComicTable
 
 Feature-rich websites for comedians: shows, podcast, videos, merch, and a fan community, all run from one easy admin. Cockfight (cockfightpodcast.com) is site #1.
 
