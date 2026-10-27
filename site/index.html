@@ -286,6 +286,24 @@ table.t90 tr:nth-child(even) td { background: #fff1b8; }
 .tag.free { background: var(--verde); }
 tr.cancel td { text-decoration: line-through; color: #777; }
 
+/* links + chat */
+.linkbox { background: #fff; border: 4px ridge var(--hot); padding: 10px; margin-bottom: 18px; display: grid; gap: 8px; }
+.linkbox b { font-family: var(--display); color: var(--chili); }
+.chatwin { border: 3px outset var(--silver); background: var(--silver); max-width: 640px; }
+.chat-title { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; font-family: var(--comic); font-weight: 700; padding: 4px 8px; display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.chat-title span:last-child { font-weight: 400; font-size: 12px; }
+.chat-log { background: #fff; border: 2px inset var(--silver); margin: 6px; height: 340px; overflow-y: auto; padding: 6px 8px; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.4; }
+.chat-log .ln { overflow-wrap: anywhere; }
+.chat-log .ln b { color: var(--link); }
+.chat-log .ln.mod b { color: var(--chili); }
+.chat-log .ln .hostbadge { background: var(--chili); color: #fff; font-size: 10px; font-weight: 700; padding: 0 4px; margin-right: 4px; }
+.chat-log .ln time { color: #888; font-size: 11px; margin-right: 4px; }
+.chat-form { display: grid; gap: 4px; padding: 0 6px 8px; font-family: Verdana, sans-serif; font-size: 12px; }
+.chat-form input { font-family: var(--serif); font-size: 15px; border: 2px inset var(--silver); padding: 4px; background: #fff; color: #000; min-width: 0; }
+.chat-send { display: flex; gap: 6px; }
+.chat-send input { flex: 1 1 auto; }
+.post-side .hostbadge { display: inline-block; background: var(--chili); color: #fff; font-size: 10px; font-weight: 700; padding: 0 4px; margin-top: 2px; }
+
 /* forum */
 .forum { font-family: Verdana, Geneva, sans-serif; font-size: 13px; }
 .forum-bar { background: var(--navy); color: #fff; padding: 6px 8px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; border: 2px outset var(--silver); }
@@ -388,6 +406,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
       <a class="btn" href="#videos" data-view="videos" data-feat="videos" hidden>Videos</a>
       <a class="btn" href="#merch" data-view="merch" data-feat="merch" hidden>Merch</a>
       <a class="btn" href="#forum" data-view="forum" data-feat="forum">Forums</a>
+      <a class="btn" href="#chat" data-view="chat" data-feat="chat" hidden>Chat Room</a>
       <a class="btn patreon" href="https://www.patreon.com/CockFightPod" target="_blank" rel="noopener">★ Patreon ★</a>
       <span class="nav-label">THE HOSTS:</span>
       <a class="btn" href="#colum" data-view="colum">Colum</a>
@@ -415,6 +434,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
             <li data-feat="shows"><a href="#tour" data-view="tour">Tour Dates</a>: where the guys are performing and where to get tickets</li>
             <li data-feat="videos" hidden><a href="#videos" data-view="videos">Videos</a>: the latest clips and uploads</li>
             <li data-feat="merch" hidden><a href="#merch" data-view="merch">Merch</a>: shirts, stickers and more</li>
+            <li data-feat="chat" hidden><a href="#chat" data-view="chat">Chat Room</a>: hang out live with other fans</li>
             <li data-feat="forum"><a href="#forum" data-view="forum">Forums</a>: talk to other fans about the show</li>
             <li><a href="https://www.patreon.com/CockFightPod" target="_blank" rel="noopener">Patreon</a>: support the show</li>
           </ul>
@@ -426,6 +446,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
         </section>
         <hr class="rainbow">
         <section>
+          <div class="linkbox" id="linksBox" hidden></div>
           <h2>Meet the Hosts</h2>
           <div class="chefs" id="chefCards"></div>
         </section>
@@ -484,6 +505,22 @@ tr.cancel td { text-decoration: line-through; color: #777; }
       <div class="view" id="v-tristan" hidden></div>
       </div>
 
+      <!-- CHAT -->
+      <div class="view" id="v-chat" hidden>
+        <div class="chatwin">
+          <div class="chat-title"><span>💬 Cockfight Chat Room</span><span id="chatState">connecting…</span></div>
+          <div class="chat-log" id="chatLog" aria-live="polite"></div>
+          <form class="chat-form" id="chatForm">
+            <label for="chatName">Screen name:</label>
+            <input id="chatName" maxlength="24" placeholder="xX_RoosterFan_Xx" autocomplete="nickname">
+            <label for="chatMsg">Message:</label>
+            <div class="chat-send"><input id="chatMsg" maxlength="500" autocomplete="off" placeholder="Say something nice (or funny)"><button class="fbtn" type="submit">Send</button></div>
+            <div class="ferr" id="chatErr"></div>
+          </form>
+        </div>
+        <p class="fnote">Be cool. The hosts can delete messages and ban trolls.</p>
+      </div>
+
       <!-- FORUM -->
       <div class="view forum" id="v-forum" hidden>
         <div class="forum-bar">
@@ -500,13 +537,15 @@ tr.cancel td { text-decoration: line-through; color: #777; }
 
   <footer class="foot">
     <div class="ring">&lt;&lt; Prev &nbsp;|&nbsp; ★ The Comedy Podcast WebRing ★ &nbsp;|&nbsp; Next &gt;&gt;</div>
-    <div><button class="secret" id="mute" type="button" aria-label="Toggle music">©</button> 1998–2026 Cockfight Podcast. All Rights Reserved. Webmaster: Cousin Danny</div>
+    <div><button class="secret" id="mute" type="button" aria-label="Toggle music">©</button> 1998–2026 Cockfight Podcast. All Rights Reserved. Webmaster: <span id="webmaster">Cousin Danny</span></div>
     <div class="now-playing" id="np">♫ now playing: cucaracha.mid</div>
     <div class="netscape">Best viewed in Netscape Navigator 4.0 at 800×600</div>
   </footer>
 </div>
 
 <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="sdk/csb.js"></script>
 <script>
 (function () {
   "use strict";
@@ -746,8 +785,15 @@ tr.cancel td { text-decoration: line-through; color: #777; }
   }
   function renderSettings() {
     if (SETTINGS.marquee) $("marqueeText").textContent = SETTINGS.marquee + " ";
-    $("headlineText").textContent = SETTINGS.headline || "";
+    var hl = $("headlineText"); hl.textContent = "";
+    if (SETTINGS.headline) hl.appendChild(SETTINGS.headlineLink ? el("a", { href: SETTINGS.headlineLink, target: "_blank", rel: "noopener", text: SETTINGS.headline }) : document.createTextNode(SETTINGS.headline));
     $("headline").hidden = !SETTINGS.headline;
+    var lb = $("linksBox"); lb.textContent = "";
+    if (typeof LINKS !== "undefined" && LINKS.length) {
+      lb.appendChild(el("b", { text: "★ Links ★" }));
+      lb.appendChild(el("div", { class: "listen-row" }, LINKS.map(function (l) { return el("a", { class: "ext", href: l.url, target: "_blank", rel: "noopener", text: (l.icon ? l.icon + " " : "") + l.label }); })));
+    }
+    lb.hidden = !(typeof LINKS !== "undefined" && LINKS.length);
   }
   var VIDEOS = [], MERCH = [], FEATURES = { shows: true, podcast: true, videos: false, merch: false, forum: true };
   function renderVideos() {
@@ -775,11 +821,11 @@ tr.cancel td { text-decoration: line-through; color: #777; }
   function featOn(k) { return FEATURES[k] !== false; }
   function applyFeatures() {
     var hasVids = VIDEOS.some(function (v) { return !v.hidden; }), hasMerch = MERCH.some(function (m) { return !m.hidden; });
-    var on = { shows: featOn("shows"), podcast: featOn("podcast"), videos: !!FEATURES.videos && hasVids, merch: !!FEATURES.merch && hasMerch, forum: featOn("forum") };
+    var on = { shows: featOn("shows"), podcast: featOn("podcast"), videos: !!FEATURES.videos && hasVids, merch: !!FEATURES.merch && hasMerch, forum: featOn("forum"), chat: !!FEATURES.chat && LIVE };
     document.querySelectorAll("[data-feat]").forEach(function (x) { x.hidden = !on[x.getAttribute("data-feat")]; });
     VIEW_OFF = Object.keys(on).filter(function (k) { return !on[k]; }).map(function (k) { return { shows: "tour", podcast: "episodes" }[k] || k; });
   }
-  var VIEW_OFF = ["videos", "merch"];
+  var VIEW_OFF = ["videos", "merch", "chat"];
   function renderAll() { renderSettings(); renderEpisodes(); renderHosts(); renderVideos(); renderMerch(); applyFeatures(); }
   renderAll();
 
@@ -795,28 +841,31 @@ tr.cancel td { text-decoration: line-through; color: #777; }
         return b || [];
       }); });
   }
-  var SITE = CFG.SITE_ID || "cockfight", BY_SITE = "&site_id=eq." + encodeURIComponent(SITE);
-  if (LIVE) {
-    var optional = function (p) { return p.catch(function () { return []; }); }; // tables from the platform upgrade
-    Promise.all([
-      rest("episodes?select=*&order=num.desc" + BY_SITE),
-      rest("shows?select=*&order=date.asc" + BY_SITE),
-      rest("hosts?select=*&order=sort.asc" + BY_SITE),
-      rest("settings?select=*" + BY_SITE),
-      optional(rest("sites?select=*&id=eq." + encodeURIComponent(SITE))),
-      optional(rest("videos?select=*&order=published.desc&limit=60" + BY_SITE)),
-      optional(rest("merch?select=*&order=sort.asc" + BY_SITE))
-    ]).then(function (r) {
-      var eps = r[0].filter(function (e) { return !e.hidden; });
-      if (eps.length) EPISODES = eps.map(function (e) { return { n: e.num, t: e.title, d: e.posted, len: e.length || "", url: e.url || e.audio_url || "", pat: e.patreon || "", blurb: e.blurb || "" }; });
-      SHOWS = r[1].map(function (x) { return { host: x.host, date: x.date, time: x.time || "", city: x.city || "", venue: x.venue || "", url: x.url || "", status: x.status || "on_sale", note: x.note || "" }; });
-      if (r[4][0] && r[4][0].features) FEATURES = r[4][0].features;
-      VIDEOS = r[5] || []; MERCH = r[6] || [];
-      r[2].forEach(function (h) {
-        COMICS[h.id] = { name: h.name, title: h.title || "Comedian", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "", instagram: h.instagram || "", youtube: h.youtube || "", tiktok: h.tiktok || "", twitter: h.twitter || "", website: h.website || "" };
-        if (HOST_ORDER.indexOf(h.id) < 0) { HOST_ORDER.push(h.id); }
+  var SITE = CFG.SITE_ID || "cockfight";
+  var PROFILE = {}, LINKS = [];
+  if (LIVE && window.CSB) {
+    CSB.init(CFG);
+    CSB.load().then(function (d) {
+      if (d.episodes.length) EPISODES = d.episodes.map(function (e) { return { n: e.number, t: e.title, d: e.posted, len: e.length, url: e.link, pat: e.patreon, blurb: e.description }; });
+      SHOWS = d.shows.map(function (x) { return { host: x.person, date: x.date, time: x.time, city: x.city, venue: x.venue, url: x.tickets, status: x.status, note: x.note }; });
+      d.people.forEach(function (h) {
+        COMICS[h.id] = { name: h.name, title: h.title || "Comedian", bio: h.bio, status: h.status, photo: h.photo,
+          instagram: h.socials.instagram, youtube: h.socials.youtube, tiktok: h.socials.tiktok, twitter: h.socials.twitter, website: h.socials.website };
+        if (HOST_ORDER.indexOf(h.id) < 0) HOST_ORDER.push(h.id);
       });
-      r[3].forEach(function (x) { SETTINGS[x.key] = x.value; });
+      FEATURES = d.features || FEATURES;
+      VIDEOS = d.videos.map(function (v) { return { youtube_id: v.id, title: v.title, published: v.published, thumbnail_url: v.thumbnail, url: v.link, featured: v.featured, hidden: false }; });
+      MERCH = d.merch.map(function (m) { return { name: m.name, price: m.price, image_url: m.image, url: m.link, hidden: false }; });
+      if (d.boards.length) BOARDS = d.boards.map(function (b) { return { id: b.id, name: b.name, desc: b.description, locked: b.locked }; });
+      // announcements: pinned ones become the NEW!! headline, all of them scroll in the banner
+      var pinned = d.announcements.filter(function (a) { return a.pinned; });
+      SETTINGS.headline = pinned.length ? pinned[0].text : "";
+      SETTINGS.headlineLink = pinned.length ? pinned[0].link : "";
+      if (d.announcements.length) SETTINGS.marquee = d.announcements.map(function (a) { return a.text; }).join(" ••• ") + " •••";
+      PROFILE = d.profile || {}; LINKS = d.links || [];
+      if (PROFILE.support_url) { PATREON = PROFILE.support_url; document.querySelectorAll('a[href^="https://www.patreon.com/CockFightPod"]').forEach(function (x) { x.href = PROFILE.support_url; }); }
+      applyTheme(d.theme || {});
+      try { localStorage.setItem("cf_theme", JSON.stringify(d.theme || {})); } catch (e) {}
       renderAll();
       var n = $("liveNote"); if (n) n.hidden = true;
     }).catch(function (e) {
@@ -826,6 +875,19 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     });
   }
 
+  /* ================= THEME SETTINGS (set in the admin, described in theme.json) ================= */
+  var THEME = {};
+  try { THEME = JSON.parse(localStorage.getItem("cf_theme") || "{}") || {}; } catch (e) {}
+  function applyTheme(t) {
+    THEME = t || {};
+    var speed = { slow: "40s", normal: "26s", fast: "14s" }[THEME.banner_speed] || "26s";
+    var mq = document.querySelector(".marquee span"); if (mq) mq.style.animationDuration = speed;
+    var counter = $("counter"); if (counter) counter.parentNode.hidden = THEME.visitor_counter === false;
+    var pb = document.querySelector(".patreon-banner"); if (pb) pb.hidden = THEME.support_banner === false;
+    if (THEME.webmaster) $("webmaster").textContent = THEME.webmaster;
+    if (THEME.splash === false && !$("splash").hidden) { $("splash").hidden = true; $("site").hidden = false; if (typeof show === "function") show(location.hash.slice(1) || "home"); }
+  }
+
   /* ================= ROUTER ================= */
   function show(v) {
     var VIEWS = [].map.call(document.querySelectorAll(".main .view"), function (x) { return x.id.slice(2); });
@@ -833,6 +895,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     VIEWS.forEach(function (x) { $("v-" + x).hidden = x !== v; });
     document.querySelectorAll(".nav .btn").forEach(function (a) { if (a.dataset.view === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     if (v === "forum") forumStart();
+    if (v === "chat") chatStart();
     window.scrollTo(0, 0);
   }
   document.addEventListener("click", function (e) {
@@ -844,6 +907,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     show(v);
   });
   window.addEventListener("hashchange", function () { if (!$("site").hidden) show(location.hash.slice(1)); });
+  applyTheme(THEME); // last visit's theme settings, so "no splash" doesn't flash the rooster
 
   /* ================= AUDIO ================= */
   var ctx = null, master = null, muted = store("muted") === "1", musicOn = false;
@@ -951,7 +1015,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
         ctx.resume();
         master.gain.value = 1;
         wait = bawk();
-        startMusic(wait);
+        if (THEME.music !== false) startMusic(wait); else muted = true;
         if (muted) { setTimeout(applyMute, wait); }
       }
     } catch (e) {}
@@ -969,7 +1033,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
   /* ================= CURSOR TRAIL ================= */
   var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   var fine = window.matchMedia && matchMedia("(pointer: fine)").matches;
-  if (!calm && fine) {
+  if (!calm && fine && THEME.cursor_trail !== false) {
     var last = 0;
     document.addEventListener("mousemove", function (e) {
       if ($("site").hidden) return;
@@ -1010,17 +1074,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     }
     return A;
   }
-  function supaAdapter(url, key) {
-    var H = { apikey: key, Authorization: "Bearer " + key, "Content-Type": "application/json" };
-    function q(path, opts) {
-      return fetch(url.replace(/\/$/, "") + "/rest/v1/" + path, Object.assign({ headers: H }, opts || {})).then(function (r) {
-        return r.text().then(function (t) {
-          var body = null; try { body = t ? JSON.parse(t) : null; } catch (e) {}
-          if (!r.ok) { var err = new Error((body && (body.message || body.hint)) || ("HTTP " + r.status)); err.status = r.status; throw err; }
-          return body;
-        });
-      });
-    }
+  function supaAdapter() {
     var pollers = [];
     function poll(fn, cb, err) {
       var dead = false;
@@ -1030,22 +1084,11 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     }
     var A = { mode: "supabase", canWrite: true, canDelete: false };
     A.kick = function () { pollers.forEach(function (go) { go(); }); };
-    A.threads = function (cb, err) {
-      return poll(function () { return q("threads?select=*&order=last_at.desc&limit=300&site_id=eq." + encodeURIComponent(SITE)); }, function (rows) {
-        cb(rows.map(function (r) { return { id: r.id, board: r.board, title: r.title, author: r.author, createdAt: r.created_at, lastAt: r.last_at, lastBy: r.last_by, replies: r.replies }; }));
-      }, err);
-    };
-    A.posts = function (id, cb, err) {
-      return poll(function () { return q("posts?select=*&thread_id=eq." + encodeURIComponent(id) + "&order=created_at.asc&limit=500"); }, function (rows) {
-        cb(rows.map(function (r) { return { id: r.id, author: r.author, body: r.body, createdAt: r.created_at }; }));
-      }, err);
-    };
-    A.newThread = function (t, body) {
-      return q("threads", { method: "POST", headers: Object.assign({ Prefer: "return=representation" }, H), body: JSON.stringify({ site_id: SITE, board: t.board, title: t.title, author: t.author, created_at: t.createdAt, last_at: t.createdAt, last_by: t.author, replies: 0 }) })
-        .then(function (rows) { var id = rows[0].id; return q("posts", { method: "POST", body: JSON.stringify({ site_id: SITE, thread_id: id, author: t.author, body: body, created_at: t.createdAt }) }).then(function () { return id; }); });
-    };
-    A.reply = function (id, p) { return q("posts", { method: "POST", body: JSON.stringify({ site_id: SITE, thread_id: id, author: p.author, body: p.body, created_at: p.createdAt }) }).then(function () { A.kick(); }); };
-    A.remove = function () { return Promise.reject(new Error("Delete topics from the Supabase dashboard.")); };
+    A.threads = function (cb, err) { return poll(function () { return CSB.forum.threads(); }, cb, err); };
+    A.posts = function (id, cb, err) { return poll(function () { return CSB.forum.posts(id); }, cb, err); };
+    A.newThread = function (t, body) { return CSB.forum.newTopic({ board: t.board, title: t.title, author: t.author, body: body }).then(function (id) { A.kick(); return id; }); };
+    A.reply = function (id, p) { return CSB.forum.reply({ threadId: id, author: p.author, body: p.body }).then(function () { A.kick(); }); };
+    A.remove = function () { return Promise.reject(new Error("Delete topics from your admin page.")); };
     return A;
   }
   function localAdapter() {
@@ -1062,6 +1105,38 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     return A;
   }
 
+  /* ================= CHAT ROOM ================= */
+  var chatOn = false;
+  function chatTime(t) { var d = new Date(t); if (isNaN(d)) return ""; var hh = d.getHours(), ap = hh >= 12 ? "pm" : "am"; return ((hh % 12) || 12) + ":" + String(d.getMinutes()).padStart(2, "0") + ap; }
+  function chatStart() {
+    if (chatOn) return; chatOn = true;
+    var log = $("chatLog"), state = $("chatState"), nameIn = $("chatName"), msgIn = $("chatMsg"), err = $("chatErr");
+    nameIn.value = (window.CSB && CSB.name.get()) || store("cf_handle") || "";
+    if (!LIVE || !window.CSB) { state.textContent = "offline"; log.appendChild(el("div", { class: "ln", text: "The chat room is open on cockfightpodcast.com." })); return; }
+    CSB.init(CFG);
+    var first = true;
+    CSB.chat.subscribe(function (list) {
+      var stick = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+      log.textContent = "";
+      if (!list.length) log.appendChild(el("div", { class: "ln", text: "*** It's quiet in here. Say hi! ***" }));
+      list.forEach(function (m) {
+        log.appendChild(el("div", { class: "ln" + (m.isMod ? " mod" : "") }, [el("time", { text: chatTime(m.at) }), m.isMod ? el("span", { class: "hostbadge", text: "HOST" }) : null, el("b", { text: m.author + ":" }), " " + m.body]));
+      });
+      state.textContent = "live";
+      if (stick || first) log.scrollTop = log.scrollHeight;
+      first = false;
+    }, function () { state.textContent = "reconnecting…"; });
+    $("chatForm").addEventListener("submit", function (e) {
+      e.preventDefault(); err.textContent = "";
+      var name = nameIn.value.trim(), body = msgIn.value.trim();
+      if (!name) { err.textContent = "Pick a screen name first."; nameIn.focus(); return; }
+      if (!body) return;
+      CSB.name.set(name); store("cf_handle", name);
+      var btn = e.target.querySelector("button"); btn.disabled = true;
+      CSB.chat.send({ author: name, body: body }).then(function () { msgIn.value = ""; btn.disabled = false; msgIn.focus(); }, function (x) { err.textContent = x.message; btn.disabled = false; });
+    });
+  }
+
   /* ================= FORUM UI ================= */
   var F = { api: null, threads: [], posts: [], board: null, thread: null, compose: false, unThreads: null, unPosts: null, err: "", status: "" , loaded: false};
   var started = false;
@@ -1076,8 +1151,9 @@ tr.cancel td { text-decoration: line-through; color: #777; }
         if (r[0]) return dbAdapter(r[0], r[1]);
         var a = localAdapter(); a.readonlyReason = "Sign in to claude.ai to read and post on the forums."; a.canWrite = false; return a;
       }).catch(function () { return localAdapter(); });
-    } else if (CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY) {
-      pick = Promise.resolve(supaAdapter(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY));
+    } else if (CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.CSB) {
+      CSB.init(CFG);
+      pick = Promise.resolve(supaAdapter());
     } else {
       pick = Promise.resolve(localAdapter());
     }
@@ -1105,6 +1181,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     if (code === "invalid_argument" && F.api.mode === "db") { F.api.canWrite = false; F.err = "Your account can read the forums here but can't post. The open forum lives on cockfightpodcast.com."; }
     else if (code === "quota_exceeded") F.err = "The message board is full. The webmaster needs to clean out old topics.";
     else if (code === "rate_limited" || code === "resource_exhausted") F.err = "Slow down amigo!! Wait a minute and post again.";
+    else if (F.api.mode === "supabase" && e && e.status === 400 && e.message) F.err = e.message; // the board's own rules: slow down, locked, banned…
     else F.err = "Your post didn't go through. Check your connection and hit Submit again." + (e && e.message ? " (" + e.message + ")" : "");
     forumRender();
   }
@@ -1113,7 +1190,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     return [el("label", { for: idp + "Name", text: "Username:" }), el("input", { id: idp + "Name", maxlength: "24", required: "", value: handle(), placeholder: "xX_RoosterFan_Xx" })];
   }
   function composeForm() {
-    var sel = el("select", { id: "ntBoard" }, BOARDS.map(function (b) { var o = el("option", { value: b.id, text: b.name }); if (b.id === F.board) o.selected = true; return o; }));
+    var sel = el("select", { id: "ntBoard" }, BOARDS.filter(function (b) { return !b.locked; }).map(function (b) { var o = el("option", { value: b.id, text: b.name }); if (b.id === F.board) o.selected = true; return o; }));
     var form = el("form", { class: "fform", id: "ntForm" }, nameField("nt").concat([
       el("label", { for: "ntBoard", text: "Forum:" }), sel,
       el("label", { for: "ntTitle", text: "Subject:" }), el("input", { id: "ntTitle", maxlength: "90", required: "" }),
@@ -1173,28 +1250,30 @@ tr.cancel td { text-decoration: line-through; color: #777; }
       if (!F.posts.length) body.appendChild(el("div", { class: "empty-board", text: "Loading posts..." }));
       F.posts.forEach(function (p, i) {
         body.appendChild(el("div", { class: "post" }, [
-          el("div", { class: "post-side" }, [el("b", { text: p.author }), el("div", { class: "avatar", text: avatar(p.author || "?") }), el("span", { text: i === 0 ? "Topic Starter" : "Member" })]),
+          el("div", { class: "post-side" }, [el("b", { text: p.author }), el("div", { class: "avatar", text: p.isMod ? "🎤" : avatar(p.author || "?") }), p.isMod ? el("span", { class: "hostbadge", text: "★ HOST ★" }) : el("span", { text: i === 0 ? "Topic Starter" : "Member" })]),
           el("div", { class: "post-body" }, [el("div", { class: "post-meta", text: (i === 0 ? "Posted: " : "Re: " + F.thread.title + " • ") + fmt(p.createdAt) }), p.body])
         ]));
       });
       if (F.api.canDelete) body.appendChild(el("button", { class: "fbtn small-x", type: "button", text: "🗑 Delete Topic (admin)", onclick: function () { var id = F.thread.id, bd = F.thread.board; F.api.remove(id).then(function () { goBoard(bd); }).catch(failWrite); } }));
-      if (canPost) body.appendChild(replyForm());
+      if (F.thread.locked) body.appendChild(el("p", { class: "fnote", text: "🔒 This topic is locked. No new replies." }));
+      else if (canPost) body.appendChild(replyForm());
       else body.appendChild(el("p", { class: "fnote", text: "Posting is closed on this copy of the site." }));
     } else if (F.compose) {
       body.appendChild(el("h2", { text: "Post a New Topic" }));
       body.appendChild(composeForm());
     } else if (F.board) {
       var bd = boardOf(F.board);
-      var bar = el("div", { class: "listen-row", style: "justify-content:space-between;align-items:center" }, [el("h2", { text: bd.name, style: "margin:0" }), canPost ? el("button", { class: "fbtn", type: "button", text: "✎ New Topic", onclick: function () { F.compose = true; F.err = ""; forumRender(); } }) : null]);
+      var bar = el("div", { class: "listen-row", style: "justify-content:space-between;align-items:center" }, [el("h2", { text: bd.name, style: "margin:0" }), canPost && !bd.locked ? el("button", { class: "fbtn", type: "button", text: "✎ New Topic", onclick: function () { F.compose = true; F.err = ""; forumRender(); } }) : null]);
       body.appendChild(bar);
-      var list = F.threads.filter(function (t) { return t.board === bd.id; });
+      var list = F.threads.filter(function (t) { return t.board === bd.id; }).sort(function (a, b) { return (b.pinned - a.pinned) || (b.lastAt - a.lastAt); });
+      if (bd.locked) body.appendChild(el("p", { class: "fnote", text: "🔒 Only the hosts can start topics on this board. You can still reply." }));
       if (!F.loaded) body.appendChild(el("div", { class: "empty-board", text: "Loading topics..." }));
       else if (!list.length) body.appendChild(el("div", { class: "empty-board", text: canPost ? "No topics yet!! Be the first to post in " + bd.name + "." : "No topics yet." }));
       else {
         var t = el("table", { class: "t90 forum-table", style: "margin-top:8px" }, [el("tr", null, [el("th", { text: "Topic" }), el("th", { class: "hide-sm", text: "Started By" }), el("th", { text: "Replies" }), el("th", { class: "hide-sm", text: "Last Post" })])]);
         list.forEach(function (th) {
           t.appendChild(el("tr", null, [
-            el("td", null, [el("button", { class: "topic-btn", type: "button", text: th.title, onclick: function () { openThread(th); } })]),
+            el("td", null, [th.pinned ? "📌 " : null, th.locked ? "🔒 " : null, el("button", { class: "topic-btn", type: "button", text: th.title, onclick: function () { openThread(th); } }), th.isMod ? el("span", { class: "hostbadge", style: "margin-left:4px", text: "HOST" }) : null]),
             el("td", { class: "hide-sm", text: th.author }),
             el("td", { text: String(th.replies || 0) }),
             el("td", { class: "hide-sm", text: fmt(th.lastAt) + " by " + (th.lastBy || th.author) })

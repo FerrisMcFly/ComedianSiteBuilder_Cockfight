@@ -16,12 +16,13 @@ const fri = iso(nextFri), sat = iso(new Date(nextFri.getFullYear(), nextFri.getM
 
 function makeDb() {
   const db = {
-    sites: [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com", features: { shows: true, podcast: true, videos: true, merch: true, forum: true, chat: false } }],
+    sites: [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com", features: { shows: true, podcast: true, videos: true, merch: true, forum: true, chat: true }, profile: {}, theme: {}, community: {} }],
     admins: [{ user_id: "u1", site_id: "cockfight" }], platform_admins: [{ user_id: "u1" }],
     hosts: [{ id: "colum", site_id: "cockfight", name: "Colum Tyrrell", sort: 0 }, { id: "lev", site_id: "cockfight", name: "Lev Fer", sort: 1 }, { id: "tristan", site_id: "cockfight", name: "Tristan Bowling", sort: 2 }],
     shows: [{ id: "s0", site_id: "cockfight", host: "lev", date: "2026-01-02", time: "7:00 PM", venue: "Laugh Boston", city: "Boston, MA", venue_id: "v1", url: "https://t/0", status: "on_sale" }],
     episodes: [{ id: "e1", site_id: "cockfight", num: 91, title: "Marathon Chainsaw", posted: "2026-10-22" }],
-    videos: [], merch: [], sources: [], settings: [], threads: [], posts: [],
+    videos: [], merch: [], sources: [], settings: [], threads: [], posts: [], announcements: [], links: [], bans: [], mod_log: [], chat_messages: [],
+    boards: [{ site_id: "cockfight", id: "general", name: "General Discusión", sort: 0 }, { site_id: "cockfight", id: "cantina", name: "Off Topic", sort: 1 }],
     venues: [{ id: "v1", name: "Laugh Boston", city: "Boston", state: "MA", status: "approved" }, { id: "v2", name: "Comedy Works Downtown", city: "Denver", state: "CO", status: "approved" }]
   };
   let n = 0;
@@ -54,12 +55,13 @@ async function open(hash = "", prep) {
   const { db, client } = makeDb();
   if (prep) prep(db);
   const dom = new JSDOM(html, { runScripts: "dangerously", pretendToBeVisual: true, url: "https://cockfightpodcast.com/admin.html" + hash, beforeParse(w) {
-    w.supabase = { createClient: () => client }; w.matchMedia = () => ({ matches: true }); w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {};
+    w.supabase = { createClient: () => client }; w.fetch = async (u) => (/theme\.json/.test(u) ? { ok: true, json: async () => THEME_JSON } : { ok: false, json: async () => ({}) }); w.matchMedia = () => ({ matches: true }); w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {};
   } });
   opened.push(dom.window);
   await new Promise((r) => setTimeout(r, 80));
   return { w: dom.window, d: dom.window.document, db };
 }
+const THEME_JSON = JSON.parse(readFileSync(new URL("../site/theme.json", import.meta.url), "utf8"));
 const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
 const btn = (d, re, scope = d) => [...scope.querySelectorAll("button")].find((b) => re.test(b.textContent));
 const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", { bubbles: true })); };
@@ -67,7 +69,8 @@ const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", 
 test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open();
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  assert.equal(d.querySelectorAll(".nav-btn").length, 9); // every section except chat (not built yet)
+  assert.equal(d.querySelectorAll(".nav-btn").length, 14);
+  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Content", "Your site", "Community"]);
   assert.match(d.body.textContent, /Connect your podcast/);
 });
 
@@ -172,7 +175,58 @@ test("episodes, videos, merch, settings all render", async () => {
   const merchSwitch = d.querySelector('input[aria-label="Merch"]'); merchSwitch.checked = false; merchSwitch.dispatchEvent(new w.Event("change")); await wait(40);
   assert.equal(db.sites[0].features.merch, false);
   assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /Merch/.test(b.textContent)));
-  w.location.hash = "announce"; await wait();
-  d.querySelector("main textarea").value = "NEW EP!"; d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait();
-  assert.deepEqual(JSON.parse(JSON.stringify(db.settings[0])), { site_id: "cockfight", key: "marquee", value: "NEW EP!" });
+  w.location.hash = "announce"; await wait(60);
+  set(w, d.querySelector('main input[aria-label="Announcement"]'), "NEW EP!"); d.querySelector('main input[type=checkbox]').checked = true;
+  d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.equal(db.announcements[0].text, "NEW EP!"); assert.equal(db.announcements[0].pinned, true); assert.equal(db.announcements[0].site_id, "cockfight");
+});
+
+test("profile and theme settings save to the site", async () => {
+  const { w, d, db } = await open("#profile");
+  set(w, d.querySelector("main input"), "The funniest podcast"); d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  assert.equal(db.sites[0].profile.tagline, "The funniest podcast");
+  w.location.hash = "theme"; await wait(80);
+  assert.match(d.querySelector("h1").textContent, /90s Cantina/);
+  const splash = d.querySelector('input[aria-label="Rooster splash screen"]'); splash.checked = false;
+  d.querySelector('select[aria-label="Scrolling banner speed"]').value = "fast";
+  d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  assert.equal(db.sites[0].theme.splash, false); assert.equal(db.sites[0].theme.banner_speed, "fast"); assert.equal(db.sites[0].theme.music, true);
+});
+
+test("forum: pin, lock, move, ban, boards", async () => {
+  const { w, d, db } = await open("#forum", (db) => {
+    db.threads.push({ id: "t1", site_id: "cockfight", board: "general", title: "Hello", author: "Troll", created_at: 1, last_at: 2, replies: 0, pinned: false, locked: false });
+    db.posts.push({ id: "p1", site_id: "cockfight", thread_id: "t1", author: "Troll", body: "spam", created_at: 1, device: "dev-9" });
+  });
+  await wait(60);
+  btn(d, /^Pin$/).click(); await wait(40);
+  assert.equal(db.threads[0].pinned, true);
+  btn(d, /^Lock$/).click(); await wait(40);
+  assert.equal(db.threads[0].locked, true);
+  const move = d.querySelector('select[aria-label="Move to board"]'); move.value = "cantina"; move.dispatchEvent(new w.Event("change")); await wait(40);
+  assert.equal(db.threads[0].board, "cantina");
+  btn(d, /^Posts$/).click(); await wait(60);
+  btn(d, /^Ban$/).click(); await wait(20);
+  d.querySelector(".newclub input[type=checkbox]").checked = true;
+  btn(d, /^Ban$/, d.querySelector(".newclub")).click(); await wait(40);
+  assert.equal(db.bans[0].author, "Troll"); assert.equal(db.bans[0].device, "dev-9"); assert.ok(db.bans[0].until);
+  assert.ok(db.mod_log.some((l) => l.action === "ban"));
+  // boards tab: add one
+  btn(d, /^Boards$/).click(); await wait(40);
+  set(w, d.querySelector('input[aria-label="New board name"]'), "Merch Talk");
+  btn(d, /^Add board$/).click(); await wait(60);
+  assert.ok(db.boards.some((b) => b.id === "merch-talk" && b.name === "Merch Talk" && b.sort === 2));
+});
+
+test("moderation saves house rules; chat can be closed", async () => {
+  const { w, d, db } = await open("#moderation");
+  await wait(40);
+  d.querySelector('textarea[aria-label="Banned words"]').value = "badword\n  spam  \nbadword";
+  d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].community.banned_words)), ["badword", "spam"]);
+  w.location.hash = "chat"; await wait(80);
+  const openBox = d.querySelector('input[aria-label="Chat open"]'); openBox.checked = false; openBox.dispatchEvent(new w.Event("change")); await wait(40);
+  assert.equal(db.sites[0].community.chat_open, false);
+  set(w, d.querySelector('input[aria-label="Message"]'), "Hello fans"); d.querySelector("main form.btns").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  assert.equal(db.chat_messages[0].is_mod, true); assert.equal(db.chat_messages[0].author, "Colum Tyrrell");
 });

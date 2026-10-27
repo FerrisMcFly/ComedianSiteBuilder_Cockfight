@@ -6,11 +6,14 @@ import { after } from "node:test";
 const opened = [];
 after(() => opened.forEach((w) => w.close()));
 
+const sdk = readFileSync(new URL("../site/sdk/csb.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("../site/index.html", import.meta.url), "utf8")
-  .replace('<script src="config.js"></script>', '<script>window.COCKFIGHT_CONFIG={SITE_ID:"cockfight",SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>');
+  .replace('<script src="config.js"></script>', '<script>window.COCKFIGHT_CONFIG={SITE_ID:"cockfight",SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
+  .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "")
+  .replace('<script src="sdk/csb.js"></script>', () => "<script>" + sdk.replace(/<\/script/g, "<\\/script") + "</script>");
 const future = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
 
-async function load(data, fail) {
+async function load(data, fail, reject) {
   const calls = [];
   const dom = new JSDOM(html, { runScripts: "dangerously", pretendToBeVisual: true, url: "https://cockfightpodcast.com/", beforeParse(w) {
     w.matchMedia = () => ({ matches: false }); w.scrollTo = () => {};
@@ -18,7 +21,11 @@ async function load(data, fail) {
       calls.push((o.method || "GET") + " " + u.split("/rest/v1/")[1]);
       const t = u.split("/rest/v1/")[1].split("?")[0];
       if (fail && fail.includes(t)) return { ok: false, status: 400, text: async () => JSON.stringify({ message: "column site_id does not exist" }) };
-      if (o.method === "POST") return { ok: true, status: 201, text: async () => (t === "threads" ? JSON.stringify([{ id: "th1" }]) : "") };
+      if (o.method === "POST") {
+        if (reject && reject[t]) return { ok: false, status: 400, text: async () => JSON.stringify({ message: reject[t] }) };
+        if (t === "chat_messages") (data.chat_messages = data.chat_messages || []).push({ id: "m" + Date.now(), ...JSON.parse(o.body), created_at: new Date().toISOString() });
+        return { ok: true, status: 201, text: async () => (t === "threads" ? JSON.stringify([{ id: "th1" }]) : "") };
+      }
       return { ok: true, status: 200, text: async () => JSON.stringify(data[t] || []) };
     };
   } });
@@ -70,4 +77,64 @@ test("before the database upgrade runs, the site keeps its built-in content", as
   const { d } = await load(base, ["episodes", "shows", "hosts", "settings"]);
   assert.equal(d.querySelectorAll("#dishes .dish").length, 47);
   assert.match(d.getElementById("liveNote").textContent, /Showing saved dates/);
+});
+
+test("announcements, profile, links and theme settings come through", async () => {
+  const data = { ...base,
+    sites: [{ id: "cockfight", features: { shows: true, podcast: true, forum: true }, profile: { support_url: "https://ko-fi.com/cockfight" }, theme: { visitor_counter: false, support_banner: false, webmaster: "Ferris", banner_speed: "fast" } }],
+    announcements: [{ id: "a1", text: "Live in Boston Jan 24", sort: 1, pinned: false }, { id: "a2", text: "Episode 92 is out!", link: "https://apple/92", sort: 2, pinned: true }, { id: "a3", text: "Old news", ends_on: "2020-01-01", sort: 3 }],
+    links: [{ id: "l1", label: "Book us", url: "https://book", sort: 0 }] };
+  const { d } = await load(data);
+  assert.equal(d.getElementById("headlineText").textContent, "Episode 92 is out!");
+  assert.equal(d.querySelector("#headlineText a").getAttribute("href"), "https://apple/92");
+  assert.match(d.getElementById("marqueeText").textContent, /Episode 92 is out! ••• Live in Boston Jan 24/);
+  assert.doesNotMatch(d.getElementById("marqueeText").textContent, /Old news/);
+  assert.equal(d.getElementById("linksBox").hidden, false);
+  assert.match(d.getElementById("linksBox").textContent, /Book us/);
+  assert.equal(d.querySelector(".patreon-banner").hidden, true);
+  assert.equal(d.getElementById("counter").parentNode.hidden, true);
+  assert.equal(d.getElementById("webmaster").textContent, "Ferris");
+  assert.equal(d.querySelector(".marquee span").style.animationDuration, "14s");
+  assert.ok([...d.querySelectorAll("a")].some((a) => a.href === "https://ko-fi.com/cockfight"));
+});
+
+test("forum shows pinned and locked topics and the board's own error messages", async () => {
+  const data = { ...base, sites: [{ id: "cockfight", features: { forum: true } }],
+    boards: [{ id: "general", name: "General", sort: 0 }, { id: "news", name: "News", sort: 1, locked: true }],
+    threads: [{ id: "t1", board: "general", title: "Old chat", author: "Fan", created_at: 1, last_at: 5, replies: 0 }, { id: "t2", board: "general", title: "Rules", author: "Lev Fer", created_at: 1, last_at: 2, replies: 0, pinned: true, locked: true, is_mod: true }],
+    posts: [{ id: "p1", thread_id: "t2", author: "Lev Fer", body: "Be nice", created_at: 1, is_mod: true }] };
+  const { w, d } = await load(data, null, { posts: "Slow down! Wait a little before posting again." });
+  d.getElementById("enter").click(); await new Promise((r) => setTimeout(r, 1000));
+  d.querySelector('.nav [data-view="forum"]').click(); await new Promise((r) => setTimeout(r, 150));
+  const boardNames = [...d.querySelectorAll("#fBody .board-name")].map((b) => b.textContent);
+  assert.deepEqual(boardNames, ["General", "News"]);
+  [...d.querySelectorAll("#fBody .board-name")].find((b) => b.textContent === "General").click(); await new Promise((r) => setTimeout(r, 50));
+  const rows = [...d.querySelectorAll("#fBody tr")].slice(1).map((tr) => tr.cells[0].textContent);
+  assert.match(rows[0], /📌 🔒 Rules/); assert.match(rows[1], /Old chat/);
+  [...d.querySelectorAll("#fBody .topic-btn")].find((b) => b.textContent === "Rules").click(); await new Promise((r) => setTimeout(r, 120));
+  assert.match(d.getElementById("fBody").textContent, /★ HOST ★/);
+  assert.match(d.getElementById("fBody").textContent, /This topic is locked/);
+  assert.equal(d.getElementById("rpForm"), null);
+  // a locked board can't be picked for a new topic
+  [...d.querySelectorAll("#fBody .crumbs button")][0].click(); await new Promise((r) => setTimeout(r, 30));
+  [...d.querySelectorAll("#fBody button")].find((b) => /Post New Topic/.test(b.textContent)).click(); await new Promise((r) => setTimeout(r, 30));
+  assert.deepEqual([...d.getElementById("ntBoard").options].map((o) => o.value), ["general"]);
+  // the database's slow-mode message reaches the fan
+  d.getElementById("ntName").value = "Fan"; d.getElementById("ntTitle").value = "Hi"; d.getElementById("ntBody").value = "yo";
+  d.getElementById("ntForm").dispatchEvent(new w.Event("submit", { cancelable: true })); await new Promise((r) => setTimeout(r, 120));
+  assert.match(d.getElementById("fBody").textContent, /Slow down! Wait a little before posting again\./);
+});
+
+test("chat room shows messages, sends, and shows the chat's rules", async () => {
+  const data = { ...base, sites: [{ id: "cockfight", features: { chat: true } }],
+    chat_messages: [{ id: "m1", author: "Colum Tyrrell", body: "Welcome!", is_mod: true, created_at: new Date().toISOString() }] };
+  const { w, d, calls } = await load(data);
+  assert.equal(d.querySelector('.nav [data-view="chat"]').hidden, false);
+  d.getElementById("enter").click(); await new Promise((r) => setTimeout(r, 1000));
+  d.querySelector('.nav [data-view="chat"]').click(); await new Promise((r) => setTimeout(r, 150));
+  assert.match(d.getElementById("chatLog").textContent, /HOSTColum Tyrrell: Welcome!/);
+  d.getElementById("chatName").value = "TacoKing"; d.getElementById("chatMsg").value = "yo!";
+  d.getElementById("chatForm").dispatchEvent(new w.Event("submit", { cancelable: true })); await new Promise((r) => setTimeout(r, 80));
+  assert.ok(calls.some((c) => c.startsWith("POST chat_messages")));
+  assert.equal(data.chat_messages.at(-1).author, "TacoKing"); assert.equal(data.chat_messages.at(-1).site_id, "cockfight"); assert.ok(data.chat_messages.at(-1).device);
 });

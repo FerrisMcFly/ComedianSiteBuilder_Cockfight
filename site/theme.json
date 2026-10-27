@@ -1,0 +1,15 @@
+{
+  "name": "90s Cantina",
+  "description": "A loving tribute to a 1998 Mexican restaurant home page. Built for Cockfight.",
+  "shows_announcements_as": "the scrolling banner across the top, with pinned ones as the blinking NEW!! line on the home page",
+  "shows_links_as": "a Links box on the home page",
+  "settings": [
+    { "key": "splash", "label": "Rooster splash screen", "help": "Visitors click ENTER (and hear a bawk) before the site opens.", "type": "toggle", "default": true },
+    { "key": "music", "label": "Mariachi music", "help": "Plays after ENTER. There's always a mute button in the header.", "type": "toggle", "default": true },
+    { "key": "banner_speed", "label": "Scrolling banner speed", "type": "select", "options": [["slow", "Slow"], ["normal", "Normal"], ["fast", "Fast"]], "default": "normal" },
+    { "key": "visitor_counter", "label": "Visitor counter", "help": "The red digital counter at the bottom of every page.", "type": "toggle", "default": true },
+    { "key": "support_banner", "label": "Big support banner", "help": "The striped \"Become a patron\" banner on every page. Uses your support link from Profile.", "type": "toggle", "default": true },
+    { "key": "cursor_trail", "label": "Chili pepper cursor trail", "type": "toggle", "default": true },
+    { "key": "webmaster", "label": "Footer webmaster credit", "type": "text", "default": "Cousin Danny", "placeholder": "Cousin Danny" }
+  ]
+}

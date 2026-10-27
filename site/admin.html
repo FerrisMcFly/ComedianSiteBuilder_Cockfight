@@ -54,6 +54,12 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.015em; }
 .nav-btn .ico { width: 20px; text-align: center; }
 .nav-btn .cnt { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
 .nav-btn:hover { background: var(--bg); color: var(--text); }
+.nav-group { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 14px 10px 4px; }
+.nav-group.nav-sep { padding: 6px 0; }
+.chatfeed { height: 420px; max-height: 60vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; padding: 6px; background: var(--bg); display: grid; align-content: start; gap: 2px; }
+.chatline { display: flex; justify-content: space-between; gap: 10px; align-items: start; padding: 7px 9px; border-radius: 9px; background: var(--panel); }
+.chatline.gone { opacity: .45; }
+.chatline .btns { flex: none; }
 .nav-btn[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
 .side-foot { margin-top: auto; display: grid; gap: 6px; padding: 12px 10px 4px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
 .side-foot .links { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -215,6 +221,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
   .side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--line); padding: 12px max(12px, env(safe-area-inset-left, 0px)) 8px; gap: 4px; }
   .brand { width: 100%; padding: 0 4px; } .brand-sub { width: 100%; padding: 0 4px 6px; }
   .nav-btn { width: auto; padding: 8px 10px; } .nav-btn .cnt { display: none; }
+  .nav-group { display: none; }
   .side-foot { margin: 0; width: 100%; border-top: 0; padding: 6px 4px 0; display: flex; justify-content: space-between; flex-wrap: wrap; }
   main { padding: 18px max(14px, env(safe-area-inset-right, 0px)) 80px max(14px, env(safe-area-inset-left, 0px)); }
   .c2, .c3, .c4, .c5, .c6, .c7, .c8, .c9 { grid-column: span 12; }
@@ -452,24 +459,35 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
   /* ============ shell ============ */
   const SECTIONS = [
     { id: "home", label: "Home", ico: "🏠", render: viewHome },
-    { id: "shows", label: "Shows", ico: "🎟️", feat: "shows", count: () => S.shows.filter((s) => s.date >= today()).length, render: viewShows },
-    { id: "podcast", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
-    { id: "videos", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
-    { id: "merch", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
-    { id: "people", label: "People", ico: "🎤", render: viewPeople },
-    { id: "forum", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
-    { id: "announce", label: "Announcements", ico: "📣", render: viewAnnounce },
+    { id: "shows", group: "Content", label: "Shows", ico: "🎟️", feat: "shows", count: () => S.shows.filter((s) => s.date >= today()).length, render: viewShows },
+    { id: "podcast", group: "Content", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
+    { id: "videos", group: "Content", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
+    { id: "merch", group: "Content", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
+    { id: "people", group: "Content", label: "People", ico: "🎤", render: viewPeople },
+    { id: "profile", group: "Your site", label: "Profile", ico: "🪪", render: viewProfile },
+    { id: "announce", group: "Your site", label: "Announcements", ico: "📣", render: viewAnnounce },
+    { id: "links", group: "Your site", label: "Links", ico: "🔗", render: viewLinks },
+    { id: "theme", group: "Your site", label: "Theme", ico: "🎨", render: viewTheme },
+    { id: "forum", group: "Community", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
+    { id: "chat", group: "Community", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
+    { id: "moderation", group: "Community", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
     { id: "settings", label: "Settings", ico: "⚙️", render: viewSettings }
   ];
-  const visible = () => SECTIONS.filter((s) => !s.feat || F(s.feat));
+  const visible = () => SECTIONS.filter((s) => !s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat)));
   const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
   window.addEventListener("hashchange", () => { if (S.site) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
 
   function route() {
     const cur = current();
-    const nav = visible().map((s) => h("button", { class: "nav-btn", type: "button", "data-sec": s.id, "aria-current": s === cur ? "page" : null, onclick: () => go(s.id) },
-      h("span", { class: "ico", "aria-hidden": "true", text: s.ico }), h("span", { text: s.label }), s.count ? h("span", { class: "cnt", text: s.count() }) : null));
+    let lastGroup = null;
+    const nav = visible().flatMap((s) => {
+      const out = [];
+      if (s.group !== lastGroup) { if (s.group) out.push(h("div", { class: "nav-group", text: s.group })); else if (lastGroup) out.push(h("div", { class: "nav-group nav-sep" })); lastGroup = s.group; }
+      out.push(h("button", { class: "nav-btn", type: "button", "data-sec": s.id, "aria-current": s === cur ? "page" : null, onclick: () => go(s.id) },
+        h("span", { class: "ico", "aria-hidden": "true", text: s.ico }), h("span", { text: s.label }), s.count ? h("span", { class: "cnt", text: s.count() }) : null));
+      return out;
+    });
     const siteSwitch = S.sites.length > 1 ? h("select", { "aria-label": "Site", onchange: async (e) => { store.set("csb_site", e.target.value); S.site = S.sites.find((s) => s.id === e.target.value); await loadAll(); route(); } },
       S.sites.map((s) => h("option", { value: s.id, text: s.name, selected: s.id === sid() }))) : null;
     const main = h("main", { id: "main" });
@@ -1157,56 +1175,460 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
   }
 
   /* ======================================================
-     FORUM (moderation; the full overhaul comes next)
+     SHARED BITS FOR SITE + COMMUNITY SECTIONS
      ====================================================== */
-  async function viewForum(main) {
-    main.append(head("Forum", "Newest activity first. Deleting a topic deletes its replies."));
-    const card = h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" })); main.append(card);
-    const BOARD = { general: "General", episodes: "Episode Talk", tour: "Live Shows", cantina: "Off Topic" };
-    const when = (ms) => { const d = new Date(Number(ms)); return isNaN(d) ? "" : MON[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear(); };
-    const sure = (label, fn) => { const b = h("button", { class: "btn ghost sm danger", type: "button", text: label, onclick: () => { if (b.dataset.sure) return fn(); b.dataset.sure = "1"; b.textContent = "Really?"; setTimeout(() => { delete b.dataset.sure; b.textContent = label; }, 3000); } }); return b; };
-    async function load() {
-      let threads; try { threads = await q(sb.from("threads").select("*").eq("site_id", sid()).order("last_at", { ascending: false }).limit(200)); } catch (e) { card.replaceChildren(h("p", { class: "err", text: errText(e) })); return; }
-      if (!threads.length) { card.replaceChildren(empty("No posts yet", "When fans start talking, it'll show up here.")); return; }
-      card.replaceChildren(...threads.map((t) => {
-        const posts = h("div", { class: "stack", hidden: true, style: "gap:6px" });
-        const toggle = h("button", { class: "btn ghost sm", type: "button", text: "Posts (" + (t.replies + 1) + ")", onclick: async () => {
-          if (!posts.hidden) { posts.hidden = true; return; }
-          posts.hidden = false; posts.replaceChildren(h("span", { class: "hint", text: "Loading…" }));
-          try { const ps = await q(sb.from("posts").select("*").eq("thread_id", t.id).order("created_at", { ascending: true }));
-            posts.replaceChildren(...ps.map((p) => h("div", { class: "post" }, h("div", null, h("b", { text: p.author }), h("span", { class: "hint", text: " · " + when(p.created_at) }), h("p", { text: p.body })),
-              sure("Delete", async () => { try { await q(sb.from("posts").delete().eq("id", p.id)); toast("Post deleted."); load(); } catch (e) { toast(errText(e), { bad: true }); } })))); }
-          catch (e) { posts.replaceChildren(h("p", { class: "err", text: errText(e) })); }
-        } });
-        return h("div", { class: "thread" }, h("div", { class: "thread-head" },
-          h("div", { style: "min-width:0" }, h("b", { class: "wrap-any", text: t.title }), h("div", { class: "hint", text: (BOARD[t.board] || t.board) + " · by " + t.author + " · last post " + when(t.last_at) })),
-          h("div", { class: "btns" }, toggle, sure("Delete topic", async () => { try { await q(sb.from("threads").delete().eq("id", t.id)); toast("Topic deleted."); load(); } catch (e) { toast(errText(e), { bad: true }); } }))), posts);
-      }));
-    }
-    load();
+  const C = () => Object.assign({ forum_open: true, chat_open: true, slow_mode_seconds: 20, chat_slow_seconds: 3, banned_words: [], reserve_names: true }, S.site.community || {});
+  async function saveSite(patch, msg) {
+    await q(sb.from("sites").update(patch).eq("id", sid()));
+    Object.assign(S.site, patch);
+    if (msg) toast(msg);
+  }
+  function logMod(action, detail) { sb.from("mod_log").insert({ site_id: sid(), action, detail: detail || null }).then(() => {}, () => {}); }
+  function ago(t) {
+    const ms = typeof t === "number" || /^\d+$/.test(String(t)) ? Number(t) : Date.parse(t);
+    const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (s < 60) return "just now"; if (s < 3600) return Math.floor(s / 60) + "m ago"; if (s < 86400) return Math.floor(s / 3600) + "h ago";
+    const d = new Date(ms); return MON[d.getMonth()] + " " + d.getDate();
+  }
+  const sure = (label, fn, cls) => { const b = h("button", { class: "btn sm " + (cls || "ghost danger"), type: "button", text: label, onclick: () => { if (b.dataset.sure) { delete b.dataset.sure; b.textContent = label; return fn(b); } b.dataset.sure = "1"; b.textContent = "Sure?"; setTimeout(() => { if (b.dataset.sure) { delete b.dataset.sure; b.textContent = label; } }, 3000); } }); return b; };
+  const tabs = (items, cur, onPick) => h("div", { class: "seg", role: "tablist" }, items.map(([id, label]) => h("button", { type: "button", role: "tab", "aria-pressed": String(cur === id), "aria-selected": String(cur === id), text: label, onclick: () => onPick(id) })));
+  const slug = (s) => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "board";
+  let THEME = null;
+  async function loadTheme() {
+    if (THEME !== null) return THEME;
+    try { const r = await fetch("theme.json", { cache: "no-store" }); THEME = r.ok ? await r.json() : false; } catch (e) { THEME = false; }
+    return THEME;
+  }
+  // Ban form used from forum posts, chat messages and the moderation page
+  function banForm(prefill, onDone) {
+    const nameIn = h("input", { value: prefill.author || "", placeholder: "Username", "aria-label": "Username to ban" });
+    const byDevice = h("input", { type: "checkbox", checked: !!prefill.device, disabled: !prefill.device });
+    const len = h("select", { "aria-label": "How long" }, [["1", "1 day"], ["7", "1 week"], ["30", "30 days"], ["0", "Forever"]].map(([v, l]) => h("option", { value: v, text: l, selected: v === "7" })));
+    const reason = h("input", { placeholder: "Reason (only admins see this)", "aria-label": "Reason" });
+    const msg = h("div", { class: "err" });
+    return h("div", { class: "newclub stack", style: "gap:10px" }, h("b", { text: "Ban " + (prefill.author || "someone") }),
+      h("div", { class: "grid" }, field("Username", nameIn, "c4"), field("For", len, "c3"), field("Reason", reason, "c5")),
+      prefill.device ? h("label", { class: "check" }, byDevice, "Also ban their device, so a new username won't get around it") : null,
+      msg, h("div", { class: "btns" },
+        h("button", { class: "btn primary sm", type: "button", text: "Ban", onclick: async () => {
+          const author = nameIn.value.trim(); if (!author && !(byDevice.checked && prefill.device)) { nameIn.classList.add("bad"); return; }
+          const days = Number(len.value);
+          const row = { site_id: sid(), author: author || null, device: byDevice.checked ? prefill.device : null, reason: reason.value.trim() || null, until: days ? new Date(Date.now() + days * 864e5).toISOString() : null };
+          try { await q(sb.from("bans").insert(row)); logMod("ban", (author || "device") + (days ? " for " + len.selectedOptions[0].text : " forever")); toast("Banned " + (author || "that device") + "."); onDone && onDone(true); }
+          catch (e) { msg.textContent = errText(e); }
+        } }),
+        h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: () => onDone && onDone(false) })));
+  }
+
+  /* ======================================================
+     PROFILE
+     ====================================================== */
+  function viewProfile(main) {
+    const p = S.site.profile || {};
+    const f = {
+      tagline: h("input", { value: p.tagline || "", placeholder: "One line that sums you up" }),
+      about: h("textarea", { value: p.about || "", placeholder: "Tell fans what you're about", style: "min-height:140px" }),
+      contact_email: h("input", { type: "email", value: p.contact_email || "", placeholder: "hello@…" }),
+      booking_email: h("input", { type: "email", value: p.booking_email || "", placeholder: "booking@…" }),
+      support_url: h("input", { type: "url", value: p.support_url || "", placeholder: "https://www.patreon.com/…" }),
+      support_label: h("input", { value: p.support_label || "", placeholder: "Patreon" })
+    };
+    const save = h("button", { class: "btn primary", type: "submit", text: "Save profile" });
+    main.append(head("Profile", "The basics about you or your show. Your theme decides where each piece appears."),
+      h("form", { class: "card stack", onsubmit: async (e) => {
+        e.preventDefault(); save.disabled = true;
+        const profile = Object.assign({}, p); for (const k in f) profile[k] = f[k].value.trim();
+        try { await saveSite({ profile }, "Profile saved. It's live."); } catch (err) { toast(errText(err), { bad: true }); }
+        save.disabled = false;
+      } },
+        h("div", { class: "grid" }, field("Tagline", f.tagline, "c12"), field("About", f.about, "c12"),
+          field("Contact email", f.contact_email, "c6"), field("Booking email", f.booking_email, "c6"),
+          field("Support link (Patreon, Ko-fi, Substack…)", f.support_url, "c8"), field("Support button says", f.support_label, "c4")),
+        h("div", { class: "btns" }, save)));
   }
 
   /* ======================================================
      ANNOUNCEMENTS
      ====================================================== */
-  function viewAnnounce(main) {
-    main.append(head("Announcements", "The scrolling banner runs across the top of every page. The headline is the big NEW!! line on your home page."));
-    const marquee = h("textarea", { value: S.settings.marquee || "" }), headline = h("input", { value: S.settings.headline || "", placeholder: "Episode 92 is out now! (leave empty to hide)" });
-    const save = h("button", { class: "btn primary", type: "submit", text: "Save" });
+  let ANN = null;
+  async function viewAnnounce(main) {
+    const theme = await loadTheme();
+    main.append(head("Announcements", theme && theme.shows_announcements_as ? "Your theme shows these as " + theme.shows_announcements_as + "." : "Short news for your fans. Your theme decides how they show up."));
+    const wrap = h("div", { class: "stack" }); main.append(wrap);
+    const reloadAnn = async () => { ANN = await q(sb.from("announcements").select("*").eq("site_id", sid()).order("sort", { ascending: true })); };
+    try { await reloadAnn(); } catch (e) { wrap.append(h("p", { class: "err", text: errText(e) })); return; }
+    const t0 = today();
+    const state = (a) => a.ends_on && a.ends_on < t0 ? ["Ended", "pill"] : a.starts_on && a.starts_on > t0 ? ["Starts " + shortDate(a.starts_on), "pill warn"] : ["Live", "pill ok"];
+    function draw() {
+      const text = h("input", { maxlength: "280", placeholder: "Episode 92 is out now!", "aria-label": "Announcement" });
+      const link = h("input", { type: "url", placeholder: "https://… (optional)", "aria-label": "Link" });
+      const label = h("input", { placeholder: "Listen now", "aria-label": "Link text" });
+      const starts = h("input", { type: "date", "aria-label": "Starts" }), ends = h("input", { type: "date", "aria-label": "Ends" });
+      const pin = h("input", { type: "checkbox" });
+      const add = h("form", { class: "card stack", onsubmit: async (e) => {
+        e.preventDefault(); if (!text.value.trim()) { text.classList.add("bad"); text.focus(); return; }
+        try { await q(sb.from("announcements").insert({ site_id: sid(), text: text.value.trim(), link: link.value.trim() || null, link_label: label.value.trim() || null, starts_on: starts.value || null, ends_on: ends.value || null, pinned: pin.checked, sort: ANN.length }));
+          await reloadAnn(); draw(); toast("Posted. It's live."); }
+        catch (err) { toast(errText(err), { bad: true }); }
+      } }, h("h2", { text: "New announcement" }),
+        h("div", { class: "grid" }, field("Text", text, "c12"), field("Link", link, "c6"), field("Link text", label, "c6"), field("Show from", starts, "c3"), field("Until", ends, "c3"),
+          h("label", { class: "check c6", style: "align-self:end;padding-bottom:10px" }, pin, "Pin it (the big one)")),
+        h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Post announcement" }), h("span", { class: "hint", text: "Leave the dates empty to show it until you remove it." })));
+      const list = h("section", { class: "card" }, h("h2", { text: "Your announcements" }), ANN.length ? h("div", null, ANN.map((a, i) => {
+        const [st, cls] = state(a);
+        return h("div", { class: "switch-row", style: "flex-wrap:wrap" },
+          h("div", { style: "min-width:0;flex:1 1 300px" }, h("div", { class: "btns" }, a.pinned ? h("span", { class: "pill red", text: "📌 Pinned" }) : null, h("span", { class: cls, text: st })),
+            h("div", { class: "wrap-any", style: "margin-top:4px;font-weight:600", text: a.text }), a.link ? h("div", { class: "hint wrap-any", text: (a.link_label || "Link") + " → " + a.link }) : null,
+            a.starts_on || a.ends_on ? h("div", { class: "hint", text: (a.starts_on ? "From " + shortDate(a.starts_on) : "") + (a.ends_on ? " until " + shortDate(a.ends_on) : "") }) : null),
+          h("div", { class: "btns" },
+            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => reorder(i, i - 1) }),
+            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === ANN.length - 1, onclick: () => reorder(i, i + 1) }),
+            h("button", { class: "btn ghost sm", type: "button", text: a.pinned ? "Unpin" : "Pin", onclick: async () => { try { await q(sb.from("announcements").update({ pinned: !a.pinned }).eq("id", a.id)); await reloadAnn(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
+            h("button", { class: "btn ghost sm danger", type: "button", text: "Remove", onclick: async () => {
+              try { await q(sb.from("announcements").delete().eq("id", a.id)); await reloadAnn(); draw();
+                toast("Removed.", { action: { label: "Undo", run: async () => { const { id, ...r } = a; try { await q(sb.from("announcements").insert(r)); await reloadAnn(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
+              catch (e) { toast(errText(e), { bad: true }); }
+            } })));
+      })) : empty("No announcements", "Post one above."));
+      wrap.replaceChildren(add, list);
+    }
+    async function reorder(a, b) {
+      const A = ANN[a], B = ANN[b];
+      try { await q(sb.from("announcements").update({ sort: b }).eq("id", A.id)); await q(sb.from("announcements").update({ sort: a }).eq("id", B.id)); await reloadAnn(); draw(); } catch (e) { toast(errText(e), { bad: true }); }
+    }
+    draw();
+  }
+
+  /* ======================================================
+     LINKS
+     ====================================================== */
+  async function viewLinks(main) {
+    const theme = await loadTheme();
+    main.append(head("Links", theme && theme.shows_links_as ? "Your theme shows these as " + theme.shows_links_as + "." : "Your link-in-bio list: socials, tickets, booking, anything."));
+    const wrap = h("div", { class: "stack" }); main.append(wrap);
+    let L = [];
+    const reloadL = async () => { L = await q(sb.from("links").select("*").eq("site_id", sid()).order("sort", { ascending: true })); };
+    try { await reloadL(); } catch (e) { wrap.append(h("p", { class: "err", text: errText(e) })); return; }
+    function draw() {
+      const label = h("input", { placeholder: "Book us for your event", "aria-label": "Link text" }), url = h("input", { type: "url", placeholder: "https://…", "aria-label": "Link address" });
+      const add = h("form", { class: "card stack", onsubmit: async (e) => {
+        e.preventDefault();
+        if (!label.value.trim()) { label.classList.add("bad"); label.focus(); return; }
+        if (!/^https?:\/\//i.test(url.value.trim())) { url.classList.add("bad"); url.focus(); return; }
+        try { await q(sb.from("links").insert({ site_id: sid(), label: label.value.trim(), url: url.value.trim(), sort: L.length })); await reloadL(); draw(); toast("Link added."); } catch (err) { toast(errText(err), { bad: true }); }
+      } }, h("h2", { text: "Add a link" }), h("div", { class: "grid" }, field("Text", label, "c5"), field("Address", url, "c7")), h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add link" })));
+      const list = h("section", { class: "card" }, h("h2", { text: "Your links" }), L.length ? h("div", null, L.map((l, i) => h("div", { class: "switch-row" },
+        h("div", { style: "min-width:0" }, h("b", { text: l.label }), h("div", { class: "hint wrap-any", text: l.url + (l.hidden ? " · Hidden" : "") })),
+        h("div", { class: "btns" },
+          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => swap(i, i - 1) }),
+          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === L.length - 1, onclick: () => swap(i, i + 1) }),
+          h("button", { class: "btn ghost sm", type: "button", text: l.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("links").update({ hidden: !l.hidden }).eq("id", l.id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
+          sure("Delete", async () => { try { await q(sb.from("links").delete().eq("id", l.id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } })))))
+        : empty("No links yet", "Add your first one above."));
+      wrap.replaceChildren(add, list);
+    }
+    async function swap(a, b) { try { await q(sb.from("links").update({ sort: b }).eq("id", L[a].id)); await q(sb.from("links").update({ sort: a }).eq("id", L[b].id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } }
+    draw();
+  }
+
+  /* ======================================================
+     THEME (built from the front end's theme.json)
+     ====================================================== */
+  async function viewTheme(main) {
+    const theme = await loadTheme();
+    if (!theme || !Array.isArray(theme.settings)) {
+      main.append(head("Theme", "Settings that belong to your site's design."), h("section", { class: "card" }, empty("Nothing to set", "Your site's design doesn't have any extra settings.")));
+      return;
+    }
+    main.append(head("Theme: " + (theme.name || "Your design"), theme.description || "Settings that belong to your site's design."));
+    const vals = Object.assign({}, S.site.theme || {});
+    const inputs = {};
+    const rows = theme.settings.map((st) => {
+      const v = st.key in vals ? vals[st.key] : st.default;
+      let input;
+      if (st.type === "toggle") input = h("label", { class: "switch" }, (inputs[st.key] = h("input", { type: "checkbox", role: "switch", checked: !!v, "aria-label": st.label })), h("span"));
+      else if (st.type === "select") input = (inputs[st.key] = h("select", { "aria-label": st.label, style: "width:auto" }, (st.options || []).map((o) => { const [ov, ol] = Array.isArray(o) ? o : [o, o]; return h("option", { value: ov, text: ol, selected: ov === v }); })));
+      else input = (inputs[st.key] = h("input", { value: v ?? "", placeholder: st.placeholder || "", "aria-label": st.label, style: "max-width:260px" }));
+      return h("div", { class: "switch-row" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), input);
+    });
+    const save = h("button", { class: "btn primary", type: "submit", text: "Save theme settings" });
     main.append(h("form", { class: "card stack", onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true;
-      try { await q(sb.from("settings").upsert([{ site_id: sid(), key: "marquee", value: marquee.value.trim() }, { site_id: sid(), key: "headline", value: headline.value.trim() }], { onConflict: "site_id,key" }));
-        S.settings.marquee = marquee.value.trim(); S.settings.headline = headline.value.trim(); toast("Saved. It's live."); }
+      const out = {};
+      for (const st of theme.settings) { const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; }
+      try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, out) }, "Saved. Reload your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
+      save.disabled = false;
+    } }, h("div", { class: "switches" }, rows), h("div", { class: "btns" }, save)));
+  }
+
+  /* ======================================================
+     FORUM
+     ====================================================== */
+  const FORUM = { tab: "topics", board: "all", q: "", open: null, boards: [] };
+  async function viewForum(main) {
+    main.append(head("Forum", "Run your message boards: pin and lock topics, move them, edit or delete posts, and ban trolls."));
+    const top = h("div", { class: "toolbar" }); const body = h("div", { class: "stack" });
+    main.append(top, body);
+    const loadBoards = async () => { FORUM.boards = await q(sb.from("boards").select("*").eq("site_id", sid()).order("sort", { ascending: true })); };
+    try { await loadBoards(); } catch (e) { body.append(h("p", { class: "err", text: errText(e) })); return; }
+    const c = C();
+    const drawTop = () => top.replaceChildren(tabs([["topics", "Topics"], ["boards", "Boards"]], FORUM.tab, (t) => { FORUM.tab = t; drawTop(); draw(); }),
+      h("span", { class: c.forum_open ? "pill ok" : "pill red", text: c.forum_open ? "Open for posting" : "Closed for posting" }));
+    drawTop();
+    const boardName = (id) => (FORUM.boards.find((b) => b.id === id) || {}).name || id;
+    async function draw() { body.replaceChildren(h("p", { class: "hint", text: "Loading…" })); FORUM.tab === "boards" ? drawBoards() : drawTopics(); }
+
+    async function drawTopics() {
+      let threads;
+      try { threads = await q(sb.from("threads").select("*").eq("site_id", sid()).order("last_at", { ascending: false }).limit(300)); } catch (e) { body.replaceChildren(h("p", { class: "err", text: errText(e) })); return; }
+      const filter = h("select", { "aria-label": "Board", style: "width:auto", onchange: (e) => { FORUM.board = e.target.value; drawTopics(); } },
+        h("option", { value: "all", text: "All boards" }), FORUM.boards.map((b) => h("option", { value: b.id, text: b.name, selected: FORUM.board === b.id })));
+      const search = h("input", { type: "search", class: "search", placeholder: "Search topics or names", value: FORUM.q, "aria-label": "Search topics" });
+      const listBox = h("div");
+      const drawList = () => {
+        const s = FORUM.q.toLowerCase();
+        const rows = threads.filter((t) => (FORUM.board === "all" || t.board === FORUM.board) && (!s || (t.title + " " + t.author).toLowerCase().includes(s)))
+          .sort((a, b) => (!!b.pinned - !!a.pinned) || (Number(b.last_at) - Number(a.last_at)));
+        listBox.replaceChildren(...(rows.length ? rows.map(topicRow) : [empty(threads.length ? "Nothing matches" : "No topics yet", threads.length ? "" : "Start one below, or wait for fans to.")]));
+      };
+      search.addEventListener("input", () => { FORUM.q = search.value; drawList(); });
+      drawList();
+      body.replaceChildren(h("section", { class: "card" }, h("div", { class: "toolbar" }, h("div", { class: "btns" }, filter, search), h("span", { class: "hint", text: threads.length + " topics" })), listBox), hostTopicForm());
+    }
+
+    function topicRow(t) {
+      const move = h("select", { "aria-label": "Move to board", style: "width:auto;min-height:32px;padding:4px 8px;font-size:13px", onchange: async (e) => {
+        try { await q(sb.from("threads").update({ board: e.target.value }).eq("id", t.id)); logMod("move topic", "“" + t.title + "” to " + boardName(e.target.value)); toast("Moved to " + boardName(e.target.value) + "."); t.board = e.target.value; }
+        catch (err) { toast(errText(err), { bad: true }); }
+      } }, FORUM.boards.map((b) => h("option", { value: b.id, text: "Move: " + b.name, selected: b.id === t.board })));
+      const postsBox = h("div", { class: "stack", style: "gap:8px;margin-top:8px", hidden: FORUM.open !== t.id });
+      const flip = (field, onMsg, offMsg) => async () => {
+        try { await q(sb.from("threads").update({ [field]: !t[field] }).eq("id", t.id)); t[field] = !t[field]; logMod((t[field] ? "" : "un") + (field === "pinned" ? "pin" : "lock"), "“" + t.title + "”"); toast(t[field] ? onMsg : offMsg); drawTopics(); }
+        catch (e) { toast(errText(e), { bad: true }); }
+      };
+      const row = h("div", { class: "thread" },
+        h("div", { class: "thread-head", style: "flex-wrap:wrap" },
+          h("div", { style: "min-width:0;flex:1 1 280px" },
+            h("div", { class: "btns", style: "gap:6px" }, t.pinned ? h("span", { class: "pill red", text: "📌 Pinned" }) : null, t.locked ? h("span", { class: "pill", text: "🔒 Locked" }) : null, t.is_mod ? h("span", { class: "pill ok", text: "Host" }) : null,
+              h("b", { class: "wrap-any", text: t.title })),
+            h("div", { class: "hint", text: boardName(t.board) + " · by " + t.author + " · " + (t.replies || 0) + " repl" + (t.replies === 1 ? "y" : "ies") + " · last post " + ago(t.last_at) + (t.last_by ? " by " + t.last_by : "") })),
+          h("div", { class: "btns" },
+            h("button", { class: "btn ghost sm", type: "button", text: FORUM.open === t.id ? "Hide posts" : "Posts", onclick: () => { FORUM.open = FORUM.open === t.id ? null : t.id; drawTopics(); } }),
+            h("button", { class: "btn ghost sm", type: "button", text: t.pinned ? "Unpin" : "Pin", onclick: flip("pinned", "Pinned to the top.", "Unpinned.") }),
+            h("button", { class: "btn ghost sm", type: "button", text: t.locked ? "Unlock" : "Lock", onclick: flip("locked", "Locked. No new replies.", "Unlocked.") }),
+            move,
+            sure("Delete", async () => { try { await q(sb.from("threads").delete().eq("id", t.id)); logMod("delete topic", "“" + t.title + "” by " + t.author); toast("Topic deleted."); drawTopics(); } catch (e) { toast(errText(e), { bad: true }); } }))),
+        postsBox);
+      if (FORUM.open === t.id) loadPosts(t, postsBox);
+      return row;
+    }
+
+    async function loadPosts(t, box) {
+      box.replaceChildren(h("span", { class: "hint", text: "Loading posts…" }));
+      let ps; try { ps = await q(sb.from("posts").select("*").eq("thread_id", t.id).order("created_at", { ascending: true })); } catch (e) { box.replaceChildren(h("p", { class: "err", text: errText(e) })); return; }
+      box.replaceChildren(...ps.map((p) => {
+        const card = h("div", { class: "post", style: "flex-wrap:wrap" });
+        const show = () => card.replaceChildren(
+          h("div", { style: "min-width:0;flex:1 1 300px" }, h("b", { text: p.author }), p.is_mod ? h("span", { class: "pill ok", style: "margin-left:6px", text: "Host" }) : null,
+            h("span", { class: "hint", text: " · " + ago(p.created_at) + (p.edited_at ? " · edited" : "") }), h("p", { text: p.body })),
+          h("div", { class: "btns" },
+            h("button", { class: "btn ghost sm", type: "button", text: "Edit", onclick: edit }),
+            p.is_mod ? null : h("button", { class: "btn ghost sm", type: "button", text: "Ban", onclick: () => card.replaceChildren(banForm({ author: p.author, device: p.device }, () => show())) }),
+            sure("Delete", async () => { try { await q(sb.from("posts").delete().eq("id", p.id)); logMod("delete post", "by " + p.author + " in “" + t.title + "”"); toast("Post deleted."); loadPosts(t, box); } catch (e) { toast(errText(e), { bad: true }); } })));
+        const edit = () => {
+          const ta = h("textarea", { value: p.body, "aria-label": "Post text" });
+          card.replaceChildren(h("div", { class: "stack", style: "flex:1 1 100%;gap:8px" }, ta, h("div", { class: "btns" },
+            h("button", { class: "btn primary sm", type: "button", text: "Save edit", onclick: async () => {
+              const v = ta.value.trim(); if (!v) { ta.classList.add("bad"); return; }
+              try { await q(sb.from("posts").update({ body: v, edited_at: new Date().toISOString() }).eq("id", p.id)); logMod("edit post", "by " + p.author + " in “" + t.title + "”"); p.body = v; p.edited_at = new Date().toISOString(); show(); toast("Edited."); }
+              catch (e) { toast(errText(e), { bad: true }); }
+            } }), h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: show }))));
+          ta.focus();
+        };
+        show(); return card;
+      }), replyAsHost(t, box));
+    }
+
+    function hostPicker() {
+      return h("select", { "aria-label": "Post as", style: "width:auto" }, S.hosts.map((x) => h("option", { value: x.name, text: x.name })), h("option", { value: S.site.name, text: S.site.name + " (the show)" }));
+    }
+    function replyAsHost(t, box) {
+      const who = hostPicker(), ta = h("textarea", { placeholder: "Reply as a host. It gets a Host badge.", "aria-label": "Host reply", style: "min-height:70px" });
+      return h("div", { class: "newclub stack", style: "gap:8px" }, h("div", { class: "btns" }, h("b", { text: "Reply as" }), who), ta,
+        h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Post reply", onclick: async () => {
+          const v = ta.value.trim(); if (!v) { ta.classList.add("bad"); return; }
+          try { await q(sb.from("posts").insert({ site_id: sid(), thread_id: t.id, author: who.value, body: v, created_at: Date.now(), is_mod: true })); toast("Replied as " + who.value + "."); loadPosts(t, box); }
+          catch (e) { toast(errText(e), { bad: true }); }
+        } })));
+    }
+    function hostTopicForm() {
+      const who = hostPicker();
+      const board = h("select", { "aria-label": "Board", style: "width:auto" }, FORUM.boards.map((b) => h("option", { value: b.id, text: b.name })));
+      const title = h("input", { placeholder: "Topic title", maxlength: "90", "aria-label": "Topic title" }), ta = h("textarea", { placeholder: "First post", "aria-label": "First post" });
+      const pin = h("input", { type: "checkbox", checked: true });
+      return h("details", { class: "card" }, h("summary", { style: "cursor:pointer;font-weight:700;font-family:var(--display);font-size:18px", text: "Start a topic as a host" }),
+        h("div", { class: "stack", style: "margin-top:12px" }, h("div", { class: "btns" }, field("Post as", who), field("Board", board)), field("Title", title), field("Post", ta),
+          h("label", { class: "check" }, pin, "Pin it to the top"),
+          h("div", { class: "btns" }, h("button", { class: "btn primary", type: "button", text: "Post topic", onclick: async () => {
+            if (!title.value.trim()) { title.classList.add("bad"); title.focus(); return; }
+            if (!ta.value.trim()) { ta.classList.add("bad"); ta.focus(); return; }
+            const now = Date.now();
+            try {
+              const th = await q(sb.from("threads").insert({ site_id: sid(), board: board.value, title: title.value.trim(), author: who.value, created_at: now, last_at: now, last_by: who.value, replies: 0, pinned: pin.checked, is_mod: true }).select().single());
+              await q(sb.from("posts").insert({ site_id: sid(), thread_id: th.id, author: who.value, body: ta.value.trim(), created_at: now, is_mod: true }));
+              toast("Topic posted."); FORUM.open = th.id; drawTopics();
+            } catch (e) { toast(errText(e), { bad: true }); }
+          } }))));
+    }
+
+    function drawBoards() {
+      const B = FORUM.boards;
+      const rows = B.map((b, i) => {
+        const nm = h("input", { value: b.name, "aria-label": "Board name" }), ds = h("input", { value: b.description || "", placeholder: "What goes here", "aria-label": "Board description" });
+        return h("div", { class: "switch-row", style: "flex-wrap:wrap;align-items:start" },
+          h("div", { class: "grid", style: "flex:1 1 360px" }, field("Name", nm, "c5"), field("Description", ds, "c7")),
+          h("div", { class: "btns", style: "padding-top:22px" },
+            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => swapB(i, i - 1) }),
+            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === B.length - 1, onclick: () => swapB(i, i + 1) }),
+            h("button", { class: "btn ghost sm", type: "button", text: b.locked ? "🔒 Locked" : "Lock", title: "Locked boards: only hosts can start topics", onclick: () => upd(b, { locked: !b.locked }, b.locked ? "Unlocked " + b.name + "." : "Locked " + b.name + ". Only hosts can start topics there.") }),
+            h("button", { class: "btn ghost sm", type: "button", text: b.hidden ? "Hidden" : "Hide", onclick: () => upd(b, { hidden: !b.hidden }, b.hidden ? b.name + " is visible again." : b.name + " is hidden from fans.") }),
+            h("button", { class: "btn sm", type: "button", text: "Save", onclick: () => { if (!nm.value.trim()) { nm.classList.add("bad"); return; } upd(b, { name: nm.value.trim(), description: ds.value.trim() || null }, "Saved."); } }),
+            B.length > 1 ? h("button", { class: "btn ghost sm danger", type: "button", text: "Delete", onclick: (e) => deleteBoard(b, e.currentTarget.closest(".switch-row")) }) : null));
+      });
+      const nm = h("input", { placeholder: "Merch Talk", "aria-label": "New board name" }), ds = h("input", { placeholder: "Show off your gear", "aria-label": "New board description" });
+      body.replaceChildren(h("section", { class: "card" }, h("h2", { text: "Boards" }), h("p", { class: "sub", text: "Boards appear on your forum in this order." }), h("div", null, rows)),
+        h("section", { class: "card stack" }, h("h2", { text: "Add a board" }), h("div", { class: "grid" }, field("Name", nm, "c5"), field("Description", ds, "c7")),
+          h("div", { class: "btns" }, h("button", { class: "btn primary", type: "button", text: "Add board", onclick: async () => {
+            if (!nm.value.trim()) { nm.classList.add("bad"); nm.focus(); return; }
+            let id = slug(nm.value); while (B.some((b) => b.id === id)) id += "-2";
+            try { await q(sb.from("boards").insert({ site_id: sid(), id, name: nm.value.trim(), description: ds.value.trim() || null, sort: B.length })); logMod("add board", nm.value.trim()); await loadBoards(); drawBoards(); toast("Board added."); }
+            catch (e) { toast(errText(e), { bad: true }); }
+          } }))));
+    }
+    async function upd(b, patch, msg) { try { await q(sb.from("boards").update(patch).eq("site_id", sid()).eq("id", b.id)); logMod("edit board", b.name); await loadBoards(); drawBoards(); toast(msg); } catch (e) { toast(errText(e), { bad: true }); } }
+    async function swapB(a, b) { const A = FORUM.boards[a], Bb = FORUM.boards[b]; try { await q(sb.from("boards").update({ sort: b }).eq("site_id", sid()).eq("id", A.id)); await q(sb.from("boards").update({ sort: a }).eq("site_id", sid()).eq("id", Bb.id)); await loadBoards(); drawBoards(); } catch (e) { toast(errText(e), { bad: true }); } }
+    async function deleteBoard(b, rowEl) {
+      let count = 0;
+      try { count = (await q(sb.from("threads").select("id").eq("site_id", sid()).eq("board", b.id))).length; } catch (e) {}
+      const others = FORUM.boards.filter((x) => x.id !== b.id);
+      const dest = h("select", { "aria-label": "Move topics to", style: "width:auto" }, others.map((x) => h("option", { value: x.id, text: x.name })));
+      rowEl.replaceWith(h("div", { class: "newclub stack", style: "gap:8px;margin:8px 0" }, h("b", { text: "Delete “" + b.name + "”?" }),
+        count ? h("div", { class: "btns" }, h("span", { text: "Move its " + count + " topic" + (count > 1 ? "s" : "") + " to" }), dest) : h("span", { class: "hint", text: "It has no topics." }),
+        h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Delete board", onclick: async () => {
+          try { if (count) await q(sb.from("threads").update({ board: dest.value }).eq("site_id", sid()).eq("board", b.id));
+            await q(sb.from("boards").delete().eq("site_id", sid()).eq("id", b.id)); logMod("delete board", b.name + (count ? " (topics moved)" : "")); await loadBoards(); drawBoards(); toast("Board deleted."); }
+          catch (e) { toast(errText(e), { bad: true }); }
+        } }), h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: drawBoards }))));
+    }
+    draw();
+  }
+
+  /* ======================================================
+     CHAT
+     ====================================================== */
+  let chatSub = null;
+  window.addEventListener("hashchange", () => { if (chatSub && location.hash.slice(1) !== "chat") { chatSub(); chatSub = null; } });
+  async function viewChat(main) {
+    const c = C();
+    main.append(head("Chat room", "A live chat for your fans. Watch it here, jump in as a host, and clean up anything that shouldn't be there."));
+    const openBox = h("input", { type: "checkbox", role: "switch", checked: c.chat_open, "aria-label": "Chat open" });
+    openBox.addEventListener("change", async () => {
+      try { await saveSite({ community: Object.assign(C(), { chat_open: openBox.checked }) }, openBox.checked ? "The chat is open." : "The chat is closed. Fans can read it but not post."); logMod(openBox.checked ? "open chat" : "close chat"); }
+      catch (e) { openBox.checked = !openBox.checked; toast(errText(e), { bad: true }); }
+    });
+    const slow = h("select", { "aria-label": "Slow mode", style: "width:auto", onchange: async (e) => {
+      try { await saveSite({ community: Object.assign(C(), { chat_slow_seconds: Number(e.target.value) }) }, Number(e.target.value) ? "Slow mode: one message every " + e.target.value + " seconds." : "Slow mode off."); } catch (err) { toast(errText(err), { bad: true }); }
+    } }, [[0, "Off"], [3, "3 seconds"], [5, "5 seconds"], [10, "10 seconds"], [30, "30 seconds"], [60, "1 minute"]].map(([v, l]) => h("option", { value: v, text: l, selected: Number(c.chat_slow_seconds) === v })));
+    const feed = h("div", { class: "chatfeed", "aria-live": "polite" });
+    const who = h("select", { "aria-label": "Chat as", style: "width:auto" }, S.hosts.map((x) => h("option", { value: x.name, text: x.name })), h("option", { value: S.site.name, text: S.site.name }));
+    const say = h("input", { maxlength: "500", placeholder: "Say something as a host…", "aria-label": "Message" });
+    const sendForm = h("form", { class: "btns", style: "margin-top:10px", onsubmit: async (e) => {
+      e.preventDefault(); const v = say.value.trim(); if (!v) return;
+      try { await q(sb.from("chat_messages").insert({ site_id: sid(), author: who.value, body: v, is_mod: true })); say.value = ""; refresh(); } catch (err) { toast(errText(err), { bad: true }); }
+    } }, who, h("div", { style: "flex:1 1 220px" }, say), h("button", { class: "btn primary", type: "submit", text: "Send" }));
+    main.append(h("div", { class: "stack" },
+      h("section", { class: "card" }, h("div", { class: "switches" },
+        h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Chat is open" }), h("div", { class: "hint", text: "When it's closed, fans can still read but can't post." })), h("label", { class: "switch" }, openBox, h("span"))),
+        h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Slow mode" }), h("div", { class: "hint", text: "How long each fan has to wait between messages." })), slow),
+        h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Clear the chat" }), h("div", { class: "hint", text: "Hides every message currently in the room." })),
+          sure("Clear chat", async () => { try { await q(sb.from("chat_messages").update({ deleted: true }).eq("site_id", sid()).eq("deleted", false)); logMod("clear chat"); toast("Chat cleared."); refresh(); } catch (e) { toast(errText(e), { bad: true }); } }, "danger")))),
+      h("section", { class: "card" }, h("h2", { text: "Live" }), feed, sendForm)));
+    let msgs = [];
+    function render() {
+      const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 40;
+      feed.replaceChildren(...(msgs.length ? msgs.map((m) => {
+        const row = h("div", { class: "chatline" + (m.deleted ? " gone" : "") },
+          h("div", { style: "min-width:0" }, h("b", { text: m.author }), m.is_mod ? h("span", { class: "pill ok", style: "margin-left:6px", text: "Host" }) : null, h("span", { class: "hint", text: "  " + ago(m.created_at) + (m.deleted ? " · deleted" : "") }), h("div", { class: "wrap-any", text: m.body })),
+          m.deleted ? null : h("div", { class: "btns" },
+            m.is_mod ? null : h("button", { class: "btn ghost sm", type: "button", text: "Ban", onclick: () => row.replaceWith(banForm({ author: m.author, device: m.device }, () => render())) }),
+            h("button", { class: "btn ghost sm danger", type: "button", text: "Delete", onclick: async () => { try { await q(sb.from("chat_messages").update({ deleted: true }).eq("id", m.id)); logMod("delete chat message", "by " + m.author); m.deleted = true; render(); } catch (e) { toast(errText(e), { bad: true }); } } })));
+        return row;
+      }) : [empty("It's quiet in here", "Messages show up live as fans post.")]));
+      if (atBottom) feed.scrollTop = feed.scrollHeight;
+    }
+    async function refresh() {
+      try { msgs = (await q(sb.from("chat_messages").select("*").eq("site_id", sid()).order("created_at", { ascending: false }).limit(150))).reverse(); render(); }
+      catch (e) { feed.replaceChildren(h("p", { class: "err", text: errText(e) })); }
+    }
+    await refresh(); feed.scrollTop = feed.scrollHeight;
+    if (chatSub) chatSub();
+    let channel = null, timer = setInterval(refresh, 8000);
+    try { channel = sb.channel && sb.channel("admin-chat-" + sid()).on("postgres_changes", { event: "*", schema: "public", table: "chat_messages", filter: "site_id=eq." + sid() }, () => refresh()).subscribe(); } catch (e) {}
+    chatSub = () => { clearInterval(timer); try { channel && channel.unsubscribe(); } catch (e) {} };
+  }
+
+  /* ======================================================
+     MODERATION
+     ====================================================== */
+  async function viewModeration(main) {
+    main.append(head("Moderation", "House rules for your forum and chat, the ban list, and a record of every moderator action."));
+    const c = C();
+    const wrap = h("div", { class: "stack" }); main.append(wrap);
+    const forumOpen = h("input", { type: "checkbox", role: "switch", checked: c.forum_open, "aria-label": "Forum open" });
+    const reserve = h("input", { type: "checkbox", role: "switch", checked: c.reserve_names, "aria-label": "Reserve host names" });
+    const slow = h("select", { "aria-label": "Forum slow mode", style: "width:auto" }, [[0, "Off"], [10, "10 seconds"], [20, "20 seconds"], [60, "1 minute"], [300, "5 minutes"]].map(([v, l]) => h("option", { value: v, text: l, selected: Number(c.slow_mode_seconds) === v })));
+    const words = h("textarea", { value: (c.banned_words || []).join("\n"), placeholder: "One word or phrase per line", "aria-label": "Banned words", style: "min-height:110px" });
+    const save = h("button", { class: "btn primary", type: "submit", text: "Save house rules" });
+    wrap.append(h("form", { class: "card", onsubmit: async (e) => {
+      e.preventDefault(); save.disabled = true;
+      const list = [...new Set(words.value.split(/\n+/).map((w) => w.trim()).filter(Boolean))];
+      try { await saveSite({ community: Object.assign(C(), { forum_open: forumOpen.checked, reserve_names: reserve.checked, slow_mode_seconds: Number(slow.value), banned_words: list }) }, "House rules saved."); logMod("update house rules"); }
       catch (err) { toast(errText(err), { bad: true }); }
       save.disabled = false;
-    } }, field("Scrolling banner", marquee), field("Home page headline", headline), h("div", { class: "btns" }, save)));
+    } }, h("h2", { text: "House rules" }), h("div", { class: "switches" },
+      h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Forum open for posting" }), h("div", { class: "hint", text: "Turn off to freeze the forum. Fans can still read." })), h("label", { class: "switch" }, forumOpen, h("span"))),
+      h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Protect host names" }), h("div", { class: "hint", text: "Fans can't post as " + (S.hosts.map((x) => x.name.split(" ")[0]).join(", ") || "your hosts") + ", “admin” or “mod”." })), h("label", { class: "switch" }, reserve, h("span"))),
+      h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Forum slow mode" }), h("div", { class: "hint", text: "How long a fan waits between forum posts." })), slow)),
+      field("Banned words (posts containing these are blocked, in the forum and the chat)", words), h("div", { class: "btns", style: "margin-top:10px" }, save)));
+
+    const bansCard = h("section", { class: "card" }); wrap.append(bansCard);
+    async function drawBans() {
+      let bans; try { bans = await q(sb.from("bans").select("*").eq("site_id", sid()).order("created_at", { ascending: false })); } catch (e) { bansCard.replaceChildren(h("p", { class: "err", text: errText(e) })); return; }
+      const now = Date.now();
+      const active = bans.filter((b) => !b.until || Date.parse(b.until) > now);
+      const addBox = h("div");
+      bansCard.replaceChildren(h("h2", { text: "Banned (" + active.length + ")" }),
+        active.length ? h("div", null, active.map((b) => h("div", { class: "switch-row" },
+          h("div", null, h("b", { text: b.author || "A device" }), h("div", { class: "hint", text: (b.until ? "Until " + new Date(b.until).toLocaleDateString() : "Forever") + (b.device ? " · device banned too" : "") + (b.reason ? " · " + b.reason : "") })),
+          h("button", { class: "btn sm", type: "button", text: "Unban", onclick: async () => { try { await q(sb.from("bans").delete().eq("id", b.id)); logMod("unban", b.author || "device"); toast("Unbanned."); drawBans(); } catch (e) { toast(errText(e), { bad: true }); } } }))))
+          : empty("Nobody's banned", "Ban someone from any forum post or chat message, or right here."),
+        addBox, h("div", { class: "btns", style: "margin-top:10px" }, h("button", { class: "btn", type: "button", text: "+ Ban a username", onclick: () => addBox.replaceChildren(banForm({}, (ok) => { addBox.replaceChildren(); if (ok) drawBans(); })) })));
+    }
+    drawBans();
+
+    const logCard = h("section", { class: "card" }); wrap.append(logCard);
+    try {
+      const log = await q(sb.from("mod_log").select("*").eq("site_id", sid()).order("created_at", { ascending: false }).limit(100));
+      logCard.replaceChildren(h("h2", { text: "Moderator log" }), log.length ? h("div", null, log.map((l) => h("div", { class: "switch-row" }, h("span", null, h("b", { text: l.action }), l.detail ? " · " + l.detail : ""), h("span", { class: "hint nowrap", text: ago(l.created_at) }))))
+        : empty("Nothing yet", "Every pin, lock, delete and ban shows up here."));
+    } catch (e) { logCard.replaceChildren(h("p", { class: "err", text: errText(e) })); }
   }
 
   /* ======================================================
      SETTINGS
      ====================================================== */
   const FEATURES = [["shows", "Shows & tour dates", "Your upcoming shows with ticket links."], ["podcast", "Podcast", "Episode archive that updates itself from your feed."], ["videos", "Videos", "Your latest YouTube uploads."],
-    ["merch", "Merch", "Items you sell, linked to your store."], ["forum", "Forum", "Message boards for your fans."], ["chat", "Chat room", "Coming soon: a live chat for fans."]];
+    ["merch", "Merch", "Items you sell, linked to your store."], ["forum", "Forum", "Message boards for your fans."], ["chat", "Chat room", "A live chat room that's always open for fans."]];
   async function viewSettings(main) {
     main.append(head("Settings", "Turn sections of your site on or off. Turning one off hides it from your site and from this menu; nothing is deleted."));
     const name = h("input", { value: S.site.name });
@@ -1215,7 +1637,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
       try { await q(sb.from("sites").update({ name: name.value.trim() || S.site.name }).eq("id", sid())); S.site.name = name.value.trim() || S.site.name; route(); toast("Saved."); } catch (err) { toast(errText(err), { bad: true }); }
     } }, h("h2", { text: "Your site" }), h("div", { class: "grid" }, field("Site name", name, "c8"), field("Address", h("input", { value: S.site.domain || "", disabled: true }), "c4")), h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Save" })));
     const feats = h("section", { class: "card" }, h("h2", { text: "Sections" }), h("div", { class: "switches" }, FEATURES.map(([k, l, d]) => {
-      const box = h("input", { type: "checkbox", role: "switch", checked: F(k), "aria-label": l, disabled: k === "chat", onchange: async (e) => {
+      const box = h("input", { type: "checkbox", role: "switch", checked: F(k), "aria-label": l, onchange: async (e) => {
         const features = { ...(S.site.features || {}), [k]: e.target.checked };
         try { await q(sb.from("sites").update({ features }).eq("id", sid())); S.site.features = features; route(); toast(l + (e.target.checked ? " is on." : " is off.")); }
         catch (err) { e.target.checked = !e.target.checked; toast(errText(err), { bad: true }); }
