@@ -492,6 +492,7 @@ td select.status.st-few_left { color: var(--warn); }
       return;
     }
     sb.auth.onAuthStateChange((_ev, s) => { if (s) S.token = s.access_token; });
+    await loadTheme();
     route();
   }
 
@@ -503,16 +504,18 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "videos", group: "Content", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
     { id: "merch", group: "Content", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
     { id: "people", group: "Content", label: "People", ico: "🎤", render: viewPeople },
-    { id: "profile", group: "Your site", label: "Profile", ico: "🪪", render: viewProfile },
-    { id: "announce", group: "Your site", label: "Announcements", ico: "📣", render: viewAnnounce },
-    { id: "links", group: "Your site", label: "Links", ico: "🔗", render: viewLinks },
-    { id: "theme", group: "Your site", label: "Design settings", ico: "🎨", render: viewTheme },
     { id: "forum", group: "Community", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
     { id: "chat", group: "Community", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
     { id: "moderation", group: "Community", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
+    // Extras only show up when this site's own front end says it uses them (in its theme.json)
+    { id: "announce", group: "Site extras", label: "Announcements", ico: "📣", extra: "announcements", render: viewAnnounce },
+    { id: "links", group: "Site extras", label: "Links", ico: "🔗", extra: "links", render: viewLinks },
+    { id: "theme", group: "Site extras", label: "Design settings", ico: "🎨", extra: "design", render: viewTheme },
+    { id: "profile", label: "Profile", ico: "🪪", render: viewProfile },
     { id: "settings", label: "Settings", ico: "⚙️", render: viewSettings }
   ];
-  const visible = () => SECTIONS.filter((s) => !s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat)));
+  const hasExtra = (x) => !!(THEME && (x === "design" ? Array.isArray(THEME.settings) && THEME.settings.length : Array.isArray(THEME.extras) && THEME.extras.includes(x)));
+  const visible = () => SECTIONS.filter((s) => (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
   const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
   window.addEventListener("hashchange", () => { if (S.site) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
@@ -568,7 +571,7 @@ td select.status.st-few_left { color: var(--warn); }
         h("div", { class: "btns" },
           F("shows") ? h("button", { class: "btn primary big", type: "button", text: "+ Add shows", onclick: () => go("shows") }) : null,
           F("podcast") ? h("button", { class: "btn big", type: "button", text: "+ Add an episode", onclick: () => { go("podcast"); } }) : null,
-          h("button", { class: "btn big", type: "button", text: "📣 Update announcement", onclick: () => go("announce") })),
+          hasExtra("announcements") ? h("button", { class: "btn big", type: "button", text: "📣 Post an announcement", onclick: () => go("announce") }) : null),
         stats.length ? h("div", { class: "stats" }, stats.map(([l, n, sec]) => h("button", { class: "stat", type: "button", style: "text-align:left;cursor:pointer", onclick: () => go(sec) }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l })))) : null,
         next ? h("section", { class: "card" }, h("h2", { text: "Next show" }),
           h("div", { class: "next" }, h("div", { class: "date-badge" }, h("div", null, h("small", { text: MON[parseISO(next.date).getMonth()] }), h("b", { text: parseISO(next.date).getDate() }))),
@@ -1383,7 +1386,7 @@ td select.status.st-few_left { color: var(--warn); }
   let ANN = null;
   async function viewAnnounce(main) {
     const theme = await loadTheme();
-    main.append(head("Announcements", theme && theme.shows_announcements_as ? "Your theme shows these as " + theme.shows_announcements_as + "." : "Short news for your fans. Your theme decides how they show up."));
+    main.append(head("Announcements", "Short news for your fans, like a new episode, a show added or a sale. Your site decides where they appear."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     const reloadAnn = async () => { ANN = await q(sb.from("announcements").select("*").eq("site_id", sid()).order("sort", { ascending: true })); };
     try { await reloadAnn(); } catch (e) { wrap.append(h("p", { class: "err", text: errText(e) })); return; }
@@ -1434,7 +1437,7 @@ td select.status.st-few_left { color: var(--warn); }
      ====================================================== */
   async function viewLinks(main) {
     const theme = await loadTheme();
-    main.append(head("Links", theme && theme.shows_links_as ? "Your theme shows these as " + theme.shows_links_as + "." : "Your link-in-bio list: socials, tickets, booking, anything."));
+    main.append(head("Links", "A list of links for your site: socials, booking, anything you want fans to find."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     let L = [];
     const reloadL = async () => { L = await q(sb.from("links").select("*").eq("site_id", sid()).order("sort", { ascending: true })); };
