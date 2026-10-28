@@ -17,17 +17,17 @@
    Under it: the Tape, links, dates as ticket stubs, and who else is on the bill (tap to visit their Coaster).
    The comic picks a look; a look is a handful of colors plus the coaster's edge print. */
 :root { --bg: #F3EAD7; --card: #FBF6EA; --ink: #1F1F1F; --muted: #5E584D; --line: #E2D6BC; --accent: #C4452E; --on-accent: #fff; --chip: #EFE4CC;
-  --pulp: #F7F0DF; --print: #1F1F1F; --ring: #C4452E; --edge: repeating-conic-gradient(from 0deg, var(--ring) 0 4deg, transparent 4deg 8deg); }
+  --pulp: #F4ECDC; --print: #1F1F1F; --ring: #C4452E; }
 body.look-night { --bg: #141414; --card: #1E1E1E; --ink: #F3EAD7; --muted: #B5AC9A; --line: #34312C; --accent: #D9583F; --on-accent: #fff; --chip: #292725;
-  --pulp: #232120; --print: #F3EAD7; --ring: #D9583F; }
+  --pulp: #24221F; --print: #F3EAD7; --ring: #D9583F; --photo-blend: screen; }
 body.look-redwood { --bg: #A93A26; --card: #B9432E; --ink: #FFF7E8; --muted: #F7D9CC; --line: #CF6049; --accent: #1F1F1F; --on-accent: #F3EAD7; --chip: #B23D29;
-  --pulp: #F3EAD7; --print: #A93A26; --ring: #1F1F1F; }
+  --pulp: #F3EAD7; --print: #1F1F1F; --ring: #A93A26; }
 body.look-mustard { --bg: #E0A21A; --card: #ECB232; --ink: #1F1F1F; --muted: #4A3A12; --line: #C98F12; --accent: #1F1F1F; --on-accent: #F3EAD7; --chip: #E7AA27;
-  --pulp: #1F1F1F; --print: #E0A21A; --ring: #E0A21A; }
+  --pulp: #F6E7BF; --print: #1F1F1F; --ring: #E0A21A; --band-ink: #1F1F1F; }
 body.look-spooky { --bg: #120E18; --card: #1C1624; --ink: #F4EBDD; --muted: #B6A9C2; --line: #352A44; --accent: #F07C1F; --on-accent: #120E18; --chip: #271F33;
-  --pulp: #1E1726; --print: #F07C1F; --ring: #8D5BD6; --edge: repeating-conic-gradient(from 0deg, #F07C1F 0 6deg, #8D5BD6 6deg 12deg); }
+  --pulp: #1B1622; --print: #F4EBDD; --ring: #F07C1F; --band-ink: #120E18; --photo-blend: screen; }
 body.look-holiday { --bg: #17321F; --card: #1E3F28; --ink: #FBF3E4; --muted: #C9D8C3; --line: #2F5A3B; --accent: #D9443A; --on-accent: #fff; --chip: #24492F;
-  --pulp: #FBF3E4; --print: #17321F; --ring: #D9443A; --edge: repeating-conic-gradient(from 0deg, #D9443A 0 5deg, #FBF3E4 5deg 10deg); }
+  --pulp: #FBF3E4; --print: #17321F; --ring: #1F5A35; }
 * { box-sizing: border-box; }
 html { background: var(--bg); }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--ct-sans, Inter, system-ui, sans-serif); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
@@ -37,29 +37,33 @@ a { color: inherit; }
 .wrap { max-width: 560px; margin: 0 auto; padding: 22px 16px 40px; }
 
 /* ---------- the coaster ---------- */
-.table { position: relative; display: grid; place-items: center; padding: 26px 0 8px; }
-.coaster { position: relative; width: min(74vw, 300px); aspect-ratio: 1; perspective: 1200px; border: 0; padding: 0; background: none; cursor: pointer; color: inherit; transition: transform .3s; }
-.coaster:hover { transform: scale(1.015); }
-.coaster .spin { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3, 1.4, .5, 1); }
+/* Built like a real bar coaster: thick pulpboard with a pressed rim, printed in one ink plus a band of color.
+   --pulp is the board, --print the ink, --ring the band. */
+.table { display: grid; place-items: center; padding: 26px 0 6px; }
+.coaster { position: relative; width: min(76vw, 300px); aspect-ratio: 1; perspective: 1400px; border: 0; padding: 0; background: none; cursor: pointer; color: inherit; transition: transform .25s; -webkit-tap-highlight-color: transparent; }
+.coaster:hover { transform: translateY(-2px); }
+.coaster .spin { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.25, 1.3, .45, 1); }
 .coaster.flipped .spin { transform: rotateY(180deg); }
-.face { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
-  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.12), transparent 55%), var(--pulp);
-  box-shadow: 0 1px 0 rgba(0,0,0,.25), 0 14px 28px rgba(0,0,0,.28), inset 0 0 0 2px rgba(0,0,0,.08); }
-.face::before { /* the printed edge */ content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--edge);
-  -webkit-mask: radial-gradient(circle closest-side, transparent calc(100% - 13px), #000 calc(100% - 12px)); mask: radial-gradient(circle closest-side, transparent calc(100% - 13px), #000 calc(100% - 12px)); }
-.arc circle { fill: none; stroke: var(--print); }
-.face svg.arc { position: absolute; inset: 0; width: 100%; height: 100%; }
-.arc text { fill: var(--print); font-family: var(--ct-display, sans-serif); font-weight: 900; text-transform: uppercase; }
-.front .pic { position: absolute; inset: 29%; border-radius: 50%; object-fit: cover; width: 42%; height: 42%; border: 3px solid var(--print); background: var(--chip); }
-.front .pic.initials { display: grid; place-items: center; color: var(--print); font: 900 clamp(34px, 11vw, 56px)/1 var(--ct-display, sans-serif); background: transparent; }
-.back { transform: rotateY(180deg); display: grid; place-items: center; text-align: center; color: var(--print); }
-.back .inner { width: 56%; display: grid; gap: 6px; justify-items: center; }
-.back .k { font: 800 11px/1 var(--ct-sans, sans-serif); letter-spacing: .18em; text-transform: uppercase; opacity: .8; }
-.back .big { font: 900 clamp(18px, 5.8vw, 25px)/1.02 var(--ct-display, sans-serif); text-transform: uppercase; }
-.back .sm { font-size: 13px; font-weight: 600; line-height: 1.3; }
-.back .qr { width: 36%; aspect-ratio: 1; margin-top: 4px; background: var(--pulp); }
+.face { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: var(--pulp);
+  /* board thickness, then the shadow on the table */
+  box-shadow: 0 3px 0 0 color-mix(in srgb, var(--pulp) 78%, #000), 0 4px 0 0 rgba(0,0,0,.12), 0 16px 26px -6px rgba(0,0,0,.35); }
+.face::after { /* pulp grain over everything, like pressed paper */ content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: .5; mix-blend-mode: multiply;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .38 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.print { position: absolute; inset: 11px; border-radius: 50%; overflow: hidden; background: var(--pulp);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--print) 70%, transparent), 0 0 0 1px rgba(255,255,255,.18); } /* the pressed rim */
+.print img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 25%;
+  filter: grayscale(1) contrast(1.25) brightness(1.08); mix-blend-mode: var(--photo-blend, multiply); }
+.print .initials { position: absolute; inset: 0 0 36%; display: grid; place-items: center; color: var(--print); font: 900 clamp(54px, 19vw, 92px)/1 var(--ct-display, sans-serif); }
+.band { position: absolute; left: 0; right: 0; bottom: 0; height: 36%; background: var(--ring); color: var(--band-ink, var(--pulp)); display: grid; align-content: start; justify-items: center; padding-top: 10px; text-align: center; }
+.band b { font: 900 clamp(22px, 8vw, 34px)/.95 var(--ct-display, sans-serif); text-transform: uppercase; letter-spacing: .01em; max-width: 78%; overflow-wrap: anywhere; }
+.band span { margin-top: 5px; font: 700 9.5px/1 var(--ct-sans, sans-serif); letter-spacing: .2em; text-transform: uppercase; opacity: .85; }
+.back { transform: rotateY(180deg); }
+.back .print { display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; color: var(--print); padding: 0 22%; }
+.back .k { font: 800 11px/1.25 var(--ct-sans, sans-serif); letter-spacing: .16em; text-transform: uppercase; }
+.back .qr { width: min(46vw, 150px); aspect-ratio: 1; color: var(--print); }
 .back .qr svg { width: 100%; height: 100%; display: block; }
-.tap { margin-top: 12px; font-size: 13px; color: var(--muted); }
+.back .url { font: 700 9px/1.3 var(--ct-sans, sans-serif); letter-spacing: .08em; max-width: 100%; overflow-wrap: anywhere; text-transform: uppercase; opacity: .8; }
+.tap { margin-top: 14px; font-size: 13px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .coaster, .coaster .spin { transition: none; } }
 
 /* ---------- who ---------- */
@@ -207,16 +211,6 @@ footer a { font-weight: 700; text-decoration: none; }
     app.replaceChildren(el("div", { class: "empty" }, [el("h1", { text: "Couldn't load this" }), el("p", { text: "Check your connection and try again." })]));
   });
 
-  // The name printed around the top of the coaster, ComicTable around the bottom.
-  function arcText(top, bottom) {
-    var size = top.length > 22 ? 13 : top.length > 16 ? 16 : 20;
-    return svg("svg", { class: "arc", viewBox: "0 0 300 300", "aria-hidden": "true" }, [
-      // rings: just inside the striped rim, and around the middle
-      svg("circle", { cx: 150, cy: 150, r: 133, "stroke-width": 2 }), svg("circle", { cx: 150, cy: 150, r: 99, "stroke-width": 1.5 }),
-      svg("defs", {}, [svg("path", { id: "arcTop", d: "M 39 150 A 111 111 0 0 1 261 150", fill: "none" }), svg("path", { id: "arcBot", d: "M 34 150 A 116 116 0 0 0 266 150", fill: "none" })]),
-      svg("text", { "font-size": size, "letter-spacing": "3", "text-anchor": "middle" }, svg("textPath", { href: "#arcTop", startOffset: "50%" }, document.createTextNode(top))),
-      svg("text", { "font-size": "11", "letter-spacing": "4", "text-anchor": "middle" }, svg("textPath", { href: "#arcBot", startOffset: "50%" }, document.createTextNode(bottom)))]);
-  }
   // A QR code back to this Coaster (made in the browser; the maker loads only when the coaster is flipped).
   var qrLoad = null;
   function qrInto(box, text) {
@@ -239,19 +233,22 @@ footer a { font-weight: 700; text-decoration: none; }
     var parts = [], next = dates[0];
 
     // ---- the coaster ----
-    var front = el("div", { class: "face front" }, [arcText(c.name, "★ ComicTable ★ Coaster ★"),
-      safe(c.photo_url) ? el("img", { class: "pic", src: c.photo_url, alt: "" }) : el("div", { class: "pic initials", text: initials(c.name) })]);
+    // Front: their photo printed in one ink, their name on the band. Back: a QR code to their fan list (or this page).
+    var fanSite = sites.filter(function (s) { return s.features && s.features.fans; }).sort(function (a, b) { return (b.name === c.name) - (a.name === c.name); })[0];
+    var first = c.name.split(" ")[0];
+    var qrTo = fanSite ? (fanSite.domain ? "https://" + fanSite.domain + "/join" : location.origin + "/join/" + encodeURIComponent(fanSite.id)) : here;
+    var front = el("div", { class: "face front" }, el("div", { class: "print" }, [
+      safe(c.photo_url) ? el("img", { src: c.photo_url, alt: "" }) : el("div", { class: "initials", text: initials(c.name) }),
+      el("div", { class: "band" }, [el("b", { text: c.name }), el("span", { text: "comictable.com/" + c.id })])]));
     var qr = el("div", { class: "qr" });
-    var back = el("div", { class: "face back" }, [arcText(next ? "Next up" : "Scan me", "comictable.com/" + c.id),
-      el("div", { class: "inner" }, next ? [
-        el("span", { class: "k", text: DAY[dayOf(next).getDay()] + " " + MON[dayOf(next).getMonth()] + " " + dayOf(next).getDate() + (next.time ? " · " + niceTime(next.time) : "") }),
-        el("span", { class: "big", text: next.venue || next.site_name || "Show" }), next.city ? el("span", { class: "sm", text: next.city }) : null, qr]
-        : [el("span", { class: "big", text: c.name }), el("span", { class: "sm", text: c.title || "Comedian" }), qr])]);
-    var coaster = el("button", { class: "coaster", type: "button", "aria-label": c.name + "'s Coaster. Flip it over", "aria-pressed": "false", onclick: function () {
-      var f = coaster.classList.toggle("flipped"); coaster.setAttribute("aria-pressed", String(f)); tap.textContent = f ? "Tap to flip back" : "Tap the coaster to flip it";
-      if (f && !qr.firstChild) qrInto(qr, here);
+    var back = el("div", { class: "face back" }, el("div", { class: "print" }, [
+      el("span", { class: "k", text: fanSite ? "Scan to join " + first + "'s list" : "Scan for " + first + "'s Coaster" }), qr,
+      el("span", { class: "url", text: qrTo.replace(/^https?:\/\//, "") })]));
+    var coaster = el("button", { class: "coaster", type: "button", "aria-label": c.name + "'s Coaster. Flip it for a QR code", "aria-pressed": "false", onclick: function () {
+      var f = coaster.classList.toggle("flipped"); coaster.setAttribute("aria-pressed", String(f)); tap.textContent = f ? "Tap to flip back" : "Tap the coaster for a QR code";
+      if (f && !qr.firstChild) qrInto(qr, qrTo);
     } }, el("div", { class: "spin" }, [front, back]));
-    var tap = el("div", { class: "tap", text: "Tap the coaster to flip it" });
+    var tap = el("div", { class: "tap", text: "Tap the coaster for a QR code" });
     parts.push(el("section", { class: "table" }, [coaster, tap]));
 
     // The comic decides what's on the Coaster itself ("front"), what's under More, and what's off.
@@ -273,7 +270,6 @@ footer a { font-weight: 700; text-decoration: none; }
     if (safe(so.website)) links.push(el("a", { class: "btn" + (links.length ? "" : " main"), href: so.website, target: "_blank", rel: "noopener", text: "Website" }));
     put("links", links.length ? el("nav", { class: "links", "aria-label": "Links" }, links) : null);
 
-    var fanSite = sites.filter(function (s) { return s.features && s.features.fans; }).sort(function (a, b) { return (b.name === c.name) - (a.name === c.name); })[0];
     if (fanSite) {
       var joinBox = joinForm(c, fanSite);
       var joinBtn = el("button", { class: "btn", type: "button", text: "Join my list", "aria-expanded": "false", onclick: function () {
@@ -346,7 +342,6 @@ footer a { font-weight: 700; text-decoration: none; }
     var moreAll = more.concat([row(moreBtns)]).filter(Boolean);
     if (moreAll.length) {
       var moreBox = el("div", { class: "more", id: "more", hidden: true }, moreAll);
-      var first = c.name.split(" ")[0];
       var moreBtn = el("button", { class: "btn more-btn", type: "button", "aria-expanded": "false", "aria-controls": "more", text: "More from " + first + " ▾", onclick: function () {
         moreBox.hidden = !moreBox.hidden; moreBtn.setAttribute("aria-expanded", String(!moreBox.hidden)); moreBtn.textContent = moreBox.hidden ? "More from " + first + " ▾" : "Less ▴";
       } });

@@ -56,19 +56,18 @@ test("next dates with tickets, and who else is on the bill links to their Coaste
   const other = rows[0].querySelector(".bill a");
   assert.equal(other.getAttribute("href"), "/colum-tyrrell");
   assert.match(other.textContent, /CTColum Tyrrell/);
-  // the back of the coaster says what's next
+  // tap the coaster: it flips to a QR code
   const coaster = d.querySelector(".coaster");
-  assert.match(d.querySelector(".back").textContent, /Next up.*Comedy Cellar.*New York/s);
+  assert.match(d.querySelector(".back").textContent, /Scan for Lev's Coaster.*comictable\.com\/lev-fer/s, "no fan list: the QR goes to the Coaster");
   coaster.click();
   assert.ok(coaster.classList.contains("flipped"));
   assert.equal(coaster.getAttribute("aria-pressed"), "true");
 });
 
-test("the name goes around the coaster's edge, and the page invites other comics to get one", async () => {
+test("the name is printed on the coaster's band, and the page invites other comics to get one", async () => {
   const { d } = await load("/tristan-bowling", { comics: [{ id: "tristan-bowling", name: "Tristan Bowling" }] });
-  assert.equal(d.querySelector(".front textPath").textContent, "Tristan Bowling");
+  assert.equal(d.querySelector(".front .band b").textContent, "Tristan Bowling");
   assert.equal(d.querySelector(".front .initials").textContent, "TB");
-  assert.match(d.querySelector(".back").textContent, /Scan me.*comictable\.com\/tristan-bowling/s);
   assert.equal([...d.querySelectorAll("a")].find((a) => /Get your own Coaster/.test(a.textContent)).getAttribute("href"), "/#coaster");
   assert.ok(!d.querySelector(".join"), "no fan list without a site that has one");
 });
@@ -97,6 +96,7 @@ test("fans can join the comic's list from the Coaster", async () => {
   const join = sent.find((x) => x[0] === "rpc/join_fans")[1];
   assert.deepEqual([join.p_site, join.p_email, join.p_place, join.p_met], ["lev-fer", "fan@x.com", 7, "Coaster"]);
   assert.match(d.querySelector(".join").textContent, /on Lev's list/);
+  assert.match(d.querySelector(".back").textContent, /Scan to join Lev's list.*levfer\.gay\/join/s, "with a fan list, the coaster's QR is the sign-up");
 });
 
 test("lots of dates: the next one, six more under More, then all of them", async () => {
