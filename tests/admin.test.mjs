@@ -664,3 +664,33 @@ test("comics: a card grid with filters; open one to add them to a site, edit, an
   form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(100);
   assert.equal(db.comics.find((x) => x.id === c.id).bio, "Sam bio");
 });
+
+test("Home screen picks: add one, pin a show to the top, reorder", async () => {
+  const theme = { name: "Console Lobby", extras: ["home_picks"], settings: [] };
+  const { w, d, db } = await open("#picks", (db) => {
+    db.home_picks = [];
+    db.shows.push({ id: "s9", site_id: "cockfight", host: "lev", date: fri, time: "9:00 PM", venue: "Laugh Boston", city: "Boston, MA", url: "https://t/9", status: "on_sale" });
+  }, theme);
+  assert.ok([...d.querySelectorAll(".nav-btn")].some((b) => /Home screen/.test(b.textContent)));
+  assert.match(d.body.textContent, /Nothing pinned yet/);
+  const form = d.querySelector("form.card");
+  set(w, form.querySelector('input[aria-label="Headline"]'), "New special out now");
+  set(w, form.querySelector('input[aria-label="Button text"]'), "Watch");
+  set(w, form.querySelector('input[aria-label="Button link"]'), "https://youtu.be/x");
+  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.deepEqual(db.home_picks.map((p) => [p.site_id, p.headline, p.button_label, p.link]), [["cockfight", "New special out now", "Watch", "https://youtu.be/x"]]);
+  assert.match(d.body.textContent, /Featured.*New special out now/s);
+
+  w.location.hash = "#shows"; await wait(80);
+  const pin = btn(d, /Pin to Home screen/);
+  assert.ok(pin, "upcoming shows can be pinned");
+  pin.click(); await wait(60);
+  const shown = db.home_picks.slice().sort((a, b) => a.sort - b.sort);
+  assert.equal(shown[0].show_id, "s9", "a pinned show goes to the top");
+  assert.equal(shown[0].ends_on, fri, "and comes off after the show");
+  assert.match(shown[0].headline, /Laugh Boston/);
+
+  w.location.hash = "#picks"; await wait(80);
+  btn(d, /^↓$/).click(); await wait(60);
+  assert.deepEqual(db.home_picks.slice().sort((a, b) => a.sort - b.sort).map((p) => p.headline)[0], "New special out now");
+});
