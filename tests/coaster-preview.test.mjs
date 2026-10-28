@@ -5,8 +5,7 @@ import { readFileSync } from "node:fs";
 import handler, { withPreview } from "../netlify/functions/coaster.mjs";
 const page = readFileSync(new URL("../platform/home/coaster.html", import.meta.url), "utf8");
 
-const fake = (comics, ok = true) => async (u) => String(u).endsWith("/coaster.html") ? { text: async () => page }
-  : { ok, json: async () => comics };
+const fake = (comics, ok = true) => async (u) => { assert.ok(!String(u).includes("comictable.com"), "never fetches its own site (that can loop)"); return { ok, json: async () => comics }; };
 
 test("a shared Coaster link shows the comic's name, bio and photo", async () => {
   const r = await handler(new Request("https://comictable.com/lev-fer"), { fetch: fake([{ id: "lev-fer", name: "Lev Fer", short_bio: "Funny & <loud>.", photo_url: "https://p/lev.jpg" }]) });
@@ -25,4 +24,9 @@ test("no photo: the ComicTable preview image; unknown name: 404; database down: 
   const down = await handler(new Request("https://comictable.com/lev-fer"), { fetch: fake([], false) });
   assert.equal(down.status, 200);
   assert.doesNotMatch(await down.text(), /og:title/);
+});
+
+test("the function's copy of the Coaster page matches platform/home/coaster.html", async () => {
+  const built = (await import("../netlify/lib/coaster-page.mjs")).default;
+  assert.equal(built, page, "run: node tools/build.mjs platform (or npm test) to refresh netlify/lib/coaster-page.mjs");
 });

@@ -1,7 +1,9 @@
 // comictable.com/<comic>: a comic's Coaster. Serves the Coaster page with their name, photo and bio in the
 // link preview, so a Coaster shared on iMessage, Instagram or X shows their face. The page loads the rest itself.
 // Reached through the last rule in comictable.com's _redirects (tools/build.mjs); real files and pages always win.
+// Fetches only the comic's name, bio and photo from the database; never the site itself.
 import platform from "../../platform/platform.json" with { type: "json" };
+import PAGE from "../lib/coaster-page.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const ID = /^\/([a-z0-9][a-z0-9-]{0,80})\/?$/i;
@@ -28,9 +30,8 @@ export default async (req, deps = {}) => {
   const get = deps.fetch || fetch;
   const url = new URL(req.url);
   const id = (url.pathname.match(ID) || [])[1];
-  let html = "";
-  try { html = await (await get(new URL("/coaster.html", url.origin))).text(); } catch (e) {}
-  if (!html) return new Response("Coaster page missing", { status: 500 });
+  // The page is built in (netlify/lib/coaster-page.mjs): fetching /coaster.html from ourselves could loop back here.
+  let html = PAGE;
   let comic = null, known = false;
   if (id) {
     try {
