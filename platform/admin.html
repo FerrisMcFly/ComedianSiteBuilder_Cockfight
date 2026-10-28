@@ -1604,8 +1604,10 @@ td select.status.st-few_left { color: var(--warn); }
   async function uploadImage(file, prefix, opts = {}) {
     const blob = await squareJpeg(file, opts.square === false ? 1600 : 900, opts.square === false);
     const path = sid() + "/" + prefix + "-" + Date.now() + ".jpg";
-    const up = await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", upsert: true });
-    if (up.error) throw up.error;
+    // Every upload gets a new name, so it never needs to overwrite (overwriting needs extra database permissions).
+    const up = await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", upsert: false });
+    if (up.error) throw /row-level security|permission|unauthorized|403/i.test(up.error.message || "")
+      ? new Error("Couldn't save the photo: this login isn't allowed to upload pictures yet. Run supabase/16_photo_uploads.sql in Supabase.") : up.error;
     return sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
   }
   /* ======================================================
