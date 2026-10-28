@@ -249,7 +249,7 @@ footer img { width: 28px; height: 28px; }
       <div class="hero-copy">
         <h1>The engine behind comedian <span>websites.</span></h1>
         <p>Shows, tickets, podcasts, videos, fans and a blog, all run from one dashboard. The site stays on the comic's own domain, in their own look.</p>
-        <div class="ctas"><a class="btn red" href="#ask">Get started</a><a class="link" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See a site running on it</a></div>
+        <div class="ctas"><a class="btn red" href="#ask">Get started</a><a class="link" id="seeOne" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See a site running on it</a></div>
       </div>
       <figure class="photo" style="margin-top:0;margin-bottom:0">
         <img src="https://images.unsplash.com/photo-1641903806973-17eaf2d2634f?fm=jpg&amp;q=70&amp;w=1400&amp;auto=format&amp;fit=crop" alt="A microphone on a stand in front of a brick wall, under a single stage light" loading="eager">
@@ -376,7 +376,7 @@ footer img { width: 28px; height: 28px; }
 
   <section class="band"><div class="wrap">
     <p class="label"><b>05</b> / Running on ComicTable</p>
-    <div class="live">
+    <div class="live" id="liveList">
       <a href="https://cockfightpodcast.com" target="_blank" rel="noopener"><b>Cockfight</b><span>A comedy podcast. cockfightpodcast.com</span><i>Visit ↗</i></a>
     </div>
   </div></section>
@@ -438,6 +438,33 @@ footer img { width: 28px; height: 28px; }
 
   // contact
   var CFG = window.COMICTABLE_CONFIG || {};
+
+  // Which sites to show off: set by super admins in the dashboard (All sites → On comictable.com).
+  // Until it loads (or if it can't), the page keeps what's written above.
+  (function showcase() {
+    if (!CFG.SUPABASE_URL) return;
+    var hdr = { apikey: CFG.SUPABASE_ANON_KEY, Authorization: "Bearer " + CFG.SUPABASE_ANON_KEY };
+    var get = function (path) { return fetch(CFG.SUPABASE_URL + "/rest/v1/" + path, { headers: hdr }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
+    get("platform_settings?select=featured_site,showcase&id=eq.1").then(function (rows) {
+      var st = rows[0]; if (!st) return;
+      var list = (Array.isArray(st.showcase) ? st.showcase : []).filter(function (x) { return x && x.site; });
+      var ids = list.map(function (x) { return x.site; }); if (st.featured_site) ids.push(st.featured_site);
+      if (!ids.length) return;
+      return get("sites?select=id,name,domain&id=in.(" + ids.map(encodeURIComponent).join(",") + ")").then(function (sites) {
+        var by = {}; sites.forEach(function (x) { if (x.domain) by[x.id] = x; });
+        var url = function (x) { return "https://" + String(x.domain).replace(/^https?:\/\//, "").replace(/\/+$/, ""); };
+        var f = by[st.featured_site]; if (f) $("seeOne").href = url(f);
+        var shown = list.filter(function (x) { return by[x.site]; });
+        if (!shown.length) return;
+        $("liveList").replaceChildren.apply($("liveList"), shown.map(function (x) {
+          var s = by[x.site], a = document.createElement("a"), b = document.createElement("b"), sp = document.createElement("span"), i = document.createElement("i");
+          a.href = url(s); a.target = "_blank"; a.rel = "noopener";
+          b.textContent = s.name; sp.textContent = [String(x.blurb || "").trim(), s.domain].filter(Boolean).join(" "); i.textContent = "Visit ↗";
+          a.append(b, sp, i); return a;
+        }));
+      });
+    }).catch(function () { /* keep the page as written */ });
+  })();
   $("askForm").addEventListener("submit", async function (e) {
     e.preventDefault();
     var msg = $("aMsg"), send = $("aSend"), v = function (id) { return $(id).value.trim(); };

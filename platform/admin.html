@@ -3459,6 +3459,42 @@ td select.status.st-few_left { color: var(--warn); }
      ====================================================== */
   const cleanDomain = (d) => String(d || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
   const siteSlug = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+  // comictable.com's own front page: which site "See a site running on it" opens, and which sites it lists
+  function showcaseCard() {
+    const card = h("section", { class: "card stack" }, h("h2", { text: "On comictable.com" }), h("p", { class: "hint", text: "Loading…" }));
+    (async () => {
+      let st;
+      try { st = (await q(sb.from("platform_settings").select("*").eq("id", 1)))[0] || { featured_site: null, showcase: [] }; }
+      catch (e) { card.replaceChildren(h("h2", { text: "On comictable.com" }), h("p", { class: "err", text: /platform_settings/i.test(errText(e)) ? "This needs a database upgrade: run supabase/19_showcase.sql (or UPGRADE_V3_ALL.sql) in Supabase." : errText(e) })); return; }
+      const live = S.sites.filter((x) => x.domain);
+      const list = Array.isArray(st.showcase) ? st.showcase.filter((x) => x && x.site) : [];
+      const featured = h("select", { id: "scFeatured", "aria-label": "See a site running on it" },
+        h("option", { value: "", text: "Pick a site…" }), live.map((x) => h("option", { value: x.id, text: x.name + " · " + x.domain, selected: st.featured_site === x.id })));
+      const rows = live.map((x) => {
+        const on = list.find((y) => y.site === x.id);
+        const box = h("input", { type: "checkbox", checked: !!on, "aria-label": "List " + x.name });
+        const blurb = h("input", { maxlength: "80", placeholder: "One line, e.g. A comedy podcast.", value: on ? on.blurb || "" : "", "aria-label": "Line about " + x.name });
+        return { id: x.id, box, blurb, el: h("div", { class: "switch-row" }, h("label", { class: "check", style: "min-width:200px" }, box, h("span", null, h("b", { text: x.name }), h("span", { class: "hint", text: " " + x.domain }))), blurb) };
+      });
+      // listed ones first, in their saved order
+      rows.sort((a, b) => { const i = list.findIndex((y) => y.site === a.id), j = list.findIndex((y) => y.site === b.id); return (i < 0 ? 999 : i) - (j < 0 ? 999 : j); });
+      const save = h("button", { class: "btn primary", type: "button", text: "Save", onclick: async () => {
+        const showcase = rows.filter((r) => r.box.checked).map((r) => ({ site: r.id, blurb: r.blurb.value.trim() }));
+        try { await q(sb.from("platform_settings").upsert({ id: 1, featured_site: featured.value || null, showcase, updated_at: new Date().toISOString() }));
+          toast("Saved. comictable.com shows it now."); }
+        catch (e) { toast(errText(e), { bad: true }); }
+      } });
+      card.replaceChildren(h("h2", { text: "On comictable.com" }),
+        h("p", { class: "sub", text: "What ComicTable's front page shows off. Only sites with a web address can be picked." }),
+        live.length ? h("div", { class: "stack" },
+          field("“See a site running on it” opens", featured),
+          h("div", null, h("b", { text: "Listed under “Running on ComicTable”" }), h("div", { class: "hint", text: "Tick the ones to list, in this order. The line shows next to the name." })),
+          h("div", null, rows.map((r) => r.el)),
+          h("div", { class: "btns" }, save, h("a", { class: "btn ghost", href: "/", target: "_blank", rel: "noopener", text: "View comictable.com ↗" })))
+          : empty("No sites with a web address yet", "Add one to a site first."));
+    })();
+    return card;
+  }
   async function viewSites(main) {
     main.append(head("All sites", "Every comic running on ComicTable. Start a new one here, then build their front end and launch it."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
@@ -3527,7 +3563,7 @@ td select.status.st-few_left { color: var(--warn); }
         h("div", null, list.map((u) => h("div", { class: "switch-row" }, h("div", null, h("b", { text: u.email }), u.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null),
           u.you ? null : sure("Remove", async () => { try { await q(sb.rpc("remove_platform_admin", { p_user: u.user_id })); toast(u.email + " is no longer a super admin."); route(); } catch (e) { toast(errText(e), { bad: true }); } })))));
     })();
-    wrap.append(reqCard, listCard, form, supCard);
+    wrap.append(reqCard, listCard, showcaseCard(), form, supCard);
     try {
       const sites = await q(sb.from("sites").select("*").order("created_at", { ascending: true }));
       const counts = async (t, sidv, extra) => { let qq = sb.from(t).select("id", { count: "exact", head: true }).eq("site_id", sidv); if (extra) qq = extra(qq); const r = await qq; return r.error ? 0 : r.count || 0; };

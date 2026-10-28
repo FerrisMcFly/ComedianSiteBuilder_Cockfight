@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 const dir = new URL("../supabase/", import.meta.url);
 const bundles = {
   UPGRADE_V2_ALL: { title: "ComicTable v2: every database change since v1", files: ["07_more_sources", "08_create_sites", "09_places", "10_fans", "11_comics", "12_show_finder", "13_me", "14_blog"] },
-  UPGRADE_V3_ALL: { title: "ComicTable v3: every database change since v2 (home screen, photo uploads, press kit, QR fan sign-up)", files: ["15_home_picks", "16_photo_uploads", "17_press_kit", "18_fan_signup"] }
+  UPGRADE_V3_ALL: { title: "ComicTable v3: every database change since v2 (home screen, photo uploads, press kit, QR fan sign-up, comictable.com showcase)", files: ["15_home_picks", "16_photo_uploads", "17_press_kit", "18_fan_signup", "19_showcase"] }
 };
 for (const [name, b] of Object.entries(bundles)) {
   let out = "-- " + b.title + " in one file. Paste it all into Supabase → SQL Editor and click Run.\n" +

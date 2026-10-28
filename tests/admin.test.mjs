@@ -818,3 +818,21 @@ test("Home screen page: the design's section layout is right there, saved to the
   form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.home)).map((x) => x.key), ["me", "socials", "links"]);
 });
+
+test("All sites: super admins choose what comictable.com shows off", async () => {
+  const { w, d, db } = await open("#ct/sites", (db) => {
+    db.sites.find((x) => x.id === "cockfight").domain = "cockfightpodcast.com";
+    db.sites.push({ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay", features: {}, created_at: "2026-10-28" });
+    db.platform_settings = [{ id: 1, featured_site: "cockfight", showcase: [{ site: "cockfight", blurb: "A comedy podcast." }] }];
+  });
+  await wait(80);
+  assert.match(d.body.textContent, /On comictable\.com/);
+  const sel = d.getElementById("scFeatured");
+  assert.equal(sel.value, "cockfight");
+  sel.value = "lev-fer";
+  d.querySelector('input[aria-label="List Lev Fer"]').checked = true;
+  set(w, d.querySelector('input[aria-label="Line about Lev Fer"]'), "Stand-up from New York.");
+  btn(d, /^Save$/).click(); await wait(60);
+  assert.equal(db.platform_settings[0].featured_site, "lev-fer");
+  assert.equal(JSON.stringify(db.platform_settings[0].showcase), JSON.stringify([{ site: "cockfight", blurb: "A comedy podcast." }, { site: "lev-fer", blurb: "Stand-up from New York." }]));
+});
