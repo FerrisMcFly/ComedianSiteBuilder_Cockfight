@@ -844,7 +844,7 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "press", label: "Press kit", ico: "📷", meOnly: true, render: (main) => { main.append(head("Your press kit", "Approved photos and bios for clubs. It's the same on every site you're on.")); main.append(pressKitEditor(S.me.id)); } },
     { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, render: viewMySites },
     { id: "sites", group: "Platform", label: "Sites", ico: "🧩", platform: true, count: () => S.sites.length, render: viewSites },
-    { id: "comics", group: "Platform", label: "Comics", ico: "🎤", platform: true, render: viewComics },
+    { id: "comics", group: "Platform", label: "Coasters", ico: "🎤", platform: true, render: viewComics },
     { id: "clubs", group: "Platform", label: "Club database", ico: "🏛️", platform: true, render: viewClubs },
     { id: "account", label: "Your account", ico: "🔐", bottom: true, render: viewAccount }
   ];
@@ -2278,7 +2278,7 @@ td select.status.st-few_left { color: var(--warn); }
           st.domain ? h("a", { class: "btn sm ghost", href: "https://" + st.domain, target: "_blank", rel: "noopener", text: "Visit ↗" }) : null));
     }));
     wrap.replaceChildren(
-      h("div", { class: "stats" }, [["Sites", S.sites.length, () => goCT("sites")], ["Comics", comics, () => goCT("comics")], ["Upcoming shows", shows], ["Fans on lists", fans]]
+      h("div", { class: "stats" }, [["Sites", S.sites.length, () => goCT("sites")], ["Coasters", comics, () => goCT("comics")], ["Upcoming shows", shows], ["Fans on lists", fans]]
         .map(([l, n, fn]) => h(fn ? "button" : "div", { class: "stat", type: fn ? "button" : null, style: fn ? "text-align:left;cursor:pointer" : null, onclick: fn || null }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l })))),
       todo.length ? h("section", { class: "card" }, h("h2", { text: "Worth a look" }), h("div", { class: "todo" }, todo.map(([t, fn]) => h("div", { class: "todo-item" }, h("span", { text: t }), h("button", { class: "btn sm", type: "button", text: "Go", onclick: fn })))))
         : h("section", { class: "card" }, empty("All caught up ✨", "Every site looks good.")),
@@ -2371,29 +2371,29 @@ td select.status.st-few_left { color: var(--warn); }
         q(sb.from("hosts").select("id, site_id, comic_id, hidden")),
         q(sb.from("shows").select("id, comic_id, lineup, date").gte("date", today()))]);
     };
-    try { await load(); } catch (e) { main.append(head("Comics", ""), h("p", { class: "err", text: errText(e) })); return; }
+    try { await load(); } catch (e) { main.append(head("Coasters", ""), h("p", { class: "err", text: errText(e) })); return; }
     const onSites = (c) => lineups.filter((l) => l.comic_id === c.id).map((l) => ({ ...l, site: S.sites.find((x) => x.id === l.site_id) })).filter((x) => x.site);
     const upcoming = (c) => shows.filter((x) => x.comic_id === c.id || (x.lineup || []).includes(c.id)).length;
     const open = comicOpen && comics.find((c) => c.id === comicOpen);
     if (open) { await comicDetail(main, open, onSites, async () => { await load(); }); return; }
 
     const addBox = h("div");
-    main.append(head("Comics", "Every comic on ComicTable. A comic's profile, dates and YouTube follow them to every site they're on.",
-      h("button", { class: "btn primary", type: "button", id: "addComic", text: "+ Add a comic", onclick: () => {
+    main.append(head("Coasters", "Every comic on ComicTable has a Coaster: their card at comictable.com/<name>. Their profile, dates and YouTube follow them to every site they're on.",
+      h("button", { class: "btn primary", type: "button", id: "addComic", text: "+ Add a Coaster", onclick: () => {
         const name = h("input", { id: "newComicName", placeholder: "Full name", maxlength: "60" });
         const msg = h("div", { class: "err" });
         addBox.replaceChildren(h("form", { class: "card stack", onsubmit: async (e) => {
           e.preventDefault(); const n = name.value.trim(); if (!n) { name.focus(); return; }
-          if (comics.some((c) => c.name.toLowerCase() === n.toLowerCase()) && !msg.dataset.ok) { msg.dataset.ok = "1"; msg.textContent = "There's already a comic called " + n + ". Click Add comic again if this is someone else."; return; }
+          if (comics.some((c) => c.name.toLowerCase() === n.toLowerCase()) && !msg.dataset.ok) { msg.dataset.ok = "1"; msg.textContent = "There's already a comic called " + n + ". Click Add Coaster again if this is someone else."; return; }
           try { const id = await newComicId(n); await q(sb.from("comics").insert({ id, name: n, title: "Comedian", bio: "" })); comicOpen = id; toast(n + " added. Fill in their profile, then put them on a site."); route(); }
           catch (er) { msg.textContent = errText(er); }
-        } }, h("h2", { text: "Add a comic" }), h("p", { class: "sub", text: "They don't need a site yet. Put them on one, or several, after." }), field("Name", name), msg,
-          h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add comic" }), h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => addBox.replaceChildren() }))));
+        } }, h("h2", { text: "Add a Coaster" }), h("p", { class: "sub", text: "Any comic can have one. They don't need a site: put them on one, or several, any time." }), field("Name", name), msg,
+          h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add Coaster" }), h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => addBox.replaceChildren() }))));
         name.focus();
       } })), addBox, wrap);
 
     const withLogin = comics.filter((c) => c.user_id).length, noSite = comics.filter((c) => !onSites(c).length).length;
-    const stats = h("div", { class: "stats" }, [["Comics", comics.length, "all"], ["With their own login", withLogin, "login"], ["Not on a site yet", noSite, "nosite"], ["Upcoming dates", shows.length, null]]
+    const stats = h("div", { class: "stats" }, [["Coasters", comics.length, "all"], ["With their own login", withLogin, "login"], ["Not on a site yet", noSite, "nosite"], ["Upcoming dates", shows.length, null]]
       .map(([l, n, f]) => h(f ? "button" : "div", { class: "stat", type: f ? "button" : null, style: f ? "text-align:left;cursor:pointer" : null, onclick: f ? () => { comicQ.only = f; draw(); } : null }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l }))));
     const search = h("input", { type: "search", placeholder: "Find a comic", value: comicQ.t, "aria-label": "Find a comic", style: "max-width:260px" });
     const filt = h("div", { class: "seg", role: "group", "aria-label": "Show" });
@@ -2424,7 +2424,7 @@ td select.status.st-few_left { color: var(--warn); }
 
   async function comicDetail(main, c, onSites, reloadData) {
     const sites = onSites(c);
-    const back = h("button", { class: "btn ghost sm", type: "button", text: "← All comics", onclick: () => { comicOpen = null; route(); } });
+    const back = h("button", { class: "btn ghost sm", type: "button", text: "← All Coasters", onclick: () => { comicOpen = null; route(); } });
     main.append(h("div", { style: "margin-bottom:8px" }, back),
       h("div", { class: "page-head" }, h("div", { class: "person-top", style: "margin:0" },
         c.photo_url ? h("img", { class: "avatar", src: c.photo_url, alt: "" }) : h("div", { class: "avatar initials", text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }),

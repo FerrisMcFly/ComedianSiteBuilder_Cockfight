@@ -52,7 +52,7 @@ function makeDb() {
   };
   const client = { auth: { getSession: async () => ({ data: { session: { access_token: "tok", user: { id: "u1", email: "ferris@x.com" } } } }), signOut: async () => {}, onAuthStateChange() {},
       updateUser: async (u) => { (db.authUpdates = db.authUpdates || []).push(u); return { data: {}, error: null }; } },
-    rpc: async (name, args) => name === "site_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.site_id === args.p_site))), error: null }
+    rpc: async (name, args) => ((db.rpcCalls = db.rpcCalls || []).push([name, args]), 0) || name === "site_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.site_id === args.p_site))), error: null }
       : name === "site_videos" ? { data: JSON.parse(JSON.stringify(db.videos.filter((x) => x.site_id === args.p_site))), error: null }
       : name === "comic_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.date >= fri.slice(0, 4) + "-01-03").filter((x) => x.comic_id === args.p_comic || (x.host && (db.hosts.find((h) => h.id === x.host) || {}).comic_id === args.p_comic)).map((x) => ({ ...x, site_name: "Cockfight", event: false })))), error: null }
       : name === "fans_near_shows" ? { data: db.shows.filter((x) => x.date >= fri).map((x) => ({ show_id: x.id, fans: (db.fans || []).length })), error: null }
@@ -657,7 +657,7 @@ test("comics: a card grid with filters; open one to add them to a site, edit, an
   d.getElementById("newComicName").form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(150);
   const c = db.comics.find((x) => x.name === "Sam Newcomic");
   assert.ok(c);
-  assert.match(main().textContent, /← All comics.*Sam Newcomic/s);
+  assert.match(main().textContent, /← All Coasters.*Sam Newcomic/s);
   assert.match(main().textContent, /Put them on a site first/);
   const sel = main().querySelector('select[aria-label="Add to a site"]'); sel.value = "apes";
   btn(d, /^Add$/, main()).click(); await wait(150);
@@ -891,4 +891,73 @@ test("roles: ComicTable staff work on every site but can't create sites, change 
   assert.doesNotMatch(d.querySelector("main").textContent, /Start a new site|On comictable\.com/);
   assert.match(d.querySelector("main").textContent, /ComicTable staff/);
   assert.equal(d.getElementById("stEmail"), null, "no Add to staff form");
+});
+
+test("Coasters: pick a look, set the Tape, choose what's up front and what's under More", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => {
+    Object.assign(db.comics.find((c) => c.id === "lev-fer"), { look: "classic", tape_url: null, tape_title: null, on_bills: true, coaster: {} });
+  });
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  const card = d.querySelector(".coaster-card");
+  assert.ok(card, "the comic's page has their Coaster");
+  assert.match(card.textContent, /comictable\.com\/lev-fer/);
+  btn(d, /Spooky/, card).click();
+  assert.equal(card.querySelector('.looks [aria-pressed="true"]').dataset.look, "spooky");
+  set(w, card.querySelector('input[aria-label="Tape link"]'), "https://youtu.be/abcdefghijk");
+  set(w, card.querySelector('input[aria-label="Tape title"]'), "Live at the Cellar");
+  btn(d, /^Up front$/, card.querySelector('[aria-label="The Tape"]')).click();
+  btn(d, /^Off$/, card.querySelector('[aria-label="Booking"]')).click();
+  card.querySelector('input[aria-label="Show who else is on the bill"]').checked = false;
+  card.querySelector("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  const lev = db.comics.find((c) => c.id === "lev-fer");
+  assert.deepEqual([lev.look, lev.tape_url, lev.tape_title, lev.on_bills, lev.coaster.tape, lev.coaster.booking, lev.coaster.socials], ["spooky", "https://youtu.be/abcdefghijk", "Live at the Cellar", false, "front", "off", "front"]);
+  // a bad Tape link doesn't save
+  set(w, card.querySelector('input[aria-label="Tape link"]'), "youtube.com/whatever");
+  card.querySelector("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  assert.match(card.textContent, /starts with https/);
+  assert.equal(db.comics.find((c) => c.id === "lev-fer").tape_url, "https://youtu.be/abcdefghijk");
+});
+
+test("Coasters: a site asks before adding a comic with their own login, and the comic says yes on Me", async () => {
+  // a site owner (not ComicTable) finds Daniel, who has his own login: Ask to add, not Add
+  const site = await open("#people", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "owner" }];
+    db.comics.find((c) => c.id === "daniel-bridge-gadd").user_id = "u9"; db.coaster_requests = []; });
+  await wait(60);
+  btn(site.d, /Add a person/).click(); await wait();
+  set(site.w, site.d.getElementById("newPersonName"), "Daniel"); await wait(80);
+  const ask = btn(site.d, /^Ask to add$/);
+  assert.ok(ask, "Ask to add, because he has a login");
+  assert.match(site.d.body.textContent, /say yes first/);
+  ask.click(); await wait(60);
+  assert.deepEqual(site.db.coaster_requests.map((r) => [r.comic_id, r.site_id, r.requested_by]), [["daniel-bridge-gadd", "cockfight", "u1"]]);
+  assert.ok(!site.db.hosts.some((h) => h.comic_id === "daniel-bridge-gadd"), "not added until he says yes");
+  // Daniel sees it on Me
+  const me = await open("#ct/me", (db) => { db.comics.find((c) => c.id === "daniel-bridge-gadd").user_id = "u1"; db.platform_admins = [];
+    db.coaster_requests = [{ id: "r1", comic_id: "daniel-bridge-gadd", site_id: "cockfight", status: "pending", created_at: "2026-10-28" }]; });
+  await wait(120);
+  assert.match(me.d.querySelector("main").textContent, /A site wants to add you.*Cockfight/s);
+  assert.ok(me.d.querySelector(".coaster-card"), "and his own Coaster to edit");
+  btn(me.d, /^Say yes$/).click(); await wait(60);
+  assert.deepEqual(JSON.parse(JSON.stringify(me.db.rpcCalls.find((c) => c[0] === "answer_coaster_request"))), ["answer_coaster_request", { p_id: "r1", p_yes: true }]);
+});
+
+test("Coasters: a lineup card says whose Coaster it uses, and can keep a photo just for this site", async () => {
+  const { w, d, db } = await open("#people", (db) => {
+    db.hosts.forEach((h) => Object.assign(h, { own_bio: false, own_title: false, own_photo: false }));
+    db.hosts.find((h) => h.id === "colum").own_bio = true;
+  });
+  await wait(60);
+  const cards = [...d.querySelectorAll(".people form.card")];
+  const colum = cards.find((c) => /Colum/.test(c.textContent)), lev = cards.find((c) => /Lev Fer/.test(c.textContent));
+  assert.match(colum.textContent, /Custom for Cockfight: bio/);
+  assert.match(lev.textContent, /Using Lev's Coaster/);
+  const photoBox = [...lev.querySelectorAll("label.check")].find((l) => /different photo/.test(l.textContent)).querySelector("input");
+  photoBox.checked = true;
+  db.hosts.find((h) => h.id === "lev").photo_url = "https://p/lev-cockfight.jpg";
+  lev.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(120);
+  const host = db.hosts.find((h) => h.id === "lev");
+  assert.equal(host.own_photo, true, lev.querySelector(".err") && lev.querySelector(".err").textContent);
+  assert.equal(host.photo_url, "https://p/lev-cockfight.jpg", "this site keeps its photo");
+  assert.ok(!db.comics.find((c) => c.id === "lev-fer").photo_url, "his Coaster photo isn't touched");
 });
