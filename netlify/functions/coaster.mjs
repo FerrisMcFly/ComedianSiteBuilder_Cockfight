@@ -38,6 +38,12 @@ export default async (req, deps = {}) => {
       const r = await get(`${platform.supabase_url}/rest/v1/comics?select=id,name,short_bio,bio,photo_url&id=eq.${encodeURIComponent(id.toLowerCase())}`,
         { headers: { apikey: platform.supabase_anon_key, Authorization: "Bearer " + platform.supabase_anon_key } });
       if (r.ok) { known = true; comic = (await r.json())[0] || null; }
+      if (known && !comic) {  // by name: /lev-fer finds Lev Fer even if his address is different
+        const r2 = await get(`${platform.supabase_url}/rest/v1/comics?select=id,name,short_bio,bio,photo_url&limit=2&name=ilike.${encodeURIComponent(id.replace(/-+/g, " "))}`,
+          { headers: { apikey: platform.supabase_anon_key, Authorization: "Bearer " + platform.supabase_anon_key } });
+        const rows = r2.ok ? await r2.json() : [];
+        if (rows.length === 1) comic = rows[0];
+      }
     } catch (e) {}
   }
   if (comic) html = withPreview(html, comic, url.origin);

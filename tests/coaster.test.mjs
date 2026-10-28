@@ -139,3 +139,15 @@ test("a Custom look: their board, ink and band colors, and a full-color photo; t
   const bad = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", look: "custom", coaster: { style: { pulp: "red;background:url(x)" } } }] });
   assert.equal(bad.d.body.style.getPropertyValue("--pulp"), "#F4ECDC", "only real colors get through");
 });
+
+test("comictable.com/lev-fer finds Lev Fer by name even if his address is different, and fixes the address bar", async () => {
+  const dom = new JSDOM(html, { runScripts: "dangerously", url: "https://comictable.com/lev-fer", beforeParse(w) {
+    w.fetch = async (u) => { const t = u.split("/rest/v1/")[1];
+      const body = t.startsWith("comics?") ? (t.includes("id=eq.") ? [] : t.includes("name=ilike.lev%20fer") ? [{ id: "lev", name: "Lev Fer" }] : []) : [];
+      return { ok: true, status: 200, json: async () => body }; };
+  } });
+  opened.push(dom.window);
+  await new Promise((r) => setTimeout(r, 100));
+  assert.equal(dom.window.document.querySelector("h1").textContent, "Lev Fer");
+  assert.equal(dom.window.location.pathname, "/lev");
+});

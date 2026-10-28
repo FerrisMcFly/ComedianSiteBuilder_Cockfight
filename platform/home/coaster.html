@@ -198,12 +198,21 @@ footer a { font-weight: 700; text-decoration: none; }
   }
   if (!id || !CFG.SUPABASE_URL) return notFound();
 
-  Promise.all([
-    api("comics?select=*&id=eq." + encodeURIComponent(id)),
+  // Find the comic by their address, or by name ("lev-fer" finds Lev Fer even if his address is "lev"), then load the rest.
+  api("comics?select=*&id=eq." + encodeURIComponent(id)).then(function (rows) {
+    if (rows && rows.length) return rows;
+    return api("comics?select=*&limit=2&name=ilike." + encodeURIComponent(id.replace(/-+/g, " "))).then(function (byName) {
+      if (!byName || byName.length !== 1) return [];
+      id = byName[0].id; here = location.origin + "/" + id;
+      try { if (/^\/[^/]+\/?$/.test(location.pathname)) history.replaceState(null, "", "/" + id); } catch (e) {}
+      return byName;
+    }, function () { return []; });
+  }).then(function (found) { return Promise.all([
+    found,
     api("rpc/comic_shows", { p_comic: id }).catch(function () { return []; }),
     api("rpc/also_on_bill", { p_comic: id }).catch(function () { return []; }),
     api("hosts?select=site_id,hidden&comic_id=eq." + encodeURIComponent(id)).catch(function () { return []; })
-  ]).then(function (r) {
+  ]); }).then(function (r) {
     var c = (r[0] || [])[0]; if (!c) return notFound();
     var dates = (r[1] || []).filter(function (d) { return d.status !== "cancelled"; });
     var onSites = (r[3] || []).filter(function (x) { return !x.hidden; }).map(function (x) { return x.site_id; });
