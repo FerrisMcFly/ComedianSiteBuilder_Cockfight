@@ -9,80 +9,13 @@
     {
       "type": "heading",
       "label": "Home screen",
-      "help": "What people see first, usually after tapping the link in your bio. Turn sections on or off and put them in the order you want."
+      "help": "What people see first, usually after tapping the link in your bio."
     },
     {
-      "key": "home",
-      "label": "Home screen sections",
-      "type": "order",
-      "options": [
-        [
-          "me",
-          "You",
-          "Your photo, name, tagline and the first line of your bio. Photo comes from People.",
-          true
-        ],
-        [
-          "links",
-          "Your links",
-          "Big buttons for everything in Links (your special, merch, anything). Add them under Website → Links.",
-          true
-        ],
-        [
-          "socials",
-          "Social buttons",
-          "Instagram, YouTube, TikTok and the rest. Set them on your profile in People.",
-          true
-        ],
-        [
-          "support",
-          "Support button",
-          "Patreon, Ko-fi or Substack. Set the link in Profile.",
-          true
-        ],
-        [
-          "picks",
-          "Home screen picks",
-          "The posts you pin under Website → Home screen. The first one is big.",
-          true
-        ],
-        [
-          "shows",
-          "Next shows",
-          "Your next few dates with ticket buttons.",
-          true
-        ],
-        [
-          "podcast",
-          "Podcast",
-          "Podcasts you're on, with the latest episode. Shows up by itself for any ComicTable podcast you're part of.",
-          true
-        ],
-        [
-          "special",
-          "Featured video",
-          "The video you starred in Videos, like a special.",
-          true
-        ],
-        [
-          "list",
-          "Mailing list",
-          "A button to join your fan list.",
-          true
-        ],
-        [
-          "blog",
-          "From the blog",
-          "Your two newest posts.",
-          true
-        ],
-        [
-          "clips",
-          "Latest clips",
-          "Your three newest videos.",
-          false
-        ]
-      ]
+      "key": "home_items",
+      "label": "Home screen",
+      "type": "home_items",
+      "help": "Everything on your home screen, one row each: every link, social, podcast, your shows and the rest. Any order, and switch off anything. You can do this under Site → Home screen too."
     },
     {
       "key": "home_shows",

@@ -305,6 +305,58 @@
     leave: function (token) { return api("rpc/leave_fans", { method: "POST", body: { p_token: token } }); }
   };
 
-  var CSB = { init: init, load: load, elsewhere: elsewhere, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.3" };
+  /* ---------------- home screen items ----------------
+   * Every comic arranges their Home screen item by item: each link, each social, Patreon, each podcast,
+   * and the bigger blocks (shows, picks, featured video…). Saved on the site as theme.home_items = [{ key, on }].
+   * homeCatalog(data) lists what this site could show right now; homeArrange(catalog, saved) puts it in the
+   * comic's order. Anything new lands next to its kind (a new link with the other links), switched on.
+   * The dashboard and every design use these same two functions, so they always agree.
+   */
+  var HOME_GROUPS = ["me", "links", "socials", "support", "picks", "shows", "podcast", "special", "list", "blog", "clips"];
+  var HOME_OFF = { clips: true };
+  var SOCIALS = [["instagram", "Instagram"], ["youtube", "YouTube"], ["tiktok", "TikTok"], ["twitter", "X"], ["website", "Website"]];
+  var hostOf = function (u) { return String(u || "").replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""); };
+  function homeCatalog(d) {
+    d = d || {};
+    var out = [], me = (d.people || [])[0] || {}, so = me.socials || {}, p = d.profile || {}, f = d.features || {};
+    var add = function (key, group, label, sub) { out.push({ key: key, group: group, label: label, sub: sub || "" }); };
+    if (me.photo || me.bio || p.about) add("me", "me", "You", "Your photo, name and the first line of your bio");
+    (d.links || []).forEach(function (l) { add("link:" + l.id, "links", l.label, hostOf(l.url)); });
+    SOCIALS.forEach(function (x) { if (so[x[0]]) add("social:" + x[0], "socials", x[1], hostOf(so[x[0]])); });
+    if (p.support_url) add("support", "support", p.support_label || "Support button", hostOf(p.support_url));
+    if ((d.picks || []).length) add("picks", "picks", "Home screen picks", d.picks.length + " pinned. The first one is big");
+    if (f.shows !== false && (d.shows || []).length) add("shows", "shows", "Next shows", "Your next few dates with ticket buttons");
+    var pods = [];
+    if (f.podcast) (d.episodes || []).forEach(function (e) { var n = String(e.show || "").trim(); if (n && pods.indexOf(n) < 0) pods.push(n); });
+    (d.elsewhere || []).forEach(function (x) { if (x.podcast && !pods.some(function (n) { return n.toLowerCase() === String(x.name).toLowerCase(); })) pods.push(x.name); });
+    pods.forEach(function (n) { add("podcast:" + n.toLowerCase(), "podcast", n, "Podcast, with the latest episode"); });
+    if (f.videos !== false && (d.videos || []).some(function (v) { return v.featured; })) add("special", "special", "Featured video", "The video you starred in Videos");
+    if (f.fans) add("list", "list", "Mailing list", "A button to join your fan list");
+    if (f.blog && (d.posts || []).length) add("blog", "blog", "From the blog", "Your two newest posts");
+    if (f.videos !== false && (d.videos || []).length) add("clips", "clips", "Latest clips", "Your three newest videos");
+    return out;
+  }
+  // Older sites saved whole sections (theme.home = [{ key: "socials", on }]): spread each over its items.
+  function homeFromSections(catalog, sections) {
+    if (!Array.isArray(sections) || !sections.length) return null;
+    var out = [];
+    sections.forEach(function (s) { catalog.forEach(function (c) { if (c.group === s.key) out.push({ key: c.key, on: !!s.on }); }); });
+    return out;
+  }
+  function homeArrange(catalog, saved) {
+    var byKey = {}; catalog.forEach(function (c) { byKey[c.key] = c; });
+    var list = [];
+    (Array.isArray(saved) ? saved : []).forEach(function (x) { if (x && byKey[x.key] && !list.some(function (y) { return y.key === x.key; })) list.push(Object.assign({}, byKey[x.key], { on: !!x.on })); });
+    catalog.forEach(function (c) {
+      if (list.some(function (y) { return y.key === c.key; })) return;
+      var at = -1, gi = HOME_GROUPS.indexOf(c.group);
+      list.forEach(function (y, i) { if (y.group === c.group) at = i; });
+      if (at < 0) list.forEach(function (y, i) { if (HOME_GROUPS.indexOf(y.group) < gi) at = i; });
+      list.splice(at + 1, 0, Object.assign({}, c, { on: !HOME_OFF[c.group] }));
+    });
+    return list;
+  }
+
+  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.4" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

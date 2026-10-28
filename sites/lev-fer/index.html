@@ -149,7 +149,9 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .me { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; align-items: center; margin-bottom: 16px; padding: 14px; background: var(--panel); border: 1px solid var(--line); }
 .me img { aspect-ratio: 4 / 5; object-fit: cover; width: 100%; border: 1px solid rgba(127,211,255,.45); box-shadow: 0 0 24px rgba(127,211,255,.18); }
 .me b { display: block; font: 400 clamp(20px, 2.6vw, 28px) var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--glow); }
-.me p { margin: 6px 0 12px; max-width: 52ch; }
+.me-t { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.me p { margin: 2px 0 6px; max-width: 52ch; }
+.me.nophoto { grid-template-columns: 1fr; }
 @media (max-width: 520px) { .me { grid-template-columns: 110px minmax(0, 1fr); gap: 14px; } .me p { display: none; } }
 
 /* link buttons: the link-in-bio part of the home screen */
@@ -173,8 +175,8 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .special { display: grid; gap: 10px; text-decoration: none; }
 .special .thumb { border-color: var(--amber); }
 .special strong { font: 400 clamp(18px, 2.6vw, 24px)/1.2 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--glow); }
-.socrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
-.socrow .btn { padding: 12px 10px; }
+.socrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+.socrow .btn { padding: 12px 6px; letter-spacing: .06em; font-size: 11px; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
 /* shows */
 .dates { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
@@ -285,7 +287,6 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
 <div class="wrap">
   <div class="strip">
     <span class="load">Now loading <span class="bar"><i></i></span> <span class="tip" id="tip">Tip: This is not Halo 2. Please stop emailing us.</span></span>
-    <span id="who">Stand-up comedian</span>
   </div>
 
   <header class="title">
@@ -347,7 +348,6 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   // Lev's saved order ([{ key, on }]) merged with the defaults, so sections added later still show up.
   // These defaults match theme.json (a test checks they agree).
   var MENU_DEFAULT = [["shows", 1], ["clips", 1], ["podcast", 1], ["blog", 1], ["forum", 1], ["chat", 1], ["list", 1], ["about", 1], ["socials", 1], ["press", 1], ["support", 0]];
-  var HOME_DEFAULT = [["me", 1], ["links", 1], ["socials", 1], ["support", 1], ["picks", 1], ["shows", 1], ["podcast", 1], ["special", 1], ["list", 1], ["blog", 1], ["clips", 0]];
   function orderOf(saved, defaults) {
     var known = defaults.map(function (x) { return x[0]; }), out = [];
     (Array.isArray(saved) ? saved : []).forEach(function (x) { if (x && known.indexOf(x.key) >= 0 && !out.some(function (o) { return o[0] === x.key; })) out.push([x.key, x.on ? 1 : 0]); });
@@ -476,52 +476,68 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   }
   var block = function (title, more, kids) { return el("section", { class: "block" }, [title ? el("div", { class: "block-h" }, [el("span", { text: title }), more]) : null].concat(kids)); };
   var ICON = { instagram: "IG", youtube: "YT", tiktok: "TT", twitter: "X", website: "WWW" };
-  var HOME = {
-    me: function () {
-      var me = person(), p = D.profile || {}; if (!me.photo) return null;
+  // One renderer per kind of Home screen item. "row" items are link buttons, and neighbours stack into one list;
+  // "block" items are bigger cards. The order and on/off come from Lev's dashboard (CSB.homeArrange).
+  var SOCIAL_ICON = { instagram: "IG", youtube: "YT", tiktok: "TT", twitter: "X", website: "WWW" };
+  function homeItem(key) {
+    var me = person(), p = D.profile || {};
+    if (key === "me") {
+      if (!me.photo && !me.name) return null;
       var line = (p.about || me.bio || "").split(/\n+/)[0];
-      return el("div", { class: "me" }, [el("img", { src: me.photo, alt: me.name }),
-        el("div", null, [el("b", { text: me.name }), me.title ? el("span", { class: "mini", text: me.title }) : null, line ? el("p", { text: line.length > 220 ? line.slice(0, 217) + "…" : line }) : null,
-          el("a", { class: "btn", href: "#/about", text: "About Lev" })])]);
-    },
-    links: function () {
-      var ls = D.links.map(function (l) { return lnk({ label: l.label, sub: host(l.url), url: l.url, icon: l.icon || "↗" }); }).filter(Boolean);
-      return ls.length ? el("div", { class: "links" }, ls) : null;
-    },
-    support: function () { var sp = support(); return sp ? el("div", { class: "links" }, [lnk({ label: sp.label, sub: host(sp.url), url: sp.url, icon: "♥", gold: true, go: "Support" })]) : null; },
-    picks: function () { return D.picks.length ? el("div", { class: "picks" }, D.picks.map(pickCard)) : null; },
-    shows: function () {
+      return { block: el("div", { class: "me" + (me.photo ? "" : " nophoto") }, [me.photo ? el("img", { src: me.photo, alt: me.name }) : null,
+        el("div", { class: "me-t" }, [el("b", { text: me.name }), me.title ? el("span", { class: "mini", text: me.title }) : null,
+          line ? el("p", { text: line.length > 220 ? line.slice(0, 217) + "…" : line }) : null, el("a", { class: "btn", href: "#/about", text: "About Lev" })])]) };
+    }
+    if (key.indexOf("link:") === 0) { var l = D.links.find(function (x) { return "link:" + x.id === key; }); return l ? { row: lnk({ label: l.label, sub: host(l.url), url: l.url, icon: l.icon || "↗" }) } : null; }
+    if (key.indexOf("social:") === 0) {
+      var k = key.slice(7), u = (me.socials || {})[k]; if (!u) return null;
+      var name = { instagram: "Instagram", youtube: "YouTube", tiktok: "TikTok", twitter: "X", website: "Website" }[k] || k;
+      return { social: el("a", { class: "btn soc", href: safeHref(u), target: "_blank", rel: "noopener", text: name }),
+        row: lnk({ label: name, sub: host(u).replace(/^(instagram|tiktok|x|twitter)\.com\//, "@").replace(/^@@/, "@"), url: u, icon: SOCIAL_ICON[k] || "↗" }) };
+    }
+    if (key === "support") { var sp = support(); return sp ? { row: lnk({ label: sp.label, sub: host(sp.url), url: sp.url, icon: "♥", gold: true, go: "Support" }) } : null; }
+    if (key === "picks") return D.picks.length ? { block: el("div", { class: "picks" }, D.picks.map(pickCard)) } : null;
+    if (key === "shows") {
       if (!F("shows", true) || !D.shows.length) return null;
       var n = Math.max(1, Math.min(20, parseInt(T().home_shows, 10) || 3));
-      return block("Next shows", D.shows.length > n ? el("a", { href: "#/shows", text: "All " + D.shows.length + " dates" }) : null, [el("ul", { class: "dates" }, D.shows.slice(0, n).map(showRow))]);
-    },
-    podcast: function () {
-      var rows = podcastsElsewhere().map(function (x) {
-        var e = x.episode;
-        return lnk({ label: (x.people.length ? "" : "") + x.name, sub: e ? "Latest: " + (e.number ? e.number + ". " : "") + e.title : "Lev's podcast", url: e && e.link ? e.link : x.url, image: e && e.image, icon: "🎧", go: "Listen" });
-      });
-      if (F("podcast", false) && D.episodes.length) { var e = D.episodes[0]; rows.unshift(lnk({ label: e.show || "The podcast", sub: "Latest: " + (e.number ? e.number + ". " : "") + e.title, url: e.link || "#/podcast", image: e.image, icon: "🎧", go: "Listen" })); }
-      rows = rows.filter(Boolean);
-      return rows.length ? block("Podcast", null, [el("div", { class: "links" }, rows)]) : null;
-    },
-    special: function () {
-      var v = D.videos.filter(function (x) { return x.featured; })[0]; if (!v || !F("videos", true)) return null;
-      return block("Featured", null, [el("a", { class: "special", href: v.link, target: "_blank", rel: "noopener" }, [el("div", { class: "thumb" }, [el("img", { src: v.thumbnail, alt: "", loading: "lazy" })]), el("strong", { text: v.title })])]);
-    },
-    list: function () { return F("fans", false) ? el("div", { class: "links" }, [lnk({ label: "Get told when Lev's in your town", sub: "One email when there's a show near you", url: "#/list", icon: "✉", go: "Join" })]) : null; },
-    blog: function () { return F("blog", false) && D.posts.length ? block("From the blog", D.posts.length > 2 ? el("a", { href: "#/blog", text: "All posts" }) : null, [el("div", { class: "list" }, D.posts.slice(0, 2).map(postItem))]) : null; },
-    clips: function () { return F("videos", true) && D.videos.length ? block("Latest clips", el("a", { href: "#/clips", text: "All clips" }), [el("div", { class: "clips" }, D.videos.slice(0, 3).map(clipCard))]) : null; },
-    socials: function () {
-      var s = person().socials || {}, row = ["instagram", "youtube", "tiktok", "twitter", "website"].filter(function (k) { return safeHref(s[k]); })
-        .map(function (k) { return el("a", { class: "btn", href: safeHref(s[k]), target: "_blank", rel: "noopener", text: { instagram: "Instagram", youtube: "YouTube", tiktok: "TikTok", twitter: "X", website: "Website" }[k] }); });
-      return row.length ? el("div", { class: "socrow" }, row) : null;
+      return { block: block("Next shows", D.shows.length > n ? el("a", { href: "#/shows", text: "All " + D.shows.length + " dates" }) : null, [el("ul", { class: "dates" }, D.shows.slice(0, n).map(showRow))]) };
     }
-  };
+    if (key.indexOf("podcast:") === 0) {
+      var nm = key.slice(8);
+      var own = F("podcast", false) ? D.episodes.filter(function (e) { return String(e.show || "").toLowerCase() === nm; })[0] : null;
+      if (own) return { row: lnk({ label: own.show, sub: "Latest: " + (own.number ? own.number + ". " : "") + own.title, url: own.link || "#/podcast", image: own.image, icon: "🎧", go: "Listen" }) };
+      var x = podcastsElsewhere().filter(function (y) { return String(y.name).toLowerCase() === nm; })[0]; if (!x) return null;
+      var e = x.episode;
+      return { row: lnk({ label: x.name, sub: e ? "Latest: " + (e.number ? e.number + ". " : "") + e.title : x.domain, url: e && e.link ? e.link : x.url, image: e && e.image, icon: "🎧", go: "Listen" }) };
+    }
+    if (key === "special") {
+      var v = D.videos.filter(function (y) { return y.featured; })[0]; if (!v || !F("videos", true)) return null;
+      return { block: block("Featured", null, [el("a", { class: "special", href: v.link, target: "_blank", rel: "noopener" }, [el("div", { class: "thumb" }, [el("img", { src: v.thumbnail, alt: "", loading: "lazy" })]), el("strong", { text: v.title })])]) };
+    }
+    if (key === "list") return F("fans", false) ? { row: lnk({ label: "Get told when Lev's in your town", sub: "One email when there's a show near you", url: "#/list", icon: "✉", go: "Join" }) } : null;
+    if (key === "blog") return F("blog", false) && D.posts.length ? { block: block("From the blog", D.posts.length > 2 ? el("a", { href: "#/blog", text: "All posts" }) : null, [el("div", { class: "list" }, D.posts.slice(0, 2).map(postItem))]) } : null;
+    if (key === "clips") return F("videos", true) && D.videos.length ? { block: block("Latest clips", el("a", { href: "#/clips", text: "All clips" }), [el("div", { class: "clips" }, D.videos.slice(0, 3).map(clipCard))]) } : null;
+    return null;
+  }
+  function homeLayout() {
+    var cat = CSB.homeCatalog(D), saved = T().home_items || CSB.homeFromSections(cat, T().home);
+    return CSB.homeArrange(cat, saved);
+  }
   function viewHome(app) {
     app.append.apply(app, head("Home"));
-    var parts = orderOf(T().home, HOME_DEFAULT).map(function (k) { try { return HOME[k](); } catch (e) { return null; } }).filter(Boolean);
-    if (!parts.length) { app.append(empty("Nothing here yet", "New shows and videos will show up here.")); return; }
-    var wrap = el("div", { class: "home" }); parts.forEach(function (p) { wrap.append(p.classList && p.classList.contains("block") ? p : el("section", { class: "block" }, [p])); }); app.append(wrap);
+    var wrap = el("div", { class: "home" }), rows = null, list = [];
+    homeLayout().forEach(function (it) { if (!it.on) return; var out = null; try { out = homeItem(it.key); } catch (e) {} if (out) list.push(out); });
+    list.forEach(function (out, i) {
+      // two or more socials in a row sit side by side as small buttons; a social on its own is a big button
+      var nb = function (j) { return list[j] && list[j].social; };
+      if (out.social && (nb(i - 1) || nb(i + 1))) {
+        if (!nb(i - 1)) { rows = null; wrap.append(el("section", { class: "block" }, [el("div", { class: "socrow" })])); }
+        wrap.lastChild.firstChild.append(out.social); return;
+      }
+      if (out.row) { if (!rows) { rows = el("div", { class: "links" }); wrap.append(el("section", { class: "block" }, [rows])); } rows.append(out.row); }
+      else { rows = null; wrap.append(out.block.classList.contains("block") ? out.block : el("section", { class: "block" }, [out.block])); }
+    });
+    app.append(wrap.childNodes.length ? wrap : empty("Nothing here yet", "New shows and videos will show up here."));
   }
   function viewPodcast(app) {
     app.append.apply(app, head("Podcast", "Where to listen"));
@@ -766,7 +782,6 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     document.title = d.site.name + (p.tagline ? " · " + p.tagline : "");
     $("name").textContent = d.site.name;
     if (p.tagline) { $("tagline").textContent = p.tagline; $("tagline").hidden = false; }
-    $("who").textContent = me.title || "Stand-up comedian";
     $("copy").textContent = "© " + new Date().getFullYear() + " " + d.site.name;
     applyTheme(d.theme);
     if (T().tips === false) $("tip").hidden = true;

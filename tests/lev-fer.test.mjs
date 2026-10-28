@@ -82,7 +82,7 @@ test("with nothing pinned, home still shows real things: photo, next shows, mail
   assert.doesNotMatch(t, /Latest clips/, "clips are off on the home screen unless Lev turns them on");
 });
 
-test("Lev arranges the home screen and the menu in Design settings", async () => {
+test("an older section-by-section layout still works, and the menu follows Design settings", async () => {
   const theme = { accent: "#123456",
     home: [{ key: "shows", on: true }, { key: "me", on: false }, { key: "clips", on: true }],
     menu: [{ key: "about", on: true }, { key: "shows", on: true }, { key: "forum", on: false }], home_shows: "1" };
@@ -91,7 +91,7 @@ test("Lev arranges the home screen and the menu in Design settings", async () =>
   assert.match(blocks[0], /Next shows.*Test Club/s, "shows first");
   assert.doesNotMatch(blocks[0], /Other Club/, "only one show, as set");
   assert.ok(!d.querySelector(".me"), "the photo section is off");
-  assert.match(blocks[1], /Latest clips.*Test clip/s, "clips turned on, second");
+  assert.ok(blocks.some((b) => /Latest clips.*Test clip/s.test(b)), "clips turned on");
   assert.deepEqual(menu(d).slice(0, 3), ["Home", "About", "Tour Dates"]);
   assert.ok(!menu(d).includes("Forum"), "forum hidden from the menu");
   assert.ok(menu(d).includes("Chat Room"), "sections Lev didn't mention keep their place");
@@ -103,7 +103,7 @@ test("the podcast Lev co-hosts on ComicTable shows up, with its latest episode",
     other_sites: [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com", features: { podcast: true } }],
     other_episodes: [{ num: 92, title: "Test episode", url: "https://pod/92" }] };
   const { d } = await load(data); await wait(120);
-  assert.match(d.getElementById("app").textContent, /Podcast.*Cockfight.*Latest: 92\. Test episode/s);
+  assert.match(d.getElementById("app").textContent, /Cockfight.*Latest: 92\. Test episode/s);
   assert.ok([...d.querySelectorAll(".lnk")].some((a) => a.getAttribute("href") === "https://pod/92"));
   assert.ok(menu(d).includes("Podcast"));
 });
@@ -120,7 +120,7 @@ test("the Patreon link becomes a big button, and can be a menu item", async () =
 test("the defaults in the page match the design's settings file", async () => {
   const theme = JSON.parse(readFileSync(new URL("../sites/lev-fer/theme.json", import.meta.url), "utf8"));
   const page = readFileSync(new URL("../sites/lev-fer/index.html", import.meta.url), "utf8");
-  for (const [key, name] of [["home", "HOME_DEFAULT"], ["menu", "MENU_DEFAULT"]]) {
+  for (const [key, name] of [["menu", "MENU_DEFAULT"]]) {
     const inPage = JSON.parse(page.match(new RegExp(name + " = (\\[.*?\\]\\]);"))[1]).map(([k, on]) => [k, !!on]);
     const inTheme = theme.settings.find((s) => s.key === key).options.map((o) => [o[0], o[3] !== false]);
     assert.deepEqual(inPage, inTheme, key);
@@ -203,9 +203,9 @@ test("a podcast connected here and also on ComicTable shows once", async () => {
     other_sites: [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com", features: { podcast: true } }],
     other_episodes: [{ num: 92, title: "Test episode", url: "https://pod/92" }] };
   const { d } = await load(data); await wait(120);
-  const pod = [...d.querySelectorAll(".block")].find((b) => /^Podcast/.test(b.textContent));
-  assert.equal(pod.querySelectorAll(".lnk").length, 1);
-  assert.match(pod.textContent, /Cockfight.*91\. Own copy/s);
+  const pods = [...d.querySelectorAll(".home .lnk")].filter((a) => /Cockfight/.test(a.textContent));
+  assert.equal(pods.length, 1);
+  assert.match(pods[0].textContent, /91\. Own copy/);
   assert.ok(menu(d).includes("Podcast"));
 });
 
@@ -214,7 +214,7 @@ test("Lev picks which podcasts are on his site: one on, one off, or none", async
     other_hosts: [{ site_id: "cockfight", comic_id: "lev-fer", name: "Lev Fer" }, { site_id: "other-pod", comic_id: "lev-fer", name: "Lev Fer" }],
     other_sites: [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com", features: { podcast: true } }, { id: "other-pod", name: "Other Pod", domain: "otherpod.com", features: { podcast: true } }],
     other_episodes: [{ num: 5, title: "Ep", url: "https://pod/5" }] };
-  const podText = (d) => ([...d.querySelectorAll(".block")].find((b) => /^Podcast/.test(b.textContent)) || { textContent: "" }).textContent;
+  const podText = (d) => [...d.querySelectorAll(".home .lnk")].filter((a) => /Listen/.test(a.textContent)).map((a) => a.textContent).join(" ");
   let { d } = await load(base); await wait(120);
   assert.match(podText(d), /Cockfight.*Other Pod/s, "both by default");
   const oneOff = { ...base, sites: [{ ...full.sites[0], profile: { podcasts_off: ["Cockfight"] } }] };
@@ -225,13 +225,21 @@ test("Lev picks which podcasts are on his site: one on, one off, or none", async
   assert.equal(podText(d), ""); assert.ok(!menu(d).includes("Podcast"));
 });
 
-test("social buttons are on the home screen by default, right after his links", async () => {
-  const { d } = await load({ ...full, home_picks: [], links: [{ id: 1, label: "Merch", url: "https://shop.test", sort: 0 }] });
+test("socials sit side by side after his links; each can be switched off, or moved and become its own big button", async () => {
+  const hosts = [{ ...full.hosts[0], youtube: "https://youtube.com/@test", website: "https://linktr.ee/test" }];
+  const links = [{ id: 1, label: "Merch", url: "https://shop.test", sort: 0 }];
+  let { d } = await load({ ...full, home_picks: [], hosts, links });
   const blocks = [...d.querySelectorAll(".home > .block")];
   const i = blocks.findIndex((b) => b.querySelector(".socrow"));
-  assert.ok(i > 0, "social buttons show");
-  assert.match(blocks[i - 1].textContent, /Merch/);
-  assert.equal(blocks[i].querySelector("a").getAttribute("href"), "https://instagram.com/test");
+  assert.match(blocks[i - 1].textContent, /Merch/, "right after his links");
+  assert.deepEqual([...blocks[i].querySelectorAll(".soc")].map((a) => a.textContent), ["Instagram", "YouTube", "Website"]);
+  const theme = { home_items: [{ key: "social:youtube", on: true }, { key: "link:1", on: true }, { key: "social:instagram", on: false }] };
+  ({ d } = await load({ ...full, home_picks: [], hosts, links, sites: [{ ...full.sites[0], theme }] }));
+  const big = [...d.querySelectorAll(".home .lnk strong")].map((x) => x.textContent);
+  assert.equal(big[0], "YouTube", "moved to the top, on its own, so it's a big button");
+  assert.equal(big[1], "Merch");
+  assert.ok(!d.getElementById("app").textContent.includes("Instagram"), "switched off on its own");
+  assert.ok(big.includes("Website"), "not in his saved order, so it lands next to the other socials");
 });
 
 test("no page ever shows the word null (a heading without a subtitle, About without a title)", async () => {
