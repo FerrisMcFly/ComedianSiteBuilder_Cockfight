@@ -262,3 +262,12 @@ test("on a phone the menu is a side panel: Menu opens it, picking a section clos
   d.getElementById("menuBtn").click(); d.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Escape" }));
   assert.ok(!d.documentElement.classList.contains("menu-open"), "Escape closes it");
 });
+
+test("any platform a comic adds (Threads, Twitch, Spotify…) shows on the home screen and the Socials page", async () => {
+  const hosts = [{ ...full.hosts[0], socials: { threads: "https://www.threads.net/@test", twitch: "https://www.twitch.tv/test", junk: "https://x" } }];
+  let { d } = await load({ ...full, home_picks: [], hosts });
+  const socs = [...d.querySelectorAll(".home .soc")].map((a) => a.textContent);
+  assert.deepEqual(socs, ["Instagram", "Threads", "Twitch"], "in the standard order; unknown keys ignored");
+  ({ d } = await load({ ...full, hosts }, "#/socials"));
+  assert.match(d.querySelector(".net").textContent, /Instagram.*Threads.*Twitch/s);
+});

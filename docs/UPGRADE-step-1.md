@@ -74,6 +74,7 @@ Each new feature that needs the database changed comes with its own small file i
 | `14_blog.sql` | The blog |
 | `15_home_picks.sql` | Home screen picks: what a comic wants visitors to see first, set from the dashboard (Site extras → Home screen) |
 | `18_fan_signup.sql` | QR-code fan sign-up: fans can say where they met you, and the list shows who joined from a QR code |
+| `19_more_socials.sql` | More social links on a comic's profile: Threads, Bluesky, Facebook, Twitch, Kick, Snapchat, Spotify, Apple Podcasts, SoundCloud, Substack, Cameo |
 | `UPGRADE_V2_ALL.sql` | 07 to 14 in one paste. See `docs/GO-LIVE-v2.md` |
 
 ## If something goes wrong

@@ -282,7 +282,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
   }
   function viewAbout(app) {
     var me = person(), p = D.profile || {}, s = me.socials || {};
-    var links = [["instagram", "Instagram"], ["youtube", "YouTube"], ["tiktok", "TikTok"], ["twitter", "X"], ["website", "Website"]].filter(function (x) { return s[x[0]]; });
+    var links = (CSB.SOCIALS || [["instagram", "Instagram"], ["youtube", "YouTube"], ["tiktok", "TikTok"], ["twitter", "X"], ["website", "Website"]]).filter(function (x) { return s[x[0]]; });
     app.append(el("section", { class: "page about" }, [
       me.photo ? el("img", { src: me.photo, alt: me.name }) : el("div"),
       el("div", null, [el("h2", { class: "sec", text: "About" }), el("div", { class: "bio", text: p.about || me.bio || "" }),
