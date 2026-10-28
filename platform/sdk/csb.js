@@ -6,7 +6,9 @@
  *
  *   <script src="config.js"></script>          // window.COCKFIGHT_CONFIG = { SITE_ID, SUPABASE_URL, SUPABASE_ANON_KEY }
  *   <script src="sdk/csb.js"></script>
- *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards }
+ *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards, posts, picks }
+ *   picks: the comic's Home screen picks, in order (the first is the featured one). A pick made from a show carries
+ *   that show's status and drops off once the show has passed.
  *   shows: each has person (a solo date) or event: true with lineup (a show by the whole site, like a live podcast).
  *   CSB.forum.threads("general"), CSB.forum.newTopic({...}), CSB.chat.subscribe(fn), CSB.chat.send({...})
  *   CSB.fans.places("bos"), CSB.fans.join({ email, placeId, radius })   // fan list, when site.features.fans is on
@@ -67,7 +69,8 @@
       optional(api("announcements?select=*&order=sort.asc&" + site())),
       optional(api("links?select=*&order=sort.asc&hidden=is.false&" + site())),
       optional(api("boards?select=*&order=sort.asc&hidden=is.false&" + site())),
-      optional(api("blog_posts?select=id,slug,title,excerpt,cover_url,published_at&published=is.true&order=published_at.desc&limit=50&" + site()))
+      optional(api("blog_posts?select=id,slug,title,excerpt,cover_url,published_at&published=is.true&order=published_at.desc&limit=50&" + site())),
+      optional(api("home_picks?select=*&order=sort.asc&hidden=is.false&" + site()))
     ]).then(function (r) {
       var s = r[0][0] || { id: cfg.site, features: {}, profile: {}, theme: {}, community: {} };
       var today = todayISO();
@@ -94,9 +97,21 @@
         announcements: announcements,
         links: r[7].filter(visible).map(function (l) { return { id: l.id, label: l.label, url: l.url, icon: l.icon || "" }; }),
         boards: r[8].filter(visible).map(function (b) { return { id: b.id, name: b.name, description: b.description || "", locked: !!b.locked }; }),
-        posts: r[9].map(post)
+        posts: r[9].map(post),
+        picks: homePicks(r[10], shows, today)
       };
     });
+  }
+
+  // Home screen picks: drop ended ones and ones whose show has passed; a show pick shows that show's status.
+  function homePicks(rows, shows, today) {
+    var byId = {}; shows.forEach(function (s) { byId[s.id] = s; });
+    return rows.filter(function (p) { return !p.hidden && (!p.ends_on || p.ends_on >= today) && (!p.show_id || byId[p.show_id]); })
+      .map(function (p) {
+        var s = p.show_id ? byId[p.show_id] : null;
+        return { id: p.id, kind: p.kind || "announcement", headline: p.headline, text: p.body || "", button: p.button_label || "", link: p.link || (s && s.tickets) || "",
+          image: p.image_url || "", show: s ? { date: s.date, time: s.time, venue: s.venue, city: s.city, status: s.status } : null };
+      });
   }
 
   /* ---------------- visitor identity (anonymous) ---------------- */
@@ -224,6 +239,6 @@
     leave: function (token) { return api("rpc/leave_fans", { method: "POST", body: { p_token: token } }); }
   };
 
-  var CSB = { init: init, load: load, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, device: device, name: name, api: api, version: "1.1" };
+  var CSB = { init: init, load: load, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, device: device, name: name, api: api, version: "1.2" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

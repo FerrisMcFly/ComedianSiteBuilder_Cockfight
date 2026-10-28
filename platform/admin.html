@@ -682,6 +682,7 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "chat", group: "Community", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
     { id: "moderation", group: "Community", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
     // Extras only show up when this site's own front end says it uses them (in its theme.json)
+    { id: "picks", group: "Site extras", label: "Home screen", ico: "⭐", extra: "home_picks", render: viewPicks },
     { id: "announce", group: "Site extras", label: "Announcements", ico: "📣", extra: "announcements", render: viewAnnounce },
     { id: "links", group: "Site extras", label: "Links", ico: "🔗", extra: "links", render: viewLinks },
     { id: "theme", group: "Site extras", label: "Design settings", ico: "🎨", extra: "design", render: viewTheme },
@@ -1294,6 +1295,7 @@ td select.status.st-few_left { color: var(--warn); }
             await reload.shows(); redraw(); refreshNav(); toast(s.hidden_here ? "It's back on this site." : "Hidden here. It still shows on " + first(s.host) + "'s other sites.");
           } catch (e) { toast(errText(e), { bad: true }); }
         } }),
+        hasExtra("home_picks") && s.date >= t0 ? h("button", { type: "button", text: "⭐ Pin to Home screen", onclick: () => pinToHome(showPick(s)) }) : null,
         h("button", { type: "button", class: "danger", text: "Delete", onclick: async () => {
           try { await q(sb.from("shows").delete().eq("id", s.id)); await reload.shows(); redraw(); refreshNav();
             toast("Deleted " + shortDate(s.date) + " in " + (s.city || s.venue) + ".", { action: { label: "Undo", run: () => restore([s], redraw) } }); }
@@ -2372,6 +2374,86 @@ td select.status.st-few_left { color: var(--warn); }
           field("Contact email", f.contact_email, "c6"), field("Booking email", f.booking_email, "c6"),
           field("Support link (Patreon, Ko-fi, Substack…)", f.support_url, "c8"), field("Support button says", f.support_label, "c4")),
         h("div", { class: "btns" }, save)));
+  }
+
+  /* ======================================================
+     HOME SCREEN PICKS
+     ====================================================== */
+  const PICK_KINDS = [["show", "Show"], ["video", "Video"], ["announcement", "Announcement"], ["merch", "Merch"], ["podcast", "Podcast"], ["post", "Blog post"], ["link", "Link"]];
+  const showPick = (s) => ({ kind: "show", headline: ((s.venue || s.city || "Live") + " · " + shortDate(s.date)).slice(0, 90), body: [s.time, s.city].filter(Boolean).join(" · ").slice(0, 300) || null,
+    button_label: "Get tickets", link: s.url || null, show_id: s.id, ends_on: s.date });
+  async function pinToHome(pick) {
+    try {
+      const rows = await q(sb.from("home_picks").select("id,sort").eq("site_id", sid()));
+      // a new pin goes to the top: it's what the comic wants seen first right now
+      const top = rows.reduce((m, x) => Math.min(m, x.sort), 0) - 1;
+      await q(sb.from("home_picks").insert({ site_id: sid(), sort: top, ...pick }));
+      toast("Pinned to the top of your Home screen.", { action: { label: "See it", run: () => go("picks") } });
+    } catch (e) { toast(errText(e), { bad: true }); }
+  }
+  async function viewPicks(main) {
+    await loadTheme();
+    main.append(head("Home screen", "What visitors see first on your site. The top pick is the big one. Your site's design decides how they look."));
+    const wrap = h("div", { class: "stack" }); main.append(wrap);
+    let P = [], editing = null;
+    const reloadP = async () => { P = (await q(sb.from("home_picks").select("*").eq("site_id", sid()).order("sort", { ascending: true }))).sort((a, b) => (a.sort - b.sort) || String(a.created_at || "").localeCompare(String(b.created_at || ""))); };
+    try { await reloadP(); } catch (e) { wrap.append(h("p", { class: "err", text: /home_picks/.test(errText(e)) ? "Run supabase/15_home_picks.sql in Supabase first." : errText(e) })); return; }
+    const t0 = today();
+    const ended = (p) => p.ends_on && p.ends_on < t0;
+    function form(p) {
+      const kind = h("select", { "aria-label": "Type" }, PICK_KINDS.map(([v, l]) => h("option", { value: v, text: l, selected: (p ? p.kind : "announcement") === v })));
+      const headline = h("input", { maxlength: "90", placeholder: "New special out now", value: p ? p.headline : "", "aria-label": "Headline" });
+      const body = h("textarea", { maxlength: "300", rows: "2", placeholder: "One or two lines (optional)", "aria-label": "Text" }); body.value = p ? p.body || "" : "";
+      const label = h("input", { maxlength: "30", placeholder: "Watch now", value: p ? p.button_label || "" : "", "aria-label": "Button text" });
+      const link = h("input", { type: "url", maxlength: "500", placeholder: "https://…", value: p ? p.link || "" : "", "aria-label": "Button link" });
+      const ends = h("input", { type: "date", value: p ? p.ends_on || "" : "", "aria-label": "Show until" });
+      return h("form", { class: "card stack", onsubmit: async (e) => {
+        e.preventDefault(); if (!headline.value.trim()) { headline.classList.add("bad"); headline.focus(); return; }
+        const row = { kind: kind.value, headline: headline.value.trim(), body: body.value.trim() || null, button_label: label.value.trim() || null, link: link.value.trim() || null, ends_on: ends.value || null };
+        try {
+          if (p) await q(sb.from("home_picks").update(row).eq("id", p.id));
+          else await q(sb.from("home_picks").insert({ site_id: sid(), sort: P.reduce((m, x) => Math.max(m, x.sort), -1) + 1, ...row }));
+          editing = null; await reloadP(); draw(); toast(p ? "Saved. It's live." : "Added. It's live.");
+        } catch (err) { toast(errText(err), { bad: true }); }
+      } }, h("h2", { text: p ? "Edit pick" : "Add a pick" }),
+        h("div", { class: "grid" }, field("Type", kind, "c3"), field("Headline", headline, "c9"), field("Text", body, "c12"),
+          field("Button text", label, "c4"), field("Button link", link, "c5"), field("Show until", ends, "c3")),
+        p && p.show_id ? h("p", { class: "hint", text: "Made from a show: sold out or cancelled shows on it automatically, and it comes off after the show." }) : null,
+        h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: p ? "Save" : "Add to Home screen" }),
+          p ? h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => { editing = null; draw(); } }) : h("span", { class: "hint", text: "Tip: pin a show from Shows (⋯ → Pin to Home screen) and it fills itself in." })));
+    }
+    function draw() {
+      const list = h("section", { class: "card" }, h("h2", { text: "Your picks" }), P.length ? h("div", null, P.map((p, i) => {
+        if (editing === p.id) return form(p);
+        const kindName = (PICK_KINDS.find((k) => k[0] === p.kind) || [0, "Pick"])[1];
+        return h("div", { class: "switch-row", style: "flex-wrap:wrap" },
+          h("div", { style: "min-width:0;flex:1 1 300px" },
+            h("div", { class: "btns" }, i === 0 ? h("span", { class: "pill red", text: "⭐ Featured" }) : null, h("span", { class: "pill", text: kindName }),
+              p.hidden ? h("span", { class: "pill warn", text: "Hidden" }) : ended(p) ? h("span", { class: "pill", text: "Ended" }) : h("span", { class: "pill ok", text: "Live" })),
+            h("div", { class: "wrap-any", style: "margin-top:4px;font-weight:600", text: p.headline }),
+            p.body ? h("div", { class: "hint wrap-any", text: p.body }) : null,
+            p.link ? h("div", { class: "hint wrap-any", text: (p.button_label || "Link") + " → " + p.link }) : null,
+            p.ends_on ? h("div", { class: "hint", text: "Until " + shortDate(p.ends_on) }) : null),
+          h("div", { class: "btns" },
+            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => reorder(i, i - 1) }),
+            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === P.length - 1, onclick: () => reorder(i, i + 1) }),
+            h("button", { class: "btn ghost sm", type: "button", text: "Edit", onclick: () => { editing = p.id; draw(); } }),
+            h("button", { class: "btn ghost sm", type: "button", text: p.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("home_picks").update({ hidden: !p.hidden }).eq("id", p.id)); await reloadP(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
+            h("button", { class: "btn ghost sm danger", type: "button", text: "Remove", onclick: async () => {
+              try { await q(sb.from("home_picks").delete().eq("id", p.id)); await reloadP(); draw();
+                toast("Removed.", { action: { label: "Undo", run: async () => { const { id, ...row } = p; try { await q(sb.from("home_picks").insert(row)); await reloadP(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
+              catch (e) { toast(errText(e), { bad: true }); }
+            } })));
+      })) : empty("Nothing pinned yet", "Add a pick above, or pin a show from Shows."));
+      wrap.replaceChildren(editing ? h("div") : form(null), list);
+    }
+    async function reorder(a, b) {
+      // renumber everything so the order is exact even after pins went to the top
+      const next = P.slice(); const [m] = next.splice(a, 1); next.splice(b, 0, m);
+      try { for (let i = 0; i < next.length; i++) if (next[i].sort !== i) await q(sb.from("home_picks").update({ sort: i }).eq("id", next[i].id)); await reloadP(); draw(); }
+      catch (e) { toast(errText(e), { bad: true }); }
+    }
+    draw();
   }
 
   /* ======================================================

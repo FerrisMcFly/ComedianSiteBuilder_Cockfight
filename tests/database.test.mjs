@@ -27,7 +27,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -276,4 +276,17 @@ test("blog: drafts are private, published posts are public and get a date", asyn
   assert.equal(await as(COMIC, `update blog_posts set title = 'hacked'`), "ok");
   assert.equal((await q("select title from blog_posts"))[0].title, "Hello");
   assert.match(await as(OWNER, `insert into blog_posts (site_id, slug, title) values ('cockfight', 'Bad Slug!', 'x')`), /check/i);
+});
+
+test("home picks: public sees live ones, only the site's admins change them", async () => {
+  await db.exec(`insert into home_picks (site_id, headline, sort) values ('cockfight', 'Big news', 0);
+    insert into home_picks (site_id, headline, hidden, sort) values ('cockfight', 'Secret', true, 1);`);
+  const pub = await rows(null, "select headline from home_picks where site_id = 'cockfight' order by sort");
+  assert.deepEqual(pub.map((r) => r.headline), ["Big news"]);
+  assert.match(await as(null, `insert into home_picks (site_id, headline) values ('cockfight', 'hijack')`), /permission denied|row-level security/);
+  assert.match(await as(COMIC, `insert into home_picks (site_id, headline) values ('cockfight', 'hijack')`), /row-level security/);
+  await as(COMIC, `update home_picks set headline = 'Hacked' where site_id = 'cockfight'`);
+  assert.equal((await q("select count(*)::int n from home_picks where headline = 'Hacked'"))[0].n, 0);
+  assert.equal(await as(COMIC, `insert into home_picks (site_id, headline, kind) values ('othercomic', 'My special', 'video')`), "ok");
+  assert.match(await as(COMIC, `insert into home_picks (site_id, headline, kind) values ('othercomic', 'x', 'nonsense')`), /check constraint/);
 });
