@@ -57,8 +57,6 @@ button.go:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
         <label for="city">Your city <input id="city" autocomplete="off" placeholder="Start typing your city" required></label>
         <button type="button" class="chip" id="cityChip" hidden></button>
         <div class="places" id="places" role="listbox" aria-label="Cities"></div>
-        <label for="radius">How far would you go for a show?
-          <select id="radius"><option value="25">Within 25 miles</option><option value="50" selected>Within 50 miles</option><option value="100">Within 100 miles</option><option value="250">Within 250 miles</option></select></label>
         <label for="met">Where did we meet? <small>Optional</small> <input id="met" maxlength="200" placeholder="A show, the merch table, the airport…"></label>
         <button class="go" type="submit" id="go">Join the list</button>
         <div class="msg" id="msg" role="status" aria-live="polite"></div>
@@ -139,7 +137,7 @@ button.go:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = "Add your email."; $("email").focus(); return; }
     if (!chosen) { msg.textContent = "Pick your city from the list as you type."; $("city").focus(); return; }
     $("go").disabled = true; msg.textContent = "";
-    CSB.fans.join({ email: email, placeId: chosen.id, radius: +$("radius").value, met: $("met").value.trim(), source: "qr" }).then(function (res) {
+    CSB.fans.join({ email: email, placeId: chosen.id, radius: 50, met: $("met").value.trim(), source: "qr" }).then(function (res) {
       $("ask").hidden = true; $("done").hidden = false;
       $("doneHead").textContent = res === "updated" ? "You're already on the list" : "You're on the list";
       $("doneLine").textContent = "You'll get an email when " + name + " plays near " + chosen.label + ".";
