@@ -7,7 +7,9 @@ const from = process.env.CACHED_COMMIT_REF, to = process.env.COMMIT_REF || "HEAD
 if (!from || from === to) process.exit(1); // first build, or nothing to compare: build
 const watch = site === "platform"
   ? ["platform/", "netlify/", "tools/build.mjs", "package.json", "package-lock.json", "netlify.toml", "sites/"]   // the admin reads every site's theme.json
-  : [`sites/${site}/`, "platform/sdk/", "platform/platform.json", "netlify/", "tools/build.mjs", "package.json", "package-lock.json", "netlify.toml"];
+  // A comic's site is just its pages: the dashboard, the show finder and the hourly imports all run on
+  // comictable.com, so server code (netlify/) changes only rebuild ComicTable.
+  : [`sites/${site}/`, "platform/sdk/", "platform/platform.json", "tools/build.mjs", "package.json", "package-lock.json", "netlify.toml"];
 let changed;
 try { changed = execFileSync("git", ["diff", "--name-only", from, to], { encoding: "utf8" }).split("\n").filter(Boolean); }
 catch (e) { process.exit(1); } // can't tell: build to be safe
