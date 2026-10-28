@@ -224,3 +224,12 @@ test("Lev picks which podcasts are on his site: one on, one off, or none", async
   ({ d } = await load(allOff)); await wait(120);
   assert.equal(podText(d), ""); assert.ok(!menu(d).includes("Podcast"));
 });
+
+test("social buttons are on the home screen by default, right after his links", async () => {
+  const { d } = await load({ ...full, home_picks: [], links: [{ id: 1, label: "Merch", url: "https://shop.test", sort: 0 }] });
+  const blocks = [...d.querySelectorAll(".home > .block")];
+  const i = blocks.findIndex((b) => b.querySelector(".socrow"));
+  assert.ok(i > 0, "social buttons show");
+  assert.match(blocks[i - 1].textContent, /Merch/);
+  assert.equal(blocks[i].querySelector("a").getAttribute("href"), "https://instagram.com/test");
+});

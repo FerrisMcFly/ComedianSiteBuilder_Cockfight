@@ -2723,7 +2723,21 @@ td select.status.st-few_left { color: var(--warn); }
   }
   async function viewPicks(main) {
     await loadTheme();
-    main.append(head("Home screen", "What visitors see first on your site. The top pick is the big one. Your site's design decides how they look."));
+    main.append(head("Home screen", "What visitors see first on your site: the sections, in your order, and the picks you pin."));
+    // The design's Home screen sections (a theme setting with key "home"), right here as well as in Design
+    const theme = await loadTheme();
+    const layoutSt = theme && Array.isArray(theme.settings) && theme.settings.find((x) => x.key === "home" && x.type === "order");
+    if (layoutSt) {
+      const pick = orderPicker(layoutSt, (S.site.theme || {}).home);
+      const save = h("button", { class: "btn primary", type: "submit", text: "Save layout" });
+      main.append(h("form", { class: "card stack", style: "margin-bottom:16px", onsubmit: async (e) => {
+        e.preventDefault(); save.disabled = true;
+        try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, { home: pick.value }) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
+        save.disabled = false;
+      } }, h("h2", { style: "margin:0", text: "Layout" }),
+        h("p", { class: "hint", style: "margin:0", text: "Put the sections in the order you want and switch off any you don't. Social buttons come from your profile in People; Your links come from Links." }),
+        pick.el, h("div", { class: "btns" }, save)));
+    }
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     let P = [], editing = null;
     const reloadP = async () => { P = (await q(sb.from("home_picks").select("*").eq("site_id", sid()).order("sort", { ascending: true }))).sort((a, b) => (a.sort - b.sort) || String(a.created_at || "").localeCompare(String(b.created_at || ""))); };
@@ -2889,6 +2903,22 @@ td select.status.st-few_left { color: var(--warn); }
   /* ======================================================
      THEME (built from the front end's theme.json)
      ====================================================== */
+  // "order" setting: a list the comic arranges and switches on or off. Saved as [{ key, on }].
+  // Options the design adds later show up at the end, with their default.
+  function orderPicker(st, v) {
+    const opts = (st.options || []).map((o) => Array.isArray(o) ? { key: o[0], label: o[1], help: o[2] || "", on: o[3] !== false } : { key: o.key, label: o.label || o.key, help: o.help || "", on: o.on !== false });
+    const saved = Array.isArray(v) ? v.filter((x) => x && opts.some((o) => o.key === x.key)) : [];
+    let items = saved.map((x) => ({ ...opts.find((o) => o.key === x.key), on: !!x.on })).concat(opts.filter((o) => !saved.some((x) => x.key === o.key)));
+    const box = h("div", { class: "order-list" });
+    const draw = () => box.replaceChildren(...items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off") },
+      h("div", { style: "min-width:0;flex:1 1 220px" }, h("b", { text: it.label }), it.help ? h("div", { class: "hint", text: it.help }) : null),
+      h("div", { class: "btns" },
+        h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " up", text: "↑", disabled: i === 0, onclick: () => { [items[i - 1], items[i]] = [items[i], items[i - 1]]; draw(); } }),
+        h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " down", text: "↓", disabled: i === items.length - 1, onclick: () => { [items[i + 1], items[i]] = [items[i], items[i + 1]]; draw(); } }),
+        h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: it.on, "aria-label": "Show " + it.label, onchange: (e) => { it.on = e.target.checked; draw(); } }), h("span"))))));
+    draw();
+    return { el: box, get value() { return items.map((x) => ({ key: x.key, on: x.on })); } };
+  }
   async function viewTheme(main) {
     const theme = await loadTheme();
     if (!theme || !Array.isArray(theme.settings)) {
@@ -2900,22 +2930,7 @@ td select.status.st-few_left { color: var(--warn); }
     const inputs = {};
     // "order": a list the comic arranges and switches on or off (menu order, Home screen sections).
     // Saved as [{ key, on }]. Options the design adds later show up at the end, with their default.
-    function orderList(st, v) {
-      const opts = (st.options || []).map((o) => Array.isArray(o) ? { key: o[0], label: o[1], help: o[2] || "", on: o[3] !== false } : { key: o.key, label: o.label || o.key, help: o.help || "", on: o.on !== false });
-      const saved = Array.isArray(v) ? v.filter((x) => x && opts.some((o) => o.key === x.key)) : [];
-      let items = saved.map((x) => ({ ...opts.find((o) => o.key === x.key), on: !!x.on }))
-        .concat(opts.filter((o) => !saved.some((x) => x.key === o.key)));
-      const box = h("div", { class: "order-list" });
-      const draw = () => box.replaceChildren(...items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off") },
-        h("div", { style: "min-width:0;flex:1 1 220px" }, h("b", { text: it.label }), it.help ? h("div", { class: "hint", text: it.help }) : null),
-        h("div", { class: "btns" },
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " up", text: "↑", disabled: i === 0, onclick: () => { [items[i - 1], items[i]] = [items[i], items[i - 1]]; draw(); } }),
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " down", text: "↓", disabled: i === items.length - 1, onclick: () => { [items[i + 1], items[i]] = [items[i], items[i + 1]]; draw(); } }),
-          h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: it.on, "aria-label": "Show " + it.label, onchange: (e) => { it.on = e.target.checked; draw(); } }), h("span"))))));
-      draw();
-      inputs[st.key] = { get value() { return items.map((x) => ({ key: x.key, on: x.on })); } };
-      return box;
-    }
+    const orderList = (st, v) => { const o = orderPicker(st, v); inputs[st.key] = o; return o.el; };
     const rows = theme.settings.map((st) => {
       if (st.type === "heading") return h("div", { class: "set-head" }, h("h2", { text: st.label }), st.help ? h("p", { class: "hint", text: st.help }) : null);
       const v = st.key in vals ? vals[st.key] : st.default;

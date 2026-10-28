@@ -173,7 +173,8 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .special { display: grid; gap: 10px; text-decoration: none; }
 .special .thumb { border-color: var(--amber); }
 .special strong { font: 400 clamp(18px, 2.6vw, 24px)/1.2 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--glow); }
-.socrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.socrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.socrow .btn { padding: 12px 10px; }
 
 /* shows */
 .dates { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
@@ -328,7 +329,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   // Lev's saved order ([{ key, on }]) merged with the defaults, so sections added later still show up.
   // These defaults match theme.json (a test checks they agree).
   var MENU_DEFAULT = [["shows", 1], ["clips", 1], ["podcast", 1], ["blog", 1], ["forum", 1], ["chat", 1], ["list", 1], ["about", 1], ["socials", 1], ["press", 1], ["support", 0]];
-  var HOME_DEFAULT = [["me", 1], ["links", 1], ["support", 1], ["picks", 1], ["shows", 1], ["podcast", 1], ["special", 1], ["list", 1], ["blog", 1], ["clips", 0], ["socials", 0]];
+  var HOME_DEFAULT = [["me", 1], ["links", 1], ["socials", 1], ["support", 1], ["picks", 1], ["shows", 1], ["podcast", 1], ["special", 1], ["list", 1], ["blog", 1], ["clips", 0]];
   function orderOf(saved, defaults) {
     var known = defaults.map(function (x) { return x[0]; }), out = [];
     (Array.isArray(saved) ? saved : []).forEach(function (x) { if (x && known.indexOf(x.key) >= 0 && !out.some(function (o) { return o[0] === x.key; })) out.push([x.key, x.on ? 1 : 0]); });

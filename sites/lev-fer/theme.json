@@ -29,6 +29,12 @@
           true
         ],
         [
+          "socials",
+          "Social buttons",
+          "Instagram, YouTube, TikTok and the rest. Set them on your profile in People.",
+          true
+        ],
+        [
           "support",
           "Support button",
           "Patreon, Ko-fi or Substack. Set the link in Profile.",
@@ -74,12 +80,6 @@
           "clips",
           "Latest clips",
           "Your three newest videos.",
-          false
-        ],
-        [
-          "socials",
-          "Social buttons",
-          "Instagram, YouTube, TikTok and the rest from People.",
           false
         ]
       ]
