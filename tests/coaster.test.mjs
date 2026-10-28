@@ -58,7 +58,7 @@ test("next dates with tickets, and who else is on the bill links to their Coaste
   assert.match(other.textContent, /CTColum Tyrrell/);
   // tap the coaster: it flips to a QR code
   const coaster = d.querySelector(".coaster");
-  assert.match(d.querySelector(".back").textContent, /Scan for Lev's Coaster.*comictable\.com\/lev-fer/s, "no fan list: the QR goes to the Coaster");
+  assert.match(d.querySelector(".back").textContent, /Lev's Coaster.*comictable\.com\/lev-fer/s, "no fan list: the QR goes to the Coaster");
   coaster.click();
   assert.ok(coaster.classList.contains("flipped"));
   assert.equal(coaster.getAttribute("aria-pressed"), "true");
@@ -96,7 +96,7 @@ test("fans can join the comic's list from the Coaster", async () => {
   const join = sent.find((x) => x[0] === "rpc/join_fans")[1];
   assert.deepEqual([join.p_site, join.p_email, join.p_place, join.p_met], ["lev-fer", "fan@x.com", 7, "Coaster"]);
   assert.match(d.querySelector(".join").textContent, /on Lev's list/);
-  assert.match(d.querySelector(".back").textContent, /Scan to join Lev's list.*levfer\.gay\/join/s, "with a fan list, the coaster's QR is the sign-up");
+  assert.match(d.querySelector(".back").textContent, /Join Lev's list.*levfer\.gay\/join/s, "with a fan list, the coaster's QR is the sign-up");
 });
 
 test("lots of dates: the next one, six more under More, then all of them", async () => {
