@@ -158,3 +158,10 @@ test("a forum topic is posted to Lev's site", async () => {
   const t = posts.find((p) => p[0] === "threads")[1];
   assert.deepEqual([t.site_id, t.board, t.title, t.author], ["lev-fer", "general", "Hi", "Fan"]);
 });
+
+test("Lev's own loading-screen jokes replace the built-in ones, and can be switched off", async () => {
+  let { d } = await load({ ...full, sites: [{ ...full.sites[0], theme: { tip_lines: ["My own joke."] } }] }); await wait(500);
+  assert.equal(d.getElementById("tip").textContent, "Tip: My own joke.");
+  ({ d } = await load({ ...full, sites: [{ ...full.sites[0], theme: { tips: false } }] }));
+  assert.ok(d.getElementById("tip").hidden);
+});

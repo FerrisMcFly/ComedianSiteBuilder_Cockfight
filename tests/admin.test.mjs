@@ -699,8 +699,10 @@ test("Design settings: arrange a list, switch items off, and save it", async () 
   const theme = { name: "Console Lobby", extras: [], settings: [
     { type: "heading", label: "Home screen" },
     { key: "home", label: "Home screen sections", type: "order", options: [["me", "You", "", true], ["shows", "Next shows", "", true], ["clips", "Latest clips", "", false]] },
-    { key: "accent", label: "Highlight color", type: "color", default: "#ffb238" }] };
+    { key: "accent", label: "Highlight color", type: "color", default: "#ffb238" },
+    { key: "tip_lines", label: "Your loading-screen jokes", type: "lines", default: [] }] };
   const { w, d, db } = await open("#theme", null, theme);
+  set(w, d.querySelector('textarea[aria-label="Your loading-screen jokes"]'), "One\n\n  Two  \n");
   assert.ok([...d.querySelectorAll(".set-head h2")].some((x) => x.textContent === "Home screen"));
   const rows = () => [...d.querySelectorAll(".order-row")];
   assert.deepEqual(rows().map((r) => r.querySelector("b").textContent), ["You", "Next shows", "Latest clips"]);
@@ -709,6 +711,7 @@ test("Design settings: arrange a list, switch items off, and save it", async () 
   d.querySelector("form.card").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.home)), [{ key: "shows", on: true }, { key: "me", on: true }, { key: "clips", on: true }]);
   assert.equal(db.sites[0].theme.accent, "#ffb238");
+  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.tip_lines)), ["One", "Two"]);
 });
 
 test("Profile: the link preview card updates as you type and saves", async () => {

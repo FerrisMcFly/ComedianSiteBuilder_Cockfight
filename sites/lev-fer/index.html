@@ -641,10 +641,13 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
 
   /* ---------- ambience: loading tips, glyph trim, space backdrop ---------- */
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var tips = ["Tip: This is not Halo 2. Please stop emailing us.", "Tip: Lev cannot be dual-wielded.", "Tip: Heckling does not make you respawn faster.",
-    "Tip: Bring a friend. Two-player seating available at most clubs.", "Tip: Sold-out shows cannot be unlocked with a cheat code.", "Tip: The two-drink minimum is not a power-up."];
+  // Lev writes his own in Design settings → Loading-screen jokes; these are the ones the design ships with.
+  var TIPS = ["This is not Halo 2. Please stop emailing us.", "Lev cannot be dual-wielded.", "Heckling does not make you respawn faster.",
+    "Bring a friend. Two-player seating available at most clubs.", "Sold-out shows cannot be unlocked with a cheat code.", "The two-drink minimum is not a power-up."];
+  var tips = TIPS.map(function (t) { return "Tip: " + t; });
   var ti = 0; if (!reduce) setInterval(function () { if (D && T().tips === false) return; tick(); }, 4200);
-  function tick() { (function () { var t = $("tip"); t.style.opacity = 0; setTimeout(function () { ti = (ti + 1) % tips.length; t.textContent = tips[ti]; t.style.opacity = 1; }, 400); })(); }
+  function tick() { (function () { var t = $("tip"); t.style.opacity = 0; setTimeout(function () { var own = D && Array.isArray(T().tip_lines) && T().tip_lines.length ? T().tip_lines.map(function (x) { return /^tip:/i.test(x) ? x : "Tip: " + x; }) : tips;
+    ti = (ti + 1) % own.length; t.textContent = own[ti]; t.style.opacity = 1; }, 400); })(); }
   var G = "ᐊᐅᐃᐁᑕᑐᑎᑌᒪᒧᒥᒣᓴᓱᓯᓭᔭᔪᔨᔦ◇◈⟁⌬", g = ""; for (var i = 0; i < 40; i++) g += G[Math.floor(Math.random() * G.length)]; $("glyphs").textContent = g;
   (function sky() {
     var c = $("sky"), x = c.getContext && c.getContext("2d"); if (!x) return;
@@ -677,6 +680,8 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     $("who").textContent = me.title || "Stand-up comedian";
     $("copy").textContent = "© " + new Date().getFullYear() + " " + d.site.name;
     applyTheme(d.theme);
+    if (T().tips === false) $("tip").hidden = true;
+    else if (Array.isArray(T().tip_lines) && T().tip_lines.length) { ti = -1; tick(); }
     D.elsewhere = [];
     route();
     // podcasts and other ComicTable sites Lev is on arrive a moment later
