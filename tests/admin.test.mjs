@@ -806,3 +806,15 @@ test("fan list: a sign-up QR code for the site and for each show, and where fans
   set(w, main.querySelector("input[type=search]"), "merch");
   assert.match(main.querySelector(".card:last-child").textContent, /a@x\.com/);
 });
+
+test("Home screen page: the design's section layout is right there, saved to the design settings", async () => {
+  const theme = { name: "Console Lobby", extras: ["home_picks"], settings: [
+    { key: "home", label: "Home screen sections", type: "order", options: [["me", "You", "", true], ["links", "Your links", "", true], ["socials", "Social buttons", "", true]] }] };
+  const { w, d, db } = await open("#picks", (db) => { db.home_picks = []; }, theme);
+  await wait(60);
+  const form = [...d.querySelectorAll("form.card")].find((f) => /Layout/.test(f.textContent));
+  assert.ok(form, "the layout shows on the Home screen page");
+  form.querySelector('[aria-label="Move Social buttons up"]').click(); await wait();
+  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.home)).map((x) => x.key), ["me", "socials", "links"]);
+});
