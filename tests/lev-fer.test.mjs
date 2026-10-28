@@ -248,3 +248,17 @@ test("no page ever shows the word null (a heading without a subtitle, About with
     assert.doesNotMatch(d.getElementById("app").textContent, /\bnull\b|undefined/, hash || "home");
   }
 });
+
+test("on a phone the menu is a side panel: Menu opens it, picking a section closes it and goes there", async () => {
+  const { w, d } = await load(full);
+  assert.equal(d.getElementById("mcur").textContent, "Home");
+  d.getElementById("menuBtn").click();
+  assert.ok(d.documentElement.classList.contains("menu-open"));
+  assert.equal(d.getElementById("menuBtn").getAttribute("aria-expanded"), "true");
+  assert.deepEqual([...d.querySelectorAll("#mnav a")].map((a) => a.firstChild.textContent), menu(d), "same items as the main menu");
+  d.querySelector('#mnav a[href="#/shows"]').click(); w.location.hash = "#/shows"; await wait(80);
+  assert.ok(!d.documentElement.classList.contains("menu-open"));
+  assert.equal(d.getElementById("mcur").textContent, "Tour Dates");
+  d.getElementById("menuBtn").click(); d.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Escape" }));
+  assert.ok(!d.documentElement.classList.contains("menu-open"), "Escape closes it");
+});
