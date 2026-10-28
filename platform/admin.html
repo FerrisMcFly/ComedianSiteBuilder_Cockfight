@@ -64,7 +64,34 @@ button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.02em; font-weight: 650; }
 
-.app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
+.app { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }
+.col { min-width: 0; display: flex; flex-direction: column; }
+.topbar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 28px; min-height: 56px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.crumbs { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; color: var(--muted); }
+.crumbs .crumb { color: var(--muted); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crumbs a.crumb:hover { color: var(--text); text-decoration: underline; }
+.crumbs .crumb.now { color: var(--text); font-weight: 600; }
+.crumb-sep { color: var(--line-strong); }
+.top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.kbd-btn kbd { font: 500 11px var(--sans); border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 5px; margin-left: 6px; color: var(--muted); background: var(--panel); }
+.acct { position: relative; }
+.acct summary { list-style: none; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 8px 4px 4px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); }
+.acct summary::-webkit-details-marker { display: none; }
+.acct-av { width: 26px; height: 26px; border-radius: 50%; background: var(--text); color: var(--bg); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.acct-name { font-size: 13px; font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-pop { position: absolute; right: 0; top: calc(100% + 6px); min-width: 220px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.14); padding: 6px; display: grid; z-index: 30; }
+.acct-who { display: grid; gap: 2px; padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; justify-items: start; }
+.acct-pop a, .acct-pop button { text-align: left; padding: 8px 10px; border-radius: 6px; border: 0; background: none; color: var(--text); text-decoration: none; font: inherit; cursor: pointer; }
+.acct-pop a:hover, .acct-pop button:hover { background: var(--bg); }
+.nav-spacer { flex: 1; min-height: 16px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: -4px 0 18px; overflow-x: auto; }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 12px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; margin-bottom: -1px; }
+.tabs button:hover { color: var(--text); }
+.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.side > .ct-brand { margin-bottom: 10px; }
+.press-details { margin-top: 18px; }
+.press-details > summary { cursor: pointer; display: flex; gap: 12px; align-items: baseline; font-weight: 650; font-size: 18px; }
+.press-details[open] > summary { margin-bottom: 16px; }
 .side { background: var(--side); border-right: 1px solid var(--line); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .brand { font-weight: 650; font-size: 16px; padding: 2px 10px 2px; }
 .ct-mark { color: var(--text); display: inline-block; }
@@ -79,6 +106,7 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.02em; font-w
 .back-ct { display: block; font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; padding: 2px 10px 10px; }
 .back-ct:hover { color: var(--text); }
 .ct-brand { color: var(--text); padding: 6px 10px 4px; display: block; }
+.crumbs .back-ct { padding: 0; font-size: inherit; font-weight: inherit; display: inline; }
 .wm { display: block; height: 22px; width: auto; }
 .ct-brand .wm { height: 21px; }
 .site-pick.open-site { margin-top: 4px; }
@@ -95,11 +123,11 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.02em; font-w
 .sp-item .hint { margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
 .sp-item[aria-selected="true"] { background: var(--accent-soft, #fde8e6); }
 .sp-foot { border-top: 1px solid var(--line); padding: 8px 14px; font-size: 12px; }
-.nav-btn { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 7px 10px; cursor: pointer; color: var(--muted); font-weight: 500; }
+.nav-btn { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 6px 10px; cursor: pointer; color: var(--muted); font-weight: 500; }
 .nav-btn .ico { width: 20px; text-align: center; }
 .nav-btn .cnt { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
 .nav-btn:hover { background: var(--bg); color: var(--text); }
-.nav-group { font-size: 12px; font-weight: 500; color: var(--muted); padding: 16px 10px 4px; }
+.nav-group { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 14px 10px 4px; }
 .nav-group.nav-sep { padding: 6px 0; }
 .chatfeed { height: 420px; max-height: 60vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; padding: 6px; background: var(--bg); display: grid; align-content: start; gap: 2px; }
 .chatline { display: flex; justify-content: space-between; gap: 10px; align-items: start; padding: 7px 9px; border-radius: 9px; background: var(--panel); }
@@ -111,7 +139,7 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.02em; font-w
 .side-foot { margin-top: auto; display: grid; gap: 6px; padding: 12px 10px 4px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
 .side-foot .links { display: flex; gap: 12px; flex-wrap: wrap; }
 
-main { padding: 28px max(24px, env(safe-area-inset-right, 0px)) 80px 28px; min-width: 0; max-width: 1120px; width: 100%; }
+main { padding: 28px max(28px, env(safe-area-inset-right, 0px)) 80px 28px; min-width: 0; max-width: 1160px; width: 100%; }
 .page-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
 h1 { font-size: 30px; margin: 0; line-height: 1.1; text-wrap: balance; }
 .sub { color: var(--muted); margin: 4px 0 0; max-width: 64ch; }
@@ -270,6 +298,16 @@ form.card.is-hidden { opacity: .7; }
 .post { background: var(--bg); border-radius: 10px; padding: 8px 10px; display: flex; justify-content: space-between; gap: 10px; }
 .post p { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 
+.press-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.press-tile { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); display: flex; flex-direction: column; }
+.press-tile.primary { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.press-tile img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; background: var(--bg); }
+.press-meta { padding: 10px; display: grid; gap: 8px; }
+.press-share { display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; }
+.press-link { display: inline-block; margin-top: 8px; font: 500 13px var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; word-break: break-all; }
+.file-btn { position: relative; cursor: pointer; }
+.file-btn input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file-btn:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pick-pic { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .pick-pic img, .pick-pic .ph { width: 160px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); display: grid; place-items: center; font-size: 12px; color: var(--muted); }
 .pick-pic input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
@@ -305,7 +343,10 @@ form.card.is-hidden { opacity: .7; }
   .brand { width: 100%; padding: 0 4px; } .brand-sub { width: 100%; padding: 0 4px 6px; }
   .nav-btn { width: auto; padding: 8px 10px; } .nav-btn .cnt { display: none; }
   .nav-group { display: none; }
-  .side-foot { margin: 0; width: 100%; border-top: 0; padding: 6px 4px 0; display: flex; justify-content: space-between; flex-wrap: wrap; }
+  .nav-spacer { display: none; }
+  .side > .ct-brand { width: 100%; margin-bottom: 4px; }
+  .topbar { position: static; padding: 8px 14px; flex-wrap: wrap; }
+  .acct-name { display: none; } .kbd-btn kbd { display: none; }
   main { padding: 18px max(14px, env(safe-area-inset-right, 0px)) 80px max(14px, env(safe-area-inset-left, 0px)); }
   .c2, .c3, .c4, .c5, .c6, .c7, .c8, .c9 { grid-column: span 12; }
   .slot, .drawer .slot { grid-template-columns: 160px 1fr auto; }
@@ -349,7 +390,7 @@ details.menu > summary::-webkit-details-marker { display: none; }
 .menu-pop button.danger { color: var(--accent); }
 td select.status.st-sold_out, td select.status.st-cancelled { color: var(--accent); }
 td select.status.st-few_left { color: var(--warn); }
-@media (min-width: 881px) { .app { background: linear-gradient(90deg, var(--panel) 236px, transparent 236px); } }
+@media (min-width: 881px) { .app { background: linear-gradient(90deg, var(--side) 240px, transparent 240px); } }
 /* phones: table rows become stacked cards */
 @media (max-width: 640px) {
   .tablewrap { overflow-x: visible; }
@@ -669,36 +710,41 @@ td select.status.st-few_left { color: var(--warn); }
     profile: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.5 16.5c.7-1.6 2-2.5 3.5-2.5s2.8.9 3.5 2.5M15 10h3M15 13h3"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 1.8 14H1.7a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 3.3 7.5a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H7.6A1.6 1.6 0 0 0 9 1.9V1.7a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V7.6A1.6 1.6 0 0 0 20.1 9h.2a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" transform="scale(.9) translate(1.3 1.3)"/>'
   };
+  ICONS.picks = '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>';
+  ICONS.press = '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6l1.5-2.5h5L16 6"/><circle cx="12" cy="13" r="3.5"/>';
   function navIcon(s) {
     const span = h("span", { class: "ico", "aria-hidden": "true" });
     if (ICONS[s.id]) span.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICONS[s.id] + "</svg>";
     else span.textContent = s.ico;
     return span;
   }
+  // A site's menu, grouped by job: what's on, what you post, who's listening, how the site looks. Settings sits at the bottom.
   const SECTIONS = [
-    { id: "home", label: "Home", ico: "🏠", render: viewHome },
-    { id: "shows", group: "Content", label: "Shows", ico: "🎟️", feat: "shows", count: () => S.shows.filter((s) => s.date >= today()).length, render: viewShows },
-    { id: "podcast", group: "Content", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
-    { id: "videos", group: "Content", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
-    { id: "merch", group: "Content", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
-    { id: "blog", group: "Content", label: "Blog", ico: "✍️", feat: "blog", count: () => (S.posts || []).filter((p) => p.published).length, render: viewBlog },
-    { id: "people", group: "Content", label: "People", ico: "🎤", render: viewPeople },
-    { id: "fans", group: "Community", label: "Fan list", ico: "💌", feat: "fans", render: viewFans },
-    { id: "forum", group: "Community", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
-    { id: "chat", group: "Community", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
-    { id: "moderation", group: "Community", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
+    { id: "home", label: "Overview", ico: "🏠", render: viewHome },
+    { id: "shows", group: "Schedule", label: "Shows", ico: "🎟️", feat: "shows", count: () => S.shows.filter((s) => s.date >= today()).length, render: viewShows },
+    { id: "podcast", group: "Media", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
+    { id: "videos", group: "Media", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
+    { id: "blog", group: "Media", label: "Blog", ico: "✍️", feat: "blog", count: () => (S.posts || []).filter((p) => p.published).length, render: viewBlog },
+    { id: "merch", group: "Media", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
+    { id: "fans", group: "Audience", label: "Fan list", ico: "💌", feat: "fans", render: viewFans },
+    { id: "forum", group: "Audience", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
+    { id: "chat", group: "Audience", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
+    { id: "moderation", group: "Audience", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
+    { id: "people", group: "Site", label: "People", ico: "🎤", render: viewPeople },
+    { id: "press", group: "Site", label: "Press kit", ico: "📷", render: viewPress },
     // Extras only show up when this site's own front end says it uses them (in its theme.json)
-    { id: "picks", group: "Site extras", label: "Home screen", ico: "⭐", extra: "home_picks", render: viewPicks },
-    { id: "announce", group: "Site extras", label: "Announcements", ico: "📣", extra: "announcements", render: viewAnnounce },
-    { id: "links", group: "Site extras", label: "Links", ico: "🔗", extra: "links", render: viewLinks },
-    { id: "theme", group: "Site extras", label: "Design settings", ico: "🎨", extra: "design", render: viewTheme },
-    { id: "profile", label: "Profile", ico: "🪪", render: viewProfile },
-    { id: "settings", label: "Settings", ico: "⚙️", render: viewSettings },
+    { id: "picks", group: "Site", label: "Home screen", ico: "⭐", extra: "home_picks", render: viewPicks },
+    { id: "announce", group: "Site", label: "Announcements", ico: "📣", extra: "announcements", render: viewAnnounce },
+    { id: "links", group: "Site", label: "Links", ico: "🔗", extra: "links", render: viewLinks },
+    { id: "profile", group: "Site", label: "Site profile", ico: "🪪", render: viewProfile },
+    { id: "theme", group: "Site", label: "Design", ico: "🎨", extra: "design", render: viewTheme },
+    { id: "settings", label: "Settings", ico: "⚙️", bottom: true, render: viewSettings },
   ];
   // The ComicTable level: above any one site. Super admins get the whole platform; comics get their own home.
   const CT_SECTIONS = [
     { id: "overview", label: "Overview", ico: "🏠", platform: true, render: viewOverview },
     { id: "me", label: "Me", ico: "👤", meOnly: true, render: viewMe },
+    { id: "press", label: "Press kit", ico: "📷", meOnly: true, render: (main) => { main.append(head("Your press kit", "Approved photos and bios for clubs. It's the same on every site you're on.")); main.append(pressKitEditor(S.me.id)); } },
     { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, render: viewMySites },
     { id: "sites", group: "Platform", label: "Sites", ico: "🧩", platform: true, count: () => S.sites.length, render: viewSites },
     { id: "comics", group: "Platform", label: "Comics", ico: "🎤", platform: true, render: viewComics },
@@ -718,15 +764,37 @@ td select.status.st-few_left { color: var(--warn); }
     let lastGroup = null;
     return list.flatMap((s) => {
       const out = [];
-      if (s.group !== lastGroup) { if (s.group) out.push(h("div", { class: "nav-group", text: s.group })); else if (lastGroup) out.push(h("div", { class: "nav-group nav-sep" })); lastGroup = s.group; }
+      if (s.bottom) out.push(h("div", { class: "nav-spacer" }));
+      else if (s.group !== lastGroup) { if (s.group) out.push(h("div", { class: "nav-group", text: s.group })); else if (lastGroup) out.push(h("div", { class: "nav-group nav-sep" })); lastGroup = s.group; }
       out.push(h("button", { class: "nav-btn", type: "button", "data-sec": s.id, "aria-current": s === cur ? "page" : null, onclick: () => onGo(s.id) },
         navIcon(s), h("span", { text: s.label }), s.count ? h("span", { class: "cnt", text: s.count() }) : null));
       return out;
     });
   }
-  const sideFoot = () => h("div", { class: "side-foot" }, wordmark("ct-mark sm"), h("a", { href: "#ct/account", class: "acct-link", text: "Logged in as " + S.user }),
-    h("div", { class: "links" }, S.level === "site" && (S.site.domain || !CFG.PLATFORM) ? h("a", { href: S.site.domain ? "https://" + S.site.domain : "./", target: "_blank", rel: "noopener", text: "View site ↗" }) : null,
-      h("a", { href: "#", onclick: async (e) => { e.preventDefault(); await sb.auth.signOut(); S.site = null; showLogin(); }, text: "Log out" })));
+  // Top bar: where you are, and your account. (The site finder is ⌘K anywhere, or the site name in the menu.)
+  const ctHome = () => "#ct/" + (S.isPlatform ? "overview" : S.me ? "me" : "mysites");
+  const logOut = async () => { await sb.auth.signOut(); S.site = null; showLogin(); };
+  function acctMenu() {
+    const initials = String(S.user || "?").split(/[\s._@-]+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+    const menu = h("details", { class: "acct" },
+      h("summary", { "aria-label": "Your account" }, h("span", { class: "acct-av", "aria-hidden": "true", text: initials }), h("span", { class: "acct-name", text: S.user })),
+      h("div", { class: "acct-pop", role: "menu" },
+        h("div", { class: "acct-who" }, h("b", { text: S.user }), h("span", { class: "hint", text: S.email || "" }), S.isPlatform ? h("span", { class: "pill", text: "Super admin" }) : null),
+        h("a", { role: "menuitem", href: "#ct/account", class: "acct-link", text: "Your account" }),
+        h("button", { role: "menuitem", type: "button", text: "Log out", onclick: logOut })));
+    document.addEventListener("click", (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+    return menu;
+  }
+  function topBar(crumbs) {
+    const trail = [];
+    crumbs.filter(Boolean).forEach((c, i) => { if (i) trail.push(h("span", { class: "crumb-sep", "aria-hidden": "true", text: "/" })); trail.push(c); });
+    return h("header", { class: "topbar" },
+      h("nav", { class: "crumbs", "aria-label": "You are here" }, trail),
+      h("div", { class: "top-actions" },
+        S.level === "site" && (S.site.domain || !CFG.PLATFORM) ? h("a", { class: "btn ghost sm", href: S.site.domain ? "https://" + S.site.domain : "./", target: "_blank", rel: "noopener", text: "View site ↗" }) : null,
+        S.sites.length > 1 ? h("button", { class: "btn ghost sm kbd-btn", type: "button", title: "Find a site", onclick: openSitePicker }, "Switch site", h("kbd", { text: /Mac/i.test(navigator.platform || "") ? "⌘K" : "Ctrl K" })) : null,
+        acctMenu()));
+  }
   // Who gets the ComicTable level: super admins, comics with their own login, and anyone on more than one site.
   const hasCT = () => S.isPlatform || !!S.me || S.sites.length > 1;
 
@@ -738,13 +806,13 @@ td select.status.st-few_left { color: var(--warn); }
     const main = h("main", { id: "main" });
     root.replaceChildren(h("div", { class: "app" },
       h("aside", { class: "side" },
-        h("div", null, h("a", { class: "ct-brand", href: "#ct/" + (S.isPlatform ? "overview" : S.me ? "me" : "mysites") }, wordmark("")), h("div", { class: "brand-sub", text: S.isPlatform ? "Super admin" : S.me ? S.me.name : "Your dashboard" })),
+        h("div", null, h("a", { class: "ct-brand", href: ctHome() }, wordmark("")), h("div", { class: "brand-sub", text: S.isPlatform ? "Super admin" : S.me ? S.me.name : "Your dashboard" })),
         S.sites.length ? h("button", { class: "site-pick open-site", type: "button", id: "sitePick", onclick: openSitePicker },
           h("span", { class: "sp-txt" }, h("span", { class: "brand", style: "font-size:15px", text: S.sites.length > 1 ? "Open a site…" : "Open " + S.sites[0].name }), h("span", { class: "brand-sub", text: S.sites.length > 1 ? S.sites.length + " sites · ⌘K" : S.sites[0].domain || "" })),
           h("span", { class: "sp-arrow", "aria-hidden": "true", text: "→" })) : null,
         h("div", { style: "height:10px" }),
-        navList(list, cur, goCT), sideFoot()),
-      main));
+        navList(list, cur, goCT)),
+      h("div", { class: "col" }, topBar([h("a", { class: "crumb", href: ctHome(), text: "ComicTable" }), h("span", { class: "crumb now", text: cur.label })]), main)));
     cur.render(main);
     window.scrollTo && window.scrollTo(0, 0);
   }
@@ -755,14 +823,7 @@ td select.status.st-few_left { color: var(--warn); }
     S.level = "site";
     setPath("dashboard"); document.title = S.site.name + " · ComicTable";
     const cur = current();
-    let lastGroup = null;
-    const nav = visible().flatMap((s) => {
-      const out = [];
-      if (s.group !== lastGroup) { if (s.group) out.push(h("div", { class: "nav-group", text: s.group })); else if (lastGroup) out.push(h("div", { class: "nav-group nav-sep" })); lastGroup = s.group; }
-      out.push(h("button", { class: "nav-btn", type: "button", "data-sec": s.id, "aria-current": s === cur ? "page" : null, onclick: () => go(s.id) },
-        navIcon(s), h("span", { text: s.label }), s.count ? h("span", { class: "cnt", text: s.count() }) : null));
-      return out;
-    });
+    const nav = navList(visible(), cur, go);
     // With more than one site, the name at the top opens the site finder (also ⌘K / Ctrl+K anywhere).
     const many = S.sites.length > 1;
     const top = many ? h("button", { class: "site-pick", type: "button", id: "sitePick", "aria-haspopup": "dialog", title: "Switch site (⌘K)", onclick: openSitePicker },
@@ -771,9 +832,10 @@ td select.status.st-few_left { color: var(--warn); }
       : h("div", null, h("div", { class: "brand", text: S.site.name }), h("div", { class: "brand-sub", text: S.site.domain || "Your site" }));
     const main = h("main", { id: "main" });
     root.replaceChildren(h("div", { class: "app" },
-      h("aside", { class: "side" }, hasCT() ? h("a", { class: "back-ct", href: "#ct/" + (S.isPlatform ? "overview" : S.me ? "me" : "mysites"), text: "← ComicTable" }) : null,
-        top, many ? h("div", { class: "sp-hint", text: S.sites.length + " sites · ⌘K to switch" }) : null, nav, sideFoot()),
-      main));
+      h("aside", { class: "side" }, h("a", { class: "ct-brand", href: hasCT() ? ctHome() : "#home", "aria-label": "ComicTable" }, wordmark("")),
+        top, nav),
+      h("div", { class: "col" }, topBar([hasCT() ? h("a", { class: "crumb back-ct", href: ctHome(), text: "ComicTable" }) : null,
+        h("a", { class: "crumb", href: "#home", text: S.site.name }), cur.id !== "home" ? h("span", { class: "crumb now", text: cur.label }) : null]), main)));
     cur.render(main);
     window.scrollTo && window.scrollTo(0, 0);
   }
@@ -863,7 +925,7 @@ td select.status.st-few_left { color: var(--warn); }
         h("div", { class: "btns" },
           F("shows") ? h("button", { class: "btn primary big", type: "button", text: "+ Add shows", onclick: () => go("shows") }) : null,
           F("podcast") ? h("button", { class: "btn big", type: "button", text: "+ Add an episode", onclick: () => { go("podcast"); } }) : null,
-          hasExtra("announcements") ? h("button", { class: "btn big", type: "button", text: "📣 Post an announcement", onclick: () => go("announce") }) : null),
+          hasExtra("announcements") ? h("button", { class: "btn big", type: "button", text: "Post an announcement", onclick: () => go("announce") }) : null),
         stats.length ? h("div", { class: "stats" }, stats.map(([l, n, sec]) => h("button", { class: "stat", type: "button", style: "text-align:left;cursor:pointer", onclick: () => go(sec) }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l })))) : null,
         next ? h("section", { class: "card" }, h("h2", { text: "Next show" }),
           h("div", { class: "next" }, h("div", { class: "date-badge" }, h("div", null, h("small", { text: MON[parseISO(next.date).getMonth()] }), h("b", { text: parseISO(next.date).getDate() }))),
@@ -911,7 +973,7 @@ td select.status.st-few_left { color: var(--warn); }
       await reload.shows(); redrawShows(); refreshNav();
     };
     box.replaceChildren(h("section", { class: "card", style: "border-color:var(--accent)" },
-      h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "🔎 Found " + found.length + " new show" + (found.length === 1 ? "" : "s") }),
+      h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Found " + found.length + " new show" + (found.length === 1 ? "" : "s") }),
         found.length > 1 ? h("button", { class: "btn primary sm", type: "button", text: "Add all " + found.length, onclick: async (e) => { e.currentTarget.disabled = true; try { await add(found); toast("Added " + found.length + " shows. They're live."); confetti(); } catch (er) { toast(errText(er), { bad: true }); } } }) : null),
       h("p", { class: "sub", text: "ComicTable spotted these on the pages you asked it to watch. Add the ones that are right." }),
       h("div", null, found.map((f) => h("div", { class: "switch-row" },
@@ -1046,7 +1108,7 @@ td select.status.st-few_left { color: var(--warn); }
         S.hosts.length > 1 ? h("div", { class: "field" }, h("span", { text: "Who's performing?" }),
           h("div", { class: "seg", role: "group", "aria-label": "Comedian" }, S.hosts.map((x) => h("button", { type: "button", "aria-pressed": String(run.host === x.id), text: x.name,
             onclick: () => { run.host = x.id; store.set("csb_host_" + sid(), x.id); drawPanel(); } })),
-            h("button", { type: "button", "aria-pressed": String(run.host === EVENT), text: "🎉 Whole show", title: "A show with everyone, like a live podcast",
+            h("button", { type: "button", "aria-pressed": String(run.host === EVENT), text: "Whole show", title: "A show with everyone, like a live podcast",
               onclick: () => { run.host = EVENT; store.set("csb_host_" + sid(), EVENT); drawPanel(); } }))) : null,
         h("div", { class: "field" }, h("span", { text: "Which club?" }), clubPicker(pick)),
         recent.length ? h("div", { class: "field" }, h("span", { text: "Recent clubs" }), h("div", { class: "chips" }, recent.map((v) => h("button", { class: "chip", type: "button", onclick: () => pick(v) }, v.name, h("small", { class: "hint", text: " · " + v.city }))))) : null,
@@ -1116,7 +1178,7 @@ td select.status.st-few_left { color: var(--warn); }
         } catch (e) { msg.textContent = errText(e); save.disabled = false; }
       } });
       body = h("div", { class: "stack" }, summary,
-        run.showPaste ? pasteBox : h("button", { class: "btn", type: "button", style: "justify-self:start", id: "openPaste", text: "📋 Paste all ticket links at once", onclick: () => { run.showPaste = true; drawPanel(); setTimeout(() => $("pasteLinks") && $("pasteLinks").focus()); } }),
+        run.showPaste ? pasteBox : h("button", { class: "btn", type: "button", style: "justify-self:start", id: "openPaste", text: "Paste all ticket links at once", onclick: () => { run.showPaste = true; drawPanel(); setTimeout(() => $("pasteLinks") && $("pasteLinks").focus()); } }),
         h("p", { class: "hint", style: "margin:0", text: S.slotCache[run.venue.id] && S.slotCache[run.venue.id].length ? "Times are this club's usual showtimes. Change any that are off." : "Times are typical showtimes. Change any that are off." }),
         slotsBox, msg);
       footer = h("div", { class: "drawer-foot" }, h("button", { class: "btn ghost", type: "button", text: "← Back", onclick: () => { run.step = 2; drawPanel(); } }), save);
@@ -1301,7 +1363,7 @@ td select.status.st-few_left { color: var(--warn); }
             await reload.shows(); redraw(); refreshNav(); toast(s.hidden_here ? "It's back on this site." : "Hidden here. It still shows on " + first(s.host) + "'s other sites.");
           } catch (e) { toast(errText(e), { bad: true }); }
         } }),
-        hasExtra("home_picks") && s.date >= t0 ? h("button", { type: "button", text: "⭐ Pin to Home screen", onclick: () => pinToHome(showPick(s)) }) : null,
+        hasExtra("home_picks") && s.date >= t0 ? h("button", { type: "button", text: "Pin to Home screen", onclick: () => pinToHome(showPick(s)) }) : null,
         h("button", { type: "button", class: "danger", text: "Delete", onclick: async () => {
           try { await q(sb.from("shows").delete().eq("id", s.id)); await reload.shows(); redraw(); refreshNav();
             toast("Deleted " + shortDate(s.date) + " in " + (s.city || s.venue) + ".", { action: { label: "Undo", run: () => restore([s], redraw) } }); }
@@ -1311,7 +1373,7 @@ td select.status.st-few_left { color: var(--warn); }
     const from = s.site_id && s.site_id !== sid() ? "Added on " + siteName(s.site_id) : "";
     return h("tr", { class: s.date < t0 || s.hidden_here ? "past" : "" },
       h("td", { class: "nowrap" }, h("b", { text: shortDate(s.date) }), h("div", { class: "hint", text: s.time || "Time TBA" })),
-      h("td", { class: "nowrap" }, S.hosts.length > 1 ? (s.event ? h("span", { class: "pill", text: "🎉 Whole show" }) : first(s.host)) : "",
+      h("td", { class: "nowrap" }, S.hosts.length > 1 ? (s.event ? h("span", { class: "pill", text: "Whole show" }) : first(s.host)) : "",
         s.hidden_here ? h("div", null, h("span", { class: "pill warn", text: "Hidden here" })) : null, from ? h("div", { class: "hint", text: from }) : null),
       h("td", { class: "wrap-any" }, h("div", { text: s.venue || "—" }), h("div", { class: "hint", text: s.city || "" })),
       h("td", null, s.url ? h("a", { href: s.url, target: "_blank", rel: "noopener", text: "Link ↗" }) : h("button", { class: "pill warn", type: "button", style: "border:0;cursor:pointer", text: "+ Add link", onclick: () => { editingShow = s.id; dupOf = null; redraw(); } })),
@@ -1383,7 +1445,7 @@ td select.status.st-few_left { color: var(--warn); }
       if (results.length === 1 && bad.length) return toast(bad[0].status.replace(/^Error:\s*/, ""), { bad: true });
       if (nNew) confetti();
       const what = results.length === 1 ? results[0].status : nNew + " new " + noun + " from " + results.length + " " + (kind === "podcast" ? "feeds" : kind === "shows" ? "pages" : "channels");
-      toast((nNew ? "🎉 " : "You're up to date. ") + what + (bad.length ? " · " + bad.length + " had a problem (see below)" : ""), bad.length ? { bad: true } : {});
+      toast((nNew ? "" : "You're up to date. ") + what + (bad.length ? " · " + bad.length + " had a problem (see below)" : ""), bad.length ? { bad: true } : {});
     } catch (e) { toast(/Failed to fetch|NetworkError|Load failed|404/.test(e.message) ? "The import service isn't set up yet. See the setup steps." : errText(e), { bad: true }); }
   }
   function sourceCard(kind, redraw) {
@@ -1578,12 +1640,12 @@ td select.status.st-few_left { color: var(--warn); }
       const card = (v) => h("div", { class: "vid" },
         h("a", { href: v.url, target: "_blank", rel: "noopener" }, h("img", { src: v.thumbnail_url || "", alt: "", loading: "lazy" })),
         h("div", { class: "body" }, h("b", { class: "wrap-any", text: v.title }),
-          h("span", { class: "hint", text: [v.published ? shortDate(v.published) : "", v.channel || "", v.host ? first(v.host) + "'s page" : "", v.featured && !v.hidden ? "⭐ Featured" : ""].filter(Boolean).join(" · ") }),
+          h("span", { class: "hint", text: [v.published ? shortDate(v.published) : "", v.channel || "", v.host ? first(v.host) + "'s page" : "", v.featured && !v.hidden ? "Featured" : ""].filter(Boolean).join(" · ") }),
           VIDREMOVED
             ? h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Put back", onclick: async () => { try { await setHidden(v, false); toast("Back on your site."); } catch (e) { toast(errText(e), { bad: true }); } } }))
             : h("div", { class: "btns" },
                 hasExtra("home_picks") ? h("button", { class: "btn sm ghost", type: "button", text: "Pin to Home", onclick: () => pinToHome({ kind: "video", headline: String(v.title || "New video").slice(0, 90), button_label: "Watch", link: v.url || null, image_url: v.thumbnail_url || null }) }) : null,
-                h("button", { class: "btn sm", type: "button", text: v.featured ? "Unstar" : "⭐ Star", onclick: async () => { try { await q(sb.from("videos").update({ featured: !v.featured }).eq("id", v.id)); v.featured = !v.featured; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
+                h("button", { class: "btn sm", type: "button", text: v.featured ? "Unstar" : "Star", onclick: async () => { try { await q(sb.from("videos").update({ featured: !v.featured }).eq("id", v.id)); v.featured = !v.featured; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
                 h("button", { class: "btn sm ghost danger", type: "button", text: "Remove", onclick: async () => {
                   try { await setHidden(v, true); toast("Removed “" + v.title + "” from your site.", { action: { label: "Undo", run: async () => { try { await setHidden(v, false); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
                   catch (e) { toast(errText(e), { bad: true }); }
@@ -1596,6 +1658,151 @@ td select.status.st-few_left { color: var(--warn); }
       wrap.replaceChildren(sourceCard("youtube", redraw), add, grid); refreshNav();
     };
     redraw();
+  }
+
+  /* ======================================================
+     PRESS KIT: a comic's approved photos and bios, for clubs
+     (belongs to the comic, so it's the same on every site they're on)
+     ====================================================== */
+  const PRESS_HOST = "https://comictable.com";
+  const pressLink = (comicId) => PRESS_HOST + "/press/" + encodeURIComponent(comicId);
+  const words = (s) => (String(s || "").trim().match(/\S+/g) || []).length;
+  function imageSize(file) {
+    return new Promise((resolve) => { const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = () => { resolve({ width: img.naturalWidth, height: img.naturalHeight }); URL.revokeObjectURL(url); };
+      img.onerror = () => { resolve({ width: null, height: null }); URL.revokeObjectURL(url); }; img.src = url; });
+  }
+  const orientationOf = (d) => !d.width || !d.height ? null : Math.abs(d.width - d.height) / Math.max(d.width, d.height) < 0.06 ? "square" : d.width > d.height ? "landscape" : "portrait";
+  const pressPath = (url) => { const m = String(url || "").match(/\/storage\/v1\/object\/public\/press\/(.+?)(?:\?|$)/); return m ? decodeURIComponent(m[1]) : null; };
+
+  // The editor. Mounted on a site's Press kit page, on a comic's Me page, and on a comic's page in Comics.
+  function pressKitEditor(comicId) {
+    const box = h("div", { class: "stack" }, h("section", { class: "card" }, h("p", { class: "hint", text: "Loading press kit…" })));
+    let C = null, P = [];
+    const reload = async () => {
+      C = (await q(sb.from("comics").select("*").eq("id", comicId)))[0];
+      P = await q(sb.from("press_photos").select("*").eq("comic_id", comicId).order("sort", { ascending: true }));
+      P.sort((a, b) => (b.is_primary - a.is_primary) || (a.sort - b.sort) || String(a.created_at || "").localeCompare(String(b.created_at || "")));
+    };
+    async function upload(files) {
+      const list = [...files].filter((f) => /^image\/(jpeg|png|webp)$/.test(f.type));
+      if (!list.length) return toast("Pick JPG, PNG or WebP photos.", { bad: true });
+      const big = list.find((f) => f.size > 25 * 1024 * 1024);
+      if (big) return toast(big.name + " is over 25 MB. Export a smaller copy and try again.", { bad: true });
+      let n = 0;
+      for (const f of list) {
+        try {
+          toast("Uploading " + (++n) + " of " + list.length + "…");
+          const dims = await imageSize(f), stamp = Date.now() + "-" + n, ext = f.type === "image/png" ? "png" : f.type === "image/webp" ? "webp" : "jpg";
+          const full = comicId + "/" + stamp + "." + ext, small = comicId + "/" + stamp + "-web.jpg";
+          let up = await sb.storage.from("press").upload(full, f, { contentType: f.type, upsert: false });
+          if (up.error) throw up.error;
+          up = await sb.storage.from("press").upload(small, await squareJpeg(f, 1600, true), { contentType: "image/jpeg", upsert: false });
+          if (up.error) throw up.error;
+          const url = sb.storage.from("press").getPublicUrl(full).data.publicUrl, web_url = sb.storage.from("press").getPublicUrl(small).data.publicUrl;
+          await q(sb.from("press_photos").insert({ comic_id: comicId, url, web_url, width: dims.width, height: dims.height, orientation: orientationOf(dims),
+            is_primary: !P.some((p) => p.is_primary), sort: P.reduce((m, p) => Math.max(m, p.sort), -1) + 1 }));
+          await reload();
+        } catch (e) {
+          return toast(/bucket|not found/i.test(errText(e)) ? "Press kits need the latest database upgrade (supabase/UPGRADE_V3_ALL.sql)." : errText(e), { bad: true });
+        }
+      }
+      draw(); toast(list.length === 1 ? "Photo added." : list.length + " photos added.");
+    }
+    async function makePrimary(p) {
+      try { await q(sb.from("press_photos").update({ is_primary: false }).eq("comic_id", comicId).eq("is_primary", true));
+        await q(sb.from("press_photos").update({ is_primary: true }).eq("id", p.id)); await reload(); draw(); toast("That's the primary photo now."); }
+      catch (e) { toast(errText(e), { bad: true }); }
+    }
+    async function move(i, j) {
+      const a = P[i], b = P[j]; if (!a || !b) return;
+      try { await q(sb.from("press_photos").update({ sort: b.sort }).eq("id", a.id)); await q(sb.from("press_photos").update({ sort: a.sort === b.sort ? a.sort + (j > i ? 1 : -1) : a.sort }).eq("id", b.id)); await reload(); draw(); }
+      catch (e) { toast(errText(e), { bad: true }); }
+    }
+    async function remove(p) {
+      try {
+        await q(sb.from("press_photos").delete().eq("id", p.id));
+        const paths = [pressPath(p.url), pressPath(p.web_url)].filter(Boolean);
+        if (paths.length) await sb.storage.from("press").remove(paths);
+        // keep one primary
+        await reload(); if (P.length && !P.some((x) => x.is_primary)) { await q(sb.from("press_photos").update({ is_primary: true }).eq("id", P[0].id)); await reload(); }
+        draw(); toast("Photo removed.");
+      } catch (e) { toast(errText(e), { bad: true }); }
+    }
+    function photosCard() {
+      const file = h("input", { type: "file", accept: "image/jpeg,image/png,image/webp", multiple: true, "aria-label": "Upload press photos" });
+      file.addEventListener("change", () => { if (file.files.length) upload(file.files); });
+      const tile = (p, i) => {
+        const credit = h("input", { maxlength: "120", placeholder: "Photo: name of photographer", value: p.credit || "", "aria-label": "Photo credit" });
+        credit.addEventListener("change", async () => { try { await q(sb.from("press_photos").update({ credit: credit.value.trim() || null }).eq("id", p.id)); p.credit = credit.value.trim(); toast("Credit saved."); } catch (e) { toast(errText(e), { bad: true }); } });
+        return h("div", { class: "press-tile" + (p.is_primary ? " primary" : "") },
+          h("img", { src: p.web_url || p.url, alt: "" }),
+          h("div", { class: "press-meta" },
+            h("div", { class: "btns" }, p.is_primary ? h("span", { class: "pill red", text: "Primary" }) : h("button", { class: "btn sm", type: "button", text: "Make primary", onclick: () => makePrimary(p) }),
+              p.width ? h("span", { class: "hint", text: p.width + " × " + p.height }) : null),
+            credit,
+            h("div", { class: "btns" },
+              h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move earlier", text: "←", disabled: i === 0, onclick: () => move(i, i - 1) }),
+              h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move later", text: "→", disabled: i === P.length - 1, onclick: () => move(i, i + 1) }),
+              h("a", { class: "btn ghost sm", href: p.url, target: "_blank", rel: "noopener", text: "Full size ↗" }),
+              h("button", { class: "btn ghost sm danger", type: "button", text: "Remove", onclick: () => remove(p) }))));
+      };
+      return h("section", { class: "card" },
+        h("div", { class: "toolbar" }, h("div", null, h("h2", { style: "margin:0", text: "Approved photos" }), h("p", { class: "sub", text: "Full size, the way the photographer sent them. Clubs download these. The primary one is the one to use if they only take one." })),
+          h("label", { class: "btn primary file-btn" }, "Upload photos", file)),
+        P.length ? h("div", { class: "press-grid" }, P.map(tile))
+          : empty("No press photos yet", C && C.photo_url ? "Until you add some, clubs get your profile photo." : "Upload the photos clubs should use."));
+    }
+    function biosCard() {
+      const short = h("textarea", { rows: "3", maxlength: "600", placeholder: "One or two sentences clubs can paste into a listing. About 50 words.", "aria-label": "Short bio" }); short.value = C.short_bio || "";
+      const long = h("textarea", { rows: "7", maxlength: "5000", placeholder: "The full version, for programs, press and podcasts.", "aria-label": "Long bio" }); long.value = C.long_bio || "";
+      const credits = h("textarea", { rows: "4", maxlength: "2000", placeholder: "One per line, e.g.\nComedy Central\nJust for Laughs New Faces 2025", "aria-label": "Credits" }); credits.value = C.credits || "";
+      const booking = h("input", { maxlength: "300", placeholder: "Agent name, booking@…", value: C.booking_contact || "", "aria-label": "Booking contact" });
+      const count = (ta, target) => { const n = h("span", { class: "hint" }); const f = () => { const w = words(ta.value); n.textContent = w + " words" + (target && w > target * 1.4 ? " · long for a listing" : ""); }; ta.addEventListener("input", f); f(); return n; };
+      const fromBio = C.bio && !C.short_bio && !C.long_bio ? h("button", { class: "btn sm ghost", type: "button", text: "Start from profile bio", onclick: () => {
+        const w = C.bio.trim().split(/\s+/); short.value = w.slice(0, 50).join(" ") + (w.length > 50 ? "…" : ""); long.value = C.bio.trim(); short.dispatchEvent(new Event("input")); long.dispatchEvent(new Event("input")); } }) : null;
+      return h("form", { class: "card stack", onsubmit: async (e) => {
+        e.preventDefault();
+        try { await q(sb.from("comics").update({ short_bio: short.value.trim() || null, long_bio: long.value.trim() || null, credits: credits.value.trim() || null, booking_contact: booking.value.trim() || null }).eq("id", comicId));
+          await reload(); toast("Saved. It's on the press page now."); }
+        catch (err) { toast(/short_bio|column/i.test(errText(err)) ? "Press kits need the latest database upgrade (supabase/UPGRADE_V3_ALL.sql)." : errText(err), { bad: true }); }
+      } },
+        h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Bio and details" }), fromBio),
+        h("div", { class: "grid" },
+          h("label", { class: "field c12" }, h("span", { text: "Short bio" }), short, count(short, 50)),
+          h("label", { class: "field c12" }, h("span", { text: "Long bio" }), long, count(long)),
+          field("Credits", credits, "c6"), h("div", { class: "field c6" }, field("Booking contact", booking), h("p", { class: "hint", text: "Shown on the press page so clubs know who to talk to." }))),
+        h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Save" })));
+    }
+    function draw() {
+      const link = pressLink(comicId);
+      box.replaceChildren(
+        h("section", { class: "card press-share" },
+          h("div", null, h("h2", { style: "margin:0", text: "Send this to clubs" }), h("p", { class: "sub", text: "One link with " + (C.name.split(" ")[0]) + "'s approved photos to download, bios to copy, credits and booking contact." }),
+            h("code", { class: "press-link", text: link })),
+          h("div", { class: "btns" },
+            h("button", { class: "btn primary", type: "button", text: "Copy link", onclick: () => (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(() => toast("Link copied. Paste it into your email to the club."), () => toast("Couldn't copy. Select the link instead.", { bad: true })) }),
+            h("a", { class: "btn ghost", href: link, target: "_blank", rel: "noopener", text: "Open ↗" }))),
+        photosCard(), biosCard());
+    }
+    (async () => {
+      try { await reload(); if (!C) return box.replaceChildren(empty("Comic not found", "")); draw(); }
+      catch (e) { box.replaceChildren(h("section", { class: "card" }, h("p", { class: "err", text: /press_photos/i.test(errText(e)) ? "Press kits need the latest database upgrade: run supabase/UPGRADE_V3_ALL.sql in Supabase." : errText(e) }))); }
+    })();
+    return box;
+  }
+
+  // Site page: the press kit for each comic on this site
+  let PRESSFOR = null;
+  function viewPress(main) {
+    const people = S.hosts.filter((x) => x.comic_id);
+    main.append(head("Press kit", "Approved photos and bios for clubs, per comic. A comic's press kit is the same on every site they're on."));
+    if (!people.length) { main.append(h("section", { class: "card" }, empty("No comics on this site yet", "Add someone in People first."))); return; }
+    if (!people.some((x) => x.id === PRESSFOR)) PRESSFOR = (people.find((x) => S.me && x.comic_id === S.me.id) || people[0]).id;
+    const cur = people.find((x) => x.id === PRESSFOR);
+    if (people.length > 1) main.append(h("div", { class: "seg", role: "group", "aria-label": "Comic", style: "margin-bottom:16px" },
+      people.map((x) => h("button", { type: "button", "aria-pressed": String(x.id === PRESSFOR), text: x.name, onclick: () => { PRESSFOR = x.id; route(); } }))));
+    main.append(pressKitEditor(cur.comic_id));
   }
 
   /* ======================================================
@@ -2014,6 +2221,9 @@ td select.status.st-few_left { color: var(--warn); }
         h("div", null, h("h1", { text: c.name }), h("p", { class: "sub", text: (c.title || "Comedian") + " · " + (sites.length ? "on " + sites.map((x) => x.site.name).join(", ") : "not on a site yet") + (c.user_id ? " · has a login" : "") })))));
     const grid = h("div", { class: "detail-grid" });
     main.append(grid);
+    const pressBox = h("details", { class: "card press-details" }, h("summary", { class: "press-sum" }, h("span", { text: "Press kit" }), h("span", { class: "hint", text: "Approved photos and bios for clubs" })));
+    pressBox.addEventListener("toggle", () => { if (pressBox.open && pressBox.children.length === 1) pressBox.append(pressKitEditor(c.id)); }, { once: false });
+    main.append(pressBox);
     const left = h("div", { class: "stack" }), right = h("div", { class: "stack" });
     grid.append(left, right);
 
@@ -2212,7 +2422,7 @@ td select.status.st-few_left { color: var(--warn); }
         h("p", { class: "sub", text: "Every date you add shows on all your sites. Live shows with a whole crew are marked with the show's name." }),
         dates.length ? h("div", null, dates.map((d) => h("div", { class: "switch-row" },
           h("div", { style: "min-width:0" }, h("b", { text: shortDate(d.date) + (d.time ? " at " + d.time : "") + " · " + (d.venue || d.city || "Show") }),
-            h("div", { class: "hint", text: [d.city, d.event ? "🎉 " + d.site_name + " live show" : "", d.status === "sold_out" ? "Sold out" : d.status === "cancelled" ? "Cancelled" : ""].filter(Boolean).join(" · ") })),
+            h("div", { class: "hint", text: [d.city, d.event ? d.site_name + " live show" : "", d.status === "sold_out" ? "Sold out" : d.status === "cancelled" ? "Cancelled" : ""].filter(Boolean).join(" · ") })),
           d.url ? h("a", { class: "btn sm ghost", href: d.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : h("span", { class: "pill warn", text: "No ticket link" }))))
           : empty("No upcoming dates", "Add some and they'll show on every site you're on."));
     } catch (e) { datesCard.replaceChildren(h("h2", { text: "Your upcoming dates" }), h("p", { class: "err", text: /comic_shows|function/i.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) })); }
@@ -2222,7 +2432,7 @@ td select.status.st-few_left { color: var(--warn); }
   function loginBox(x) {
     const has = S.logins && S.logins[x.comic_id];
     const first1 = x.name.split(" ")[0];
-    if (has) return h("div", { class: "hint" }, "🔑 " + first1 + " has their own login" + (has === S.uid ? " (that's you)" : "") + ". They can edit their profile and dates from any site they're on.");
+    if (has) return h("div", { class: "hint" }, first1 + " has their own login" + (has === S.uid ? " (that's you)" : "") + ". They can edit their profile and dates from any site they're on.");
     const box = h("div");
     const open = () => {
       const user = h("input", { placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
@@ -2242,7 +2452,7 @@ td select.status.st-few_left { color: var(--warn); }
         } }), h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: () => box.replaceChildren(btn0) }))));
       user.focus();
     };
-    const btn0 = h("button", { class: "btn ghost sm", type: "button", text: "🔑 Give " + first1 + " a login", onclick: open });
+    const btn0 = h("button", { class: "btn ghost sm", type: "button", text: "Give " + first1 + " a login", onclick: open });
     box.append(btn0);
     return box;
   }
@@ -2452,7 +2662,7 @@ td select.status.st-few_left { color: var(--warn); }
         const kindName = (PICK_KINDS.find((k) => k[0] === p.kind) || [0, "Pick"])[1];
         return h("div", { class: "switch-row", style: "flex-wrap:wrap" },
           h("div", { style: "min-width:0;flex:1 1 300px" },
-            h("div", { class: "btns" }, i === 0 ? h("span", { class: "pill red", text: "⭐ Featured" }) : null, h("span", { class: "pill", text: kindName }),
+            h("div", { class: "btns" }, i === 0 ? h("span", { class: "pill red", text: "Featured" }) : null, h("span", { class: "pill", text: kindName }),
               p.hidden ? h("span", { class: "pill warn", text: "Hidden" }) : ended(p) ? h("span", { class: "pill", text: "Ended" }) : h("span", { class: "pill ok", text: "Live" })),
             h("div", { class: "wrap-any", style: "margin-top:4px;font-weight:600", text: p.headline }),
             p.body ? h("div", { class: "hint wrap-any", text: p.body }) : null,
@@ -2511,7 +2721,7 @@ td select.status.st-few_left { color: var(--warn); }
       const list = h("section", { class: "card" }, h("h2", { text: "Your announcements" }), ANN.length ? h("div", null, ANN.map((a, i) => {
         const [st, cls] = state(a);
         return h("div", { class: "switch-row", style: "flex-wrap:wrap" },
-          h("div", { style: "min-width:0;flex:1 1 300px" }, h("div", { class: "btns" }, a.pinned ? h("span", { class: "pill red", text: "📌 Pinned" }) : null, h("span", { class: cls, text: st })),
+          h("div", { style: "min-width:0;flex:1 1 300px" }, h("div", { class: "btns" }, a.pinned ? h("span", { class: "pill red", text: "Pinned" }) : null, h("span", { class: cls, text: st })),
             h("div", { class: "wrap-any", style: "margin-top:4px;font-weight:600", text: a.text }), a.link ? h("div", { class: "hint wrap-any", text: (a.link_label || "Link") + " → " + a.link }) : null,
             a.starts_on || a.ends_on ? h("div", { class: "hint", text: (a.starts_on ? "From " + shortDate(a.starts_on) : "") + (a.ends_on ? " until " + shortDate(a.ends_on) : "") }) : null),
           h("div", { class: "btns" },
@@ -2644,7 +2854,7 @@ td select.status.st-few_left { color: var(--warn); }
       const row = h("div", { class: "thread" },
         h("div", { class: "thread-head", style: "flex-wrap:wrap" },
           h("div", { style: "min-width:0;flex:1 1 280px" },
-            h("div", { class: "btns", style: "gap:6px" }, t.pinned ? h("span", { class: "pill red", text: "📌 Pinned" }) : null, t.locked ? h("span", { class: "pill", text: "🔒 Locked" }) : null, t.is_mod ? h("span", { class: "pill ok", text: "Host" }) : null,
+            h("div", { class: "btns", style: "gap:6px" }, t.pinned ? h("span", { class: "pill red", text: "Pinned" }) : null, t.locked ? h("span", { class: "pill", text: "Locked" }) : null, t.is_mod ? h("span", { class: "pill ok", text: "Host" }) : null,
               h("b", { class: "wrap-any", text: t.title })),
             h("div", { class: "hint", text: boardName(t.board) + " · by " + t.author + " · " + (t.replies || 0) + " repl" + (t.replies === 1 ? "y" : "ies") + " · last post " + ago(t.last_at) + (t.last_by ? " by " + t.last_by : "") })),
           h("div", { class: "btns" },
@@ -2725,7 +2935,7 @@ td select.status.st-few_left { color: var(--warn); }
           h("div", { class: "btns", style: "padding-top:22px" },
             h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => swapB(i, i - 1) }),
             h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === B.length - 1, onclick: () => swapB(i, i + 1) }),
-            h("button", { class: "btn ghost sm", type: "button", text: b.locked ? "🔒 Locked" : "Lock", title: "Locked boards: only hosts can start topics", onclick: () => upd(b, { locked: !b.locked }, b.locked ? "Unlocked " + b.name + "." : "Locked " + b.name + ". Only hosts can start topics there.") }),
+            h("button", { class: "btn ghost sm", type: "button", text: b.locked ? "Locked" : "Lock", title: "Locked boards: only hosts can start topics", onclick: () => upd(b, { locked: !b.locked }, b.locked ? "Unlocked " + b.name + "." : "Locked " + b.name + ". Only hosts can start topics there.") }),
             h("button", { class: "btn ghost sm", type: "button", text: b.hidden ? "Hidden" : "Hide", onclick: () => upd(b, { hidden: !b.hidden }, b.hidden ? b.name + " is visible again." : b.name + " is hidden from fans.") }),
             h("button", { class: "btn sm", type: "button", text: "Save", onclick: () => { if (!nm.value.trim()) { nm.classList.add("bad"); return; } upd(b, { name: nm.value.trim(), description: ds.value.trim() || null }, "Saved."); } }),
             B.length > 1 ? h("button", { class: "btn ghost sm danger", type: "button", text: "Delete", onclick: (e) => deleteBoard(b, e.currentTarget.closest(".switch-row")) }) : null));
@@ -2941,7 +3151,7 @@ td select.status.st-few_left { color: var(--warn); }
   const FEATURES = [["shows", "Shows & tour dates", "Your upcoming shows with ticket links."], ["podcast", "Podcast", "Episode archive that updates itself from your feed."], ["videos", "Videos", "Your latest YouTube uploads."],
     ["merch", "Merch", "Items you sell, linked to your store."], ["blog", "Blog", "Write posts for your fans. Drafts stay private until you publish."], ["fans", "Fan list", "Fans sign up with their email and city, so you can tell them when you're playing nearby."], ["forum", "Forum", "Message boards for your fans."], ["chat", "Chat room", "A live chat room that's always open for fans."]];
   async function viewSettings(main) {
-    main.append(head("Settings", "Turn sections of your site on or off. Turning one off hides it from your site and from this menu; nothing is deleted."));
+    main.append(head("Settings", "Your site's name and address, which sections are on, who can log in, and the code for using it on your own website."));
     const name = h("input", { value: S.site.name });
     const domainIn = h("input", { value: S.site.domain || "", disabled: !S.isPlatform, placeholder: "yourname.com", autocapitalize: "none" });
     const siteCard = h("form", { class: "card stack", onsubmit: async (e) => {
@@ -2950,7 +3160,7 @@ td select.status.st-few_left { color: var(--warn); }
       if (S.isPlatform) patch.domain = cleanDomain(domainIn.value) || null;
       try { await q(sb.from("sites").update(patch).eq("id", sid())); Object.assign(S.site, patch); route(); toast("Saved."); } catch (err) { toast(errText(err), { bad: true }); }
     } }, h("h2", { text: "Your site" }), h("div", { class: "grid" }, field("Site name", name, "c8"), field("Address", domainIn, "c4")), h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Save" })));
-    const feats = h("section", { class: "card" }, h("h2", { text: "Sections" }), h("div", { class: "switches" }, FEATURES.map(([k, l, d]) => {
+    const feats = h("section", { class: "card" }, h("h2", { text: "Sections" }), h("p", { class: "sub", text: "Turning one off hides it from your site and from the menu. Nothing is deleted." }), h("div", { class: "switches" }, FEATURES.map(([k, l, d]) => {
       const box = h("input", { type: "checkbox", role: "switch", checked: F(k), "aria-label": l, onchange: async (e) => {
         const features = { ...(S.site.features || {}), [k]: e.target.checked };
         try { await q(sb.from("sites").update({ features }).eq("id", sid())); S.site.features = features; route(); toast(l + (e.target.checked ? " is on." : " is off.")); }
@@ -2965,8 +3175,17 @@ td select.status.st-few_left { color: var(--warn); }
       h("pre", { class: "snippet", text: snippet }),
       h("div", { class: "hint", text: "Other pieces: data-comictable=\"episodes\", \"videos\" or \"posts\". Add data-limit=\"5\" to show fewer. Add data-accent=\"#ff3b6b\" to the script for your button color." }),
       h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Copy snippet", onclick: async () => toast((await copyText(snippet)) ? "Copied. Paste it into your site's HTML or embed block." : "Couldn't copy. Select it and copy instead.") })));
-    main.append(h("div", { class: "stack" }, siteCard, feats, teamCard(), embedCard));
+    // One page, four tabs, so nothing is buried at the bottom.
+    const panes = [["general", "General", siteCard], ["sections", "Sections", feats], ["team", "Team", teamCard()], ["embed", "Your own website", embedCard]];
+    if (!panes.some((x) => x[0] === SETTAB)) SETTAB = "general";
+    const tabs = h("div", { class: "tabs", role: "tablist", "aria-label": "Settings" });
+    const show = () => { panes.forEach(([k, , el]) => { el.hidden = k !== SETTAB; }); tabs.querySelectorAll("button").forEach((b) => { const on = b.dataset.tab === SETTAB; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }); };
+    panes.forEach(([k, l]) => tabs.append(h("button", { type: "button", role: "tab", "data-tab": k, text: l, onclick: () => { SETTAB = k; show(); } })));
+    tabs.addEventListener("keydown", (e) => { if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return; const i = panes.findIndex((x) => x[0] === SETTAB), j = (i + (e.key === "ArrowRight" ? 1 : -1) + panes.length) % panes.length; SETTAB = panes[j][0]; show(); tabs.children[j].focus(); });
+    main.append(tabs, h("div", { class: "stack" }, ...panes.map((x) => x[2])));
+    show();
   }
+  let SETTAB = "general";
   const loginEmail = (u) => { u = String(u || "").trim(); return u.includes("@") ? u.toLowerCase() : u.toLowerCase() + "@" + loginDom(); };
   async function teamCall(body) {
     const r = await fetch("/.netlify/functions/team", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: JSON.stringify({ site_id: sid(), ...body }) });

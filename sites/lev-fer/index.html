@@ -131,6 +131,15 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .pick.hero .btn { font-size: 14px; padding: 12px 22px; background: var(--amber); border-color: var(--amber); color: var(--void); }
 
 /* Lev himself, on the home screen */
+.press { display: grid; gap: 16px; }
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.shot { margin: 0; background: var(--panel); border: 1px solid var(--line); padding: 8px; display: grid; gap: 8px; }
+.shot.primary { border-color: var(--amber); }
+.shot img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+.shot figcaption { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.bio-box { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; display: grid; gap: 8px; }
+.bio-box .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.bio-box ul { margin: 0; padding-left: 18px; }
 .me { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; align-items: center; margin-bottom: 16px; padding: 14px; background: var(--panel); border: 1px solid var(--line); }
 .me img { aspect-ratio: 4 / 5; object-fit: cover; width: 100%; border: 1px solid rgba(127,211,255,.45); box-shadow: 0 0 24px rgba(127,211,255,.18); }
 .me b { display: block; font: 400 clamp(20px, 2.6vw, 28px) var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--glow); }
@@ -291,7 +300,8 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     ["chat", "Chat Room", "Live, right now", function () { return F("chat", false); }],
     ["list", "Mailing List", "Get dates in your inbox", function () { return F("fans", false); }],
     ["about", "About", "Who Lev is", function () { return true; }],
-    ["socials", "Socials", "Follow Lev", function () { return socialLinks().length > 0; }]
+    ["socials", "Socials", "Follow Lev", function () { return socialLinks().length > 0; }],
+    ["press", "Press", "Photos & bio for clubs", function () { return !!(person().comic && CSB.press); }]
   ];
   var pages = function () { return PAGES.filter(function (p) { return p[3](); }); };
   function nav(cur) {
@@ -308,7 +318,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     nav(page);
     var app = $("app"); app.replaceChildren();
     app.style.animation = "none"; void app.offsetWidth; app.style.animation = "";
-    ({ home: viewHome, shows: viewShows, clips: viewClips, blog: viewBlog, forum: viewForum, chat: viewChat, list: viewList, about: viewAbout, socials: viewSocials }[page])(app, parts[1], parts[2]);
+    ({ home: viewHome, shows: viewShows, clips: viewClips, blog: viewBlog, forum: viewForum, chat: viewChat, list: viewList, about: viewAbout, socials: viewSocials, press: viewPress }[page])(app, parts[1], parts[2]);
     $("screen").classList.remove("engaged");
   }
   window.addEventListener("hashchange", route);
@@ -509,8 +519,28 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
       me.photo ? el("img", { class: "portrait", src: me.photo, alt: me.name }) : null,
       el("div", null, [text ? el("p", { class: "bio", text: text }) : empty("Bio coming soon"),
         p.booking_email ? el("div", null, [el("p", { class: "sub", style: "margin:20px 0 0", text: "Booking" }), el("div", { class: "copy" }, [el("code", { text: p.booking_email }), copyBtn(p.booking_email)])]) : null,
-        p.contact_email ? el("div", null, [el("p", { class: "sub", style: "margin:16px 0 0", text: "Contact" }), el("div", { class: "copy" }, [el("code", { text: p.contact_email }), copyBtn(p.contact_email)])]) : null])
+        p.contact_email ? el("div", null, [el("p", { class: "sub", style: "margin:16px 0 0", text: "Contact" }), el("div", { class: "copy" }, [el("code", { text: p.contact_email }), copyBtn(p.contact_email)])]) : null,
+        me.comic && CSB.press ? el("p", { style: "margin-top:20px" }, [el("a", { class: "btn", href: "#/press", text: "Press photos & bio" })]) : null])
     ]));
+  }
+  // Press: Lev's approved photos and bio, for clubs (his ComicTable press kit, same everywhere he's listed)
+  function viewPress(app) {
+    var me = person();
+    app.append.apply(app, head("Press", "Approved photos & bio for clubs"));
+    var box = el("div", { class: "press" }, [el("p", { class: "sub", text: "Loading…" })]); app.append(box);
+    CSB.press(me.comic).then(function (k) {
+      if (!k) { box.replaceChildren(empty("Press kit coming soon")); return; }
+      var dl = function (p, i) { return /^https:\/\//.test(p.url) ? p.url + (p.url.indexOf("?") < 0 ? "?" : "&") + "download=" + encodeURIComponent((k.name || "photo").toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + (i + 1) + ".jpg") : null; };
+      var shot = function (p, i) { return el("figure", { class: "shot" + (p.primary ? " primary" : "") }, [el("img", { src: p.web, alt: k.name, loading: "lazy" }),
+        el("figcaption", null, [p.primary ? el("span", { class: "chip", text: "Primary" }) : null, p.credit ? el("span", { class: "mini", text: p.credit }) : null, dl(p, i) ? el("a", { class: "btn", href: dl(p, i), text: "Download" }) : null])]); };
+      var bio = function (label, text) { return text ? el("div", { class: "bio-box" }, [el("div", { class: "row" }, [el("b", { text: label }), copyBtn(text)]), el("p", { class: "bio", text: text })]) : null; };
+      box.replaceChildren(
+        k.photos.length ? el("div", { class: "shots" }, k.photos.map(shot)) : empty("Photos coming soon"),
+        bio("Short bio", k.short), bio("Long bio", k.long),
+        k.credits.length ? el("div", { class: "bio-box" }, [el("b", { text: "Credits" }), el("ul", null, k.credits.map(function (c) { return el("li", { text: c }); }))]) : null,
+        k.booking ? el("div", { class: "bio-box" }, [el("div", { class: "row" }, [el("b", { text: "Booking" }), copyBtn(k.booking)]), el("code", { text: k.booking })]) : null,
+        el("p", { class: "mini" }, ["Full press kit: ", el("a", { href: k.link, target: "_blank", rel: "noopener", text: k.link.replace(/^https:\/\//, "") })]));
+    }, function () { box.replaceChildren(empty("Couldn't load the press kit", "Try again in a minute.")); });
   }
   function copyBtn(text) {
     var b = el("button", { class: "btn", type: "button", text: "Copy" });

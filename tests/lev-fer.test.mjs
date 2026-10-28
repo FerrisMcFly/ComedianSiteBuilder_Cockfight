@@ -92,6 +92,20 @@ test("a picture pick shows its picture; a YouTube or Vimeo pick plays right on t
   assert.equal(cards[2].querySelector("iframe").getAttribute("src"), "https://player.vimeo.com/video/123456789?autoplay=1");
 });
 
+test("press: Lev's approved photos to download and bios to copy, for clubs", async () => {
+  const data = { ...full, hosts: full.hosts.map((x, i) => i === 0 ? { ...x, comic_id: "lev-fer" } : x),
+    comics: [{ id: "lev-fer", name: "Lev Fer", short_bio: "Lev is a New York comic.", long_bio: "The long version.", credits: "Comedy Central\nJFL", booking_contact: "book@lev.example" }],
+    press_photos: [{ url: "https://s/press/lev-fer/1.jpg", web_url: "https://s/press/lev-fer/1-web.jpg", credit: "Photo: A. Person", is_primary: true }] };
+  const { d } = await load(data, "#/press");
+  await wait(120);
+  assert.ok(menu(d).includes("Press"));
+  const app = d.getElementById("app");
+  assert.match(app.textContent, /Lev is a New York comic.*The long version.*Comedy Central.*book@lev\.example/s);
+  assert.equal(app.querySelector(".shot img").getAttribute("src"), "https://s/press/lev-fer/1-web.jpg");
+  assert.equal(app.querySelector(".shot a.btn").getAttribute("href"), "https://s/press/lev-fer/1.jpg?download=lev-fer-1.jpg");
+  assert.match(app.textContent, /comictable\.com\/press\/lev-fer/);
+});
+
 test("tour dates, blog post, about and socials come from ComicTable", async () => {
   let { d } = await load(full, "#/shows");
   assert.equal(d.querySelectorAll(".date").length, 2);
