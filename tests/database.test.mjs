@@ -324,6 +324,7 @@ test("more socials: a comic's Threads, Twitch and the rest follow them to every 
   const hs = await q("select socials from hosts where comic_id = 'lev-fer'");
   assert.ok(hs.length > 0 && hs.every((h) => h.socials.threads === "https://www.threads.net/@lev" && h.socials.twitch), JSON.stringify(hs));
   await assert.rejects(db.exec(`update comics set socials = '"nope"' where id = 'lev-fer'`), /socials_size/);
+});
 
 test("comictable.com showcase: anyone can read it, only super admins change it", async () => {
   const row = (await rows(null, "select featured_site, showcase from platform_settings"))[0];

@@ -3546,7 +3546,7 @@ td select.status.st-few_left { color: var(--warn); }
     (async () => {
       let st;
       try { st = (await q(sb.from("platform_settings").select("*").eq("id", 1)))[0] || { featured_site: null, showcase: [] }; }
-      catch (e) { card.replaceChildren(h("h2", { text: "On comictable.com" }), h("p", { class: "err", text: /platform_settings/i.test(errText(e)) ? "This needs a database upgrade: run supabase/19_showcase.sql (or UPGRADE_V3_ALL.sql) in Supabase." : errText(e) })); return; }
+      catch (e) { card.replaceChildren(h("h2", { text: "On comictable.com" }), h("p", { class: "err", text: /platform_settings/i.test(errText(e)) ? "This needs a database upgrade: run supabase/UPGRADE_V3_ALL.sql in Supabase." : errText(e) })); return; }
       const live = S.sites.filter((x) => x.domain);
       const list = Array.isArray(st.showcase) ? st.showcase.filter((x) => x && x.site) : [];
       const featured = h("select", { id: "scFeatured", "aria-label": "See a site running on it" },
