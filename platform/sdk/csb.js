@@ -8,9 +8,11 @@
  *   <script src="sdk/csb.js"></script>
  *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards, posts, picks }
  *   picks: the comic's Home screen picks, in order (the first is the featured one). A pick made from a show carries
- *   that show's status and drops off once the show has passed.
+ *   that show's status and drops off once the show has passed. image is its picture; video is a player address
+ *   (YouTube or Vimeo) when the pick links to one, so a site can play it right on the home screen.
  *   shows: each has person (a solo date) or event: true with lineup (a show by the whole site, like a live podcast).
  *   CSB.forum.threads("general"), CSB.forum.newTopic({...}), CSB.chat.subscribe(fn), CSB.chat.send({...})
+ *   CSB.press(person.comic) → { name, short, long, credits[], booking, photos[{ url (full size), web, credit, primary }], link }
  *   CSB.fans.places("bos"), CSB.fans.join({ email, placeId, radius })   // fan list, when site.features.fans is on
  *   CSB.blog.list(), CSB.blog.get(slug) → { title, date, cover, excerpt, html }   // blog, when site.features.blog is on
  *
@@ -75,7 +77,7 @@
       var s = r[0][0] || { id: cfg.site, features: {}, profile: {}, theme: {}, community: {} };
       var today = todayISO();
       var people = r[1].filter(visible).map(function (h) {
-        return { id: h.id, name: h.name, title: h.title || "", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "",
+        return { id: h.id, comic: h.comic_id || "", name: h.name, title: h.title || "", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "",
           socials: { instagram: h.instagram || "", youtube: h.youtube || "", tiktok: h.tiktok || "", twitter: h.twitter || "", website: h.website || "" } };
       });
       var shows = r[2].filter(function (x) { return x.date >= today; }).map(function (x) {
@@ -103,6 +105,35 @@
     });
   }
 
+  // A comic's press kit: approved photos (primary first) and bios, for clubs. Pass a person's comic id (person.comic).
+  function press(comicId) {
+    ready();
+    var id = encodeURIComponent(String(comicId || ""));
+    return Promise.all([
+      api("comics?select=id,name,title,bio,photo_url,short_bio,long_bio,credits,booking_contact,instagram,youtube,tiktok,twitter,website&id=eq." + id),
+      optional(api("press_photos?select=*&order=is_primary.desc,sort.asc,created_at.asc&comic_id=eq." + id))
+    ]).then(function (r) {
+      var c = r[0][0];
+      if (!c) return null;
+      return { id: c.id, name: c.name, title: c.title || "",
+        short: c.short_bio || "", long: c.long_bio || c.bio || "",
+        credits: String(c.credits || "").split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean),
+        booking: c.booking_contact || "",
+        socials: { instagram: c.instagram || "", youtube: c.youtube || "", tiktok: c.tiktok || "", twitter: c.twitter || "", website: c.website || "" },
+        photos: r[1].map(function (p) { return { url: p.url, web: p.web_url || p.url, credit: p.credit || "", orientation: p.orientation || "", primary: !!p.is_primary, width: p.width || null, height: p.height || null }; })
+          .concat(!r[1].length && c.photo_url ? [{ url: c.photo_url, web: c.photo_url, credit: "", orientation: "", primary: true }] : []),
+        link: "https://comictable.com/press/" + encodeURIComponent(c.id) };
+    });
+  }
+
+  // A YouTube or Vimeo link → the address of a player that can sit right in the page ("" for anything else).
+  function videoEmbed(link) {
+    var u = String(link || ""), m = u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/);
+    if (m) return "https://www.youtube-nocookie.com/embed/" + m[1] + "?autoplay=1&rel=0";
+    m = u.match(/vimeo\.com\/(?:video\/)?(\d{6,12})/);
+    return m ? "https://player.vimeo.com/video/" + m[1] + "?autoplay=1" : "";
+  }
+
   // Home screen picks: drop ended ones and ones whose show has passed; a show pick shows that show's status.
   function homePicks(rows, shows, today) {
     var byId = {}; shows.forEach(function (s) { byId[s.id] = s; });
@@ -110,7 +141,7 @@
       .map(function (p) {
         var s = p.show_id ? byId[p.show_id] : null;
         return { id: p.id, kind: p.kind || "announcement", headline: p.headline, text: p.body || "", button: p.button_label || "", link: p.link || (s && s.tickets) || "",
-          image: p.image_url || "", show: s ? { date: s.date, time: s.time, venue: s.venue, city: s.city, status: s.status } : null };
+          image: p.image_url || "", video: videoEmbed(p.link), show: s ? { date: s.date, time: s.time, venue: s.venue, city: s.city, status: s.status } : null };
       });
   }
 
@@ -239,6 +270,6 @@
     leave: function (token) { return api("rpc/leave_fans", { method: "POST", body: { p_token: token } }); }
   };
 
-  var CSB = { init: init, load: load, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, device: device, name: name, api: api, version: "1.2" };
+  var CSB = { init: init, load: load, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.2" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

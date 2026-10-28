@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Press kit · ComicTable</title>
+<meta name="description" content="Approved photos and bio, ready for clubs and press.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand/tokens.css">
+<style>
+/* A comic's press kit, for clubs: approved photos to download, bios to copy, who to book through.
+   ComicTable's page, so it wears the brand quietly: ivory paper, charcoal type, redwood for actions. */
+:root { --ink: var(--ct-charcoal); --bg: var(--ct-ivory); --paper: var(--ct-paper); --rule: var(--ct-ivory-deep); --muted: var(--ct-muted); --red: var(--ct-redwood); --red-h: var(--ct-redwood-hover); }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.6 var(--ct-sans); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+header.top { border-bottom: 1.5px solid var(--ink); }
+header.top .wrap { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-top: 16px; padding-bottom: 16px; }
+.label { font: 700 12px/1 var(--ct-sans); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 14px/1 var(--ct-sans); padding: 11px 16px; border-radius: var(--ct-radius); border: 1.5px solid var(--ink); background: transparent; color: var(--ink); text-decoration: none; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--paper); }
+.btn.red { background: var(--red); border-color: var(--red); color: #fff; }
+.btn.red:hover { background: var(--red-h); border-color: var(--red-h); }
+.btn.sm { padding: 8px 12px; font-size: 13px; }
+h1 { font: 900 clamp(48px, 7vw, 88px)/.92 var(--ct-display); margin: 0; letter-spacing: -.01em; }
+h2 { font: 800 30px/1 var(--ct-display); margin: 0 0 14px; }
+.intro { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; padding: 48px 0; border-bottom: 1.5px solid var(--ink); align-items: start; }
+.intro .who p { margin: 10px 0 0; color: var(--muted); font-size: 18px; }
+.intro .who .acts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+.primary { margin: 0; }
+.primary img { width: 100%; display: block; background: var(--paper); border: 1.5px solid var(--ink); }
+.primary figcaption, .ph figcaption { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.tag { display: inline-block; font: 700 11px/1 var(--ct-sans); letter-spacing: .1em; text-transform: uppercase; background: var(--ct-mustard); color: var(--ink); padding: 5px 7px; border-radius: 3px; margin-right: 8px; }
+section.band { padding: 44px 0; border-bottom: 1px solid var(--rule); }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; }
+.ph { margin: 0; }
+.ph img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; background: var(--paper); border: 1px solid var(--rule); }
+.bios { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 48px; }
+.bio { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--ct-radius); padding: 20px 22px; }
+.bio .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+.bio p { margin: 0; white-space: pre-wrap; }
+.bio .n { font-size: 12px; color: var(--muted); margin-top: 10px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 32px; }
+.facts ul { margin: 0; padding-left: 18px; }
+.facts .socials a { display: block; padding: 3px 0; }
+.empty { padding: 96px 0; text-align: center; }
+.empty p { color: var(--muted); }
+footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 28px; padding-bottom: 40px; font-size: 13px; color: var(--muted); }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: var(--ct-radius); font-weight: 600; font-size: 14px; }
+@media (max-width: 820px) { .intro, .bios { grid-template-columns: 1fr; gap: 28px; } .wrap { padding: 0 16px; } }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><span class="label">Press kit</span><button class="btn sm" type="button" id="copyLink">Copy link to this page</button></div></header>
+<main id="app" class="wrap" aria-live="polite"><div class="empty"><p>Loading…</p></div></main>
+<footer><div class="wrap"><span>Approved by the comic. Please use these photos and this bio in listings.</span><a href="/">ComicTable</a></div></footer>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="/config.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CFG = window.COMICTABLE_CONFIG || {};
+  var app = document.getElementById("app");
+  var id = decodeURIComponent((location.pathname.match(/\/press\/([^/?#]+)/) || [])[1] || new URLSearchParams(location.search).get("comic") || "");
+
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    for (var k in (attrs || {})) { var v = attrs[k]; if (v === null || v === undefined || v === false) continue;
+      if (k === "text") e.textContent = v; else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? "" : v); }
+    [].concat(kids || []).forEach(function (c) { if (c !== null && c !== undefined && c !== false) e.append(c.nodeType ? c : String(c)); });
+    return e;
+  }
+  var t0;
+  function toast(msg) { var t = document.getElementById("toast"); t.textContent = msg; t.hidden = false; clearTimeout(t0); t0 = setTimeout(function () { t.hidden = true; }, 2200); }
+  function copy(text, what) {
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { toast(what + " copied"); }, function () { toast("Couldn't copy. Select the text instead."); });
+  }
+  document.getElementById("copyLink").addEventListener("click", function () { copy(location.href, "Link"); });
+  function api(path) {
+    return fetch(CFG.SUPABASE_URL + "/rest/v1/" + path, { headers: { apikey: CFG.SUPABASE_ANON_KEY, Authorization: "Bearer " + CFG.SUPABASE_ANON_KEY } })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+  }
+  var safe = function (u) { return /^https:\/\//i.test(String(u || "")) ? u : null; };
+  // Supabase serves a file as a download when the address asks for it.
+  function downloadUrl(url, name) { return safe(url) ? url + (url.indexOf("?") < 0 ? "?" : "&") + "download=" + encodeURIComponent(name) : null; }
+  var slug = function (s) { return String(s || "photo").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); };
+  var words = function (s) { return (String(s).trim().match(/\S+/g) || []).length; };
+
+  function notFound() {
+    document.title = "Press kit not found · ComicTable";
+    app.replaceChildren(el("div", { class: "empty" }, [el("h2", { text: "No press kit here" }), el("p", { text: "Check the link, or ask the comic to send it again." })]));
+  }
+  if (!id || !CFG.SUPABASE_URL) return notFound();
+
+  Promise.all([
+    api("comics?select=id,name,title,bio,photo_url,short_bio,long_bio,credits,booking_contact,instagram,youtube,tiktok,twitter,website&id=eq." + encodeURIComponent(id)),
+    api("press_photos?select=*&order=is_primary.desc,sort.asc,created_at.asc&comic_id=eq." + encodeURIComponent(id)).catch(function () { return []; })
+  ]).then(function (r) {
+    var c = r[0][0]; if (!c) return notFound();
+    var photos = r[1].length ? r[1] : c.photo_url ? [{ url: c.photo_url, web_url: c.photo_url, is_primary: true }] : [];
+    document.title = c.name + " · Press kit";
+    var base = slug(c.name);
+    var shortBio = (c.short_bio || "").trim(), longBio = (c.long_bio || c.bio || "").trim();
+    var main = photos[0], rest = photos.slice(1);
+
+    function photoMeta(p, i) {
+      var dims = p.width && p.height ? p.width + " × " + p.height : "";
+      return [el("span", null, [p.is_primary ? el("span", { class: "tag", text: "Primary" }) : null, [p.credit, dims].filter(Boolean).join(" · ")]),
+        downloadUrl(p.url, base + "-" + (i + 1) + ".jpg") ? el("a", { class: "btn sm", href: downloadUrl(p.url, base + "-" + (i + 1) + ".jpg"), text: "Download full size" }) : null];
+    }
+    var intro = el("section", { class: "intro" }, [
+      el("div", { class: "who" }, [el("h1", { text: c.name }), c.title ? el("p", { text: c.title }) : null,
+        el("div", { class: "acts" }, [
+          main && downloadUrl(main.url, base + "-1.jpg") ? el("a", { class: "btn red", href: downloadUrl(main.url, base + "-1.jpg"), text: "Download primary photo" }) : null,
+          shortBio ? el("button", { class: "btn", type: "button", text: "Copy short bio", onclick: function () { copy(shortBio, "Short bio"); } }) : null])]),
+      main ? el("figure", { class: "primary" }, [el("img", { src: safe(main.web_url) || safe(main.url) || "", alt: c.name }), el("figcaption", null, photoMeta(main, 0))])
+        : el("div", { class: "bio" }, [el("p", { text: "No photos yet." })])
+    ]);
+    var parts = [intro];
+    if (rest.length) parts.push(el("section", { class: "band" }, [el("h2", { text: "More photos" }),
+      el("div", { class: "photos" }, rest.map(function (p, i) { return el("figure", { class: "ph" }, [el("img", { src: safe(p.web_url) || safe(p.url) || "", alt: c.name, loading: "lazy" }), el("figcaption", null, photoMeta(p, i + 1))]); }))]));
+    var bioBox = function (title, text, what) { return el("div", { class: "bio" }, [el("div", { class: "head" }, [el("span", { class: "label", text: title }), el("button", { class: "btn sm", type: "button", text: "Copy", onclick: function () { copy(text, what); } })]), el("p", { text: text }), el("div", { class: "n", text: words(text) + " words" })]); };
+    if (shortBio || longBio) parts.push(el("section", { class: "band" }, [el("h2", { text: "Bio" }), el("div", { class: "bios" }, [shortBio ? bioBox("Short bio", shortBio, "Short bio") : null, longBio ? bioBox("Long bio", longBio, "Long bio") : null])]));
+    var credits = String(c.credits || "").split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    var socials = [["Instagram", c.instagram], ["YouTube", c.youtube], ["TikTok", c.tiktok], ["X", c.twitter], ["Website", c.website]].filter(function (x) { return safe(x[1]); });
+    var booking = (c.booking_contact || "").trim(), mail = (booking.match(/[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+/) || [])[0];
+    if (credits.length || socials.length || booking) parts.push(el("section", { class: "band" }, [el("div", { class: "facts" }, [
+      credits.length ? el("div", null, [el("h2", { text: "Credits" }), el("ul", null, credits.map(function (x) { return el("li", { text: x }); }))]) : null,
+      booking ? el("div", null, [el("h2", { text: "Booking" }), el("p", { style: "margin:0" }, [mail ? el("a", { href: "mailto:" + mail, text: booking }) : booking])]) : null,
+      socials.length ? el("div", { class: "socials" }, [el("h2", { text: "Online" })].concat(socials.map(function (x) { return el("a", { href: x[1], target: "_blank", rel: "noopener", text: x[0] }); }))) : null])]));
+    app.replaceChildren.apply(app, parts);
+  }).catch(function () {
+    app.replaceChildren(el("div", { class: "empty" }, [el("h2", { text: "Couldn't load this press kit" }), el("p", { text: "Check your connection and try again." })]));
+  });
+})();
+</script>
+</body>
+</html>
