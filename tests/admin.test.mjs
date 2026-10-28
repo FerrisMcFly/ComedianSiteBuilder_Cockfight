@@ -78,10 +78,11 @@ const btn = (d, re, scope = d) => [...scope.querySelectorAll("button")].find((b)
 const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", { bubbles: true })); };
 
 test("home shows a greeting, stats and to-dos", async () => {
-  const { d } = await open();
+  const { d } = await open("#home");
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  assert.equal(d.querySelectorAll(".nav-btn").length, 16);
-  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Content", "Community", "Site extras", "ComicTable"]);
+  assert.equal(d.querySelectorAll(".nav-btn").length, 14);
+  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Content", "Community", "Site extras"]);
+  assert.ok(d.querySelector(".back-ct"), "a way back up to ComicTable");
   assert.match(d.body.textContent, /Connect your podcast/);
 });
 
@@ -316,12 +317,12 @@ test("team section explains when it isn't set up yet", async () => {
 });
 
 test("site extras only appear when the site's front end uses them", async () => {
-  const { d } = await open("", null, null);
+  const { d } = await open("#home", null, null);
   const labels = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
   assert.ok(!labels.some((l) => /Announcements|Links|Design settings/.test(l)), labels.join(","));
   assert.ok(labels.some((l) => /Profile/.test(l)) && labels.some((l) => /Settings/.test(l)));
   assert.doesNotMatch(d.querySelector("main").textContent, /Post an announcement/);
-  const only = await open("", null, { extras: ["links"] });
+  const only = await open("#home", null, { extras: ["links"] });
   const l2 = [...only.d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
   assert.ok(l2.some((l) => /Links/.test(l)) && !l2.some((l) => /Announcements|Design settings/.test(l)), l2.join(","));
 });
@@ -346,7 +347,7 @@ test("videos can be removed, undone, and put back", async () => {
 });
 
 test("platform admins can start a new comic's site and land on it ready to set up", async () => {
-  const { w, d, db } = await open("#sites");
+  const { w, d, db } = await open("#ct/sites");
   await wait(60);
   assert.match(d.querySelector("main").textContent, /Sites \(1\)/);
   assert.match(d.querySelector("main").textContent, /○ Podcast or YouTube connected/);
@@ -481,7 +482,7 @@ test("show finder: watch a page for someone, then add or ignore what it found", 
 function shortDay(iso) { const d = new Date(iso + "T12:00:00"); return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()] + " " + d.getDate(); }
 
 test("a comic with their own login gets a Me page: their sites, all their dates, one profile", async () => {
-  const { w, d, db } = await open("#me", (db) => {
+  const { w, d, db } = await open("#ct/me", (db) => {
     db.comics.find((c) => c.id === "lev-fer").user_id = "u1";
     db.sites.push({ id: "lev-fer", name: "Lev Fer", domain: "levfer.com", features: { shows: true } });
     db.hosts.push({ id: "lev-fer-lev", site_id: "lev-fer", comic_id: "lev-fer", name: "Lev Fer", sort: 0 });
@@ -560,7 +561,7 @@ test("site finder: with 50 sites, type a few letters and press Enter; recent sit
 });
 
 test("your account: name, password, email, and where you have access", async () => {
-  const { w, d, db } = await open("#account");
+  const { w, d, db } = await open("#ct/account");
   await wait(60);
   set(w, d.getElementById("acctName"), "Ferris");
   d.getElementById("acctName").form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
@@ -574,4 +575,27 @@ test("your account: name, password, email, and where you have access", async () 
   p1.form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(30);
   assert.equal(JSON.stringify(db.authUpdates.at(-1)), JSON.stringify({ password: "newpassword1" }));
   assert.match(d.querySelector("main").textContent, /Super admin.*Cockfight.*Owner|Super admin/s);
+});
+
+test("super admins land on the ComicTable overview, then open a site and come back", async () => {
+  const { w, d } = await open("", (db) => { db.sites.push({ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay", features: { shows: true } }); });
+  await wait(80);
+  assert.equal(w.location.hash, "#ct/overview");
+  assert.match(d.querySelector(".ct-brand").textContent, /ComicTable/);
+  assert.deepEqual([...d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["overview", "sites", "comics", "clubs", "account"]);
+  assert.match(d.querySelector("main").textContent, /Sites.*Cockfight.*Lev Fer/s);
+  const row = [...d.querySelectorAll("main .switch-row")].find((r) => /Lev Fer/.test(r.textContent));
+  btn(d, /^Open$/, row).click(); await wait(120);
+  assert.equal(w.location.hash, "#home");
+  assert.equal(d.querySelector(".site-pick .brand").textContent, "Lev Fer");
+  d.querySelector(".back-ct").click(); w.location.hash = "#ct/overview"; await wait(80);
+  assert.ok(d.querySelector(".ct-brand"));
+});
+
+test("someone on one site's team, with no comic login, goes straight to that site", async () => {
+  const { w, d } = await open("", (db) => { db.platform_admins = []; });
+  await wait(60);
+  assert.notEqual(w.location.hash.slice(0, 4), "#ct/");
+  assert.equal(d.querySelector(".back-ct"), null);
+  assert.equal(d.querySelector(".brand").textContent, "Cockfight");
 });

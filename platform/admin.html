@@ -58,6 +58,10 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.015em; }
 .site-pick .sp-txt { display: grid; min-width: 0; flex: 1; }
 .site-pick .brand, .site-pick .brand-sub { padding: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .site-pick .sp-arrow { font-size: 18px; color: var(--muted); padding-right: 8px; }
+.back-ct { display: block; font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; padding: 2px 10px 10px; }
+.back-ct:hover { color: var(--text); }
+.ct-brand { color: var(--accent); }
+.site-pick.open-site { margin-top: 4px; }
 .side-foot .acct-link { color: inherit; text-decoration: none; }
 .side-foot .acct-link:hover { text-decoration: underline; }
 .sp-hint { font-size: 11px; color: var(--muted); padding: 6px 10px 12px; }
@@ -574,13 +578,15 @@ td select.status.st-few_left { color: var(--warn); }
     }
     sb.auth.onAuthStateChange((_ev, s) => { if (s) S.token = s.access_token; });
     await loadTheme();
+    // Where you land: super admins and comics start at the ComicTable level; a one-site team member goes straight to their site.
+    const h0 = location.hash.slice(1);
+    if ((!h0 || h0 === "ct") && hasCT() && history.replaceState) history.replaceState(null, "", location.pathname + "#ct/" + (S.isPlatform ? "overview" : S.me ? "me" : "mysites"));
     route();
   }
 
   /* ============ shell ============ */
   const SECTIONS = [
     { id: "home", label: "Home", ico: "🏠", render: viewHome },
-    { id: "me", label: "Me", ico: "👤", meOnly: true, render: viewMe },
     { id: "shows", group: "Content", label: "Shows", ico: "🎟️", feat: "shows", count: () => S.shows.filter((s) => s.date >= today()).length, render: viewShows },
     { id: "podcast", group: "Content", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
     { id: "videos", group: "Content", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
@@ -597,17 +603,65 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "theme", group: "Site extras", label: "Design settings", ico: "🎨", extra: "design", render: viewTheme },
     { id: "profile", label: "Profile", ico: "🪪", render: viewProfile },
     { id: "settings", label: "Settings", ico: "⚙️", render: viewSettings },
-    { id: "account", label: "Your account", ico: "🔐", render: viewAccount },
-    // Only ComicTable platform admins (you) see this
-    { id: "sites", group: "ComicTable", label: "All sites", ico: "🧩", platform: true, render: viewSites }
   ];
+  // The ComicTable level: above any one site. Super admins get the whole platform; comics get their own home.
+  const CT_SECTIONS = [
+    { id: "overview", label: "Overview", ico: "🏠", platform: true, render: viewOverview },
+    { id: "me", label: "Me", ico: "👤", meOnly: true, render: viewMe },
+    { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, render: viewMySites },
+    { id: "sites", group: "Platform", label: "Sites", ico: "🧩", platform: true, count: () => S.sites.length, render: viewSites },
+    { id: "comics", group: "Platform", label: "Comics", ico: "🎤", platform: true, render: viewComics },
+    { id: "clubs", group: "Platform", label: "Club database", ico: "🏛️", platform: true, render: (m) => { m.append(head("Club database", "The comedy clubs every site picks from when adding shows.")); m.append(clubsReview()); } },
+    { id: "account", group: "You", label: "Your account", ico: "🔐", render: viewAccount }
+  ];
+  const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me));
+  const atCT = () => location.hash.startsWith("#ct/");
+  const goCT = (id) => { const h0 = "#ct/" + id; if (location.hash === h0) route(); else location.hash = h0; };
   const hasExtra = (x) => !!(THEME && (x === "design" ? Array.isArray(THEME.settings) && THEME.settings.length : Array.isArray(THEME.extras) && THEME.extras.includes(x)));
-  const visible = () => SECTIONS.filter((s) => (!s.platform || S.isPlatform) && (!s.meOnly || S.me) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
+  const visible = () => SECTIONS.filter((s) => (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
   const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
   window.addEventListener("hashchange", () => { if (S.site) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
 
+  function navList(list, cur, onGo) {
+    let lastGroup = null;
+    return list.flatMap((s) => {
+      const out = [];
+      if (s.group !== lastGroup) { if (s.group) out.push(h("div", { class: "nav-group", text: s.group })); else if (lastGroup) out.push(h("div", { class: "nav-group nav-sep" })); lastGroup = s.group; }
+      out.push(h("button", { class: "nav-btn", type: "button", "data-sec": s.id, "aria-current": s === cur ? "page" : null, onclick: () => onGo(s.id) },
+        h("span", { class: "ico", "aria-hidden": "true", text: s.ico }), h("span", { text: s.label }), s.count ? h("span", { class: "cnt", text: s.count() }) : null));
+      return out;
+    });
+  }
+  const sideFoot = () => h("div", { class: "side-foot" }, h("span", { class: "ct-mark sm", text: "ComicTable" }), h("a", { href: "#ct/account", class: "acct-link", text: "Logged in as " + S.user }),
+    h("div", { class: "links" }, S.level === "site" && (S.site.domain || !CFG.PLATFORM) ? h("a", { href: S.site.domain ? "https://" + S.site.domain : "./", target: "_blank", rel: "noopener", text: "View site ↗" }) : null,
+      h("a", { href: "#", onclick: async (e) => { e.preventDefault(); await sb.auth.signOut(); S.site = null; showLogin(); }, text: "Log out" })));
+  // Who gets the ComicTable level: super admins, comics with their own login, and anyone on more than one site.
+  const hasCT = () => S.isPlatform || !!S.me || S.sites.length > 1;
+
+  function routeCT() {
+    S.level = "ct";
+    setPath("dashboard"); document.title = "ComicTable";
+    const id = location.hash.slice(4), list = ctVisible();
+    const cur = list.find((x) => x.id === id) || list[0];
+    const main = h("main", { id: "main" });
+    root.replaceChildren(h("div", { class: "app" },
+      h("aside", { class: "side" },
+        h("div", null, h("div", { class: "brand ct-brand", text: "ComicTable" }), h("div", { class: "brand-sub", text: S.isPlatform ? "Super admin" : S.me ? S.me.name : "Your dashboard" })),
+        S.sites.length ? h("button", { class: "site-pick open-site", type: "button", id: "sitePick", onclick: openSitePicker },
+          h("span", { class: "sp-txt" }, h("span", { class: "brand", style: "font-size:15px", text: S.sites.length > 1 ? "Open a site…" : "Open " + S.sites[0].name }), h("span", { class: "brand-sub", text: S.sites.length > 1 ? S.sites.length + " sites · ⌘K" : S.sites[0].domain || "" })),
+          h("span", { class: "sp-arrow", "aria-hidden": "true", text: "→" })) : null,
+        h("div", { style: "height:10px" }),
+        navList(list, cur, goCT), sideFoot()),
+      main));
+    cur.render(main);
+    window.scrollTo && window.scrollTo(0, 0);
+  }
+
   function route() {
+    if (atCT() && hasCT()) return routeCT();
+    if (atCT()) { history.replaceState && history.replaceState(null, "", location.pathname + "#home"); }
+    S.level = "site";
     setPath("dashboard"); document.title = S.site.name + " · ComicTable";
     const cur = current();
     let lastGroup = null;
@@ -626,10 +680,8 @@ td select.status.st-few_left { color: var(--warn); }
       : h("div", null, h("div", { class: "brand", text: S.site.name }), h("div", { class: "brand-sub", text: S.site.domain || "Your site" }));
     const main = h("main", { id: "main" });
     root.replaceChildren(h("div", { class: "app" },
-      h("aside", { class: "side" }, top, many ? h("div", { class: "sp-hint", text: S.sites.length + " sites · ⌘K to switch" }) : null, nav,
-        h("div", { class: "side-foot" }, h("span", { class: "ct-mark sm", text: "ComicTable" }), h("a", { href: "#account", class: "acct-link", text: "Logged in as " + S.user }),
-          h("div", { class: "links" }, S.site.domain || !CFG.PLATFORM ? h("a", { href: S.site.domain ? "https://" + S.site.domain : "./", target: "_blank", rel: "noopener", text: "View site ↗" }) : null,
-            h("a", { href: "#", onclick: async (e) => { e.preventDefault(); await sb.auth.signOut(); S.site = null; showLogin(); }, text: "Log out" })))),
+      h("aside", { class: "side" }, hasCT() ? h("a", { class: "back-ct", href: "#ct/" + (S.isPlatform ? "overview" : S.me ? "me" : "mysites"), text: "← ComicTable" }) : null,
+        top, many ? h("div", { class: "sp-hint", text: S.sites.length + " sites · ⌘K to switch" }) : null, nav, sideFoot()),
       main));
     cur.render(main);
     window.scrollTo && window.scrollTo(0, 0);
@@ -637,13 +689,14 @@ td select.status.st-few_left { color: var(--warn); }
   /* ---------- site finder: type a few letters, Enter. Recent sites first. ---------- */
   const recentSites = () => { try { return JSON.parse(store.get("csb_recent_sites") || "[]"); } catch (e) { return []; } };
   function openSitePicker() {
-    if (S.sites.length < 2 || $("sitePicker")) return;
+    if ($("sitePicker") || !S.sites.length) return;
+    if (S.sites.length === 1) { switchSite(S.sites[0].id); return; }
     const back = document.activeElement;
     const input = h("input", { type: "search", id: "sitePickerSearch", placeholder: "Find a site: name or web address", autocomplete: "off", "aria-label": "Find a site", role: "combobox", "aria-controls": "sitePickerList", "aria-expanded": "true" });
     const list = h("div", { class: "sp-list", id: "sitePickerList", role: "listbox", "aria-label": "Sites" });
     let items = [], active = 0;
     const close = () => { wrap.remove(); if (back && back.focus) back.focus(); };
-    const pick = (st) => { close(); if (st.id !== sid()) switchSite(st.id); };
+    const pick = (st) => { close(); if (st.id !== sid() || atCT()) switchSite(st.id); };
     const draw = () => {
       const t = input.value.trim().toLowerCase();
       const byName = S.sites.slice().sort((a, b) => a.name.localeCompare(b.name));
@@ -679,13 +732,14 @@ td select.status.st-few_left { color: var(--warn); }
     draw(); input.focus();
   }
   document.addEventListener("keydown", (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && S.site && S.sites.length > 1) { e.preventDefault(); openSitePicker(); }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && S.site && (S.sites.length > 1 || atCT())) { e.preventDefault(); openSitePicker(); }
   });
 
   async function switchSite(id, sec) {
     store.set("csb_site", id); S.site = S.sites.find((s) => s.id === id);
     store.set("csb_recent_sites", JSON.stringify([id].concat(recentSites().filter((x) => x !== id)).slice(0, 8)));
     await loadAll(); await loadTheme();
+    if (!sec && atCT()) sec = "home";
     if (sec && location.hash.slice(1) !== sec) location.hash = sec; else route();
   }
   function refreshNav() { document.querySelectorAll(".nav-btn").forEach((b) => { const s = SECTIONS.find((x) => x.id === b.dataset.sec); const c = b.querySelector(".cnt"); if (c && s && s.count) c.textContent = s.count(); }); }
@@ -1687,6 +1741,71 @@ td select.status.st-few_left { color: var(--warn); }
     });
   }
   /* ======================================================
+     COMICTABLE LEVEL: overview, comics, your sites
+     ====================================================== */
+  async function viewOverview(main) {
+    const hr = new Date().getHours(), hi = hr < 5 ? "Up late" : hr < 12 ? "Morning" : hr < 17 ? "Afternoon" : "Evening";
+    main.append(h("div", { class: "page-head" }, h("div", null, h("h1", { class: "hello", text: hi + ", " + S.user + " 👋" }), h("p", { class: "sub", text: "Everything running on ComicTable." }))));
+    const wrap = h("div", { class: "stack" }, h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" }))); main.append(wrap);
+    const count = async (t, f) => { let x = sb.from(t).select("id", { count: "exact", head: true }); if (f) x = f(x); const r = await x; return r.error ? 0 : r.count || 0; };
+    let comics = 0, shows = 0, fans = 0, reqs = [], bad = [];
+    try {
+      [comics, shows, fans] = await Promise.all([count("comics"), count("shows", (x) => x.gte("date", today())), count("fans")]);
+      try { reqs = await q(sb.from("site_requests").select("*").eq("handled", false)); } catch (e) {}
+      try { bad = (await q(sb.from("sources").select("site_id, kind, label, last_status").like("last_status", "Error%"))); } catch (e) {}
+    } catch (e) {}
+    const todo = [];
+    if (reqs.length) todo.push([reqs.length + " new request" + (reqs.length > 1 ? "s" : "") + " from comictable.com", () => goCT("sites")]);
+    for (const b of bad) todo.push([(S.sites.find((x) => x.id === b.site_id) || {}).name + ": " + (b.label || b.kind) + " import has a problem", () => switchSite(b.site_id, b.kind === "podcast" ? "podcast" : b.kind === "shows" ? "shows" : "videos")]);
+    const siteRows = await Promise.all(S.sites.slice().sort((a, b) => a.name.localeCompare(b.name)).slice(0, 60).map(async (st) => {
+      const [p, up] = await Promise.all([count("hosts", (x) => x.eq("site_id", st.id)), sb.rpc("site_shows", { p_site: st.id }).then((r) => (r.data || []).length, () => 0)]);
+      if (!p) todo.push([st.name + " has nobody on it yet", () => switchSite(st.id, "people")]);
+      return h("div", { class: "switch-row" },
+        h("div", { style: "min-width:0" }, h("b", { text: st.name }), h("div", { class: "hint", text: (st.domain || "No web address yet") + " · " + p + (p === 1 ? " comic" : " comics") + " · " + up + " upcoming show" + (up === 1 ? "" : "s") })),
+        h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Open", onclick: () => switchSite(st.id, "home") }),
+          st.domain ? h("a", { class: "btn sm ghost", href: "https://" + st.domain, target: "_blank", rel: "noopener", text: "Visit ↗" }) : null));
+    }));
+    wrap.replaceChildren(
+      h("div", { class: "stats" }, [["Sites", S.sites.length, () => goCT("sites")], ["Comics", comics, () => goCT("comics")], ["Upcoming shows", shows], ["Fans on lists", fans]]
+        .map(([l, n, fn]) => h(fn ? "button" : "div", { class: "stat", type: fn ? "button" : null, style: fn ? "text-align:left;cursor:pointer" : null, onclick: fn || null }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l })))),
+      todo.length ? h("section", { class: "card" }, h("h2", { text: "Worth a look" }), h("div", { class: "todo" }, todo.map(([t, fn]) => h("div", { class: "todo-item" }, h("span", { text: t }), h("button", { class: "btn sm", type: "button", text: "Go", onclick: fn })))))
+        : h("section", { class: "card" }, empty("All caught up ✨", "Every site looks good.")),
+      h("section", { class: "card" }, h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Sites" }), h("button", { class: "btn primary sm", type: "button", text: "+ New site", onclick: () => goCT("sites") })), h("div", null, siteRows)));
+  }
+
+  async function viewComics(main) {
+    main.append(head("Comics", "Every comic on ComicTable, and the sites they're on. A comic's profile, dates and YouTube are shared by all their sites."));
+    const card = h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" })); main.append(card);
+    try {
+      const [comics, lineups] = await Promise.all([q(sb.from("comics").select("*").order("name", { ascending: true })), q(sb.from("hosts").select("site_id, comic_id"))]);
+      const search = h("input", { type: "search", placeholder: "Find a comic", "aria-label": "Find a comic", style: "max-width:320px" });
+      const box = h("div");
+      const draw = () => {
+        const t = search.value.trim().toLowerCase();
+        const rows = comics.filter((c) => !t || c.name.toLowerCase().includes(t));
+        box.replaceChildren(rows.length ? h("div", null, rows.map((c) => {
+          const on = lineups.filter((l) => l.comic_id === c.id).map((l) => S.sites.find((x) => x.id === l.site_id)).filter(Boolean);
+          return h("div", { class: "switch-row" },
+            h("div", { class: "person-top", style: "margin:0;min-width:0" }, c.photo_url ? h("img", { class: "avatar", style: "width:40px;height:40px", src: c.photo_url, alt: "" }) : h("div", { class: "avatar", style: "width:40px;height:40px", text: "" }),
+              h("div", { style: "min-width:0" }, h("b", { text: c.name }), c.user_id ? h("span", { class: "pill", style: "margin-left:6px", text: "🔑 Has a login" }) : null,
+                h("div", { class: "hint", text: on.length ? "On " + on.map((x) => x.name).join(", ") : "Not on any site" }))),
+            h("div", { class: "btns" }, on.map((st) => h("button", { class: "btn sm ghost", type: "button", text: st.name, onclick: () => switchSite(st.id, "people") }))));
+        })) : empty("No comics match", ""));
+      };
+      search.addEventListener("input", draw); draw();
+      card.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: comics.length + " comics" }), search), box);
+    } catch (e) { card.replaceChildren(h("p", { class: "err", text: errText(e) })); }
+  }
+
+  function viewMySites(main) {
+    main.append(head("Your sites", "The sites you can manage."));
+    main.append(h("section", { class: "card" }, h("div", null, S.sites.map((st) => h("div", { class: "switch-row" },
+      h("div", null, h("b", { text: st.name }), h("div", { class: "hint", text: st.domain || "No web address yet" })),
+      h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Open", onclick: () => switchSite(st.id, "home") }),
+        st.domain ? h("a", { class: "btn sm ghost", href: "https://" + st.domain, target: "_blank", rel: "noopener", text: "Visit ↗" }) : null))))));
+  }
+
+  /* ======================================================
      YOUR ACCOUNT (the person logged in, not a site)
      ====================================================== */
   async function viewAccount(main) {
@@ -2434,7 +2553,6 @@ td select.status.st-few_left { color: var(--warn); }
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), h("label", { class: "switch" }, box, h("span")));
     })));
     main.append(h("div", { class: "stack" }, siteCard, feats, teamCard()));
-    if (S.isPlatform) main.querySelector(".stack").append(clubsReview());
   }
   const loginEmail = (u) => { u = String(u || "").trim(); return u.includes("@") ? u.toLowerCase() : u.toLowerCase() + "@" + loginDom(); };
   async function teamCall(body) {
