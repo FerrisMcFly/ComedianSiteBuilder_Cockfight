@@ -340,7 +340,11 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   }
   var host = function (u) { return String(u).replace(/^https?:\/\/(www\.)?/, "").split("/")[0]; };
   function support() { var p = D.profile || {}, u = safeHref(p.support_url); return u ? { url: u, label: p.support_label || "Support Lev" } : null; }
-  function podcastsElsewhere() { return (D.elsewhere || []).filter(function (x) { return x.podcast; }); }
+  // Podcasts Lev is on elsewhere on ComicTable, minus any whose feed is also connected right here (no doubles)
+  function podcastsElsewhere() {
+    var own = F("podcast", false) ? D.episodes.map(function (e) { return String(e.show || "").toLowerCase(); }) : [];
+    return (D.elsewhere || []).filter(function (x) { return x.podcast && own.indexOf(String(x.name).toLowerCase()) < 0; });
+  }
 
   function route() {
     if (!D) return;

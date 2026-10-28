@@ -165,3 +165,17 @@ test("Lev's own loading-screen jokes replace the built-in ones, and can be switc
   ({ d } = await load({ ...full, sites: [{ ...full.sites[0], theme: { tips: false } }] }));
   assert.ok(d.getElementById("tip").hidden);
 });
+
+test("a podcast connected here and also on ComicTable shows once", async () => {
+  const data = { ...full, home_picks: [], hosts: [{ ...full.hosts[0], comic_id: "lev-fer" }],
+    sites: [{ ...full.sites[0], features: { ...full.sites[0].features, podcast: true } }],
+    episodes: [{ id: "e1", num: 91, title: "Own copy", show_name: "Cockfight", url: "https://pod/91" }],
+    other_hosts: [{ site_id: "cockfight", comic_id: "lev-fer", name: "Lev Fer" }],
+    other_sites: [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com", features: { podcast: true } }],
+    other_episodes: [{ num: 92, title: "Test episode", url: "https://pod/92" }] };
+  const { d } = await load(data); await wait(120);
+  const pod = [...d.querySelectorAll(".block")].find((b) => /^Podcast/.test(b.textContent));
+  assert.equal(pod.querySelectorAll(".lnk").length, 1);
+  assert.match(pod.textContent, /Cockfight.*91\. Own copy/s);
+  assert.ok(menu(d).includes("Podcast"));
+});
