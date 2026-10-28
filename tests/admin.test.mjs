@@ -599,3 +599,13 @@ test("someone on one site's team, with no comic login, goes straight to that sit
   assert.equal(d.querySelector(".back-ct"), null);
   assert.equal(d.querySelector(".brand").textContent, "Cockfight");
 });
+
+test("appearance: pick dark, light or match the computer", async () => {
+  const { d } = await open("#ct/account");
+  await wait(40);
+  d.querySelector('[data-theme-choice="dark"]').click();
+  assert.equal(d.documentElement.getAttribute("data-theme"), "dark");
+  d.querySelector('[data-theme-choice="system"]').click();
+  assert.equal(d.documentElement.getAttribute("data-theme"), null);
+  assert.ok(d.querySelector(".nav-btn svg"), "menu uses line icons");
+});
