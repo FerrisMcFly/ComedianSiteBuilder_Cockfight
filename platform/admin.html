@@ -58,6 +58,8 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.015em; }
 .site-pick .sp-txt { display: grid; min-width: 0; flex: 1; }
 .site-pick .brand, .site-pick .brand-sub { padding: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .site-pick .sp-arrow { font-size: 18px; color: var(--muted); padding-right: 8px; }
+.side-foot .acct-link { color: inherit; text-decoration: none; }
+.side-foot .acct-link:hover { text-decoration: underline; }
 .sp-hint { font-size: 11px; color: var(--muted); padding: 6px 10px 12px; }
 .sp-wrap { position: fixed; inset: 0; background: rgba(20, 18, 16, .35); display: grid; justify-items: center; align-items: start; padding: 10vh 16px 16px; z-index: 50; }
 .sp-box { width: 100%; max-width: 560px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 20px 60px -20px rgba(0,0,0,.45); overflow: hidden; display: grid; }
@@ -546,7 +548,8 @@ td select.status.st-few_left { color: var(--warn); }
     const session = data && data.session;
     if (!session) return showLogin();
     S.token = session.access_token;
-    S.user = session.user.email.split("@")[0];
+    S.email = session.user.email;
+    S.user = (session.user.user_metadata && session.user.user_metadata.name) || session.user.email.split("@")[0];
     try {
       const [mine, plat] = await Promise.all([
         q(sb.from("admins").select("site_id").eq("user_id", session.user.id)),
@@ -594,6 +597,7 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "theme", group: "Site extras", label: "Design settings", ico: "🎨", extra: "design", render: viewTheme },
     { id: "profile", label: "Profile", ico: "🪪", render: viewProfile },
     { id: "settings", label: "Settings", ico: "⚙️", render: viewSettings },
+    { id: "account", label: "Your account", ico: "🔐", render: viewAccount },
     // Only ComicTable platform admins (you) see this
     { id: "sites", group: "ComicTable", label: "All sites", ico: "🧩", platform: true, render: viewSites }
   ];
@@ -623,7 +627,7 @@ td select.status.st-few_left { color: var(--warn); }
     const main = h("main", { id: "main" });
     root.replaceChildren(h("div", { class: "app" },
       h("aside", { class: "side" }, top, many ? h("div", { class: "sp-hint", text: S.sites.length + " sites · ⌘K to switch" }) : null, nav,
-        h("div", { class: "side-foot" }, h("span", { class: "ct-mark sm", text: "ComicTable" }), h("span", { text: "Logged in as " + S.user }),
+        h("div", { class: "side-foot" }, h("span", { class: "ct-mark sm", text: "ComicTable" }), h("a", { href: "#account", class: "acct-link", text: "Logged in as " + S.user }),
           h("div", { class: "links" }, S.site.domain || !CFG.PLATFORM ? h("a", { href: S.site.domain ? "https://" + S.site.domain : "./", target: "_blank", rel: "noopener", text: "View site ↗" }) : null,
             h("a", { href: "#", onclick: async (e) => { e.preventDefault(); await sb.auth.signOut(); S.site = null; showLogin(); }, text: "Log out" })))),
       main));
@@ -1682,6 +1686,70 @@ td select.status.st-few_left { color: var(--warn); }
       grid.append(personCard(x, idx));
     });
   }
+  /* ======================================================
+     YOUR ACCOUNT (the person logged in, not a site)
+     ====================================================== */
+  async function viewAccount(main) {
+    main.append(head("Your account", "Your login: the name you go by in here, your email and your password. This is you, not any one site."));
+    const wrap = h("div", { class: "stack" }); main.append(wrap);
+
+    // name
+    const name = h("input", { id: "acctName", value: S.user, maxlength: "40", autocomplete: "nickname" });
+    const nameMsg = h("div", { class: "err" });
+    wrap.append(h("form", { class: "card stack", onsubmit: async (e) => {
+      e.preventDefault(); nameMsg.textContent = "";
+      const v = name.value.trim(); if (!v) { name.classList.add("bad"); name.focus(); return; }
+      const r = await sb.auth.updateUser({ data: { name: v } });
+      if (r.error) { nameMsg.textContent = errText(r.error); return; }
+      S.user = v; toast("Saved. Hi, " + v + "."); route();
+    } }, h("h2", { text: "Your name" }), h("p", { class: "sub", text: "What the dashboard calls you. Only your team sees it." }),
+      field("Name", name), nameMsg, h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Save name" }))));
+
+    // password
+    const p1 = h("input", { id: "acctPass", type: "password", autocomplete: "new-password", minlength: "8" });
+    const p2 = h("input", { id: "acctPass2", type: "password", autocomplete: "new-password" });
+    const passMsg = h("div", { class: "err" });
+    wrap.append(h("form", { class: "card stack", onsubmit: async (e) => {
+      e.preventDefault(); passMsg.textContent = "";
+      if (p1.value.length < 8) { passMsg.textContent = "Use at least 8 characters."; p1.focus(); return; }
+      if (p1.value !== p2.value) { passMsg.textContent = "The two passwords don't match."; p2.focus(); return; }
+      const r = await sb.auth.updateUser({ password: p1.value });
+      if (r.error) { passMsg.textContent = /same|different/i.test(r.error.message) ? "That's already your password. Pick a new one." : errText(r.error); return; }
+      p1.value = ""; p2.value = ""; toast("Password changed. Use it next time you log in.");
+    } }, h("h2", { text: "Change password" }),
+      h("div", { class: "grid" }, field("New password", p1, "c6"), field("Type it again", p2, "c6")), passMsg,
+      h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Change password" }))));
+
+    // email
+    const em = h("input", { id: "acctEmail", type: "email", value: S.email, autocomplete: "email" });
+    const emMsg = h("div", { class: "err" });
+    wrap.append(h("form", { class: "card stack", onsubmit: async (e) => {
+      e.preventDefault(); emMsg.textContent = "";
+      const v = em.value.trim().toLowerCase();
+      if (v === S.email) { emMsg.textContent = "That's already your email."; return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { emMsg.textContent = "That doesn't look like an email."; return; }
+      const r = await sb.auth.updateUser({ email: v });
+      if (r.error) { emMsg.textContent = errText(r.error); return; }
+      toast("Check " + v + " for a confirmation link. Your email changes once you click it.");
+    } }, h("h2", { text: "Login email" }), h("p", { class: "sub", text: "You log in with this. Changing it sends a confirmation link to the new address, and nothing changes until you click it." }),
+      field("Email", em), emMsg, h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Change email" }))));
+
+    // where you have access
+    const access = h("section", { class: "card" }, h("h2", { text: "Where you have access" }), h("p", { class: "hint", text: "Loading…" }));
+    wrap.append(access);
+    try {
+      const mine = await q(sb.from("admins").select("site_id, role").eq("user_id", S.uid));
+      access.replaceChildren(h("h2", { text: "Where you have access" }),
+        S.isPlatform ? h("p", { class: "sub" }, h("b", { text: "Super admin. " }), "You can see and manage every site on ComicTable (" + S.sites.length + ").") : null,
+        S.me ? h("p", { class: "sub" }, "Your login is linked to ", h("b", { text: S.me.name }), ". You can edit your profile and dates on every site you're on. See ", h("a", { href: "#me", text: "Me" }), ".") : null,
+        mine.length ? h("div", null, mine.map((m) => h("div", { class: "switch-row" }, h("b", { text: (S.sites.find((x) => x.id === m.site_id) || {}).name || m.site_id }), h("span", { class: "pill", text: m.role === "owner" ? "Owner" : "Editor" }))))
+          : S.isPlatform ? null : empty("Not on any team", "Ask a site's owner to add you."));
+    } catch (e) { access.replaceChildren(h("h2", { text: "Where you have access" }), h("p", { class: "err", text: errText(e) })); }
+
+    wrap.append(h("section", { class: "card" }, h("h2", { text: "Log out" }), h("p", { class: "sub", text: "Logs you out on this device." }),
+      h("button", { class: "btn", type: "button", text: "Log out", onclick: async () => { await sb.auth.signOut(); S.site = null; showLogin(); } })));
+  }
+
   /* ======================================================
      ME (a comic's own login)
      ====================================================== */

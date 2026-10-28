@@ -49,7 +49,8 @@ function makeDb() {
       } };
     return b;
   };
-  const client = { auth: { getSession: async () => ({ data: { session: { access_token: "tok", user: { id: "u1", email: "ferris@x.com" } } } }), signOut: async () => {}, onAuthStateChange() {} },
+  const client = { auth: { getSession: async () => ({ data: { session: { access_token: "tok", user: { id: "u1", email: "ferris@x.com" } } } }), signOut: async () => {}, onAuthStateChange() {},
+      updateUser: async (u) => { (db.authUpdates = db.authUpdates || []).push(u); return { data: {}, error: null }; } },
     rpc: async (name, args) => name === "site_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.site_id === args.p_site))), error: null }
       : name === "site_videos" ? { data: JSON.parse(JSON.stringify(db.videos.filter((x) => x.site_id === args.p_site))), error: null }
       : name === "comic_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.date >= fri.slice(0, 4) + "-01-03").filter((x) => x.comic_id === args.p_comic || (x.host && (db.hosts.find((h) => h.id === x.host) || {}).comic_id === args.p_comic)).map((x) => ({ ...x, site_name: "Cockfight", event: false })))), error: null }
@@ -79,7 +80,7 @@ const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", 
 test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open();
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  assert.equal(d.querySelectorAll(".nav-btn").length, 15);
+  assert.equal(d.querySelectorAll(".nav-btn").length, 16);
   assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Content", "Community", "Site extras", "ComicTable"]);
   assert.match(d.body.textContent, /Connect your podcast/);
 });
@@ -556,4 +557,21 @@ test("site finder: with 50 sites, type a few letters and press Enter; recent sit
   d.getElementById("sitePick").click(); await wait();
   assert.equal(d.querySelector(".sp-group").textContent, "Recent");
   assert.equal(d.querySelector(".sp-item b").textContent, "Lev Fer");
+});
+
+test("your account: name, password, email, and where you have access", async () => {
+  const { w, d, db } = await open("#account");
+  await wait(60);
+  set(w, d.getElementById("acctName"), "Ferris");
+  d.getElementById("acctName").form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.equal(JSON.stringify(db.authUpdates[0]), JSON.stringify({ data: { name: "Ferris" } }));
+  assert.match(d.querySelector(".side-foot").textContent, /Logged in as Ferris/);
+  const p1 = d.getElementById("acctPass"), p2 = d.getElementById("acctPass2");
+  p1.value = "newpassword1"; p2.value = "different";
+  p1.form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(30);
+  assert.match(p1.form.textContent, /don't match/);
+  p2.value = "newpassword1";
+  p1.form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(30);
+  assert.equal(JSON.stringify(db.authUpdates.at(-1)), JSON.stringify({ password: "newpassword1" }));
+  assert.match(d.querySelector("main").textContent, /Super admin.*Cockfight.*Owner|Super admin/s);
 });
