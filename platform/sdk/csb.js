@@ -7,7 +7,10 @@
  *   <script src="config.js"></script>          // window.COCKFIGHT_CONFIG = { SITE_ID, SUPABASE_URL, SUPABASE_ANON_KEY }
  *   <script src="sdk/csb.js"></script>
  *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards }
+ *   shows: each has person (a solo date) or event: true with lineup (a show by the whole site, like a live podcast).
  *   CSB.forum.threads("general"), CSB.forum.newTopic({...}), CSB.chat.subscribe(fn), CSB.chat.send({...})
+ *   CSB.fans.places("bos"), CSB.fans.join({ email, placeId, radius })   // fan list, when site.features.fans is on
+ *   CSB.blog.list(), CSB.blog.get(slug) → { title, date, cover, excerpt, html }   // blog, when site.features.blog is on
  *
  * Every list comes back already filtered for the public: hidden items removed, past shows dropped,
  * announcements outside their start/end dates left out, and everything sorted the way the admin set it.
@@ -16,7 +19,7 @@
   "use strict";
   var cfg = {};
   function init(o) {
-    o = o || root.CSB_CONFIG || root.COCKFIGHT_CONFIG || {};
+    o = o || root.CSB_CONFIG || root.COMICTABLE_CONFIG || root.COCKFIGHT_CONFIG || {};
     cfg = { url: String(o.SUPABASE_URL || o.url || "").replace(/\/$/, ""), key: o.SUPABASE_ANON_KEY || o.key || "", site: o.SITE_ID || o.site || "" };
     return CSB;
   }
@@ -55,13 +58,16 @@
     return Promise.all([
       api("sites?select=id,name,domain,features,profile,theme,community&id=eq." + encodeURIComponent(cfg.site)),
       api("hosts?select=*&order=sort.asc&" + site()),
-      api("shows?select=*&order=date.asc&date=gte." + todayISO() + "&" + site()),
+      // site_shows / site_videos include the dates and channels of every comic on this site, even ones added on their other sites.
+      // Before that database upgrade, fall back to this site's own rows.
+      api("rpc/site_shows", { method: "POST", body: { p_site: cfg.site } }).catch(function () { return api("shows?select=*&order=date.asc&date=gte." + todayISO() + "&" + site()); }),
       api("episodes?select=*&order=num.desc&hidden=is.false&" + site()),
-      optional(api("videos?select=*&order=published.desc&hidden=is.false&limit=100&" + site())),
+      optional(api("rpc/site_videos", { method: "POST", body: { p_site: cfg.site } }).catch(function () { return api("videos?select=*&order=published.desc&hidden=is.false&limit=100&" + site()); })),
       optional(api("merch?select=*&order=sort.asc&hidden=is.false&" + site())),
       optional(api("announcements?select=*&order=sort.asc&" + site())),
       optional(api("links?select=*&order=sort.asc&hidden=is.false&" + site())),
-      optional(api("boards?select=*&order=sort.asc&hidden=is.false&" + site()))
+      optional(api("boards?select=*&order=sort.asc&hidden=is.false&" + site())),
+      optional(api("blog_posts?select=id,slug,title,excerpt,cover_url,published_at&published=is.true&order=published_at.desc&limit=50&" + site()))
     ]).then(function (r) {
       var s = r[0][0] || { id: cfg.site, features: {}, profile: {}, theme: {}, community: {} };
       var today = todayISO();
@@ -70,7 +76,8 @@
           socials: { instagram: h.instagram || "", youtube: h.youtube || "", tiktok: h.tiktok || "", twitter: h.twitter || "", website: h.website || "" } };
       });
       var shows = r[2].filter(function (x) { return x.date >= today; }).map(function (x) {
-        return { id: x.id, person: x.host, date: x.date, time: x.time || "", venue: x.venue || "", city: x.city || "", venueId: x.venue_id || null,
+        // person: whose solo date it is. event: a show by the whole site (a live podcast), with lineup = people ids.
+        return { id: x.id, person: x.host || "", event: !!x.event, lineup: x.lineup_hosts || [], date: x.date, time: x.time || "", venue: x.venue || "", city: x.city || "", venueId: x.venue_id || null,
           tickets: x.url || "", status: x.status || "on_sale", note: x.note || "" };
       }).sort(function (a, b) { return (a.date + timeKey(a.time)).localeCompare(b.date + timeKey(b.time)); });
       var announcements = r[6].filter(function (a) { return (!a.starts_on || a.starts_on <= today) && (!a.ends_on || a.ends_on >= today); })
@@ -86,7 +93,8 @@
         merch: r[5].filter(visible).map(function (m) { return { id: m.id, name: m.name, price: m.price || "", image: m.image_url || "", link: m.url || "" }; }),
         announcements: announcements,
         links: r[7].filter(visible).map(function (l) { return { id: l.id, label: l.label, url: l.url, icon: l.icon || "" }; }),
-        boards: r[8].filter(visible).map(function (b) { return { id: b.id, name: b.name, description: b.description || "", locked: !!b.locked }; })
+        boards: r[8].filter(visible).map(function (b) { return { id: b.id, name: b.name, description: b.description || "", locked: !!b.locked }; }),
+        posts: r[9].map(post)
       };
     });
   }
@@ -158,6 +166,64 @@
     }
   };
 
-  var CSB = { init: init, load: load, forum: forum, chat: chat, device: device, name: name, api: api, version: "1.0" };
+  /* ---------------- blog ---------------- */
+  // Posts are written in a light format: blank line = new paragraph, ## heading, **bold**, *italic*,
+  // [text](https://link), ![caption](https://image), - list items, > quotes, and a YouTube link on its own line becomes a video.
+  function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function inline(t) {
+    return esc(t)
+      .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, "$1<em>$2</em>")
+      .replace(/(^|\W)_([^_\n]+)_(?!\w)/g, "$1<em>$2</em>");
+  }
+  function markdown(text) {
+    var out = [];
+    String(text || "").replace(/\r/g, "").split(/\n{2,}/).forEach(function (block) {
+      var b = block.trim(); if (!b) return;
+      var yt = b.match(/^https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})\S*$/);
+      if (yt) { out.push('<div class="csb-video"><iframe src="https://www.youtube-nocookie.com/embed/' + yt[1] + '" title="YouTube video" allowfullscreen loading="lazy"></iframe></div>'); return; }
+      var h = b.match(/^(#{2,3})\s+(.*)$/);
+      if (h && b.indexOf("\n") < 0) { out.push("<h" + h[1].length + ">" + inline(h[2]) + "</h" + h[1].length + ">"); return; }
+      var lines = b.split("\n");
+      if (lines.every(function (l) { return /^\s*[-*]\s+/.test(l); })) { out.push("<ul>" + lines.map(function (l) { return "<li>" + inline(l.replace(/^\s*[-*]\s+/, "")) + "</li>"; }).join("") + "</ul>"); return; }
+      if (lines.every(function (l) { return /^>\s?/.test(l); })) { out.push("<blockquote>" + lines.map(function (l) { return inline(l.replace(/^>\s?/, "")); }).join("<br>") + "</blockquote>"); return; }
+      out.push("<p>" + lines.map(inline).join("<br>") + "</p>");
+    });
+    return out.join("\n");
+  }
+  function post(p) {
+    var plain = String(p.body || "").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/[#*_>`-]/g, "").replace(/\s+/g, " ").trim();
+    return { id: p.id, slug: p.slug, title: p.title, date: p.published_at ? String(p.published_at).slice(0, 10) : "", cover: p.cover_url || "",
+      excerpt: p.excerpt || (plain.length > 180 ? plain.slice(0, 177).replace(/\s+\S*$/, "") + "…" : plain),
+      html: p.body !== undefined ? markdown(p.body) : undefined };
+  }
+  var blog = {
+    // Newest first: [{ slug, title, date, cover, excerpt }]
+    list: function (limit) { return api("blog_posts?select=id,slug,title,excerpt,cover_url,published_at,body&published=is.true&order=published_at.desc&limit=" + (limit || 50) + "&" + site()).then(function (r) { return r.map(post); }); },
+    // One post with its html, or null
+    get: function (slug) { return api("blog_posts?select=*&published=is.true&slug=eq." + encodeURIComponent(slug) + "&" + site()).then(function (r) { return r[0] ? post(r[0]) : null; }); }
+  };
+
+  /* ---------------- fan list ---------------- */
+  // A sign-up box needs two calls: fans.places("bos") while they type their city, then fans.join(...).
+  var fans = {
+    // Towns and cities matching what they've typed, biggest first: [{ id, label }]
+    places: function (q, limit) {
+      q = String(q || "").trim().replace(/[%*,()]/g, "");
+      if (q.length < 2) return Promise.resolve([]);
+      return api("places?select=id,name,state,country,population&name=ilike." + encodeURIComponent(q + "*") + "&order=population.desc&limit=" + (limit || 8))
+        .then(function (rows) { return rows.map(function (p) { return { id: p.id, name: p.name, label: p.name + (p.state ? ", " + p.state : "") + (p.country !== "US" ? " (" + p.country + ")" : "") }; }); });
+    },
+    // { email, placeId, radius: 25 | 50 | 100 | 250 } → "joined" or "updated"
+    join: function (o) {
+      return api("rpc/join_fans", { method: "POST", body: { p_site: cfg.site, p_email: o.email, p_place: o.placeId, p_radius: o.radius || 50 } });
+    },
+    // For a "stop emailing me" link: ?leave=<token>
+    leave: function (token) { return api("rpc/leave_fans", { method: "POST", body: { p_token: token } }); }
+  };
+
+  var CSB = { init: init, load: load, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, device: device, name: name, api: api, version: "1.1" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -1,7 +1,8 @@
-# Netlify reads this when the site deploys from GitHub.
+# Every comic's site deploys from this one repo. Each Netlify project sets SITE to its site's id
+# (sites/<id>/). Cockfight's project doesn't need to: it's the default.
 [build]
-  publish = "site"
-  command = "echo 'Static site — nothing to build'"
+  command = "node tools/build.mjs"
+  publish = "dist"
 
 [functions]
   directory = "netlify/functions"

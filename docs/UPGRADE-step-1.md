@@ -57,7 +57,7 @@ In the list, change a show's status (on sale, few left, sold out, free, cancelle
 A site whose front end doesn't list any of these never sees them.
 
 ## For a different front end
-Everything a front end needs comes from `site/sdk/csb.js`: one call to `CSB.load()` returns the profile, people, shows, episodes, videos, merch, announcements, links and boards, already filtered for the public. `CSB.forum` and `CSB.chat` run the community. A front end lists its own settings in `theme.json`, and the admin's Theme page builds itself from that file.
+Everything a front end needs comes from `platform/sdk/csb.js`: one call to `CSB.load()` returns the profile, people, shows, episodes, videos, merch, announcements, links and boards, already filtered for the public. `CSB.forum` and `CSB.chat` run the community. A front end lists its own settings in `theme.json`, and the admin's Theme page builds itself from that file.
 
 ## Later database upgrades
 Each new feature that needs the database changed comes with its own small file in `supabase/`. Run it in the SQL Editor (paste, Run) **before** merging the pull request that uses it. They're all safe to run twice.
@@ -65,6 +65,14 @@ Each new feature that needs the database changed comes with its own small file i
 | File | What it adds |
 |---|---|
 | `07_more_sources.sql` | Several podcasts and YouTube channels per site, channels that belong to a person, and channel names on videos |
+| `08_create_sites.sql` | Create sites from the admin, super admins who can manage every site, "Want a site?" requests from comictable.com |
+| `09_places.sql` | Towns and cities with their map positions, for "fans near a show" |
+| `10_fans.sql` | The fan list |
+| `11_comics.sql` | Comics shared across sites: one profile and one set of dates everywhere they're on, plus whole-show events |
+| `12_show_finder.sql` | The show finder: pages ComicTable checks for new dates, and the Found shows list |
+| `13_me.sql` | A comic's own login sees all their dates across sites (the Me page) |
+| `14_blog.sql` | The blog |
+| `UPGRADE_V2_ALL.sql` | 07 to 14 in one paste. See `docs/GO-LIVE-v2.md` |
 
 ## If something goes wrong
 - **"Couldn't load your site" in the admin:** `04_platform.sql` hasn't been run yet.

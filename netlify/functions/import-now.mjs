@@ -17,12 +17,19 @@ export default async (req) => {
   const { data: who, error: authErr } = await db.auth.getUser(token);
   if (authErr || !who?.user) return json(401, { error: "Your login expired. Log in again." });
   const { data: adminRow } = await db.from("admins").select("site_id").eq("user_id", who.user.id).eq("site_id", body.site_id).maybeSingle();
-  if (!adminRow) return json(403, { error: "You're not an admin of this site." });
-  let q = db.from("sources").select("*").eq("site_id", body.site_id).eq("enabled", true);
+  const { data: sup } = adminRow ? { data: null } : await db.from("platform_admins").select("user_id").eq("user_id", who.user.id).maybeSingle();
+  if (!adminRow && !sup) return json(403, { error: "You're not an admin of this site." });
+  // This site's sources, plus (for a site's comics) the ones they connected on their other sites.
+  const { data: lineup } = await db.from("hosts").select("comic_id").eq("site_id", body.site_id);
+  const comics = [...new Set((lineup || []).map((x) => x.comic_id).filter(Boolean))];
+  let q = db.from("sources").select("*").eq("enabled", true);
+  q = comics.length ? q.or(`site_id.eq.${body.site_id},comic_id.in.(${comics.join(",")})`) : q.eq("site_id", body.site_id);
   if (body.source_id) q = q.eq("id", body.source_id);
   else if (body.kind) q = q.eq("kind", body.kind);
-  const { data: sources, error } = await q;
+  let { data: sources, error } = await q;
   if (error) return json(500, { error: error.message });
+  // "Check all" for videos or shows runs everything this site sees; a podcast only runs this site's own feeds
+  if (!body.source_id) sources = sources.filter((s) => s.site_id === body.site_id || s.kind !== "podcast");
   if (!sources.length) return json(200, { results: [], message: "No import sources yet." });
   return json(200, { results: await runSources(db, sources) });
 };

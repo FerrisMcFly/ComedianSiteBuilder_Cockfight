@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lev Fer</title>
+<meta name="description" content="Shows, episodes, videos and more.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* ComicTable starter front end. Everything a comic's site needs, wired to ComicTable, styled plainly.
+   Copy it (node tools/new-site.mjs <id> "<Name>"), then make it look like them: start with the variables below. */
+:root {
+  --bg: #ffffff;
+  --text: #111111;
+  --muted: #666666;
+  --line: #e5e5e5;
+  --accent: #e8402b;        /* the admin's Design settings → Accent color overrides this */
+  --accent-text: #ffffff;
+  --card: #f6f6f6;
+  --font: "Inter Tight", system-ui, sans-serif;
+  --display: "Inter Tight", system-ui, sans-serif;
+  --radius: 12px;
+  --max: 1100px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 18px/1.55 var(--font); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+img { max-width: 100%; display: block; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 20px; }
+
+header.top { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; }
+.brand { font: 800 22px/1 var(--display); text-decoration: none; letter-spacing: -0.02em; }
+nav.main { display: flex; gap: 18px; flex-wrap: wrap; font-weight: 600; font-size: 16px; }
+nav.main a { text-decoration: none; padding: 6px 0; }
+nav.main a[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--accent); }
+.menu-btn { display: none; background: none; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: 600 15px var(--font); color: var(--text); }
+
+.btn { display: inline-block; background: var(--accent); color: var(--accent-text); font: 700 16px/1 var(--font); padding: 13px 18px; border-radius: 999px; text-decoration: none; border: 0; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--text); box-shadow: inset 0 0 0 2px var(--text); }
+.btn.sm { padding: 9px 14px; font-size: 14px; }
+
+h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; line-height: 1.05; }
+h2.sec { font-size: clamp(30px, 4vw, 44px); margin: 0 0 20px; }
+section.page { padding: 56px 0 72px; }
+.muted { color: var(--muted); }
+
+/* home */
+.hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 40px; align-items: center; padding: 56px 0; }
+.hero h1 { font-size: clamp(52px, 8vw, 104px); margin: 0 0 14px; font-weight: 800; }
+.hero p { font-size: 21px; color: var(--muted); max-width: 32em; margin: 0 0 24px; }
+.hero .photo { aspect-ratio: 4 / 5; object-fit: cover; width: 100%; border-radius: var(--radius); background: var(--card); }
+.ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+.block { padding: 40px 0; border-top: 1px solid var(--line); }
+.block-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+.block-head h2 { margin: 0; font-size: 28px; }
+
+/* shows */
+.shows { list-style: none; margin: 0; padding: 0; }
+.show { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.show .when b { display: block; font: 800 22px/1 var(--display); }
+.show .when span { font-size: 14px; color: var(--muted); }
+.show .where b { display: block; }
+.show .where span { color: var(--muted); font-size: 15px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--card); margin-left: 6px; vertical-align: middle; }
+.tag.hot { background: var(--accent); color: var(--accent-text); }
+.show.cancelled { opacity: .55; }
+.show.cancelled .where b { text-decoration: line-through; }
+
+/* cards */
+.grid3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.card { display: block; text-decoration: none; }
+.card .thumb { aspect-ratio: 16 / 9; object-fit: cover; width: 100%; border-radius: var(--radius); background: var(--card); }
+.card b { display: block; margin-top: 10px; line-height: 1.3; }
+.card span { color: var(--muted); font-size: 14px; }
+.ep { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.ep b { display: block; }
+.ep p { margin: 6px 0 0; color: var(--muted); font-size: 16px; }
+
+/* blog */
+.post { max-width: 720px; margin: 0 auto; }
+.post h1 { font-size: clamp(36px, 5vw, 56px); margin: 0 0 8px; }
+.post .cover { border-radius: var(--radius); margin: 24px 0; width: 100%; }
+.post .body { font-size: 19px; line-height: 1.7; }
+.post .body img { border-radius: 8px; }
+.post .body blockquote { border-left: 4px solid var(--accent); margin: 1em 0; padding: 2px 0 2px 16px; color: var(--muted); }
+.csb-video iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 8px; }
+
+/* about */
+.about { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 40px; align-items: start; }
+.about img { border-radius: var(--radius); aspect-ratio: 1; object-fit: cover; width: 100%; }
+.about .bio { white-space: pre-line; font-size: 19px; }
+.socials { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+
+/* fan sign-up */
+.fans { background: var(--card); border-radius: var(--radius); padding: 28px; display: grid; gap: 12px; max-width: 640px; }
+.fans h3 { margin: 0; font-size: 26px; }
+.fans form { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+.fans input, .fans select { font: 400 17px var(--font); padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); width: 100%; }
+.fans .full { grid-column: 1 / -1; }
+.picks { display: grid; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+.picks:empty { display: none; }
+.picks button { text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; font: 16px var(--font); color: var(--text); cursor: pointer; }
+.picks button:hover, .picks button:focus { background: var(--card); }
+.fans .msg { font-weight: 600; min-height: 1.4em; }
+
+footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
+footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.empty { color: var(--muted); padding: 20px 0; }
+
+@media (max-width: 820px) {
+  .hero, .about { grid-template-columns: 1fr; }
+  .hero { padding: 32px 0; }
+  .menu-btn { display: block; }
+  nav.main { display: none; position: absolute; left: 0; right: 0; top: 64px; background: var(--bg); border-bottom: 1px solid var(--line); padding: 8px 20px 16px; flex-direction: column; gap: 4px; }
+  nav.main.open { display: flex; }
+  .show { grid-template-columns: 72px minmax(0, 1fr); }
+  .show .tix { grid-column: 2; justify-self: start; }
+  .fans form { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#/" id="brand">Comedian</a>
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="nav">Menu</button>
+    <nav class="main" id="nav" aria-label="Main"></nav>
+  </div>
+</header>
+
+<main id="app" class="wrap"><p class="empty">Loading…</p></main>
+
+<footer><div class="wrap"><span id="copy"></span><span>Powered by ComicTable</span></div></footer>
+
+<script src="config.js"></script>
+<script src="sdk/csb.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    for (var k in (attrs || {})) {
+      var v = attrs[k]; if (v === null || v === undefined || v === false) continue;
+      if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v; else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? "" : v);
+    }
+    [].concat(kids || []).forEach(function (c) { if (c !== null && c !== undefined && c !== false) e.append(c.nodeType ? c : String(c)); });
+    return e;
+  }
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var day = function (iso) { return new Date(iso + "T12:00:00"); };
+  var D = null;
+
+  /* ---------- pages ---------- */
+  var PAGES = [
+    ["", "Home", function () { return true; }],
+    ["shows", "Shows", function () { return D.features.shows !== false; }],
+    ["blog", "Blog", function () { return !!D.features.blog && D.posts.length; }],
+    ["videos", "Videos", function () { return D.features.videos !== false && D.videos.length; }],
+    ["podcast", "Podcast", function () { return D.features.podcast !== false && D.episodes.length; }],
+    ["merch", "Merch", function () { return !!D.features.merch && D.merch.length; }],
+    ["about", "About", function () { return true; }]
+  ];
+  function nav(cur) {
+    $("nav").replaceChildren.apply($("nav"), PAGES.filter(function (p) { return p[2](); }).map(function (p) {
+      return el("a", { href: "#/" + p[0], text: p[1], "aria-current": p[0] === cur ? "page" : null });
+    }));
+  }
+  $("menuBtn").addEventListener("click", function () { var o = $("nav").classList.toggle("open"); this.setAttribute("aria-expanded", String(o)); });
+
+  function route() {
+    if (!D) return;
+    var parts = location.hash.replace(/^#\/?/, "").split("/"), page = parts[0] || "";
+    $("nav").classList.remove("open");
+    nav(page);
+    var app = $("app"); app.replaceChildren();
+    var view = { shows: viewShows, blog: viewBlog, videos: viewVideos, podcast: viewPodcast, merch: viewMerch, about: viewAbout }[page] || viewHome;
+    view(app, parts[1]);
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", route);
+
+  /* ---------- bits ---------- */
+  var person = function () { return D.people[0] || { name: D.site.name, bio: "", photo: "", socials: {} }; };
+  function showRow(s) {
+    var d = day(s.date), tix;
+    if (s.status === "sold_out") tix = el("span", { class: "tag", text: "Sold out" });
+    else if (s.status === "cancelled") tix = el("span", { class: "tag", text: "Cancelled" });
+    else if (s.tickets) tix = el("a", { class: "btn sm", href: s.tickets, target: "_blank", rel: "noopener", text: s.status === "free" ? "RSVP" : "Tickets" });
+    else tix = el("span", { class: "muted", text: "Tickets soon" });
+    return el("li", { class: "show" + (s.status === "cancelled" ? " cancelled" : "") }, [
+      el("div", { class: "when" }, [el("b", { text: MON[d.getMonth()] + " " + d.getDate() }), el("span", { text: DOW[d.getDay()] + (s.time ? " · " + s.time : "") })]),
+      el("div", { class: "where" }, [el("b", null, [s.venue || s.city, s.status === "few_left" ? el("span", { class: "tag hot", text: "Few left" }) : null]),
+        el("span", { text: [s.city, s.note].filter(Boolean).join(" · ") })]),
+      el("div", { class: "tix" }, [tix])
+    ]);
+  }
+  function showList(list) { return list.length ? el("ul", { class: "shows" }, list.map(showRow)) : el("p", { class: "empty", text: "No dates right now. Sign up below to hear about the next ones." }); }
+  function videoCard(v) {
+    return el("a", { class: "card", href: v.link, target: "_blank", rel: "noopener" }, [el("img", { class: "thumb", src: v.thumbnail, alt: "", loading: "lazy" }), el("b", { text: v.title }), el("span", { text: v.published ? niceDate(v.published) : "" })]);
+  }
+  function postCard(p) {
+    return el("a", { class: "card", href: "#/blog/" + p.slug }, [p.cover ? el("img", { class: "thumb", src: p.cover, alt: "", loading: "lazy" }) : null, el("b", { text: p.title }), el("span", { text: niceDate(p.date) })]);
+  }
+  function niceDate(iso) { if (!iso) return ""; var d = day(String(iso).slice(0, 10)); return MON[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear(); }
+  function block(title, link, body) {
+    return el("div", { class: "block" }, [el("div", { class: "block-head" }, [el("h2", { text: title }), link ? el("a", { href: link[0], text: link[1] }) : null]), body]);
+  }
+
+  // fan list sign-up: email + city (picked from a list) + how far they'd go
+  function fanBox() {
+    if (!D.features.fans) return null;
+    var chosen = null, seq = 0, timer;
+    var email = el("input", { type: "email", placeholder: "Email", "aria-label": "Email", autocomplete: "email" });
+    var city = el("input", { placeholder: "Your city", "aria-label": "Your city", autocomplete: "off" });
+    var picks = el("div", { class: "picks full", role: "listbox", "aria-label": "Cities" });
+    var radius = el("select", { "aria-label": "How far would you go?" }, [["25", "Within 25 miles"], ["50", "Within 50 miles"], ["100", "Within 100 miles"], ["250", "Within 250 miles"]].map(function (o) { return el("option", { value: o[0], text: o[1], selected: o[0] === "50" }); }));
+    var msg = el("div", { class: "msg full", role: "status", "aria-live": "polite" });
+    var send = el("button", { class: "btn", type: "submit", text: "Sign me up" });
+    city.addEventListener("input", function () {
+      chosen = null; clearTimeout(timer); var my = ++seq, q = city.value;
+      timer = setTimeout(function () { CSB.fans.places(q).then(function (list) { if (my !== seq) return; picks.replaceChildren.apply(picks, list.map(function (p) { return el("button", { type: "button", role: "option", text: p.label, onclick: function () { chosen = p; city.value = p.label; picks.replaceChildren(); } }); })); }); }, 200);
+    });
+    var form = el("form", { novalidate: true, onsubmit: function (e) {
+      e.preventDefault();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) { msg.textContent = "Add your email."; email.focus(); return; }
+      if (!chosen) { msg.textContent = "Pick your city from the list as you type."; city.focus(); return; }
+      send.disabled = true; msg.textContent = "";
+      CSB.fans.join({ email: email.value.trim(), placeId: chosen.id, radius: +radius.value }).then(function () {
+        send.disabled = false; msg.textContent = "You're on the list. You'll hear about shows near " + chosen.label + ".";
+      }, function (er) { send.disabled = false; msg.textContent = er.message; });
+    } }, [email, city, picks, radius, send, msg]);
+    return el("div", { class: "fans" }, [el("h3", { text: "Get told when I'm in your town" }), el("p", { class: "muted", style: "margin:0", text: "One email when there's a show near you. That's it." }), form]);
+  }
+
+  /* ---------- views ---------- */
+  function viewHome(app) {
+    var me = person(), p = D.profile || {};
+    app.append(el("div", { class: "hero" }, [
+      el("div", null, [el("h1", { text: D.site.name }), el("p", { text: p.tagline || me.title || "" }),
+        el("div", { class: "ctas" }, [D.shows.length ? el("a", { class: "btn", href: "#/shows", text: "See shows" }) : null,
+          p.support_url ? el("a", { class: "btn ghost", href: p.support_url, target: "_blank", rel: "noopener", text: p.support_label || "Support me" }) : null])]),
+      me.photo ? el("img", { class: "photo", src: me.photo, alt: me.name }) : null
+    ]));
+    if (D.features.shows !== false) app.append(block("Upcoming shows", D.shows.length > 4 ? ["#/shows", "All " + D.shows.length + " shows"] : null, showList(D.shows.slice(0, 4))));
+    if (D.features.blog && D.posts.length) app.append(block("From the blog", ["#/blog", "All posts"], el("div", { class: "grid3" }, D.posts.slice(0, 3).map(postCard))));
+    if (D.features.videos !== false && D.videos.length) app.append(block("Latest videos", ["#/videos", "All videos"], el("div", { class: "grid3" }, D.videos.slice(0, 3).map(videoCard))));
+    var f = fanBox(); if (f) app.append(el("div", { class: "block" }, [f]));
+  }
+  function viewShows(app) {
+    app.append(el("section", { class: "page" }, [el("h2", { class: "sec", text: "Shows" }), showList(D.shows), fanBox()]));
+  }
+  function viewBlog(app, slug) {
+    if (!slug) { app.append(el("section", { class: "page" }, [el("h2", { class: "sec", text: "Blog" }), D.posts.length ? el("div", { class: "grid3" }, D.posts.map(postCard)) : el("p", { class: "empty", text: "Nothing here yet." })])); return; }
+    var box = el("article", { class: "post page" }, [el("p", { class: "empty", text: "Loading…" })]); app.append(box);
+    CSB.blog.get(slug).then(function (p) {
+      if (!p) { box.replaceChildren(el("h1", { text: "Post not found" }), el("p", null, [el("a", { href: "#/blog", text: "Back to the blog" })])); return; }
+      document.title = p.title + " · " + D.site.name;
+      box.replaceChildren(el("p", { class: "muted" }, [el("a", { href: "#/blog", text: "Blog" }), " · " + niceDate(p.date)]), el("h1", { text: p.title }),
+        p.cover ? el("img", { class: "cover", src: p.cover, alt: "" }) : null, el("div", { class: "body", html: p.html }));
+    }, function () { box.replaceChildren(el("p", { class: "empty", text: "Couldn't load that post. Try again." })); });
+  }
+  function viewVideos(app) { app.append(el("section", { class: "page" }, [el("h2", { class: "sec", text: "Videos" }), el("div", { class: "grid3" }, D.videos.map(videoCard))])); }
+  function viewPodcast(app) {
+    app.append(el("section", { class: "page" }, [el("h2", { class: "sec", text: D.episodes[0] && D.episodes[0].show || "Podcast" }),
+      el("div", null, D.episodes.slice(0, 100).map(function (e) {
+        return el("div", { class: "ep" }, [el("b", null, [e.link ? el("a", { href: e.link, target: "_blank", rel: "noopener", text: (e.number ? e.number + ". " : "") + e.title }) : (e.number ? e.number + ". " : "") + e.title]),
+          el("span", { class: "muted", text: [niceDate(e.posted), e.length].filter(Boolean).join(" · ") }), e.description ? el("p", { text: e.description.split("\n")[0] }) : null]);
+      }))]));
+  }
+  function viewMerch(app) {
+    app.append(el("section", { class: "page" }, [el("h2", { class: "sec", text: "Merch" }), el("div", { class: "grid3" }, D.merch.map(function (m) {
+      return el("a", { class: "card", href: m.link || "#", target: "_blank", rel: "noopener" }, [m.image ? el("img", { class: "thumb", src: m.image, alt: "", style: "aspect-ratio:1" }) : null, el("b", { text: m.name }), el("span", { text: m.price })]);
+    }))]));
+  }
+  function viewAbout(app) {
+    var me = person(), p = D.profile || {}, s = me.socials || {};
+    var links = [["instagram", "Instagram"], ["youtube", "YouTube"], ["tiktok", "TikTok"], ["twitter", "X"], ["website", "Website"]].filter(function (x) { return s[x[0]]; });
+    app.append(el("section", { class: "page about" }, [
+      me.photo ? el("img", { src: me.photo, alt: me.name }) : el("div"),
+      el("div", null, [el("h2", { class: "sec", text: "About" }), el("div", { class: "bio", text: p.about || me.bio || "" }),
+        el("div", { class: "socials" }, links.map(function (x) { return el("a", { class: "btn ghost sm", href: s[x[0]], target: "_blank", rel: "noopener", text: x[1] }); })
+          .concat(p.booking_email ? [el("a", { class: "btn ghost sm", href: "mailto:" + p.booking_email, text: "Booking" })] : [])
+          .concat(p.contact_email ? [el("a", { class: "btn ghost sm", href: "mailto:" + p.contact_email, text: "Contact" })] : []))])
+    ]));
+  }
+
+  /* ---------- start ---------- */
+  function applyTheme(t) {
+    if (t && /^#[0-9a-f]{6}$/i.test(t.accent || "")) document.documentElement.style.setProperty("--accent", t.accent);
+  }
+  CSB.load().then(function (d) {
+    D = d;
+    document.title = d.site.name + ((d.profile || {}).tagline ? " · " + d.profile.tagline : "");
+    $("brand").textContent = d.site.name;
+    $("copy").textContent = "© " + new Date().getFullYear() + " " + d.site.name;
+    applyTheme(d.theme);
+    route();
+  }, function (e) { $("app").replaceChildren(el("p", { class: "empty", text: "Couldn't load right now. Refresh to try again." })); if (window.console) console.warn(e); });
+})();
+</script>
+</body>
+</html>

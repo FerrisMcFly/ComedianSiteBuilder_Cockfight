@@ -48,6 +48,7 @@ function fakeDb(tables) {
     const f = []; let op = "select", payload;
     const b = {
       select() { return b; }, eq(k, v) { f.push((r) => r[k] === v); return b; },
+      or(expr) { const alts = expr.split(",").map((p) => p.match(/^(\w+)\.eq\.(.*)$/)); f.push((r) => alts.some(([, k, v]) => String(r[k]) === v)); return b; },
       insert(r) { op = "insert"; payload = r; return b; }, update(r) { op = "update"; payload = r; return b; },
       then(res, rej) {
         const rows = tables[t] || (tables[t] = []);
@@ -115,4 +116,15 @@ test("a person's channel tags its videos with that person", async () => {
   await runSources(fakeDb(tables), tables.sources);
   assert.equal(tables.videos.length, 2);
   assert.ok(tables.videos.every((v) => v.host === "lev" && v.channel === "Lev Fer" && v.source_id === "y2"));
+});
+
+test("a comic's own channel isn't imported twice when they're on two sites", async () => {
+  const feed = readFileSync(new URL("./fixtures/youtube.xml", import.meta.url), "utf8");
+  globalThis.fetch = async () => ({ ok: true, status: 200, text: async () => feed });
+  // Tristan's videos were already imported through Cockfight
+  const tables = { videos: [{ id: "a", site_id: "cockfight", comic_id: "tristan-bowling", youtube_id: "AAAAAAAAAAA" }],
+    sources: [{ id: "y3", site_id: "apes", kind: "youtube", url: "https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv", comic_id: "tristan-bowling", enabled: true }] };
+  await runSources(fakeDb(tables), tables.sources);
+  assert.deepEqual(tables.videos.map((v) => v.youtube_id), ["AAAAAAAAAAA", "BBBBBBBBBBB"]);
+  assert.equal(tables.videos[1].comic_id, "tristan-bowling");
 });
