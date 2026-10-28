@@ -299,6 +299,11 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .soc-pick { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); border-radius: 999px; padding: 5px 12px 5px 8px; font: inherit; font-weight: 650; cursor: pointer; }
 .soc-pick svg { display: block; }
 .soc-pick[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
+.mini-coaster::before { content: ""; position: absolute; z-index: 2; inset: 18% -14% -6% 30%; border-radius: 50%; opacity: 0; pointer-events: none;
+  background: radial-gradient(circle, transparent 58%, rgba(118,74,28,.4) 61%, rgba(118,74,28,.15) 64%, transparent 67%); mix-blend-mode: multiply; }
+.mini-coaster.wear-used::before { opacity: .8; }
+.mini-coaster.wear-loved::before { opacity: 1; box-shadow: -40px -30px 0 -26px rgba(118,74,28,.35); }
+.mini-coaster.wear-loved img { opacity: .82; }
 .attention { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 @media (max-width: 560px) { .coaster-edit { grid-template-columns: 1fr; justify-items: center; } }
 .comic-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; align-items: center; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px 16px; cursor: pointer; color: var(--text); font: inherit; width: 100%; }
@@ -1915,6 +1920,12 @@ td select.status.st-few_left { color: var(--warn); }
         h("label", { class: "check" }, noBand, "No band")),
       h("div", { class: "btns" }, h("span", { class: "hint", text: "Photo:" }), photoSeg));
     const customNote = h("p", { class: "hint", style: "margin:0" });
+    // How worn it looks: fresh, used (a glass ring or two), or well loved (rings, drips, scuffs, a nicked edge)
+    let wear = (c.coaster && ["used", "loved"].includes(c.coaster.wear)) ? c.coaster.wear : "fresh";
+    const wearSeg = h("div", { class: "seg", role: "group", "aria-label": "Wear" });
+    const drawWear = () => wearSeg.replaceChildren(...[["fresh", "Fresh"], ["used", "Used"], ["loved", "Well loved"]].map(([v, t]) =>
+      h("button", { type: "button", "aria-pressed": String(wear === v), text: t, onclick: () => { wear = v; drawWear(); paint(); } })));
+    drawWear();
     const looks = h("div", { class: "looks", role: "group", "aria-label": "Look" }, [...LOOKS.map(([k, l, pulp, ring, print, tag]) =>
       h("button", { type: "button", "data-look": k, "aria-pressed": "false", onclick: () => { look = k; paint(); } },
         h("i", { style: `--pulp:${pulp};--ring:${ring};--print:${print}` }), h("span", { text: l }), tag ? h("small", { text: tag }) : null)),
@@ -1925,6 +1936,7 @@ td select.status.st-few_left { color: var(--warn); }
       const [pulp, ring, print] = L ? [L[2], L[3], L[4]] : [style.pulp, style.band === "none" ? style.ink : style.band, style.ink];
       preview.style.setProperty("--pulp", pulp); preview.style.setProperty("--ring", ring); preview.style.setProperty("--print", print);
       preview.classList.toggle("color", look === "custom" && style.photo === "color");
+      preview.classList.toggle("wear-used", wear === "used"); preview.classList.toggle("wear-loved", wear === "loved");
       preview.replaceChildren(c.photo_url ? h("img", { src: c.photo_url, alt: "" }) : h("b", { text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }));
       looks.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.look === look)));
       looks.querySelector('[data-look="custom"]').disabled = !canCustom() && look !== "custom";
@@ -1983,7 +1995,8 @@ td select.status.st-few_left { color: var(--warn); }
         h("button", { class: "linkish", type: "button", text: "Copy", onclick: async () => toast((await copyText(url)) ? "Coaster link copied." : "Couldn't copy. Try again.") })),
       tape: h("div", { class: "grid" }, field("The Tape: " + yours + " best set right now", tapeUrl, "c8"), field("What it is", tapeTitle, "c4")),
       look: h("div", { class: "coaster-edit" }, preview, h("div", { class: "stack", style: "gap:8px;min-width:0" }, h("b", { text: "Coaster look" }), looks,
-        h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }), customBox, customNote)),
+        h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }), customBox, customNote,
+        h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear:" }), wearSeg))),
       more: h("details", { class: "quiet coaster-more" }, h("summary", { text: "What's on " + yours + " Coaster" }),
         h("p", { class: "hint", style: "margin:8px 0 0", text: "Keep it simple: a few things up front. Fans tap More for the rest. Drag the grips to change the order." }), planRows, socBox,
         h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
@@ -1993,7 +2006,7 @@ td select.status.st-few_left { color: var(--warn); }
       patch() {
         const t = tapeUrl.value.trim();
         const out = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
-        if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
+        if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, wear, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
         return out;
       }
     };

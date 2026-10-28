@@ -185,3 +185,16 @@ test("the dock: tickets for the next show always in reach, plus Share", async ()
   assert.equal(dock.querySelector("a.btn.main").getAttribute("href"), "https://t/1");
   assert.equal(dock.querySelector("button").getAttribute("aria-label"), "Share Lev Fer's Coaster");
 });
+
+test("wear: fresh by default; used and well loved add glass rings (well loved: drips and scuffs too), the same every visit", async () => {
+  let { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer" }] });
+  assert.match(d.querySelector(".coaster").className, /wear-fresh/);
+  assert.equal(d.querySelectorAll(".stain").length, 0);
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { wear: "loved" } }] }));
+  assert.match(d.querySelector(".coaster").className, /wear-loved/);
+  assert.equal(d.querySelectorAll(".front .stain.ring").length, 2);
+  assert.ok(d.querySelector(".front .stain.scuff") && d.querySelectorAll(".front .stain.drop").length === 4);
+  const where = [...d.querySelectorAll(".stain.ring")].map((x) => x.style.getPropertyValue("--x")).join();
+  const again = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { wear: "loved" } }] });
+  assert.equal([...again.d.querySelectorAll(".stain.ring")].map((x) => x.style.getPropertyValue("--x")).join(), where, "same stains every visit");
+});

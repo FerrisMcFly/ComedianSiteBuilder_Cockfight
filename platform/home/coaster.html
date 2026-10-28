@@ -71,6 +71,26 @@ body::before { content: ""; position: fixed; inset: -20vh -30vw auto; height: 95
 .band span { margin-top: 5px; font: 700 9.5px/1 var(--ct-sans, sans-serif); letter-spacing: .2em; text-transform: uppercase; opacity: .85; }
 .photo-color .print img { filter: none; mix-blend-mode: normal; }
 .no-band .band { background: linear-gradient(transparent, rgba(0,0,0,.65)); color: #fff; height: 40%; align-content: end; padding: 0 0 18%; }
+/* ---------- wear: Fresh, Used, Well loved ---------- */
+/* Glass rings and drips, faded ink, scuffs and a nicked edge. Where they land comes from the comic's name, so every
+   worn coaster is different but stays the same on every visit. The QR side keeps its rings near the edge so it scans. */
+.stain { position: absolute; border-radius: 50%; pointer-events: none; z-index: 2; mix-blend-mode: var(--stain-blend, multiply); }
+.stain.ring { width: var(--w, 64%); aspect-ratio: 1; left: var(--x); top: var(--y); transform: rotate(var(--r, 0deg)) scaleX(var(--sx, 1));
+  background: radial-gradient(circle, transparent 59%, var(--stain) 61.5%, color-mix(in srgb, var(--stain) 45%, transparent) 64%, transparent 67.5%),
+              radial-gradient(circle at 46% 54%, transparent 60%, color-mix(in srgb, var(--stain) 55%, transparent) 62.5%, transparent 65.5%); }
+.stain.drop { width: var(--w, 5%); aspect-ratio: 1; left: var(--x); top: var(--y); background: radial-gradient(circle, color-mix(in srgb, var(--stain) 35%, transparent) 40%, var(--stain) 62%, transparent 70%); }
+.stain.scuff { inset: 0; border-radius: 50%; opacity: .7; mix-blend-mode: normal;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .97 0 0 0 0 .94 0 0 0 0 .86 4.2 0 0 0 -2.75'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23s)'/%3E%3C/svg%3E") center / 240px; }
+/* a stain catches a little light on its outer edge, so it still shows over a dark photo */
+.stain.ring::after { content: ""; position: absolute; inset: 0; border-radius: 50%; mix-blend-mode: screen;
+  background: radial-gradient(circle, transparent 64%, rgba(255, 238, 205, .2) 65.5%, transparent 68%); }
+.coaster { --stain: rgba(118, 74, 28, .42); }
+.look-night .coaster, .look-spooky .coaster, .look-holiday .coaster { --stain: rgba(255, 236, 200, .16); --stain-blend: screen; }
+.coaster.wear-used .print img { opacity: .9; filter: grayscale(1) contrast(1.12) brightness(1.12); }
+.coaster.wear-loved .print img { opacity: .88; filter: grayscale(1) contrast(1.05) brightness(1.15); }
+.coaster.wear-loved .band { filter: saturate(.75) brightness(1.04); }
+.coaster.wear-loved .face { -webkit-mask: radial-gradient(circle at var(--nx, 88%) var(--ny, 24%), transparent 4.2%, #000 4.6%); mask: radial-gradient(circle at var(--nx, 88%) var(--ny, 24%), transparent 4.2%, #000 4.6%); }
+.coaster.wear-used .face::after, .coaster.wear-loved .face::after { opacity: .8; }
 .back { transform: rotateY(180deg); }
 .back .print { display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; color: var(--print); padding: 0 14%; }
 .back .k { font: 800 11px/1.25 var(--ct-sans, sans-serif); letter-spacing: .16em; text-transform: uppercase; }
@@ -305,14 +325,38 @@ footer a { font-weight: 700; text-decoration: none; }
     var fanSite = sites.filter(function (s) { return s.features && s.features.fans; }).sort(function (a, b) { return (b.name === c.name) - (a.name === c.name); })[0];
     var first = c.name.split(" ")[0];
     var qrTo = fanSite ? (fanSite.domain ? "https://" + fanSite.domain + "/join" : location.origin + "/join/" + encodeURIComponent(fanSite.id)) : here;
-    var front = el("div", { class: "face front" }, el("div", { class: "print" }, [
+    var wear = ["used", "loved"].indexOf(c.coaster && c.coaster.wear) >= 0 ? c.coaster.wear : "fresh";
+    var seed = 0; String(c.id).split("").forEach(function (ch) { seed = (seed * 31 + ch.charCodeAt(0)) >>> 0; });
+    var rnd = function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    var stain = function (kind, x, y, w, extra) {
+      var d = el("span", { class: "stain " + kind, "aria-hidden": "true" });
+      d.style.setProperty("--x", x + "%"); d.style.setProperty("--y", y + "%"); if (w) d.style.setProperty("--w", w + "%");
+      if (extra) for (var k in extra) d.style.setProperty(k, extra[k]);
+      return d;
+    };
+    // rings partly off the edge, like a glass set down off-center; a few drips; scuffed print when well loved
+    var wearOn = function (back) {
+      if (wear === "fresh") return [];
+      var out = [], rings = wear === "loved" ? 2 : 1;
+      for (var i = 0; i < rings; i++) {
+        var a = rnd() * Math.PI * 2, r = back ? 46 : 22 + rnd() * 20, w = 56 + rnd() * 14;
+        out.push(stain("ring", 50 + Math.cos(a) * r - w / 2, 50 + Math.sin(a) * r - w / 2, w, { "--r": (rnd() * 180) + "deg", "--sx": (0.94 + rnd() * 0.1).toFixed(2) }));
+      }
+      if (wear === "loved") {
+        for (var j = 0; j < 4; j++) { var b = rnd() * Math.PI * 2, rr = back ? 40 + rnd() * 6 : 10 + rnd() * 34, ww = 2.5 + rnd() * 4; out.push(stain("drop", 50 + Math.cos(b) * rr - ww / 2, 50 + Math.sin(b) * rr - ww / 2, ww)); }
+        if (!back) out.push(el("span", { class: "stain scuff", "aria-hidden": "true" }));
+      }
+      return out;
+    };
+    var nick = rnd() * Math.PI * 2;
+    var front = el("div", { class: "face front" }, el("div", { class: "print" }, wearOn(false).concat([
       safe(c.photo_url) ? el("img", { src: c.photo_url, alt: "" }) : el("div", { class: "initials", text: initials(c.name) }),
-      el("div", { class: "band" }, [el("b", { text: c.name }), el("span", { text: "comictable.com/" + (c.handle || c.id) })])]));
+      el("div", { class: "band" }, [el("b", { text: c.name }), el("span", { text: "comictable.com/" + (c.handle || c.id) })])])));
     var qr = el("div", { class: "qr" });
-    var back = el("div", { class: "face back" }, el("div", { class: "print" }, [
+    var back = el("div", { class: "face back" }, el("div", { class: "print" }, wearOn(true).concat([
       el("span", { class: "k", text: fanSite ? "Join " + first + "'s list" : first + "'s Coaster" }), qr,
-      el("span", { class: "url", text: qrTo.replace(/^https?:\/\//, "") })]));
-    var coaster = el("button", { class: "coaster", type: "button", "aria-label": c.name + "'s Coaster. Flip it for a QR code", "aria-pressed": "false", onclick: function () {
+      el("span", { class: "url", text: qrTo.replace(/^https?:\/\//, "") })])));
+    var coaster = el("button", { class: "coaster wear-" + wear, style: "--nx:" + (50 + Math.cos(nick) * 48).toFixed(1) + "%;--ny:" + (50 + Math.sin(nick) * 48).toFixed(1) + "%", type: "button", "aria-label": c.name + "'s Coaster. Flip it for a QR code", "aria-pressed": "false", onclick: function () {
       var f = coaster.classList.toggle("flipped"); coaster.setAttribute("aria-pressed", String(f)); tap.textContent = f ? "Tap to flip back" : "Tap the coaster for a QR code";
       coaster.classList.remove("shine"); void coaster.offsetWidth; coaster.classList.add("shine");
       if (f && !qr.firstChild) qrInto(qr, qrTo);

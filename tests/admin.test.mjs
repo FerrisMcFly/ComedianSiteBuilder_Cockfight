@@ -1068,3 +1068,14 @@ test("Coaster settings: socials show as logos, logo + name or names; pick which 
   card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
   assert.deepEqual(JSON.parse(JSON.stringify(db.comics.find((c) => c.id === "lev-fer").coaster.social_style)), { style: "both", color: "look", hide: ["tiktok"] });
 });
+
+test("Coaster settings: wear (fresh, used, well loved) is saved with the Coaster", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => { db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id })); });
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  const card = d.querySelector("main form.card");
+  btn(d, /^Well loved$/, card).click();
+  assert.match(card.querySelector(".mini-coaster").className, /wear-loved/, "the preview shows it");
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.equal(db.comics.find((c) => c.id === "lev-fer").coaster.wear, "loved");
+});
