@@ -25,7 +25,7 @@
         [
           "links",
           "Your links",
-          "Big buttons for everything in Links (your special, merch, anything). Add them under Site extras → Links.",
+          "Big buttons for everything in Links (your special, merch, anything). Add them under Website → Links.",
           true
         ],
         [
@@ -43,7 +43,7 @@
         [
           "picks",
           "Home screen picks",
-          "The posts you pin under Site extras → Home screen. The first one is big.",
+          "The posts you pin under Website → Home screen. The first one is big.",
           true
         ],
         [
