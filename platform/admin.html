@@ -797,25 +797,27 @@ td select.status.st-few_left { color: var(--warn); }
     return span;
   }
   // A site's menu, grouped by job: what's on, what you post, who's listening, how the site looks. Settings sits at the bottom.
+  // A site's menu. Most-used on top, and named after what visitors see:
+  // Booking (dates and what clubs need), Content (what you post), Fans, Website (how it looks). Lineup and Settings sit at the bottom.
   const SECTIONS = [
     { id: "home", label: "Overview", ico: "🏠", render: viewHome },
-    { id: "shows", group: "Schedule", label: "Shows", ico: "🎟️", feat: "shows", count: () => S.shows.filter((s) => s.date >= today()).length, render: viewShows },
-    { id: "podcast", group: "Media", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
-    { id: "videos", group: "Media", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
-    { id: "blog", group: "Media", label: "Blog", ico: "✍️", feat: "blog", count: () => (S.posts || []).filter((p) => p.published).length, render: viewBlog },
-    { id: "merch", group: "Media", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
-    { id: "fans", group: "Audience", label: "Fan list", ico: "💌", feat: "fans", render: viewFans },
-    { id: "forum", group: "Audience", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
-    { id: "chat", group: "Audience", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
-    { id: "moderation", group: "Audience", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
-    { id: "people", group: "Site", label: "People", ico: "🎤", render: viewPeople },
-    { id: "press", group: "Site", label: "Press kit", ico: "📷", render: viewPress },
+    { id: "shows", group: "Booking", label: "Shows", ico: "🎟️", feat: "shows", count: () => S.shows.filter((s) => s.date >= today()).length, render: viewShows },
+    { id: "press", group: "Booking", label: "Press kit", ico: "📷", render: viewPress },
+    { id: "podcast", group: "Content", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
+    { id: "videos", group: "Content", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
+    { id: "blog", group: "Content", label: "Blog", ico: "✍️", feat: "blog", count: () => (S.posts || []).filter((p) => p.published).length, render: viewBlog },
+    { id: "merch", group: "Content", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
     // Extras only show up when this site's own front end says it uses them (in its theme.json)
-    { id: "picks", group: "Site", label: "Home screen", ico: "⭐", extra: "home_picks", render: viewPicks },
-    { id: "announce", group: "Site", label: "Announcements", ico: "📣", extra: "announcements", render: viewAnnounce },
-    { id: "links", group: "Site", label: "Links", ico: "🔗", extra: "links", render: viewLinks },
-    { id: "profile", group: "Site", label: "Site profile", ico: "🪪", render: viewProfile },
-    { id: "theme", group: "Site", label: "Design", ico: "🎨", extra: "design", render: viewTheme },
+    { id: "announce", group: "Content", label: "Announcements", ico: "📣", extra: "announcements", render: viewAnnounce },
+    { id: "fans", group: "Fans", label: "Fan list", ico: "💌", feat: "fans", render: viewFans },
+    { id: "forum", group: "Fans", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
+    { id: "chat", group: "Fans", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
+    { id: "moderation", group: "Fans", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
+    { id: "picks", group: "Website", label: "Home screen", ico: "⭐", extra: "home_picks", render: viewPicks },
+    { id: "theme", group: "Website", label: "Design", ico: "🎨", extra: "design", render: viewTheme },
+    { id: "profile", group: "Website", label: "About & contact", ico: "🪪", render: viewProfile },
+    { id: "links", group: "Website", label: "Links", ico: "🔗", extra: "links", render: viewLinks },
+    { id: "people", label: "Lineup", ico: "🎤", bottom: true, render: viewPeople },
     { id: "settings", label: "Settings", ico: "⚙️", bottom: true, render: viewSettings },
   ];
   // The ComicTable level: above any one site. Super admins get the whole platform; comics get their own home.
@@ -827,7 +829,7 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "sites", group: "Platform", label: "Sites", ico: "🧩", platform: true, count: () => S.sites.length, render: viewSites },
     { id: "comics", group: "Platform", label: "Comics", ico: "🎤", platform: true, render: viewComics },
     { id: "clubs", group: "Platform", label: "Club database", ico: "🏛️", platform: true, render: viewClubs },
-    { id: "account", group: "You", label: "Your account", ico: "🔐", render: viewAccount }
+    { id: "account", label: "Your account", ico: "🔐", bottom: true, render: viewAccount }
   ];
   const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me));
   const atCT = () => location.hash.startsWith("#ct/");
@@ -842,7 +844,7 @@ td select.status.st-few_left { color: var(--warn); }
     let lastGroup = null;
     return list.flatMap((s) => {
       const out = [];
-      if (s.bottom) out.push(h("div", { class: "nav-spacer" }));
+      if (s.bottom) { if (lastGroup !== "__bottom") out.push(h("div", { class: "nav-spacer" })); lastGroup = "__bottom"; }
       else if (s.group !== lastGroup) { if (s.group) out.push(h("div", { class: "nav-group", text: s.group })); else if (lastGroup) out.push(h("div", { class: "nav-group nav-sep" })); lastGroup = s.group; }
       out.push(h("button", { class: "nav-btn", type: "button", "data-sec": s.id, "aria-current": s === cur ? "page" : null, onclick: () => onGo(s.id) },
         navIcon(s), h("span", { text: s.label }), s.count ? h("span", { class: "cnt", text: s.count() }) : null));
@@ -2100,7 +2102,7 @@ td select.status.st-few_left { color: var(--warn); }
         field("Name", name), results, msg, h("div", { class: "btns" }, h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => addBox.replaceChildren() }))));
       name.focus();
     } });
-    main.append(head("People", "Everyone on " + S.site.name + ". Each person gets their own page, bio, photo, socials and show dates.", addBtn), addBox);
+    main.append(head("Lineup", "Everyone on " + S.site.name + ". Each person gets their own page, bio, photo, socials and show dates.", addBtn), addBox);
     const grid = h("div", { class: "people" }); main.append(grid);
     if (!S.hosts.length) grid.append(h("section", { class: "card" }, empty("No one here yet", "Add the first person above.")));
     // which other sites each person is on, so it's clear what a shared change affects
@@ -2688,7 +2690,7 @@ td select.status.st-few_left { color: var(--warn); }
     ["tagline", "about", "share_title", "share_text"].forEach((k) => f[k].addEventListener("input", drawCard));
     drawCard();
     const save = h("button", { class: "btn primary", type: "submit", text: "Save profile" });
-    main.append(head("Profile", "The basics about you or your show. Your theme decides where each piece appears."),
+    main.append(head("About & contact", "The basics about you or your show. Your theme decides where each piece appears."),
       h("form", { class: "card stack", onsubmit: async (e) => {
         e.preventDefault(); save.disabled = true;
         const profile = Object.assign({}, p); for (const k in f) profile[k] = f[k].value.trim();

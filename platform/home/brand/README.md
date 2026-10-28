@@ -16,6 +16,7 @@ Production files for the approved ComicTable identity. The controlling reference
 | `favicon.svg`, `favicon-16.png`, `favicon-32.png` | Browser tab icon: the mark on an ivory tile, inset for small sizes. |
 | `favicon-dark.svg` | Same on a charcoal tile. |
 | `app-icon.svg`, `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png` | Home-screen icons. Square. The platform rounds the corners itself. |
+| `og-image.png` | 1200 × 630 link preview for comictable.com (shared links on iMessage, X, Slack, etc.). |
 | `tokens.css` | Color, type and spacing tokens, plus the display font faces. |
 
 ## Logo rules

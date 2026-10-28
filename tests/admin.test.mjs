@@ -81,7 +81,7 @@ test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open("#home");
   assert.match(d.querySelector("h1").textContent, /ferris/);
   assert.equal(d.querySelectorAll(".nav-btn").length, 15);
-  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Schedule", "Media", "Audience", "Site"]);
+  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Booking", "Content", "Fans", "Website"]);
   assert.equal([...d.querySelectorAll(".nav-btn")].pop().dataset.sec, "settings", "Settings sits at the bottom");
   assert.match(d.querySelector(".crumbs").textContent, /ComicTable.*Cockfight/s);
   assert.ok(d.querySelector(".back-ct"), "a way back up to ComicTable");
@@ -322,7 +322,7 @@ test("site extras only appear when the site's front end uses them", async () => 
   const { d } = await open("#home", null, null);
   const labels = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
   assert.ok(!labels.some((l) => /Announcements|Links|Design settings/.test(l)), labels.join(","));
-  assert.ok(labels.some((l) => /Site profile/.test(l)) && labels.some((l) => /Settings/.test(l)) && labels.some((l) => /Press kit/.test(l)));
+  assert.ok(labels.some((l) => /About & contact/.test(l)) && labels.some((l) => /Settings/.test(l)) && labels.some((l) => /Press kit/.test(l)));
   assert.doesNotMatch(d.querySelector("main").textContent, /Post an announcement/);
   const only = await open("#home", null, { extras: ["links"] });
   const l2 = [...only.d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
