@@ -596,20 +596,19 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     var email = el("input", { id: "m-email", type: "email", autocomplete: "email", placeholder: "you@email.com" });
     var city = el("input", { id: "m-city", autocomplete: "off", placeholder: "Start typing your city" });
     var picks = el("div", { class: "places full", role: "listbox", "aria-label": "Cities" });
-    var radius = el("select", { id: "m-radius" }, [["25", "Within 25 miles"], ["50", "Within 50 miles"], ["100", "Within 100 miles"], ["250", "Within 250 miles"]].map(function (o) { return el("option", { value: o[0], text: o[1], selected: o[0] === "50" }); }));
     var msg = el("div", { class: "msg full", role: "status", "aria-live": "polite" }), send = el("button", { class: "btn big full", type: "submit", text: "Join the list", style: "justify-self:start" });
     city.addEventListener("input", function () {
       chosen = null; clearTimeout(timer); var my = ++seq, q = city.value;
-      timer = setTimeout(function () { CSB.fans.places(q).then(function (list) { if (my !== seq) return; picks.replaceChildren.apply(picks, list.map(function (p) { return el("button", { type: "button", role: "option", text: p.label, onclick: function () { chosen = p; city.value = p.label; picks.replaceChildren(); radius.focus(); } }); })); }); }, 200);
+      timer = setTimeout(function () { CSB.fans.places(q).then(function (list) { if (my !== seq) return; picks.replaceChildren.apply(picks, list.map(function (p) { return el("button", { type: "button", role: "option", text: p.label, onclick: function () { chosen = p; city.value = p.label; picks.replaceChildren(); send.focus(); } }); })); }); }, 200);
     });
     app.append(el("form", { class: "signup", novalidate: true, onsubmit: function (e) {
       e.preventDefault();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) { msg.textContent = "Add your email."; email.focus(); return; }
       if (!chosen) { msg.textContent = "Pick your city from the list as you type."; city.focus(); return; }
       send.disabled = true; msg.textContent = "";
-      CSB.fans.join({ email: email.value.trim(), placeId: chosen.id, radius: +radius.value }).then(function () { send.disabled = false; msg.textContent = "You're on the list. You'll hear about shows near " + chosen.label + "."; },
+      CSB.fans.join({ email: email.value.trim(), placeId: chosen.id, radius: 50 }).then(function () { send.disabled = false; msg.textContent = "You're on the list. You'll hear about shows near " + chosen.label + "."; },
         function (er) { send.disabled = false; msg.textContent = er.message; });
-    } }, [el("label", { for: "m-email" }, ["Email", email]), el("label", { for: "m-city" }, ["City", city]), picks, el("label", { for: "m-radius" }, ["How far would you go?", radius]), send, msg]));
+    } }, [el("label", { for: "m-email" }, ["Email", email]), el("label", { for: "m-city" }, ["City", city]), picks, send, msg]));
   }
 
   function viewAbout(app) {
