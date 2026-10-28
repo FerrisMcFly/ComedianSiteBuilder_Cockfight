@@ -50,7 +50,7 @@
     {
       "key": "support_banner",
       "label": "Big support banner",
-      "help": "The striped \"Become a patron\" banner on every page. Uses your support link from Profile.",
+      "help": "The striped \"Become a patron\" banner on every page. Uses your support link from About & contact.",
       "type": "toggle",
       "default": true
     },

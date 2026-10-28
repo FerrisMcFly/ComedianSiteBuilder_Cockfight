@@ -84,6 +84,7 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.02em; font-w
 .acct-pop a, .acct-pop button { text-align: left; padding: 8px 10px; border-radius: 6px; border: 0; background: none; color: var(--text); text-decoration: none; font: inherit; cursor: pointer; }
 .acct-pop a:hover, .acct-pop button:hover { background: var(--bg); }
 .nav-spacer { flex: 1; min-height: 16px; }
+.sec-title { font-size: 18px; margin: 0 0 10px; }
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: -4px 0 18px; overflow-x: auto; }
 .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 12px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; margin-bottom: -1px; }
 .tabs button:hover { color: var(--text); }
@@ -733,9 +734,13 @@ td select.status.st-few_left { color: var(--warn); }
     S.user = (session.user.user_metadata && session.user.user_metadata.name) || session.user.email.split("@")[0];
     try {
       const [mine, plat] = await Promise.all([
-        q(sb.from("admins").select("site_id").eq("user_id", session.user.id)),
-        q(sb.from("platform_admins").select("user_id").eq("user_id", session.user.id))]);
+        q(sb.from("admins").select("*").eq("user_id", session.user.id)),
+        q(sb.from("platform_admins").select("*").eq("user_id", session.user.id))]);
       S.isPlatform = plat.length > 0;
+      // ComicTable role: admin (everything) or staff (every site, not ComicTable itself). A site's team role per site.
+      S.platformRole = S.isPlatform ? (plat[0].role || "admin") : null;
+      S.isOwner = S.platformRole === "admin";
+      S.roles = Object.fromEntries(mine.map((m) => [m.site_id, m.role || "owner"]));
       // Is this login a comic? Then they get a "Me" page with their profile and dates on every site.
       try { S.me = (await q(sb.from("comics").select("*").eq("user_id", session.user.id)))[0] || null; } catch (e) { S.me = null; }
       S.uid = session.user.id;
@@ -814,7 +819,7 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "chat", group: "Fans", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
     { id: "moderation", group: "Fans", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
     { id: "picks", group: "Website", label: "Home screen", ico: "⭐", extra: "home_picks", render: viewPicks },
-    { id: "theme", group: "Website", label: "Design", ico: "🎨", extra: "design", render: viewTheme },
+    { id: "theme", group: "Website", label: "Design", ico: "🎨", render: viewTheme },
     { id: "profile", group: "Website", label: "About & contact", ico: "🪪", render: viewProfile },
     { id: "links", group: "Website", label: "Links", ico: "🔗", extra: "links", render: viewLinks },
     { id: "people", label: "Lineup", ico: "🎤", bottom: true, render: viewPeople },
@@ -835,7 +840,14 @@ td select.status.st-few_left { color: var(--warn); }
   const atCT = () => location.hash.startsWith("#ct/");
   const goCT = (id) => { const h0 = "#ct/" + id; if (location.hash === h0) route(); else location.hash = h0; };
   const hasExtra = (x) => !!(THEME && (x === "design" ? Array.isArray(THEME.settings) && THEME.settings.length : Array.isArray(THEME.extras) && THEME.extras.includes(x)));
-  const visible = () => SECTIONS.filter((s) => (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
+  // A site's team roles. "shows" and "moderator" see only their part of the dashboard.
+  const SITE_ROLES = [["owner", "Owner", "Everything, including the team"], ["editor", "Editor", "Everything but the team"],
+    ["shows", "Shows only", "Dates, ticket links, clubs and the show finder"], ["moderator", "Moderator", "Forum, chat and bans"]];
+  const roleName = (r) => (SITE_ROLES.find((x) => x[0] === r) || [r, "Editor"])[1];
+  const myRole = () => (S.isPlatform ? "owner" : (S.roles && S.roles[sid()]) || "owner");
+  const ROLE_SECTIONS = { shows: ["shows"], moderator: ["forum", "chat", "moderation"] };
+  const roleAllows = (id) => { const only = ROLE_SECTIONS[myRole()]; return !only || only.includes(id); };
+  const visible = () => SECTIONS.filter((s) => roleAllows(s.id) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
   const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
   window.addEventListener("hashchange", () => { if (S.site) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
@@ -1877,7 +1889,7 @@ td select.status.st-few_left { color: var(--warn); }
   function viewPress(main) {
     const people = S.hosts.filter((x) => x.comic_id);
     main.append(head("Press kit", "Approved photos and bios for clubs, per comic. A comic's press kit is the same on every site they're on."));
-    if (!people.length) { main.append(h("section", { class: "card" }, empty("No comics on this site yet", "Add someone in People first."))); return; }
+    if (!people.length) { main.append(h("section", { class: "card" }, empty("No comics on this site yet", "Add someone in Lineup first."))); return; }
     if (!people.some((x) => x.id === PRESSFOR)) PRESSFOR = (people.find((x) => S.me && x.comic_id === S.me.id) || people[0]).id;
     const cur = people.find((x) => x.id === PRESSFOR);
     if (people.length > 1) main.append(h("div", { class: "seg", role: "group", "aria-label": "Comic", style: "margin-bottom:16px" },
@@ -2387,7 +2399,7 @@ td select.status.st-few_left { color: var(--warn); }
     } catch (e) { srcCard.replaceChildren(h("h2", { text: "Channels and pages" }), h("p", { class: "err", text: errText(e) })); }
 
     right.append(h("section", { class: "card stack" }, h("h2", { text: "Delete" }), h("p", { class: "hint", text: "Removes " + c.name + " from every site, along with their dates and channels. This can't be undone." }),
-      h("div", { class: "btns" }, sure("Delete comic", async () => {
+      S.isOwner === false ? null : h("div", { class: "btns" }, sure("Delete comic", async () => {
         try { await q(sb.from("comics").delete().eq("id", c.id)); comicOpen = null; toast(c.name + " deleted."); route(); } catch (e) { toast(errText(e), { bad: true }); }
       }))));
   }
@@ -2463,11 +2475,11 @@ td select.status.st-few_left { color: var(--warn); }
     wrap.append(access);
     try {
       const mine = await q(sb.from("admins").select("site_id, role").eq("user_id", S.uid));
-      access.replaceChildren(h("h2", { text: "Where you have access" }),
-        S.isPlatform ? h("p", { class: "sub" }, h("b", { text: "Super admin. " }), "You can see and manage every site on ComicTable (" + S.sites.length + ").") : null,
+      access.replaceChildren(...[h("h2", { text: "Where you have access" }),
+        S.isPlatform ? h("p", { class: "sub" }, h("b", { text: S.isOwner ? "ComicTable admin. " : "ComicTable staff. " }), S.isOwner ? "You can see and manage every site on ComicTable (" + S.sites.length + "), and ComicTable itself." : "You can work on every site on ComicTable (" + S.sites.length + "). Adding staff, new sites and the front page are for admins.") : null,
         S.me ? h("p", { class: "sub" }, "Your login is linked to ", h("b", { text: S.me.name }), ". You can edit your profile and dates on every site you're on. See ", h("a", { href: "#me", text: "Me" }), ".") : null,
-        mine.length ? h("div", null, mine.map((m) => h("div", { class: "switch-row" }, h("b", { text: (S.sites.find((x) => x.id === m.site_id) || {}).name || m.site_id }), h("span", { class: "pill", text: m.role === "owner" ? "Owner" : "Editor" }))))
-          : S.isPlatform ? null : empty("Not on any team", "Ask a site's owner to add you."));
+        mine.length ? h("div", null, mine.map((m) => h("div", { class: "switch-row" }, h("b", { text: (S.sites.find((x) => x.id === m.site_id) || {}).name || m.site_id }), h("span", { class: "pill", text: roleName(m.role || "owner") }))))
+          : S.isPlatform ? null : empty("Not on any team", "Ask a site's owner to add you.")].filter(Boolean));
     } catch (e) { access.replaceChildren(h("h2", { text: "Where you have access" }), h("p", { class: "err", text: errText(e) })); }
 
     wrap.append(h("section", { class: "card" }, h("h2", { text: "Log out" }), h("p", { class: "sub", text: "Logs you out on this device." }),
@@ -2695,7 +2707,7 @@ td select.status.st-few_left { color: var(--warn); }
       card.replaceChildren(h("div", { class: "share-host", text: S.site.domain || "your site" }),
         h("b", { class: "share-title", text: f.share_title.value.trim() || d.title }),
         h("div", { class: "share-text", text: f.share_text.value.trim() || d.text }),
-        img ? h("img", { class: "share-img", src: img, alt: "" }) : h("div", { class: "share-img none", text: "No picture yet: add one below, or a photo in People" }));
+        img ? h("img", { class: "share-img", src: img, alt: "" }) : h("div", { class: "share-img none", text: "No picture yet: add one below, or a photo in Lineup" }));
       imgBtns.replaceChildren(h("label", { class: "btn sm" }, shareImage ? "Change picture" : "Use a different picture", imgFile),
         shareImage ? h("button", { class: "btn ghost sm", type: "button", text: "Use my People photo instead", onclick: () => { shareImage = ""; drawCard(); } }) : null);
     }
@@ -2741,23 +2753,17 @@ td select.status.st-few_left { color: var(--warn); }
   }
   async function viewPicks(main) {
     await loadTheme();
-    main.append(head("Home screen", "What visitors see first on your site: the sections, in your order, and the picks you pin."));
-    // The design's Home screen sections (a theme setting with key "home"), right here as well as in Design
+    main.append(head("Home screen", "Everything on your site's home screen: which sections show and in what order, and the picks you pin to the top."));
+    // The design's home screen settings (sections and their order, how many shows) live here, not on Design
     const theme = await loadTheme();
-    const layoutSt = theme && Array.isArray(theme.settings) && theme.settings.find((x) => x.type === "home_items");
-    if (layoutSt) {
-      const pick = homeItemsEditor();
-      const save = h("button", { class: "btn primary", type: "submit", text: "Save layout" });
-      main.append(h("form", { class: "card stack", style: "margin-bottom:16px", onsubmit: async (e) => {
-        e.preventDefault(); save.disabled = true;
-        try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, { home_items: pick.value }) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
-        save.disabled = false;
-      } }, h("h2", { style: "margin:0", text: "Layout" }),
-        h("p", { class: "hint", style: "margin:0", text: "Everything on your home screen, one row each. Put it in any order and switch off anything you don't want there. Nothing is deleted." }),
-        pick.el, h("div", { class: "btns" }, save,
-          h("button", { class: "btn ghost", type: "button", text: "Edit your socials →", onclick: () => { const me = (S.hosts || []).filter((x) => !x.hidden)[0]; OPEN_SOCIALS = me ? me.id : null; go("people"); } }),
-          hasExtra("links") ? h("button", { class: "btn ghost", type: "button", text: "Add a link →", onclick: () => go("links") }) : null)));
-    }
+    const homeSet = theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => isHomeSetting(st) && st.type !== "heading") : [];
+    if (homeSet.length) main.append(h("h2", { class: "sec-title", text: "Layout" }), h("p", { class: "hint", style: "margin:-6px 0 10px", text: "The sections on your home screen, in order. Switch off any you don't want. Social buttons come from the profiles in Lineup; your links come from Links." }),
+      settingsForm(homeSet, "Save layout"),
+      h("div", { class: "btns", style: "margin:10px 0 0" },
+        h("button", { class: "btn ghost", type: "button", text: "Edit your socials →", onclick: () => { const me = (S.hosts || []).filter((x) => !x.hidden)[0]; OPEN_SOCIALS = me ? me.id : null; go("people"); } }),
+        hasExtra("links") ? h("button", { class: "btn ghost", type: "button", text: "Add a link →", onclick: () => go("links") }) : null),
+      h("h2", { class: "sec-title", style: "margin-top:24px", text: "Pinned picks" }),
+      h("p", { class: "hint", style: "margin:-6px 0 10px", text: "Big cards at the top of your home screen: a show, a video, an announcement. The first one is the biggest." }));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     let P = [], editing = null;
     const reloadP = async () => { P = (await q(sb.from("home_picks").select("*").eq("site_id", sid()).order("sort", { ascending: true }))).sort((a, b) => (a.sort - b.sort) || String(a.created_at || "").localeCompare(String(b.created_at || ""))); };
@@ -2984,26 +2990,24 @@ td select.status.st-few_left { color: var(--warn); }
     }, (e) => box.replaceChildren(h("p", { class: "err", text: errText(e) })));
     return { el: box, ready, get value() { return items ? items.map((x) => ({ key: x.key, on: x.on })) : (S.site.theme || {}).home_items; } };
   }
-  async function viewTheme(main) {
-    const theme = await loadTheme();
-    if (!theme || !Array.isArray(theme.settings)) {
-      main.append(head("Design settings", "Switches that belong to your site's design."), h("section", { class: "card" }, empty("Nothing to set", "Your site's design doesn't have any extra settings.")));
-      return;
-    }
-    main.append(head("Design settings", (theme.name ? theme.name + ". " : "") + "These switches come with your site's design, so a different design will have different ones."));
+  // Design settings that belong to the home screen live on the Home screen page; everything else on Design.
+  // A design marks them with "page": "home", or by key (home, home_*) and a "Home screen" heading.
+  const isHomeSetting = (st) => st.page === "home" || (st.type === "heading" ? /home screen/i.test(st.label || "") : /^home($|_)/.test(st.key || ""));
+  // One form for a set of design settings. Saves only those keys, so the two pages don't overwrite each other.
+  function settingsForm(list, saveLabel) {
     const vals = Object.assign({}, S.site.theme || {});
     const inputs = {};
     // "order": a list the comic arranges and switches on or off (menu order, Home screen sections).
     // Saved as [{ key, on }]. Options the design adds later show up at the end, with their default.
     const orderList = (st, v) => { const o = orderPicker(st, v); inputs[st.key] = o; return o.el; };
-    const rows = theme.settings.map((st) => {
+    const rows = list.map((st) => {
       if (st.type === "heading") return h("div", { class: "set-head" }, h("h2", { text: st.label }), st.help ? h("p", { class: "hint", text: st.help }) : null);
       const v = st.key in vals ? vals[st.key] : st.default;
       if (st.type === "home_items") { const ed = homeItemsEditor(); inputs[st.key] = ed; return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), ed.el); }
       if (st.type === "order") return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), orderList(st, v));
       let input;
       if (st.type === "toggle") input = h("label", { class: "switch" }, (inputs[st.key] = h("input", { type: "checkbox", role: "switch", checked: !!v, "aria-label": st.label })), h("span"));
-      else if (st.type === "select") input = (inputs[st.key] = h("select", { "aria-label": st.label, style: "width:auto" }, (st.options || []).map((o) => { const [ov, ol] = Array.isArray(o) ? o : [o, o]; return h("option", { value: ov, text: ol, selected: ov === v }); })));
+      else if (st.type === "select") input = (inputs[st.key] = h("select", { "aria-label": st.label, style: "width:auto" }, (st.options || []).map((o) => { const [ov, ol] = Array.isArray(o) ? o : [o, o]; return h("option", { value: ov, text: ol, selected: String(v) === String(ov) }); })));
       else if (st.type === "lines") { const ta = h("textarea", { "aria-label": st.label, style: "min-height:150px;width:100%", placeholder: st.placeholder || "One per line" }); ta.value = (Array.isArray(v) ? v : []).join("\n");
         inputs[st.key] = { get value() { return ta.value.split(/\n+/).map((x) => x.trim()).filter(Boolean).slice(0, st.max || 50); } };
         return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), ta); }
@@ -3011,14 +3015,32 @@ td select.status.st-few_left { color: var(--warn); }
       else input = (inputs[st.key] = h("input", { value: v ?? "", placeholder: st.placeholder || "", "aria-label": st.label, style: "max-width:260px" }));
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), input);
     });
-    const save = h("button", { class: "btn primary", type: "submit", text: "Save design settings" });
-    main.append(h("form", { class: "card stack", onsubmit: async (e) => {
+    const save = h("button", { class: "btn primary", type: "submit", text: saveLabel });
+    return h("form", { class: "card stack", onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true;
       const out = {};
-      for (const st of theme.settings) { if (st.type === "heading") continue; const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; }
+      for (const st of list) { if (st.type === "heading") continue; const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; }
       try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, out) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
       save.disabled = false;
-    } }, h("div", { class: "switches" }, rows), h("div", { class: "btns" }, save)));
+    } }, h("div", { class: "switches" }, rows), h("div", { class: "btns" }, save));
+  }
+  // Which parts of the site are on (Shows, Podcast, Forum…). Off hides it from the site and the menu; nothing is deleted.
+  function sectionsCard() {
+    return h("section", { class: "card" }, h("h2", { text: "Sections" }), h("p", { class: "sub", text: "Turning one off hides it from your site and from the menu. Nothing is deleted." }), h("div", { class: "switches" }, FEATURES.map(([k, l, d]) => {
+      const box = h("input", { type: "checkbox", role: "switch", checked: F(k), "aria-label": l, onchange: async (e) => {
+        const features = { ...(S.site.features || {}), [k]: e.target.checked };
+        try { await q(sb.from("sites").update({ features }).eq("id", sid())); S.site.features = features; route(); toast(l + (e.target.checked ? " is on." : " is off.")); }
+        catch (err) { e.target.checked = !e.target.checked; toast(errText(err), { bad: true }); }
+      } });
+      return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), h("label", { class: "switch" }, box, h("span")));
+    })));
+  }
+  async function viewTheme(main) {
+    const theme = await loadTheme();
+    const list = theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => !isHomeSetting(st)) : [];
+    const homeToo = hasExtra("home_picks") || (theme && Array.isArray(theme.settings) && theme.settings.some(isHomeSetting));
+    main.append(head("Design", (theme && theme.name ? theme.name + ". " : "") + "What's on your site and how it looks: sections, the menu, colors and the extras that come with your design." + (homeToo ? " What's on the home screen is under Home screen." : "")));
+    main.append(h("div", { class: "stack" }, sectionsCard(), F("podcast") ? podcastsCard() : null, list.some((st) => st.type !== "heading") ? settingsForm(list, "Save design") : null));
   }
 
   /* ======================================================
@@ -3416,7 +3438,7 @@ td select.status.st-few_left { color: var(--warn); }
   const FEATURES = [["shows", "Shows & tour dates", "Your upcoming shows with ticket links."], ["podcast", "Podcast", "Episode archive that updates itself from your feed."], ["videos", "Videos", "Your latest YouTube uploads."],
     ["merch", "Merch", "Items you sell, linked to your store."], ["blog", "Blog", "Write posts for your fans. Drafts stay private until you publish."], ["fans", "Fan list", "Fans sign up with their email and city, so you can tell them when you're playing nearby."], ["forum", "Forum", "Message boards for your fans."], ["chat", "Chat room", "A live chat room that's always open for fans."]];
   async function viewSettings(main) {
-    main.append(head("Settings", "Your site's name and address, which sections are on, who can log in, and the code for using it on your own website."));
+    main.append(head("Settings", "Your site's name and address, who can log in, and the code for using it on your own website. Which sections are on is under Design."));
     const name = h("input", { value: S.site.name });
     const domainIn = h("input", { value: S.site.domain || "", disabled: !S.isPlatform, placeholder: "yourname.com", autocapitalize: "none" });
     const siteCard = h("form", { class: "card stack", onsubmit: async (e) => {
@@ -3425,14 +3447,6 @@ td select.status.st-few_left { color: var(--warn); }
       if (S.isPlatform) patch.domain = cleanDomain(domainIn.value) || null;
       try { await q(sb.from("sites").update(patch).eq("id", sid())); Object.assign(S.site, patch); route(); toast("Saved."); } catch (err) { toast(errText(err), { bad: true }); }
     } }, h("h2", { text: "Your site" }), h("div", { class: "grid" }, field("Site name", name, "c8"), field("Address", domainIn, "c4")), h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Save" })));
-    const feats = h("section", { class: "card" }, h("h2", { text: "Sections" }), h("p", { class: "sub", text: "Turning one off hides it from your site and from the menu. Nothing is deleted." }), h("div", { class: "switches" }, FEATURES.map(([k, l, d]) => {
-      const box = h("input", { type: "checkbox", role: "switch", checked: F(k), "aria-label": l, onchange: async (e) => {
-        const features = { ...(S.site.features || {}), [k]: e.target.checked };
-        try { await q(sb.from("sites").update({ features }).eq("id", sid())); S.site.features = features; route(); toast(l + (e.target.checked ? " is on." : " is off.")); }
-        catch (err) { e.target.checked = !e.target.checked; toast(errText(err), { bad: true }); }
-      } });
-      return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), h("label", { class: "switch" }, box, h("span")));
-    })));
     // For comics who keep their own website: the snippet that puts this site's live content on it
     const snippet = '<div data-comictable="shows"></div>\n<div data-comictable="fans"></div>\n<script src="https://comictable.com/embed.js" data-site="' + sid() + '"><\/script>';
     const embedCard = h("section", { class: "card stack" }, h("h2", { text: "Use on your own website" }),
@@ -3441,7 +3455,7 @@ td select.status.st-few_left { color: var(--warn); }
       h("div", { class: "hint", text: "Other pieces: data-comictable=\"episodes\", \"videos\" or \"posts\". Add data-limit=\"5\" to show fewer. Add data-accent=\"#ff3b6b\" to the script for your button color." }),
       h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Copy snippet", onclick: async () => toast((await copyText(snippet)) ? "Copied. Paste it into your site's HTML or embed block." : "Couldn't copy. Select it and copy instead.") })));
     // One page, four tabs, so nothing is buried at the bottom.
-    const panes = [["general", "General", siteCard], ["sections", "Sections", feats], ["podcasts", "Podcasts", podcastsCard()], ["team", "Team", teamCard()], ["embed", "Your own website", embedCard]];
+    const panes = [["general", "General", siteCard], ["team", "Team", teamCard()], ["embed", "Your own website", embedCard]];
     if (!panes.some((x) => x[0] === SETTAB)) SETTAB = "general";
     const tabs = h("div", { class: "tabs", role: "tablist", "aria-label": "Settings" });
     const show = () => { panes.forEach(([k, , el]) => { el.hidden = k !== SETTAB; }); tabs.querySelectorAll("button").forEach((b) => { const on = b.dataset.tab === SETTAB; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }); };
@@ -3498,13 +3512,16 @@ td select.status.st-few_left { color: var(--warn); }
       const owner = res.you_are === "owner";
       const user = h("input", { id: "teamUser", placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
       const pass = h("input", { id: "teamPass", type: "text", placeholder: "at least 8 characters", "aria-label": "Starting password" });
-      const role = h("select", { "aria-label": "Role", style: "width:auto" }, h("option", { value: "editor", text: "Editor: can edit everything" }), h("option", { value: "owner", text: "Owner: can also manage the team" }));
+      const role = h("select", { "aria-label": "Role", style: "width:auto" }, ["editor", "owner", "shows", "moderator"].map((k) => { const r = SITE_ROLES.find((x) => x[0] === k); return h("option", { value: k, text: r[1] + ": " + r[2].toLowerCase() }); }));
+      const roleSel = (m) => { const sel = h("select", { "aria-label": "Access for " + m.email, style: "width:auto" }, SITE_ROLES.map(([k, l]) => h("option", { value: k, text: l, selected: m.role === k })));
+        sel.addEventListener("change", async () => { try { await teamCall({ action: "set_role", user_id: m.user_id, role: sel.value }); toast("Changed to " + roleName(sel.value) + "."); draw(); } catch (e) { toast(e.message, { bad: true }); sel.value = m.role; } });
+        return sel; };
       const msg = h("div", { class: "err" });
       card.replaceChildren(h("h2", { text: "Team" }), h("p", { class: "sub", text: "Who can log in to this admin." }),
         h("div", null, res.team.map((m) => h("div", { class: "switch-row" },
           h("div", null, h("b", { text: LOGIN_DOMAINS.reduce((e, d) => e.replace("@" + d, ""), m.email) }), m.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null,
-            h("div", { class: "hint", text: (m.role === "owner" ? "Owner" : "Editor") + (m.last_sign_in ? " · last in " + ago(m.last_sign_in) : " · hasn't logged in yet") })),
-          owner && !m.you ? sure("Remove", async () => { try { await teamCall({ action: "remove", user_id: m.user_id }); toast("Removed from the team."); draw(); } catch (e) { toast(e.message, { bad: true }); } }) : null))),
+            h("div", { class: "hint", text: roleName(m.role) + (m.last_sign_in ? " · last in " + ago(m.last_sign_in) : " · hasn't logged in yet") })),
+          owner && !m.you ? h("div", { class: "btns" }, roleSel(m), sure("Remove", async () => { try { await teamCall({ action: "remove", user_id: m.user_id }); toast("Removed from the team."); draw(); } catch (e) { toast(e.message, { bad: true }); } })) : null))),
         owner ? h("div", { class: "newclub stack", style: "gap:10px;margin-top:12px" }, h("b", { text: "Add someone" }),
           h("div", { class: "grid" }, field("Username or email", user, "c6"), field("Starting password", pass, "c6"), h("div", { class: "field c12" }, h("span", { text: "Access" }), role)),
           h("div", { class: "hint", text: "Send them their username and password yourself. If they already have a login, the password is ignored." }), msg,
@@ -3514,7 +3531,7 @@ td select.status.st-few_left { color: var(--warn); }
             const b = e.currentTarget; b.disabled = true;
             try { await teamCall({ action: "add", email: loginEmail(user.value), password: pass.value, role: role.value }); const em = loginEmail(user.value); toast("Added. They log in with " + em + "."); draw(); }
             catch (er) { msg.textContent = er.message; b.disabled = false; }
-          } }))) : h("p", { class: "hint", text: "Only owners can add or remove people." }));
+          } }))) : h("p", { class: "hint", text: "Only owners can add, change or remove people." }));
     }
     draw(); return card;
   }
@@ -3523,6 +3540,42 @@ td select.status.st-few_left { color: var(--warn); }
      ====================================================== */
   const cleanDomain = (d) => String(d || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
   const siteSlug = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+  // comictable.com's own front page: which site "See a site running on it" opens, and which sites it lists
+  function showcaseCard() {
+    const card = h("section", { class: "card stack" }, h("h2", { text: "On comictable.com" }), h("p", { class: "hint", text: "Loading…" }));
+    (async () => {
+      let st;
+      try { st = (await q(sb.from("platform_settings").select("*").eq("id", 1)))[0] || { featured_site: null, showcase: [] }; }
+      catch (e) { card.replaceChildren(h("h2", { text: "On comictable.com" }), h("p", { class: "err", text: /platform_settings/i.test(errText(e)) ? "This needs a database upgrade: run supabase/19_showcase.sql (or UPGRADE_V3_ALL.sql) in Supabase." : errText(e) })); return; }
+      const live = S.sites.filter((x) => x.domain);
+      const list = Array.isArray(st.showcase) ? st.showcase.filter((x) => x && x.site) : [];
+      const featured = h("select", { id: "scFeatured", "aria-label": "See a site running on it" },
+        h("option", { value: "", text: "Pick a site…" }), live.map((x) => h("option", { value: x.id, text: x.name + " · " + x.domain, selected: st.featured_site === x.id })));
+      const rows = live.map((x) => {
+        const on = list.find((y) => y.site === x.id);
+        const box = h("input", { type: "checkbox", checked: !!on, "aria-label": "List " + x.name });
+        const blurb = h("input", { maxlength: "80", placeholder: "One line, e.g. A comedy podcast.", value: on ? on.blurb || "" : "", "aria-label": "Line about " + x.name });
+        return { id: x.id, box, blurb, el: h("div", { class: "switch-row" }, h("label", { class: "check", style: "min-width:200px" }, box, h("span", null, h("b", { text: x.name }), h("span", { class: "hint", text: " " + x.domain }))), blurb) };
+      });
+      // listed ones first, in their saved order
+      rows.sort((a, b) => { const i = list.findIndex((y) => y.site === a.id), j = list.findIndex((y) => y.site === b.id); return (i < 0 ? 999 : i) - (j < 0 ? 999 : j); });
+      const save = h("button", { class: "btn primary", type: "button", text: "Save", onclick: async () => {
+        const showcase = rows.filter((r) => r.box.checked).map((r) => ({ site: r.id, blurb: r.blurb.value.trim() }));
+        try { await q(sb.from("platform_settings").upsert({ id: 1, featured_site: featured.value || null, showcase, updated_at: new Date().toISOString() }));
+          toast("Saved. comictable.com shows it now."); }
+        catch (e) { toast(errText(e), { bad: true }); }
+      } });
+      card.replaceChildren(h("h2", { text: "On comictable.com" }),
+        h("p", { class: "sub", text: "What ComicTable's front page shows off. Only sites with a web address can be picked." }),
+        live.length ? h("div", { class: "stack" },
+          field("“See a site running on it” opens", featured),
+          h("div", null, h("b", { text: "Listed under “Running on ComicTable”" }), h("div", { class: "hint", text: "Tick the ones to list, in this order. The line shows next to the name." })),
+          h("div", null, rows.map((r) => r.el)),
+          h("div", { class: "btns" }, save, h("a", { class: "btn ghost", href: "/", target: "_blank", rel: "noopener", text: "View comictable.com ↗" })))
+          : empty("No sites with a web address yet", "Add one to a site first."));
+    })();
+    return card;
+  }
   async function viewSites(main) {
     main.append(head("All sites", "Every comic running on ComicTable. Start a new one here, then build their front end and launch it."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
@@ -3558,7 +3611,7 @@ td select.status.st-few_left { color: var(--warn); }
       }
     } },
       h("h2", { text: "Start a new site" }),
-      h("p", { class: "sub", text: "Makes the comic's space on ComicTable: their shows, podcast, videos and fans, kept separate from everyone else's. Then add the comic in that site's Settings → Team. As a super admin you can manage every site without being on its team." }),
+      h("p", { class: "sub", text: "Makes the comic's space on ComicTable: their shows, podcast, videos and fans, kept separate from everyone else's. Then add the comic in that site's Lineup, and give them a login there. As a super admin you can manage every site without being on its team." }),
       h("div", { class: "grid" }, field("Comic or show name", name, "c6"), field("Site id (used in the launch settings)", id, "c6"), field("Their web address", dom, "c12")),
       h("div", null, h("b", { text: "What's on their site" }), h("div", { class: "btns", style: "margin-top:8px" }, kinds.map(([k, l]) => h("label", { class: "pill", style: "cursor:pointer;gap:6px;display:inline-flex;align-items:center" }, boxes[k], l)))),
       h("div", { class: "hint", text: "You can change any of this later in that site's Settings." }), msg, h("div", { class: "btns" }, btn));
@@ -3587,11 +3640,32 @@ td select.status.st-few_left { color: var(--warn); }
     (async () => {
       let list;
       try { list = await q(sb.rpc("platform_admin_list")); } catch (e) { return; }
-      supCard.replaceChildren(h("h2", { text: "Super admins" }), h("p", { class: "sub", text: "People who can see and manage every site on ComicTable. Keep this to just you, and anyone you'd trust with every comic's account." }),
-        h("div", null, list.map((u) => h("div", { class: "switch-row" }, h("div", null, h("b", { text: u.email }), u.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null),
-          u.you ? null : sure("Remove", async () => { try { await q(sb.rpc("remove_platform_admin", { p_user: u.user_id })); toast(u.email + " is no longer a super admin."); route(); } catch (e) { toast(errText(e), { bad: true }); } })))));
+      const staffRole = (r) => (r || "admin") === "admin" ? "Admin" : "Staff";
+      const email = h("input", { id: "stEmail", type: "email", placeholder: "their email", autocapitalize: "none", "aria-label": "Email" });
+      const pass = h("input", { id: "stPass", type: "text", placeholder: "only if they're new: 8+ characters", "aria-label": "Starting password" });
+      const role = h("select", { id: "stRole", "aria-label": "Role", style: "width:auto" }, h("option", { value: "staff", text: "Staff: works on every site and comic" }), h("option", { value: "admin", text: "Admin: everything, like you" }));
+      const msg = h("div", { class: "err" });
+      supCard.replaceChildren(h("h2", { text: "ComicTable staff" }),
+        h("p", { class: "sub", text: "People who work on every site. Admins can do everything. Staff can't add staff, create sites, delete comics or change the front page." }),
+        h("div", null, list.map((u) => h("div", { class: "switch-row" },
+          h("div", null, h("b", { text: u.email }), u.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null, h("div", { class: "hint", text: staffRole(u.role) })),
+          S.isOwner && !u.you ? h("div", { class: "btns" },
+            (() => { const sel = h("select", { "aria-label": "Role for " + u.email, style: "width:auto" }, h("option", { value: "staff", text: "Staff", selected: (u.role || "admin") === "staff" }), h("option", { value: "admin", text: "Admin", selected: (u.role || "admin") === "admin" }));
+              sel.addEventListener("change", async () => { try { await q(sb.rpc("set_platform_role", { p_user: u.user_id, p_role: sel.value })); toast(u.email + " is " + (sel.value === "admin" ? "an admin" : "staff") + " now."); route(); } catch (e) { toast(errText(e), { bad: true }); } });
+              return sel; })(),
+            sure("Remove", async () => { try { await q(sb.rpc("remove_platform_admin", { p_user: u.user_id })); toast(u.email + " is off ComicTable staff."); route(); } catch (e) { toast(errText(e), { bad: true }); } })) : null))),
+        S.isOwner ? h("div", { class: "newclub stack", style: "gap:10px;margin-top:12px" }, h("b", { text: "Add someone" }),
+          h("div", { class: "grid" }, field("Email", email, "c6"), field("Starting password", pass, "c6"), h("div", { class: "field c12" }, h("span", { text: "Role" }), role)),
+          h("div", { class: "hint", text: "If they already have a ComicTable login, the password is ignored. Otherwise send them their email and password yourself." }), msg,
+          h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Add to staff", onclick: async (e) => {
+            msg.textContent = "";
+            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) { email.classList.add("bad"); email.focus(); return; }
+            const b = e.currentTarget; b.disabled = true;
+            try { await teamCall({ action: "staff_add", email: email.value.trim(), password: pass.value, role: role.value }); toast("Added. They log in with " + email.value.trim() + "."); route(); }
+            catch (er) { msg.textContent = er.message; b.disabled = false; }
+          } }))) : null);
     })();
-    wrap.append(reqCard, listCard, form, supCard);
+    wrap.append(...[reqCard, listCard, S.isOwner ? showcaseCard() : null, S.isOwner ? form : null, supCard].filter(Boolean));
     try {
       const sites = await q(sb.from("sites").select("*").order("created_at", { ascending: true }));
       const counts = async (t, sidv, extra) => { let qq = sb.from(t).select("id", { count: "exact", head: true }).eq("site_id", sidv); if (extra) qq = extra(qq); const r = await qq; return r.error ? 0 : r.count || 0; };

@@ -15,7 +15,7 @@
       "key": "home_items",
       "label": "Home screen",
       "type": "home_items",
-      "help": "Everything on your home screen, one row each: every link, social, podcast, your shows and the rest. Any order, and switch off anything. You can do this under Site → Home screen too."
+      "help": "Everything on your home screen, one row each: every link, social, podcast, your shows and the rest. Any order, and switch off anything."
     },
     {
       "key": "home_shows",

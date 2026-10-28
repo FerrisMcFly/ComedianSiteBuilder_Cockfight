@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_roles.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_roles.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -93,7 +93,7 @@ test("the all-in-one upgrade file runs on the live setup", async () => {
 });
 
 test("only platform admins can create sites, and a new site comes ready to use", async () => {
-  assert.match(await as(COMIC, `select create_site('sneaky', 'Sneaky')`), /Only ComicTable platform admins/);
+  assert.match(await as(COMIC, `select create_site('sneaky', 'Sneaky')`), /Only ComicTable (platform )?admins/);
   assert.equal(await as(OWNER, `select create_site('john-smith', 'John Smith', 'johnsmithcomedy.com')`), "ok");
   assert.match(await as(OWNER, `select create_site('john-smith', 'Again')`), /already a site/);
   assert.match(await as(OWNER, `select create_site('Bad Id!', 'Bad')`), /lowercase letters/);
@@ -170,7 +170,7 @@ test("super admins manage every site; a comic's team only sees their own", async
   // the super admin list is for super admins only
   assert.equal((await rows(OWNER, "select * from platform_admin_list()")).length, 1);
   assert.equal((await rows(COMIC, "select * from platform_admin_list()")).length, 0);
-  assert.match(await as(COMIC, `select remove_platform_admin('${OWNER}')`), /Only super admins/);
+  assert.match(await as(COMIC, `select remove_platform_admin('${OWNER}')`), /Only (super|ComicTable) admins/);
   assert.match(await as(OWNER, `select remove_platform_admin('${OWNER}')`), /can't remove yourself/);
 });
 
@@ -324,4 +324,42 @@ test("more socials: a comic's Threads, Twitch and the rest follow them to every 
   const hs = await q("select socials from hosts where comic_id = 'lev-fer'");
   assert.ok(hs.length > 0 && hs.every((h) => h.socials.threads === "https://www.threads.net/@lev" && h.socials.twitch), JSON.stringify(hs));
   await assert.rejects(db.exec(`update comics set socials = '"nope"' where id = 'lev-fer'`), /socials_size/);
+
+test("comictable.com showcase: anyone can read it, only super admins change it", async () => {
+  const row = (await rows(null, "select featured_site, showcase from platform_settings"))[0];
+  assert.equal(row.featured_site, "cockfight");
+  assert.equal(row.showcase[0].site, "cockfight");
+  await db.exec(`insert into auth.users values ('44444444-4444-4444-4444-444444444444', 'boss@x') on conflict do nothing; insert into platform_admins (user_id) values ('44444444-4444-4444-4444-444444444444') on conflict do nothing`);
+  assert.equal(await as("44444444-4444-4444-4444-444444444444", `update platform_settings set featured_site = 'othercomic' where id = 1`), "ok");
+  await as(COMIC, `update platform_settings set featured_site = 'cockfight' where id = 1`);
+  assert.equal((await q("select featured_site from platform_settings"))[0].featured_site, "othercomic", "a site's own team can't change ComicTable's front page");
+  assert.match(await as(OWNER, `insert into platform_settings (id) values (2)`), /check|row-level/i);
+});
+
+test("roles: shows-only people do dates and clubs, moderators do the forum and chat, staff can't run ComicTable itself", async () => {
+  const BOOKER = "55555555-5555-5555-5555-555555555555", MOD = "66666666-6666-6666-6666-666666666666", STAFF = "77777777-7777-7777-7777-777777777777", BOSS = "44444444-4444-4444-4444-444444444444";
+  await db.exec(`insert into auth.users values ('${BOOKER}', 'booker@x'), ('${MOD}', 'mod@x'), ('${STAFF}', 'staff@x') on conflict do nothing;
+    insert into admins (user_id, site_id, role) values ('${BOOKER}', 'cockfight', 'shows'), ('${MOD}', 'cockfight', 'moderator');
+    insert into platform_admins (user_id, role) values ('${STAFF}', 'staff') on conflict (user_id) do update set role = 'staff';`);
+  // shows-only
+  assert.equal(await as(BOOKER, `insert into shows (site_id, date, venue, city) values ('cockfight', current_date + 3, 'Zanies', 'Chicago')`), "ok");
+  assert.equal(await as(BOOKER, `insert into venues (name, city, verified, created_by_site) values ('New Room', 'Austin', false, 'cockfight')`), "ok");
+  assert.match(await as(BOOKER, `insert into venues (name, city, verified, created_by_site) values ('Fake Verified', 'Austin', true, 'cockfight')`), /row-level/i);
+  await as(BOOKER, `update episodes set title = 'hacked' where site_id = 'cockfight'`);
+  assert.equal((await q("select count(*)::int n from episodes where title = 'hacked'"))[0].n, 0, "shows-only can't touch episodes");
+  await as(BOOKER, `update comics set bio = 'booker wrote this' where id = 'tristan-bowling'`);
+  assert.notEqual((await q("select bio from comics where id = 'tristan-bowling'"))[0].bio, "booker wrote this", "or comics' profiles");
+  assert.equal((await rows(BOOKER, "select * from fans where site_id = 'cockfight'")).length, 0, "or the fan list");
+  // moderator
+  assert.match(await as(MOD, `insert into shows (site_id, date, venue) values ('cockfight', current_date + 4, 'Nope')`), /row-level/i);
+  assert.equal(await as(MOD, `insert into bans (site_id, author, reason) values ('cockfight', 'troll', 'spam')`), "ok");
+  // staff: every site's content, but not ComicTable itself
+  assert.equal(await as(STAFF, `update episodes set title = title where site_id = 'cockfight'`), "ok");
+  assert.match(await as(STAFF, `select public.create_site('newone', 'New One')`), /Only ComicTable admins/);
+  await as(STAFF, `update platform_settings set featured_site = null where id = 1`);
+  assert.notEqual((await q("select featured_site from platform_settings"))[0].featured_site, null, "staff can't change the front page");
+  assert.match(await as(STAFF, `select public.set_platform_role('${STAFF}', 'admin')`), /Only ComicTable admins/, "or promote themselves");
+  assert.equal(await as(BOSS, `select public.set_platform_role('${STAFF}', 'admin')`), "ok");
+  assert.equal((await q(`select role from platform_admins where user_id = '${STAFF}'`))[0].role, "admin");
+  assert.match(await as(OWNER, `insert into admins (user_id, site_id, role) values ('${MOD}', 'othercomic', 'boss')`), /check|row-level|permission/i);
 });

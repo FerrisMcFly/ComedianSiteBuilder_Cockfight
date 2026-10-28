@@ -25,6 +25,7 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- Who the super admins are, for the admin's All sites page (only super admins can see this)
+drop function if exists public.platform_admin_list();  -- (21_roles.sql adds a role column to it)
 create or replace function public.platform_admin_list()
 returns table (user_id uuid, email text, you boolean) language sql stable security definer set search_path = public as $$
   select p.user_id, u.email::text, p.user_id = auth.uid()
