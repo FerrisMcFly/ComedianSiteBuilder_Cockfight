@@ -1,5 +1,5 @@
 -- ComicTable v3: every database change since v2 (home screen, photo uploads, press kit, QR fan sign-up, more socials, comictable.com showcase, roles) in one file. Paste it all into Supabase → SQL Editor and click Run.
--- Same as running 15, 16, 17, 18, 19, 20, 21 in order. Safe to run again, and safe if you already ran some of them.
+-- Same as running 15, 16, 17, 18, 19, 20, 99 in order. Safe to run again, and safe if you already ran some of them.
 
 -- ============================== 15_home_picks.sql ==============================
 -- Home picks: what a comic wants visitors to see first on their site's home screen.
@@ -229,18 +229,21 @@ create policy "super admins write" on platform_settings for all to authenticated
 grant select on platform_settings to anon, authenticated;
 grant insert, update on platform_settings to authenticated;
 
--- ============================== 21_roles.sql ==============================
--- Roles.
+-- ============================== 99_rules.sql ==============================
+-- ComicTable's access rules: every function and policy that decides who can do what, in one place.
+-- This file always runs LAST (it's at the end of every UPGRADE bundle), so re-running an older upgrade
+-- can never undo the current rules. Change a rule here, not in the numbered files. Safe to run again.
+--
+-- Roles
 -- ComicTable staff (platform_admins):
 --   admin: everything, including staff, creating sites, deleting comics and the comictable.com showcase
 --   staff: works on every site and comic, but can't add or remove staff, create sites, delete comics,
---          or change what comictable.com shows off
+--          change what comictable.com shows off, or manage a site's team
 -- A site's team (admins):
 --   owner: everything on the site, including the team
 --   editor: everything but the team
 --   shows: dates, ticket links, clubs and the show finder only
 --   moderator: forum, chat, bans and the moderation log only
--- Run once in Supabase → SQL Editor, after 20_showcase.sql. Safe to run again.
 
 /* ---------------- the roles themselves ---------------- */
 alter table platform_admins add column if not exists role text not null default 'admin';
@@ -336,6 +339,38 @@ end $$;
 drop policy if exists "public read" on chat_messages;
 create policy "public read" on chat_messages for select using (not deleted or public.can_site(site_id, 'community'));
 
+/* ---------------- photos: only into a site you can edit (or your own Coaster's sites) ---------------- */
+-- Files live under "<site id>/…". Owners, editors and staff can add or change a site's photos.
+-- A comic with their own login can add photos for the sites they're on (their profile photo).
+create or replace function public.can_upload_photos(folder text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.is_site_admin(folder)
+      or exists (select 1 from hosts h join comics c on c.id = h.comic_id
+                 where h.site_id = folder and c.user_id = auth.uid());
+$$;
+grant execute on function public.can_upload_photos(text) to authenticated;
+drop policy if exists "admin upload photos" on storage.objects;
+drop policy if exists "admin update photos" on storage.objects;
+drop policy if exists "admin delete photos" on storage.objects;
+drop function if exists public.can_upload_photos();  -- the older one from 16_photo_uploads.sql
+create policy "admin upload photos" on storage.objects for insert to authenticated
+  with check (bucket_id = 'photos' and public.can_upload_photos((storage.foldername(name))[1]));
+create policy "admin update photos" on storage.objects for update to authenticated
+  using (bucket_id = 'photos' and public.can_upload_photos((storage.foldername(name))[1]));
+create policy "admin delete photos" on storage.objects for delete to authenticated
+  using (bucket_id = 'photos' and public.can_upload_photos((storage.foldername(name))[1]));
+
+/* ---------------- comics: added by owners and editors (any site) or ComicTable staff ---------------- */
+drop policy if exists "admins add" on comics;
+create policy "admins add" on comics for insert to authenticated
+  with check (exists (select 1 from admins where user_id = auth.uid() and role in ('owner', 'editor'))
+           or exists (select 1 from platform_admins where user_id = auth.uid()));
+
+/* ---------------- clubs: "Shows only" people can remove an unverified club their site added ---------------- */
+drop policy if exists "remove venues" on venues;
+create policy "remove venues" on venues for delete to authenticated using (
+  public.is_platform_admin() or (verified = false and public.can_site(created_by_site, 'shows')));
+
 /* ---------------- ComicTable admins only ---------------- */
 create or replace function public.create_site(p_id text, p_name text, p_domain text default null)
 returns void language plpgsql security definer set search_path = public as $$
@@ -401,6 +436,9 @@ grant execute on function public.set_platform_role(uuid, text) to authenticated;
 
 drop policy if exists "super admins delete" on comics;
 create policy "super admins delete" on comics for delete to authenticated using (public.is_platform_owner());
-drop policy if exists "super admins write" on platform_settings;
-create policy "super admins write" on platform_settings for all to authenticated
-  using (public.is_platform_owner()) with check (public.is_platform_owner());
+do $$ begin
+  if to_regclass('public.platform_settings') is not null then
+    execute 'drop policy if exists "super admins write" on platform_settings';
+    execute 'create policy "super admins write" on platform_settings for all to authenticated using (public.is_platform_owner()) with check (public.is_platform_owner())';
+  end if;
+end $$;

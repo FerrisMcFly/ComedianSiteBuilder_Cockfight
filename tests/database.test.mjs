@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_roles.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_roles.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "99_rules.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -82,8 +82,9 @@ test("the all-in-one upgrade file runs on the live setup", async () => {
   const fresh = new PGlite();
   await fresh.exec(`create role anon; create role authenticated; create schema auth; create table auth.users (id uuid primary key, email text);
     create function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
-    create schema storage; create table storage.buckets (id text primary key, name text, public boolean);
-    create table storage.objects (id serial primary key, bucket_id text, name text); alter table storage.objects enable row level security;`);
+    create schema storage; create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+    create table storage.objects (id serial primary key, bucket_id text, name text); alter table storage.objects enable row level security;
+    create function storage.foldername(name text) returns text[] language sql immutable as $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;`);
   await fresh.exec(file("01_setup.sql")); await fresh.exec(file("02_seed.sql"));
   await fresh.exec(`insert into auth.users values ('${OWNER}', 'owner@x'); insert into admins (user_id) values ('${OWNER}');`);
   await fresh.exec(file("UPGRADE_V1_ALL.sql"));
@@ -244,9 +245,15 @@ test("the one-file upgrade runs on a v1 database, twice", async () => {
   const fresh = new PGlite();
   await fresh.exec(`create role anon; create role authenticated; create schema auth; create table auth.users (id uuid primary key, email text);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
-    create schema storage; create table storage.buckets (id text primary key, name text, public boolean);
-    create table storage.objects (id serial primary key, bucket_id text, name text); alter table storage.objects enable row level security;`);
+    create schema storage; create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+    create table storage.objects (id serial primary key, bucket_id text, name text); alter table storage.objects enable row level security;
+    create function storage.foldername(name text) returns text[] language sql immutable as $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql", "UPGRADE_V1_ALL.sql", "UPGRADE_V2_ALL.sql", "UPGRADE_V2_ALL.sql"]) await fresh.exec(file(f));
+  // the newest bundle, then an older one again by mistake: the current rules must survive
+  await fresh.exec(file("UPGRADE_V3_ALL.sql")); await fresh.exec(file("UPGRADE_V2_ALL.sql"));
+  const fn = (await fresh.query("select pg_get_functiondef('public.is_site_admin(text)'::regprocedure) d")).rows[0].d;
+  assert.match(fn, /role in \('owner', 'editor'\)/, "re-running the v2 bundle after v3 keeps the roles");
+  assert.ok((await fresh.query("select 1 from information_schema.columns where table_name = 'platform_admins' and column_name = 'role'")).rows.length);
   assert.equal((await fresh.query("select count(*)::int n from comics")).rows[0].n, (await fresh.query("select count(*)::int n from hosts")).rows[0].n);
   assert.equal((await fresh.query("select count(*)::int n from hosts where comic_id is null")).rows[0].n, 0);
   await fresh.close();
@@ -363,4 +370,15 @@ test("roles: shows-only people do dates and clubs, moderators do the forum and c
   assert.equal(await as(BOSS, `select public.set_platform_role('${STAFF}', 'admin')`), "ok");
   assert.equal((await q(`select role from platform_admins where user_id = '${STAFF}'`))[0].role, "admin");
   assert.match(await as(OWNER, `insert into admins (user_id, site_id, role) values ('${MOD}', 'othercomic', 'boss')`), /check|row-level|permission/i);
+});
+
+test("rules: photos only go into a site you can edit, moderators can't add comics, shows people can remove their own new clubs", async () => {
+  const MOD = "66666666-6666-6666-6666-666666666666", BOOKER = "55555555-5555-5555-5555-555555555555";
+  assert.match(await as(MOD, `insert into storage.objects (bucket_id, name) values ('photos', 'cockfight/x.jpg')`), /row-level/i, "a moderator can't upload site photos");
+  assert.equal(await as(OWNER, `insert into storage.objects (bucket_id, name) values ('photos', 'cockfight/ok.jpg')`), "ok");
+  assert.match(await as(COMIC, `insert into storage.objects (bucket_id, name) values ('photos', 'cockfight/sneaky.jpg')`), /row-level/i, "another site's team can't upload into Cockfight's folder");
+  assert.match(await as(MOD, `insert into comics (id, name) values ('mod-made', 'Nope')`), /row-level/i);
+  await q(`insert into venues (name, city, verified, created_by_site) values ('Booker Room', 'Austin', false, 'cockfight')`);
+  assert.equal(await as(BOOKER, `delete from venues where name = 'Booker Room'`), "ok");
+  assert.equal((await q("select count(*)::int n from venues where name = 'Booker Room'"))[0].n, 0);
 });

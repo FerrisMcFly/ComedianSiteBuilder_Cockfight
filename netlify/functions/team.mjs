@@ -3,6 +3,7 @@
 // Manages who can log in to a site's admin. Any admin can see the team; only owners can add, change or remove people.
 // Site roles: owner (everything, including the team), editor (everything but the team), shows (dates and clubs), moderator (forum and chat).
 import { createClient } from "@supabase/supabase-js";
+import { accessFor } from "../lib/access.mjs";
 
 const SITE_ROLES = ["owner", "editor", "shows", "moderator"];
 const siteRole = (r) => (SITE_ROLES.includes(r) ? r : "editor");
@@ -51,10 +52,9 @@ export default async (req) => {
     if (error) return json(500, { error: error.message });
     return json(200, { ok: true, existed: !!user.last_sign_in_at });
   }
-  let { data: me } = await db.from("admins").select("role").eq("user_id", who.user.id).eq("site_id", site).maybeSingle();
-  // ComicTable super admins can manage every site's team without being on it
-  if (!me) { const { data: sup } = await db.from("platform_admins").select("user_id").eq("user_id", who.user.id).maybeSingle(); if (sup) me = { role: "owner" }; }
-  if (!me) return json(403, { error: "You're not an admin of this site." });
+  // ComicTable admins manage every site's team; staff and editors can see it; only owners change it
+  const me = await accessFor(db, who.user.id, site);
+  if (!me.role) return json(403, { error: "You're not on this site's team." });
 
   if (body.action === "list") {
     const { data: rows, error } = await db.from("admins").select("user_id, role").eq("site_id", site);
