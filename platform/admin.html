@@ -1920,6 +1920,7 @@ td select.status.st-few_left { color: var(--warn); }
       let input;
       if (st.type === "toggle") input = h("label", { class: "switch" }, (inputs[st.key] = h("input", { type: "checkbox", role: "switch", checked: !!v, "aria-label": st.label })), h("span"));
       else if (st.type === "select") input = (inputs[st.key] = h("select", { "aria-label": st.label, style: "width:auto" }, (st.options || []).map((o) => { const [ov, ol] = Array.isArray(o) ? o : [o, o]; return h("option", { value: ov, text: ol, selected: ov === v }); })));
+      else if (st.type === "color") input = (inputs[st.key] = h("input", { type: "color", value: /^#[0-9a-f]{6}$/i.test(v || "") ? v : "#000000", "aria-label": st.label, style: "width:64px;height:40px;padding:2px" }));
       else input = (inputs[st.key] = h("input", { value: v ?? "", placeholder: st.placeholder || "", "aria-label": st.label, style: "max-width:260px" }));
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), input);
     });
