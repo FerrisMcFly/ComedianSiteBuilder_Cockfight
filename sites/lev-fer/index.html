@@ -116,6 +116,14 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .pick h3 { margin: 0; font: 700 21px/1.15 var(--f-body); text-wrap: balance; overflow-wrap: anywhere; }
 .pick p { margin: 0; opacity: .85; overflow-wrap: anywhere; }
 .pick .btn { justify-self: start; margin-top: 4px; }
+.player { position: relative; aspect-ratio: 16 / 9; width: 100%; background: #000; border: 1px solid var(--line); }
+.player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.player .play { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: #000; cursor: pointer; }
+.player .play img { width: 100%; height: 100%; object-fit: cover; border: 0; opacity: .85; }
+.player .play .tri { position: absolute; left: 50%; top: 50%; width: 72px; height: 72px; margin: -36px 0 0 -36px; border-radius: 50%; background: rgba(3,7,15,.75); border: 2px solid var(--amber); }
+.player .play .tri::after { content: ""; position: absolute; left: 28px; top: 22px; border-style: solid; border-width: 14px 0 14px 22px; border-color: transparent transparent transparent var(--amber); }
+.player .play:hover .tri, .player .play:focus-visible .tri { background: var(--amber); }
+.player .play:hover .tri::after, .player .play:focus-visible .tri::after { border-left-color: var(--void); }
 .pick img { aspect-ratio: 16 / 9; object-fit: cover; width: 100%; border: 1px solid var(--line); }
 .pick.hero { grid-column: 1 / -1; padding: 24px; border-top-color: var(--amber); background: radial-gradient(120% 140% at 0% 0%, rgba(255,178,56,.16), transparent 55%), linear-gradient(180deg, rgba(15,32,52,.9), rgba(3,7,15,.75)); }
 .pick.hero h3 { font: 400 clamp(22px, 3.4vw, 34px)/1.15 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--glow); text-shadow: 0 0 14px rgba(127,211,255,.5); }
@@ -336,11 +344,21 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
 
   /* ---------- views ---------- */
   var KIND = { show: "Live show", video: "New video", announcement: "Announcement", merch: "Merch", podcast: "Podcast", post: "From the blog", link: "Link" };
+  // A video pick plays right here. The player only loads when someone presses play (faster, and no tracking until then).
+  function player(p) {
+    var box = el("div", { class: "player" });
+    var go = el("button", { type: "button", class: "play", "aria-label": "Play: " + p.headline }, [p.image ? el("img", { src: p.image, alt: "", loading: "lazy" }) : null, el("span", { class: "tri", "aria-hidden": "true" })]);
+    go.addEventListener("click", function () {
+      box.replaceChildren(el("iframe", { src: p.video, title: p.headline, allow: "autoplay; encrypted-media; picture-in-picture; fullscreen", allowfullscreen: "", referrerpolicy: "strict-origin-when-cross-origin" }));
+    });
+    box.append(go);
+    return box;
+  }
   function pickCard(p, i) {
     var href = safeHref(p.link), ext = href && /^https?:/i.test(href), st = p.show && p.show.status;
     var label = st === "sold_out" ? "Sold out" : st === "cancelled" ? "Cancelled" : p.button;
     return el("article", { class: "pick" + (i === 0 ? " hero" : "") }, [
-      el("span", { class: "k", text: KIND[p.kind] || "Pick" }), p.image ? el("img", { src: p.image, alt: "", loading: "lazy" }) : null,
+      el("span", { class: "k", text: KIND[p.kind] || "Pick" }), p.video ? player(p) : p.image ? el("img", { src: p.image, alt: "", loading: "lazy" }) : null,
       el("h3", { text: p.headline }), p.text ? el("p", { text: p.text }) : null,
       label && href && !st ? el("a", { class: "btn", href: href, target: ext ? "_blank" : null, rel: ext ? "noopener" : null, text: label })
         : label && st && st !== "on_sale" && st !== "few_left" && st !== "free" ? el("span", { class: "chip", text: label })
@@ -361,7 +379,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     // nothing pinned: show what's real right now instead
     var auto = [];
     if (D.shows.length && F("shows", true)) { var s = D.shows[0]; auto.push({ kind: "show", headline: (s.venue || s.city) + " · " + MON[day(s.date).getMonth()] + " " + day(s.date).getDate(), text: [s.city !== s.venue ? s.city : "", s.time].filter(Boolean).join(" · "), button: "Get tickets", link: s.tickets, show: s.status === "on_sale" ? null : s }); }
-    if (D.videos.length && F("videos", true)) auto.push({ kind: "video", headline: D.videos[0].title, button: "Watch", link: D.videos[0].link, image: D.videos[0].thumbnail });
+    if (D.videos.length && F("videos", true)) auto.push({ kind: "video", headline: D.videos[0].title, button: "Watch", link: D.videos[0].link, image: D.videos[0].thumbnail, video: CSB.videoEmbed ? CSB.videoEmbed(D.videos[0].link) : "" });
     if (D.posts.length && F("blog", false)) auto.push({ kind: "post", headline: D.posts[0].title, text: D.posts[0].excerpt, button: "Read it", link: "#/blog/" + encodeURIComponent(D.posts[0].slug) });
     if (F("fans", false)) auto.push({ kind: "link", headline: "Get told when Lev's in your town", text: "One email when there's a show near you.", button: "Join the list", link: "#/list" });
     app.append(auto.length ? el("div", { class: "picks" }, auto.map(pickCard)) : empty("Nothing here yet", "New shows and videos will show up here."));

@@ -77,6 +77,21 @@ test("with nothing pinned, home shows the next real show and latest clip", async
   assert.match(d.getElementById("app").textContent, /Test Club.*Test clip/s);
 });
 
+test("a picture pick shows its picture; a YouTube or Vimeo pick plays right on the home screen", async () => {
+  const { d } = await load({ ...full, home_picks: [
+    { id: "v1", kind: "video", headline: "New special", button_label: "Watch", link: "https://www.youtube.com/watch?v=abcdefghijk", image_url: "https://p/cover.jpg", sort: 0 },
+    { id: "i1", kind: "announcement", headline: "Tour poster", image_url: "https://p/poster.jpg", sort: 1 },
+    { id: "v2", kind: "video", headline: "Vimeo bit", link: "https://vimeo.com/123456789", sort: 2 }] });
+  const cards = [...d.querySelectorAll(".pick")];
+  assert.equal(cards[1].querySelector("img").getAttribute("src"), "https://p/poster.jpg");
+  assert.equal(cards[0].querySelector("iframe"), null, "the player only loads when someone presses play");
+  assert.equal(cards[0].querySelector(".play img").getAttribute("src"), "https://p/cover.jpg");
+  cards[0].querySelector(".play").click();
+  assert.equal(cards[0].querySelector("iframe").getAttribute("src"), "https://www.youtube-nocookie.com/embed/abcdefghijk?autoplay=1&rel=0");
+  cards[2].querySelector(".play").click();
+  assert.equal(cards[2].querySelector("iframe").getAttribute("src"), "https://player.vimeo.com/video/123456789?autoplay=1");
+});
+
 test("tour dates, blog post, about and socials come from ComicTable", async () => {
   let { d } = await load(full, "#/shows");
   assert.equal(d.querySelectorAll(".date").length, 2);

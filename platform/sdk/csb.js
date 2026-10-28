@@ -8,7 +8,8 @@
  *   <script src="sdk/csb.js"></script>
  *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards, posts, picks }
  *   picks: the comic's Home screen picks, in order (the first is the featured one). A pick made from a show carries
- *   that show's status and drops off once the show has passed.
+ *   that show's status and drops off once the show has passed. image is its picture; video is a player address
+ *   (YouTube or Vimeo) when the pick links to one, so a site can play it right on the home screen.
  *   shows: each has person (a solo date) or event: true with lineup (a show by the whole site, like a live podcast).
  *   CSB.forum.threads("general"), CSB.forum.newTopic({...}), CSB.chat.subscribe(fn), CSB.chat.send({...})
  *   CSB.fans.places("bos"), CSB.fans.join({ email, placeId, radius })   // fan list, when site.features.fans is on
@@ -103,6 +104,14 @@
     });
   }
 
+  // A YouTube or Vimeo link → the address of a player that can sit right in the page ("" for anything else).
+  function videoEmbed(link) {
+    var u = String(link || ""), m = u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/);
+    if (m) return "https://www.youtube-nocookie.com/embed/" + m[1] + "?autoplay=1&rel=0";
+    m = u.match(/vimeo\.com\/(?:video\/)?(\d{6,12})/);
+    return m ? "https://player.vimeo.com/video/" + m[1] + "?autoplay=1" : "";
+  }
+
   // Home screen picks: drop ended ones and ones whose show has passed; a show pick shows that show's status.
   function homePicks(rows, shows, today) {
     var byId = {}; shows.forEach(function (s) { byId[s.id] = s; });
@@ -110,7 +119,7 @@
       .map(function (p) {
         var s = p.show_id ? byId[p.show_id] : null;
         return { id: p.id, kind: p.kind || "announcement", headline: p.headline, text: p.body || "", button: p.button_label || "", link: p.link || (s && s.tickets) || "",
-          image: p.image_url || "", show: s ? { date: s.date, time: s.time, venue: s.venue, city: s.city, status: s.status } : null };
+          image: p.image_url || "", video: videoEmbed(p.link), show: s ? { date: s.date, time: s.time, venue: s.venue, city: s.city, status: s.status } : null };
       });
   }
 
@@ -239,6 +248,6 @@
     leave: function (token) { return api("rpc/leave_fans", { method: "POST", body: { p_token: token } }); }
   };
 
-  var CSB = { init: init, load: load, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, device: device, name: name, api: api, version: "1.2" };
+  var CSB = { init: init, load: load, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, device: device, name: name, api: api, version: "1.2" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

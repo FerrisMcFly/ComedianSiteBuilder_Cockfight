@@ -694,3 +694,23 @@ test("Home screen picks: add one, pin a show to the top, reorder", async () => {
   btn(d, /^↓$/).click(); await wait(60);
   assert.deepEqual(db.home_picks.slice().sort((a, b) => a.sort - b.sort).map((p) => p.headline)[0], "New special out now");
 });
+
+test("Home screen picks: a YouTube link plays on the home screen and can use the video's thumbnail; videos pin to Home", async () => {
+  const theme = { name: "Console Lobby", extras: ["home_picks"], settings: [] };
+  const { w, d, db } = await open("#picks", (db) => {
+    db.home_picks = [];
+    db.videos = [{ id: "v1", site_id: "cockfight", youtube_id: "abcdefghijk", title: "Crowd work in Boston", url: "https://www.youtube.com/watch?v=abcdefghijk", thumbnail_url: "https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg", published: "2026-10-01", hidden: false }];
+  }, theme);
+  const form = d.querySelector("form.card");
+  set(w, form.querySelector('input[aria-label="Headline"]'), "New special");
+  set(w, form.querySelector('input[aria-label="Button link"]'), "https://youtu.be/abcdefghijk");
+  assert.match(form.textContent, /will play right on your home screen/);
+  btn(d, /Use the video's thumbnail/).click(); await wait(20);
+  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.equal(db.home_picks[0].image_url, "https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg");
+
+  w.location.hash = "#videos"; await wait(80);
+  btn(d, /^Pin to Home$/).click(); await wait(60);
+  const top = db.home_picks.slice().sort((a, b) => a.sort - b.sort)[0];
+  assert.deepEqual([top.kind, top.headline, top.link, top.image_url], ["video", "Crowd work in Boston", "https://www.youtube.com/watch?v=abcdefghijk", "https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg"]);
+});

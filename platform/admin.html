@@ -270,6 +270,12 @@ form.card.is-hidden { opacity: .7; }
 .post { background: var(--bg); border-radius: 10px; padding: 8px 10px; display: flex; justify-content: space-between; gap: 10px; }
 .post p { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 
+.pick-pic { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.pick-pic img, .pick-pic .ph { width: 160px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); display: grid; place-items: center; font-size: 12px; color: var(--muted); }
+.pick-pic input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.pick-pic label.btn { position: relative; cursor: pointer; }
+.pick-pic label.btn:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pick-thumb { display: block; width: 120px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; margin-top: 6px; border: 1px solid var(--line); }
 .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
 /* Log in: the brand's charcoal screen, in both modes */
 .login-wrap.brand-screen { background: #1f1f1f; color: #f3ead7; --brand-red: #c4452e; }
@@ -1576,6 +1582,7 @@ td select.status.st-few_left { color: var(--warn); }
           VIDREMOVED
             ? h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Put back", onclick: async () => { try { await setHidden(v, false); toast("Back on your site."); } catch (e) { toast(errText(e), { bad: true }); } } }))
             : h("div", { class: "btns" },
+                hasExtra("home_picks") ? h("button", { class: "btn sm ghost", type: "button", text: "Pin to Home", onclick: () => pinToHome({ kind: "video", headline: String(v.title || "New video").slice(0, 90), button_label: "Watch", link: v.url || null, image_url: v.thumbnail_url || null }) }) : null,
                 h("button", { class: "btn sm", type: "button", text: v.featured ? "Unstar" : "⭐ Star", onclick: async () => { try { await q(sb.from("videos").update({ featured: !v.featured }).eq("id", v.id)); v.featured = !v.featured; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
                 h("button", { class: "btn sm ghost danger", type: "button", text: "Remove", onclick: async () => {
                   try { await setHidden(v, true); toast("Removed “" + v.title + "” from your site.", { action: { label: "Undo", run: async () => { try { await setHidden(v, false); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
@@ -2407,9 +2414,24 @@ td select.status.st-few_left { color: var(--warn); }
       const label = h("input", { maxlength: "30", placeholder: "Watch now", value: p ? p.button_label || "" : "", "aria-label": "Button text" });
       const link = h("input", { type: "url", maxlength: "500", placeholder: "https://…", value: p ? p.link || "" : "", "aria-label": "Button link" });
       const ends = h("input", { type: "date", value: p ? p.ends_on || "" : "", "aria-label": "Show until" });
+      // Picture: shown on the pick. A YouTube or Vimeo link plays right on the home screen, using the picture as its cover.
+      let image = p ? p.image_url || null : null;
+      const file = h("input", { type: "file", accept: "image/*", "aria-label": "Picture" });
+      const pic = h("div", { class: "pick-pic" });
+      const drawPic = () => pic.replaceChildren(image ? h("img", { src: image, alt: "" }) : h("div", { class: "ph", text: "No picture" }),
+        h("div", { class: "btns" }, h("label", { class: "btn sm" }, image ? "Change picture" : "Add a picture", file),
+          image ? h("button", { class: "btn sm ghost", type: "button", text: "Remove", onclick: () => { image = null; drawPic(); } }) : null,
+          !image && ytId(link.value) ? h("button", { class: "btn sm ghost", type: "button", text: "Use the video's thumbnail", onclick: () => { image = "https://i.ytimg.com/vi/" + ytId(link.value) + "/hqdefault.jpg"; drawPic(); } }) : null));
+      file.addEventListener("change", async () => {
+        if (!file.files[0]) return;
+        try { toast("Uploading…"); image = await uploadImage(file.files[0], "home", { square: false }); drawPic(); toast("Picture added. Save to keep it."); } catch (e) { toast(errText(e), { bad: true }); }
+      });
+      const vidHint = h("p", { class: "hint" });
+      const drawVid = () => { vidHint.textContent = /youtu\.?be|vimeo\.com/i.test(link.value) ? "▶ This video will play right on your home screen." : "Tip: paste a YouTube or Vimeo link and the video plays right on your home screen."; drawPic(); };
+      link.addEventListener("input", drawVid); drawVid();
       return h("form", { class: "card stack", onsubmit: async (e) => {
         e.preventDefault(); if (!headline.value.trim()) { headline.classList.add("bad"); headline.focus(); return; }
-        const row = { kind: kind.value, headline: headline.value.trim(), body: body.value.trim() || null, button_label: label.value.trim() || null, link: link.value.trim() || null, ends_on: ends.value || null };
+        const row = { kind: kind.value, headline: headline.value.trim(), body: body.value.trim() || null, button_label: label.value.trim() || null, link: link.value.trim() || null, image_url: image, ends_on: ends.value || null };
         try {
           if (p) await q(sb.from("home_picks").update(row).eq("id", p.id));
           else await q(sb.from("home_picks").insert({ site_id: sid(), sort: P.reduce((m, x) => Math.max(m, x.sort), -1) + 1, ...row }));
@@ -2417,7 +2439,7 @@ td select.status.st-few_left { color: var(--warn); }
         } catch (err) { toast(errText(err), { bad: true }); }
       } }, h("h2", { text: p ? "Edit pick" : "Add a pick" }),
         h("div", { class: "grid" }, field("Type", kind, "c3"), field("Headline", headline, "c9"), field("Text", body, "c12"),
-          field("Button text", label, "c4"), field("Button link", link, "c5"), field("Show until", ends, "c3")),
+          field("Button text", label, "c4"), field("Button link", link, "c5"), field("Show until", ends, "c3"), field("Picture", pic, "c12")), vidHint,
         p && p.show_id ? h("p", { class: "hint", text: "Made from a show: sold out or cancelled shows on it automatically, and it comes off after the show." }) : null,
         h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: p ? "Save" : "Add to Home screen" }),
           p ? h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => { editing = null; draw(); } }) : h("span", { class: "hint", text: "Tip: pin a show from Shows (⋯ → Pin to Home screen) and it fills itself in." })));
@@ -2432,7 +2454,8 @@ td select.status.st-few_left { color: var(--warn); }
               p.hidden ? h("span", { class: "pill warn", text: "Hidden" }) : ended(p) ? h("span", { class: "pill", text: "Ended" }) : h("span", { class: "pill ok", text: "Live" })),
             h("div", { class: "wrap-any", style: "margin-top:4px;font-weight:600", text: p.headline }),
             p.body ? h("div", { class: "hint wrap-any", text: p.body }) : null,
-            p.link ? h("div", { class: "hint wrap-any", text: (p.button_label || "Link") + " → " + p.link }) : null,
+            p.link ? h("div", { class: "hint wrap-any", text: (/youtu\.?be|vimeo\.com/i.test(p.link) ? "▶ Plays on your home screen · " : (p.button_label || "Link") + " → ") + p.link }) : null,
+            p.image_url ? h("img", { class: "pick-thumb", src: p.image_url, alt: "" }) : null,
             p.ends_on ? h("div", { class: "hint", text: "Until " + shortDate(p.ends_on) }) : null),
           h("div", { class: "btns" },
             h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => reorder(i, i - 1) }),
