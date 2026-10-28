@@ -2880,9 +2880,9 @@ td select.status.st-few_left { color: var(--warn); }
     const wrap = h("div", { class: "stack" }); main.append(wrap);
 
     // ---- new site form ----
-    const name = h("input", { id: "nsName", placeholder: "e.g. Jane Doe", autocomplete: "off" });
-    const id = h("input", { id: "nsId", placeholder: "jane-doe", autocapitalize: "none", spellcheck: "false" });
-    const dom = h("input", { id: "nsDomain", placeholder: "janedoecomedy.com (optional, add later)", autocapitalize: "none", spellcheck: "false" });
+    const name = h("input", { id: "nsName", placeholder: "Comic or show name", autocomplete: "off" });
+    const id = h("input", { id: "nsId", placeholder: "short-name", autocapitalize: "none", spellcheck: "false" });
+    const dom = h("input", { id: "nsDomain", placeholder: "theirname.com (optional, add later)", autocapitalize: "none", spellcheck: "false" });
     const kinds = [["shows", "Stand-up shows", true], ["podcast", "Podcast", true], ["videos", "YouTube", true], ["merch", "Merch", false], ["forum", "Forum", false], ["chat", "Chat room", false]];
     const boxes = Object.fromEntries(kinds.map(([k, , on]) => [k, h("input", { type: "checkbox", checked: on, id: "nsF_" + k })]));
     let idTouched = false;
@@ -2894,7 +2894,7 @@ td select.status.st-few_left { color: var(--warn); }
       e.preventDefault(); msg.textContent = "";
       const nm = name.value.trim(), sl = siteSlug(id.value || nm);
       if (!nm) { name.classList.add("bad"); name.focus(); return; }
-      if (sl.length < 2) { msg.textContent = "Give the site a short id, like jane-doe."; id.focus(); return; }
+      if (sl.length < 2) { msg.textContent = "Give the site a short id, like their-name."; id.focus(); return; }
       btn.disabled = true;
       try {
         const r = await sb.rpc("create_site", { p_id: sl, p_name: nm, p_domain: cleanDomain(dom.value) || null });

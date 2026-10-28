@@ -351,15 +351,15 @@ test("platform admins can start a new comic's site and land on it ready to set u
   await wait(60);
   assert.match(d.querySelector("main").textContent, /Sites \(1\)/);
   assert.match(d.querySelector("main").textContent, /○ Podcast or YouTube connected/);
-  set(w, d.getElementById("nsName"), "Jane Doe");
-  assert.equal(d.getElementById("nsId").value, "jane-doe");
-  set(w, d.getElementById("nsDomain"), "https://www.JaneDoeComedy.com/");
+  set(w, d.getElementById("nsName"), "Rita Ramos");
+  assert.equal(d.getElementById("nsId").value, "rita-ramos");
+  set(w, d.getElementById("nsDomain"), "https://www.RitaRamosComedy.com/");
   d.getElementById("nsF_forum").checked = true;
   btn(d, /^Create site$/).click(); await wait(120);
-  const site = db.sites.find((x) => x.id === "jane-doe");
-  assert.equal(site.domain, "janedoecomedy.com");
+  const site = db.sites.find((x) => x.id === "rita-ramos");
+  assert.equal(site.domain, "ritaramoscomedy.com");
   assert.equal(site.features.forum, true); assert.equal(site.features.chat, false);
-  assert.equal(d.querySelector(".brand").textContent, "Jane Doe");
+  assert.equal(d.querySelector(".brand").textContent, "Rita Ramos");
   assert.equal(w.location.hash, "#people");
   assert.ok(d.getElementById("sitePick"), "site switcher appears once you have two sites");
 });
@@ -394,11 +394,11 @@ test("fan list: who's near each show, copy their emails, find and remove fans", 
 });
 
 test("super admins see every site, comics only their own", async () => {
-  const addJane = (db) => db.sites.push({ id: "jane", name: "Jane Doe", features: { shows: true } });
-  const sup = await open("", addJane);
+  const addRita = (db) => db.sites.push({ id: "rita", name: "Rita Ramos", features: { shows: true } });
+  const sup = await open("", addRita);
   sup.d.getElementById("sitePick").click(); await wait();
-  assert.deepEqual([...sup.d.querySelectorAll(".sp-item b")].map((o) => o.textContent).sort(), ["Cockfight", "Jane Doe"]);
-  const comic = await open("", (db) => { addJane(db); db.platform_admins = []; });
+  assert.deepEqual([...sup.d.querySelectorAll(".sp-item b")].map((o) => o.textContent).sort(), ["Cockfight", "Rita Ramos"]);
+  const comic = await open("", (db) => { addRita(db); db.platform_admins = []; });
   assert.equal(comic.d.getElementById("sitePick"), null, "a comic on one site gets no site switcher");
   assert.equal(comic.d.querySelector(".brand").textContent, "Cockfight");
 });
