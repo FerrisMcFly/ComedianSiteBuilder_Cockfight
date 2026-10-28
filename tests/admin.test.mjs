@@ -1051,5 +1051,20 @@ test("Coaster settings: reorder what's on it (drag, or arrow keys on the grip); 
   press(w, card.querySelector('[data-drag="tape"] .drag-grip'), "ArrowUp"); await wait();
   card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
   const order = db.comics.find((c) => c.id === "lev-fer").coaster.order;
-  assert.deepEqual(JSON.parse(JSON.stringify(order)).slice(0, 5), ["next", "links", "tape", "socials", "join"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(order)).slice(0, 5), ["socials", "links", "tape", "join", "next"]);
+});
+
+test("Coaster settings: socials show as logos, logo + name or names; pick which networks show", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => {
+    db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id }));
+    Object.assign(db.comics.find((c) => c.id === "lev-fer"), { instagram: "https://instagram.com/l", tiktok: "https://tiktok.com/@l", socials: {} });
+  });
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  const card = d.querySelector("main form.card");
+  btn(d, /^Logo \+ name$/, card).click();
+  btn(d, /^Coaster colors$/, card).click();
+  [...card.querySelectorAll(".soc-pick")].find((b) => /TikTok/.test(b.textContent)).click();
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.comics.find((c) => c.id === "lev-fer").coaster.social_style)), { style: "both", color: "look", hide: ["tiktok"] });
 });

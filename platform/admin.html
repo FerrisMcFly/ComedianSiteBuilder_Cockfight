@@ -294,6 +294,11 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 [data-drag] { transition: transform .16s ease; }
 [data-drag].dragging { transition: none; position: relative; z-index: 5; box-shadow: 0 12px 28px rgba(0,0,0,.28); background: var(--panel); border-radius: 12px; opacity: .97; }
 .is-sorting { user-select: none; -webkit-user-select: none; }
+.soc-box { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 4px; }
+.soc-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.soc-pick { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); border-radius: 999px; padding: 5px 12px 5px 8px; font: inherit; font-weight: 650; cursor: pointer; }
+.soc-pick svg { display: block; }
+.soc-pick[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
 .attention { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 @media (max-width: 560px) { .coaster-edit { grid-template-columns: 1fr; justify-items: center; } }
 .comic-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; align-items: center; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px 16px; cursor: pointer; color: var(--text); font: inherit; width: 100%; }
@@ -1952,6 +1957,23 @@ td select.status.st-few_left { color: var(--warn); }
         h("div", { style: "flex:1;min-width:0" }, h("b", { text: l }), h("div", { class: "hint", text: d })), seg);
     }).filter(Boolean));
     sortable(planRows, (from, to) => { arrMove(order, from, to); drawPlan(); });
+    // How socials show on the Coaster: logos / logo + name / names, brand colors or the Coaster's, and which ones
+    const soc = { style: "icons", color: "brand", hide: [], ...((c.coaster && c.coaster.social_style) || {}) };
+    const has = (window.CSB && CSB.socialsOf) ? CSB.socialsOf(c) : {};
+    const socBox = h("div", { class: "stack soc-box", style: "gap:10px" });
+    const drawSoc = () => {
+      const seg = (label, key, opts) => h("div", { class: "seg", role: "group", "aria-label": label }, opts.map(([v, t]) =>
+        h("button", { type: "button", "aria-pressed": String(soc[key] === v), text: t, onclick: () => { soc[key] = v; drawSoc(); } })));
+      const nets = ((window.CSB && CSB.SOCIALS) || []).filter(([k]) => has[k] && k !== "website");
+      socBox.replaceChildren(h("b", { text: "Social links on the Coaster" }),
+        h("div", { class: "btns" }, seg("Socials show as", "style", [["icons", "Logos"], ["both", "Logo + name"], ["names", "Names"]]),
+          soc.style !== "names" ? seg("Logo colors", "color", [["brand", "Brand colors"], ["look", "Coaster colors"]]) : null),
+        nets.length ? h("div", { class: "soc-picks" }, nets.map(([k, l]) => {
+          const on = !soc.hide.includes(k), ic = h("span", { "aria-hidden": "true" }); ic.innerHTML = CSB.socialIcon ? CSB.socialIcon(k, { brand: true, size: 18 }) : "";
+          return h("button", { type: "button", class: "soc-pick", "aria-pressed": String(on), title: (on ? "Showing " : "Hidden: ") + l, onclick: () => { soc.hide = on ? [...soc.hide, k] : soc.hide.filter((x) => x !== k); drawSoc(); } }, ic, h("span", { text: l }));
+        })) : h("p", { class: "hint", style: "margin:0", text: "Add your social links above and pick which ones show here." }));
+    };
+    drawSoc();
     drawPlan();
     paint();
     return {
@@ -1963,7 +1985,7 @@ td select.status.st-few_left { color: var(--warn); }
       look: h("div", { class: "coaster-edit" }, preview, h("div", { class: "stack", style: "gap:8px;min-width:0" }, h("b", { text: "Coaster look" }), looks,
         h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }), customBox, customNote)),
       more: h("details", { class: "quiet coaster-more" }, h("summary", { text: "What's on " + yours + " Coaster" }),
-        h("p", { class: "hint", style: "margin:8px 0 0", text: "Keep it simple: a few things up front. Fans tap More for the rest. Drag the grips to change the order." }), planRows,
+        h("p", { class: "hint", style: "margin:8px 0 0", text: "Keep it simple: a few things up front. Fans tap More for the rest. Drag the grips to change the order." }), planRows, socBox,
         h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
           h("div", { class: "hint", text: "When another comic on ComicTable has the same club on the same night, you show up on each other's dates. Nobody has to tag anyone." })),
           h("label", { class: "switch" }, bills, h("span"))), proBox),
@@ -1971,7 +1993,7 @@ td select.status.st-few_left { color: var(--warn); }
       patch() {
         const t = tapeUrl.value.trim();
         const out = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
-        if ("coaster" in c) out.coaster = { ...plan, order: [...order], ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
+        if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
         return out;
       }
     };

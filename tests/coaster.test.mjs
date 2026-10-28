@@ -32,12 +32,14 @@ test("a Coaster: photo, name, bio, socials, the Tape, their sites, press kit and
   assert.equal(d.body.className, "look-spooky");
   assert.equal(d.querySelector("h1").textContent, "Lev Fer");
   assert.match(d.querySelector(".bio").textContent, /Short one/);
-  assert.deepEqual([...d.querySelectorAll(".socials a")].map((a) => a.textContent), ["Instagram", "Threads"]);
+  assert.deepEqual([...d.querySelectorAll(".socials a")].map((a) => a.getAttribute("aria-label")), ["Instagram", "Threads"], "logos by default, named for screen readers");
+  assert.ok(d.querySelector(".socials a svg path"), "real logos");
   assert.match(d.querySelector(".cap").textContent, /Live at the Cellar/);
   d.querySelector(".frame .play").click();
   assert.match(d.querySelector(".frame iframe").src, /youtube-nocookie\.com\/embed\/abcdefghijk/);
-  const links = [...d.querySelectorAll(".links a")].map((a) => a.textContent + " " + a.getAttribute("href"));
-  assert.deepEqual(links, ["levfer.gay https://levfer.gay", "Cockfight https://cockfightpodcast.com", "Booking mailto:book@lev.example", "Press kit /press/lev-fer"]);
+  const links = [...d.querySelectorAll(".links a")].map((a) => a.getAttribute("href"));
+  assert.deepEqual(links, ["https://levfer.gay", "https://cockfightpodcast.com", "mailto:book@lev.example", "/press/lev-fer"]);
+  assert.match(d.querySelector(".lcard").textContent, /My website.*levfer\.gay/, "their own site says My website");
 });
 
 test("next dates with tickets, and who else is on the bill links to their Coaster", async () => {
@@ -162,4 +164,24 @@ test("the comic's order: items show up front and under More in the order they ch
   const main = d.getElementById("app");
   const pos = (sel) => [...main.querySelectorAll("*")].indexOf(main.querySelector(sel));
   assert.ok(pos(".bio") < pos(".frame") && pos(".frame") < pos(".socials"), "bio, then the Tape, then socials");
+});
+
+test("socials: the comic picks logos, logo + name or names, brand colors or not, and which ones show", async () => {
+  const base = { id: "lev-fer", name: "Lev Fer", instagram: "https://instagram.com/l", tiktok: "https://tiktok.com/@l", socials: { threads: "https://threads.net/@l" } };
+  let { d } = await load("/lev-fer", { comics: [{ ...base, coaster: { social_style: { style: "both", hide: ["tiktok"] } } }] });
+  assert.deepEqual([...d.querySelectorAll(".socials a")].map((a) => a.textContent), ["Instagram", "Threads"]);
+  assert.ok(d.querySelector(".socials.both a svg"));
+  ({ d } = await load("/lev-fer", { comics: [{ ...base, coaster: { social_style: { style: "names", color: "look" } } }] }));
+  assert.deepEqual([...d.querySelectorAll(".socials a")].map((a) => a.textContent), ["Instagram", "TikTok", "Threads"]);
+  assert.ok(!d.querySelector(".socials svg") && !d.querySelector(".socials.brand"));
+});
+
+test("the dock: tickets for the next show always in reach, plus Share", async () => {
+  const day1 = new Date(); day1.setDate(day1.getDate() + 2);
+  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer" }],
+    "rpc/comic_shows": [{ id: "s1", date: day1.toISOString().slice(0, 10), venue: "The Stand", url: "https://t/1", status: "on_sale" }] });
+  const dock = d.querySelector(".dock");
+  assert.match(dock.querySelector("a.btn.main").textContent, /^Tickets · /);
+  assert.equal(dock.querySelector("a.btn.main").getAttribute("href"), "https://t/1");
+  assert.equal(dock.querySelector("button").getAttribute("aria-label"), "Share Lev Fer's Coaster");
 });
