@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ComicTable · The engine behind comedians' websites</title>
-<meta name="description" content="Comedians get a website that looks like them, and ComicTable keeps it full: shows and ticket links, podcast and YouTube, fan lists, forums and a blog, all run from one dashboard. Start from a template, get one designed, or plug it into the site you have.">
+<title>ComicTable · Less admin. More stage time.</title>
+<meta name="description" content="ComicTable runs the boring half of a comic's website: shows, ticket links, episodes and fans, from one dashboard.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
@@ -157,15 +157,15 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
 <body>
 <header><div class="wrap">
   <a class="mark" href="/"><span class="dot" aria-hidden="true"></span>ComicTable</a>
-  <nav aria-label="Main"><a class="hide-sm" href="#ways">Get started</a><a class="hide-sm" href="#tools">What it runs</a><a class="pill-btn line" href="/login" style="padding:9px 16px">Log in</a></nav>
+  <nav aria-label="Main"><a class="hide-sm" href="#ways">Ways in</a><a class="hide-sm" href="#tools">What it does</a><a class="pill-btn line" href="/login" style="padding:9px 16px">Log in</a></nav>
 </div></header>
 
 <main>
   <div class="wrap hero">
     <div>
-      <h1>Your site looks like you. <em>We keep it full.</em></h1>
-      <p>ComicTable is the engine behind comedians' websites. One dashboard runs the busywork: dates and ticket links, new episodes and uploads, fans, forums and a blog. Use it with a template, a site designed for you, or the site you already have.</p>
-      <div class="ctas"><a class="pill-btn red" href="#ask">Get started</a><a class="pill-btn line" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See one running</a></div>
+      <h1>Less admin. <em>More stage time.</em></h1>
+      <p>ComicTable runs the boring half of a comic's website. Shows, ticket links, episodes, fans. You get one dashboard.</p>
+      <div class="ctas"><a class="pill-btn red" href="#ask">Get started</a><a class="pill-btn line" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See one live</a></div>
     </div>
 
     <div class="demo" id="demo" aria-label="Demo: one show added in the dashboard appears on two sites">
@@ -186,30 +186,18 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
           <div class="gig new"><span><b>Nov 14</b> Comedy Cellar</span><a>Tickets</a></div>
         </div></div>
       </div>
-      <button class="replay" type="button" id="replay">Play it again</button>
-      <div class="caption">One date, added once. It lands on every site Lev's on, each in its own style.</div>
+      <button class="replay" type="button" id="replay">Replay</button>
+      <div class="caption">Lev adds a date. Both his sites have it.</div>
     </div>
   </div>
 
-  <section class="band"><div class="wrap">
-    <p class="kicker">The problem</p>
-    <h2>Link in bio is not a website.</h2>
-    <p class="intro">Comics are running a small business out of their notes app. Keeping fans up to date shouldn't eat a weeknight.</p>
-    <div class="pains">
-      <div class="pain"><b>Dates live in five places</b><p>Instagram, the club's site, a Linktree, a Google Doc, the group chat. Nobody's sure which is current.</p></div>
-      <div class="pain"><b>Every show has its own link</b><p>Three shows a weekend means three ticket links, and they're never named anything useful.</p></div>
-      <div class="pain"><b>The followers aren't yours</b><p>An app decides who sees your post about Thursday. Your fans should hear from you directly.</p></div>
-    </div>
-  </div></section>
-
   <section class="band" id="ways"><div class="wrap">
-    <p class="kicker">Get started</p>
-    <h2>Three ways onto ComicTable.</h2>
-    <p class="intro">Same engine and same dashboard, whichever you pick. You can move from one to another later without losing a thing.</p>
+    <h2>Three ways in.</h2>
+    <p class="intro">Same engine either way. Switch later and keep everything.</p>
     <div class="ways">
-      <div class="way"><span class="tag">Fastest</span><h3>Start from a template</h3><p>Pick a design, add your name, photo and colors, and connect your podcast. You're live the same day, on your own web address.</p></div>
-      <div class="way featured"><span class="tag">Most yours</span><h3>Get one designed for you</h3><p>We build your front end with you, from scratch. A 90s cantina with a chicken, or clean and minimal. Nobody else's site looks like it.</p></div>
-      <div class="way"><span class="tag">Keep your site</span><h3>Plug it into the site you have</h3><p>On Squarespace, Wix, WordPress or something custom? Paste a snippet, and your shows, fan sign-up and episodes stay up to date from the dashboard.</p>
+      <div class="way"><span class="tag">Fastest</span><h3>Template</h3><p>Pick one. Add your name, photo and colors. Live today.</p></div>
+      <div class="way featured"><span class="tag">Most yours</span><h3>Custom</h3><p>We design it with you. Nobody else gets it.</p></div>
+      <div class="way"><span class="tag">Keep yours</span><h3>Your own site</h3><p>Squarespace, Wix, whatever. Paste one snippet. Your shows stay current.</p>
         <code>&lt;div data-comictable="shows"&gt;&lt;/div&gt;
 &lt;script src="https://comictable.com/embed.js"
   data-site="your-name"&gt;&lt;/script&gt;</code></div>
@@ -217,72 +205,41 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
   </div></section>
 
   <section class="band" id="tools"><div class="wrap">
-    <p class="kicker">What it runs</p>
-    <h2>The boring parts, handled.</h2>
-    <p class="intro">Every site on ComicTable gets the same engine. Turn on what you need.</p>
+    <h2>What it does.</h2>
+    <p class="intro">Turn on what you need.</p>
     <div class="tools">
-      <div class="tool"><h3>Shows</h3><p>Pick the club, tap the dates, paste the ticket links. Showtimes fill in from that club's usual times.</p>
+      <div class="tool"><h3>Shows</h3><p>A weekend of dates in about a minute. Showtimes fill themselves in.</p>
         <div class="ui" aria-hidden="true"><div class="r"><b>Laugh Boston</b><span class="chip">Boston, MA</span></div><div class="days"><span>Thu</span><span class="on">Fri</span><span class="on">Sat</span><span>Sun</span></div><div class="r">4 shows · links pasted<span class="btnx">Add shows</span></div></div></div>
-      <div class="tool"><h3>Show finder</h3><p>Point it at a tour page, a club calendar or a ticket site. It checks every hour and brings back new dates.</p>
+      <div class="tool"><h3>Show finder</h3><p>Watches club calendars and tour pages. Brings back new dates.</p>
         <div class="ui" aria-hidden="true"><div class="r"><b>🔎 Found 3 new shows</b><span class="btnx">Add all</span></div><div class="r">Zanies · Fri 8:00 PM<span class="chip ok">Add</span></div><div class="r">Zanies · Sat 7:30 PM<span class="chip ok">Add</span></div></div></div>
-      <div class="tool"><h3>Podcast and YouTube</h3><p>Connect once. New episodes and uploads land on the site with descriptions and links, every hour.</p>
+      <div class="tool"><h3>Podcast and YouTube</h3><p>New episodes and uploads post themselves.</p>
         <div class="ui" aria-hidden="true"><div class="r"><b>Podcast feed</b><span class="chip ok">Working</span></div><div class="r">Ep 92 · Big Night Out<span class="chip">New</span></div><div class="r">YouTube · 3 channels<span class="chip ok">Working</span></div></div></div>
-      <div class="tool"><h3>Fan list</h3><p>Fans sign up with their city. When you book a show, you see exactly who lives near it.</p>
+      <div class="tool"><h3>Fan list</h3><p>Fans sign up by city. You see who's near each show.</p>
         <div class="ui" aria-hidden="true"><div class="r"><b>Laugh Boston · Fri</b><span class="chip">38 fans nearby</span></div><div class="r">Zanies · Sat<span class="chip">12 fans nearby</span></div><div class="r">Copy their emails<span class="btnx">Copy</span></div></div></div>
-      <div class="tool"><h3>Forum and chat</h3><p>An old-school message board and a live chat room on your own site. You pin, lock and ban.</p>
+      <div class="tool"><h3>Forum and chat</h3><p>Your fans, your room, your ban button.</p>
         <div class="ui" aria-hidden="true"><div class="r"><b>📌 Ep 92 discussion</b><span class="chip">48 replies</span></div><div class="r">Chat room<span class="chip ok">12 here now</span></div></div></div>
-      <div class="tool"><h3>Blog</h3><p>Road stories, bits that didn't make the set, what's coming up. Drafts stay private until you publish.</p>
+      <div class="tool"><h3>Blog</h3><p>For the bits that didn't make the set.</p>
         <div class="ui" aria-hidden="true"><div class="r"><b>What I learned in Key West</b><span class="chip ok">Live</span></div><div class="r">Working on a new hour<span class="chip">Draft</span></div></div></div>
     </div>
   </div></section>
 
-  <section class="band"><div class="wrap share">
-    <div>
-      <p class="kicker">Comics, not just sites</p>
-      <h2>One comic. Every site they're on.</h2>
-      <p class="intro" style="margin-bottom:0">Tristan co-hosts two podcasts and could have his own site. On ComicTable he's one person with one profile and one calendar. He adds a date once, and every site has it. He logs in once and sees everything he's part of.</p>
-    </div>
-    <div class="tree" aria-hidden="true">
-      <div class="who"><b>Tristan Bowling</b><span>bio · photo · dates · YouTube</span></div>
-      <div class="lines"></div>
-      <div class="leaves">
-        <div class="leaf"><b>Cockfight</b><span>podcast site</span></div>
-        <div class="leaf"><b>Modern Apes</b><span>podcast site</span></div>
-        <div class="leaf"><b>His own site</b><span>solo</span></div>
-      </div>
-    </div>
-  </div></section>
-
   <section class="band"><div class="wrap">
-    <p class="kicker">Yours, not ours</p>
-    <h2>Your name on the door.</h2>
-    <p class="intro">ComicTable runs in the background. Your fans see you.</p>
-    <div class="yours">
-      <div><b>Your address</b><p>yourname.com, not a profile page on someone else's app.</p></div>
-      <div><b>Your design</b><p>A template to start, your own design whenever you want it.</p></div>
-      <div><b>Any ticket link</b><p>We don't sell tickets, so we never get between you and the club.</p></div>
-      <div><b>Your fans</b><p>Your fan list, your forum, your rules. Download the list anytime.</p></div>
-    </div>
-  </div></section>
-
-  <section class="band"><div class="wrap">
-    <p class="kicker">Running on ComicTable</p>
-    <h2 style="margin-bottom:28px">See it live.</h2>
+    <h2 style="margin-bottom:28px">On ComicTable.</h2>
     <div class="running">
-      <a href="https://cockfightpodcast.com" target="_blank" rel="noopener"><b>Cockfight</b><span>Comedy podcast with Colum Tyrrell, Lev Fer and Tristan Bowling. Yes, it has a chicken.</span></a>
+      <a href="https://cockfightpodcast.com" target="_blank" rel="noopener"><b>Cockfight</b><span>Colum Tyrrell, Lev Fer and Tristan Bowling. There's a chicken.</span></a>
     </div>
   </div></section>
 
   <section class="band" id="ask" style="border-top:0"><div class="wrap">
     <div class="cta">
-      <div><h2>Want your site on ComicTable?</h2><p>Tell us who you are and which way sounds right. We'll get back to you.</p></div>
+      <div><h2>Want in?</h2><p>Tell us who you are. We'll get back to you.</p></div>
       <div id="askBox">
         <form id="askForm" novalidate>
           <input id="aName" placeholder="Your name" autocomplete="name" maxlength="120" aria-label="Your name">
           <input id="aEmail" type="email" placeholder="Email" autocomplete="email" maxlength="200" aria-label="Email">
           <input id="aAct" placeholder="What do you do? Stand-up, a podcast, both" maxlength="200" aria-label="What do you do?">
           <input id="aLinks" placeholder="Where can we see you? Instagram, YouTube, your site" maxlength="1000" aria-label="Where can we see you?">
-          <textarea id="aNote" placeholder="Template, designed for you, or plug into your site? Anything else?" maxlength="2000" aria-label="Anything else"></textarea>
+          <textarea id="aNote" placeholder="Template, custom, or your own site? Anything else?" maxlength="2000" aria-label="Anything else"></textarea>
           <div class="msg" id="aMsg" role="status" aria-live="polite"></div>
           <div><button class="pill-btn red" type="submit" id="aSend">Send</button></div>
         </form>
@@ -291,7 +248,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
   </div></section>
 </main>
 
-<footer><div class="wrap"><span>© <span id="yr"></span> ComicTable · The engine behind comedians' websites</span><a href="/login">Comics: log in</a></div></footer>
+<footer><div class="wrap"><span>© <span id="yr"></span> ComicTable</span><a href="/login">Comics: log in</a></div></footer>
 
 <script src="config.js"></script>
 <script>
