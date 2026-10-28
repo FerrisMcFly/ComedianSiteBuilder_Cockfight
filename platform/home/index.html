@@ -209,6 +209,40 @@ footer .left { display: flex; align-items: center; gap: 12px; }
 footer img { width: 28px; height: 28px; }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .gig.new { opacity: 1; transform: none; } .demo.play .gig.new, .demo.play .dash .add { animation: none; } .look { transition: none; } }
+/* Coaster (coming soon): a comic's card, drawn as a real coaster sitting on the table */
+.coaster-band { background: var(--ink); color: var(--bg); }
+.coaster-band .label { border-color: rgba(243,234,215,.5); }
+.coaster-band .label b { color: var(--mus); }
+.coaster-band .intro { color: rgba(243,234,215,.75); }
+.coaster-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: center; }
+.soon { display: inline-block; background: var(--mus); color: var(--ink); font: 700 12px/1 var(--font); letter-spacing: .12em; text-transform: uppercase; padding: 6px 9px; border-radius: 3px; margin-bottom: 18px; }
+.coaster-band h2 { color: var(--bg); }
+.cpoints { list-style: none; margin: 0 0 32px; padding: 0; display: grid; gap: 16px; }
+.cpoints li { border-top: 1px solid rgba(243,234,215,.25); padding-top: 14px; }
+.cpoints b { display: block; font-size: 17px; color: var(--bg); }
+.cpoints span { color: rgba(243,234,215,.72); font-size: 15.5px; }
+.coaster-wrap { display: grid; place-items: center; padding: 20px 0; }
+.coaster { width: min(420px, 100%); aspect-ratio: 1; border-radius: 50%; background: var(--bg); color: var(--ink); position: relative;
+  box-shadow: 0 0 0 10px #2b2b2b, 0 0 0 12px rgba(243,234,215,.15), 0 30px 60px rgba(0,0,0,.45); transform: rotate(-4deg);
+  display: grid; place-items: center; text-align: center; padding: 14%; }
+.coaster::before { content: ""; position: absolute; inset: 14px; border-radius: 50%; border: 1.5px dashed rgba(31,31,31,.25); }
+.coaster .inner { position: relative; display: grid; gap: 8px; justify-items: center; }
+.coaster .av { width: 72px; height: 72px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; font: 900 26px/1 var(--display); }
+.coaster .nm { font: 900 30px/1 var(--display); }
+.coaster .tt { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.coaster .tape { display: inline-flex; gap: 8px; align-items: center; background: var(--red); color: #fff; font-weight: 600; font-size: 13px; padding: 7px 12px; border-radius: 999px; margin-top: 4px; }
+.coaster .tape i { width: 0; height: 0; border-style: solid; border-width: 5px 0 5px 8px; border-color: transparent transparent transparent #fff; }
+.coaster .date { font-size: 13px; line-height: 1.4; margin-top: 4px; }
+.coaster .date em { display: block; font-style: normal; color: var(--muted); font-size: 12px; }
+.coaster .mk { position: absolute; bottom: 9%; left: 50%; transform: translateX(-50%); width: 26px; height: 26px; }
+.cform { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 520px; }
+.cform input { background: #2b2b2b; border-color: #4a4a4a; color: var(--bg); }
+.cform input:focus { outline-color: var(--bg); border-color: var(--bg); }
+.cform .full { grid-column: 1 / -1; }
+.cform .msg { color: #ff8a70; }
+.cdone { font: 900 32px/1.1 var(--display); color: var(--bg); margin: 0 0 6px; }
+@media (max-width: 960px) { .coaster-grid { grid-template-columns: 1fr; gap: 32px; } .coaster-wrap { order: -1; } }
+@media (max-width: 560px) { .cform { grid-template-columns: 1fr; } .coaster .nm { font-size: 24px; } .coaster .av { width: 56px; height: 56px; font-size: 20px; } }
 @media (max-width: 960px) {
   .hero, .sync-grid, .ask, .tpl-grid { grid-template-columns: 1fr; }
   .hero-copy { padding: 48px 0 40px; }
@@ -243,13 +277,13 @@ footer img { width: 28px; height: 28px; }
   <div class="wrap">
     <div class="top">
       <a class="logo" href="/" aria-label="ComicTable home"><img src="/brand/comictable-wordmark.svg" alt="ComicTable" width="200" height="39"></a>
-      <nav aria-label="Main"><a class="hide-sm" href="#how">How it works</a><a class="hide-sm" href="#runs">Features</a><a class="hide-sm" href="#ways">Ways in</a><a href="/login">Log in</a><a class="btn red" href="#ask">Get started</a></nav>
+      <nav aria-label="Main"><a class="hide-sm" href="#coaster">Coaster</a><a class="hide-sm" href="#how">How it works</a><a class="hide-sm" href="#runs">Features</a><a class="hide-sm" href="#ways">Ways in</a><a href="/login">Log in</a><a class="btn red" href="#ask">Get started</a></nav>
     </div>
     <div class="hero">
       <div class="hero-copy">
         <h1>The engine behind comedian <span>websites.</span></h1>
         <p>Shows, tickets, podcasts, videos, fans and a blog, all run from one dashboard. The site stays on the comic's own domain, in their own look.</p>
-        <div class="ctas"><a class="btn red" href="#ask">Get started</a><a class="link" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See a site running on it</a></div>
+        <div class="ctas"><a class="btn red" href="#ask">Get started</a><a class="link" id="seeOne" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See a site running on it</a></div>
       </div>
       <figure class="photo" style="margin-top:0;margin-bottom:0">
         <img src="https://images.unsplash.com/photo-1641903806973-17eaf2d2634f?fm=jpg&amp;q=70&amp;w=1400&amp;auto=format&amp;fit=crop" alt="A microphone on a stand in front of a brick wall, under a single stage light" loading="eager">
@@ -266,6 +300,39 @@ footer img { width: 28px; height: 28px; }
 </header>
 
 <main>
+  <section class="band coaster-band" id="coaster"><div class="wrap">
+    <p class="label"><b>New</b> / Coaster</p>
+    <div class="coaster-grid">
+      <div>
+        <span class="soon">Coming soon</span>
+        <h2>Every comic gets a Coaster.</h2>
+        <p class="intro" style="margin-bottom:28px">A card that's yours, with or without a website. Your photo, bio, tape, socials and dates, on one page you can send anyone.</p>
+        <ul class="cpoints">
+          <li><b>Send it to bookers.</b><span>Approved photos, your bio and your tape in one link. No more five-email back-and-forth.</span></li>
+          <li><b>Your dates, everywhere.</b><span>Add a show once. Every ComicTable site you're on lists it.</span></li>
+          <li><b>Also on the bill.</b><span>When other comics on ComicTable add the same show, it says so. You promote each other without lifting a finger.</span></li>
+        </ul>
+        <div id="coasterBox">
+          <form class="cform" id="coasterForm" novalidate>
+            <input id="cName" placeholder="Your name" autocomplete="name" maxlength="120" aria-label="Your name">
+            <input id="cEmail" type="email" placeholder="Email" autocomplete="email" maxlength="200" aria-label="Email">
+            <input class="full" id="cLinks" placeholder="Instagram or anywhere we can see you (optional)" maxlength="500" aria-label="Where can we see you?">
+            <div class="msg full" id="cMsg" role="status" aria-live="polite"></div>
+            <div class="full"><button class="btn red" type="submit" id="cSend">Get your Coaster early</button></div>
+          </form>
+        </div>
+      </div>
+      <div class="coaster-wrap" aria-hidden="true">
+        <div class="coaster"><div class="inner">
+          <div class="av">DK</div>
+          <div class="nm">Dana Kim</div>
+          <div class="tt">Stand-up · Chicago</div>
+          <span class="tape"><i></i>Watch the tape</span>
+          <div class="date"><b>Fri Nov 6</b> · Zanies, 9:30 PM<em>also on the bill: 2 comics</em></div>
+        </div><img class="mk" src="/brand/comictable-mark.svg" alt=""></div>
+      </div>
+    </div>
+  </div></section>
   <section class="band" id="how"><div class="wrap">
     <p class="label"><b>01</b> / How it works</p>
     <div class="sync-grid">
@@ -376,7 +443,7 @@ footer img { width: 28px; height: 28px; }
 
   <section class="band"><div class="wrap">
     <p class="label"><b>05</b> / Running on ComicTable</p>
-    <div class="live">
+    <div class="live" id="liveList">
       <a href="https://cockfightpodcast.com" target="_blank" rel="noopener"><b>Cockfight</b><span>A comedy podcast. cockfightpodcast.com</span><i>Visit ↗</i></a>
     </div>
   </div></section>
@@ -438,6 +505,53 @@ footer img { width: 28px; height: 28px; }
 
   // contact
   var CFG = window.COMICTABLE_CONFIG || {};
+
+  // Which sites to show off: set by super admins in the dashboard (All sites → On comictable.com).
+  // Until it loads (or if it can't), the page keeps what's written above.
+  (function showcase() {
+    if (!CFG.SUPABASE_URL) return;
+    var hdr = { apikey: CFG.SUPABASE_ANON_KEY, Authorization: "Bearer " + CFG.SUPABASE_ANON_KEY };
+    var get = function (path) { return fetch(CFG.SUPABASE_URL + "/rest/v1/" + path, { headers: hdr }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
+    get("platform_settings?select=featured_site,showcase&id=eq.1").then(function (rows) {
+      var st = rows[0]; if (!st) return;
+      var list = (Array.isArray(st.showcase) ? st.showcase : []).filter(function (x) { return x && x.site; });
+      var ids = list.map(function (x) { return x.site; }); if (st.featured_site) ids.push(st.featured_site);
+      if (!ids.length) return;
+      return get("sites?select=id,name,domain&id=in.(" + ids.map(encodeURIComponent).join(",") + ")").then(function (sites) {
+        var by = {}; sites.forEach(function (x) { if (x.domain) by[x.id] = x; });
+        var url = function (x) { return "https://" + String(x.domain).replace(/^https?:\/\//, "").replace(/\/+$/, ""); };
+        var f = by[st.featured_site]; if (f) $("seeOne").href = url(f);
+        var shown = list.filter(function (x) { return by[x.site]; });
+        if (!shown.length) return;
+        $("liveList").replaceChildren.apply($("liveList"), shown.map(function (x) {
+          var s = by[x.site], a = document.createElement("a"), b = document.createElement("b"), sp = document.createElement("span"), i = document.createElement("i");
+          a.href = url(s); a.target = "_blank"; a.rel = "noopener";
+          b.textContent = s.name; sp.textContent = [String(x.blurb || "").trim(), s.domain].filter(Boolean).join(" "); i.textContent = "Visit ↗";
+          a.append(b, sp, i); return a;
+        }));
+      });
+    }).catch(function () { /* keep the page as written */ });
+  })();
+  // Coaster waitlist: goes to the same inbox as site requests, marked so it's easy to spot
+  $("coasterForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var msg = $("cMsg"), send = $("cSend"), v = function (id) { return $(id).value.trim(); };
+    var row = { name: v("cName"), email: v("cEmail"), act: "Coaster waitlist", links: v("cLinks") || null, note: "Wants a Coaster (early access)." };
+    msg.textContent = "";
+    if (!row.name) { msg.textContent = "Add your name."; $("cName").focus(); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)) { msg.textContent = "Add an email we can reach you at."; $("cEmail").focus(); return; }
+    send.disabled = true;
+    try {
+      var r = await fetch(CFG.SUPABASE_URL + "/rest/v1/site_requests", { method: "POST",
+        headers: { "Content-Type": "application/json", apikey: CFG.SUPABASE_ANON_KEY, Authorization: "Bearer " + CFG.SUPABASE_ANON_KEY, Prefer: "return=minimal" }, body: JSON.stringify(row) });
+      if (!r.ok) throw new Error(r.status);
+      var d = document.createElement("p"), p = document.createElement("p");
+      d.className = "cdone"; d.textContent = "You're on the list, " + row.name.split(" ")[0] + ".";
+      p.className = "intro"; p.style.margin = "0"; p.textContent = "We'll email " + row.email + " when Coasters open.";
+      $("coasterBox").replaceChildren(d, p);
+    } catch (err) { send.disabled = false; msg.textContent = "That didn't send. Check your connection and try again."; }
+  });
+
   $("askForm").addEventListener("submit", async function (e) {
     e.preventDefault();
     var msg = $("aMsg"), send = $("aSend"), v = function (id) { return $(id).value.trim(); };
