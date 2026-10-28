@@ -19,7 +19,7 @@
         [
           "me",
           "You",
-          "Your photo, name, tagline and the first line of your bio. Photo comes from People.",
+          "Your photo, name, tagline and the first line of your bio. Photo comes from Lineup.",
           true
         ],
         [
@@ -31,13 +31,13 @@
         [
           "socials",
           "Social buttons",
-          "Instagram, YouTube, TikTok and the rest. Set them on your profile in People.",
+          "Instagram, YouTube, TikTok and the rest. Set them on your profile in Lineup.",
           true
         ],
         [
           "support",
           "Support button",
-          "Patreon, Ko-fi or Substack. Set the link in Profile.",
+          "Patreon, Ko-fi or Substack. Set the link in About & contact.",
           true
         ],
         [

@@ -84,6 +84,7 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.02em; font-w
 .acct-pop a, .acct-pop button { text-align: left; padding: 8px 10px; border-radius: 6px; border: 0; background: none; color: var(--text); text-decoration: none; font: inherit; cursor: pointer; }
 .acct-pop a:hover, .acct-pop button:hover { background: var(--bg); }
 .nav-spacer { flex: 1; min-height: 16px; }
+.sec-title { font-size: 18px; margin: 0 0 10px; }
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: -4px 0 18px; overflow-x: auto; }
 .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 12px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; margin-bottom: -1px; }
 .tabs button:hover { color: var(--text); }
@@ -818,7 +819,7 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "chat", group: "Fans", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
     { id: "moderation", group: "Fans", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
     { id: "picks", group: "Website", label: "Home screen", ico: "⭐", extra: "home_picks", render: viewPicks },
-    { id: "theme", group: "Website", label: "Design", ico: "🎨", extra: "design", render: viewTheme },
+    { id: "theme", group: "Website", label: "Design", ico: "🎨", render: viewTheme },
     { id: "profile", group: "Website", label: "About & contact", ico: "🪪", render: viewProfile },
     { id: "links", group: "Website", label: "Links", ico: "🔗", extra: "links", render: viewLinks },
     { id: "people", label: "Lineup", ico: "🎤", bottom: true, render: viewPeople },
@@ -1888,7 +1889,7 @@ td select.status.st-few_left { color: var(--warn); }
   function viewPress(main) {
     const people = S.hosts.filter((x) => x.comic_id);
     main.append(head("Press kit", "Approved photos and bios for clubs, per comic. A comic's press kit is the same on every site they're on."));
-    if (!people.length) { main.append(h("section", { class: "card" }, empty("No comics on this site yet", "Add someone in People first."))); return; }
+    if (!people.length) { main.append(h("section", { class: "card" }, empty("No comics on this site yet", "Add someone in Lineup first."))); return; }
     if (!people.some((x) => x.id === PRESSFOR)) PRESSFOR = (people.find((x) => S.me && x.comic_id === S.me.id) || people[0]).id;
     const cur = people.find((x) => x.id === PRESSFOR);
     if (people.length > 1) main.append(h("div", { class: "seg", role: "group", "aria-label": "Comic", style: "margin-bottom:16px" },
@@ -2690,7 +2691,7 @@ td select.status.st-few_left { color: var(--warn); }
       card.replaceChildren(h("div", { class: "share-host", text: S.site.domain || "your site" }),
         h("b", { class: "share-title", text: f.share_title.value.trim() || d.title }),
         h("div", { class: "share-text", text: f.share_text.value.trim() || d.text }),
-        img ? h("img", { class: "share-img", src: img, alt: "" }) : h("div", { class: "share-img none", text: "No picture yet: add one below, or a photo in People" }));
+        img ? h("img", { class: "share-img", src: img, alt: "" }) : h("div", { class: "share-img none", text: "No picture yet: add one below, or a photo in Lineup" }));
       imgBtns.replaceChildren(h("label", { class: "btn sm" }, shareImage ? "Change picture" : "Use a different picture", imgFile),
         shareImage ? h("button", { class: "btn ghost sm", type: "button", text: "Use my People photo instead", onclick: () => { shareImage = ""; drawCard(); } }) : null);
     }
@@ -2736,21 +2737,13 @@ td select.status.st-few_left { color: var(--warn); }
   }
   async function viewPicks(main) {
     await loadTheme();
-    main.append(head("Home screen", "What visitors see first on your site: the sections, in your order, and the picks you pin."));
-    // The design's Home screen sections (a theme setting with key "home"), right here as well as in Design
+    main.append(head("Home screen", "Everything on your site's home screen: which sections show and in what order, and the picks you pin to the top."));
+    // The design's home screen settings (sections and their order, how many shows) live here, not on Design
     const theme = await loadTheme();
-    const layoutSt = theme && Array.isArray(theme.settings) && theme.settings.find((x) => x.key === "home" && x.type === "order");
-    if (layoutSt) {
-      const pick = orderPicker(layoutSt, (S.site.theme || {}).home);
-      const save = h("button", { class: "btn primary", type: "submit", text: "Save layout" });
-      main.append(h("form", { class: "card stack", style: "margin-bottom:16px", onsubmit: async (e) => {
-        e.preventDefault(); save.disabled = true;
-        try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, { home: pick.value }) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
-        save.disabled = false;
-      } }, h("h2", { style: "margin:0", text: "Layout" }),
-        h("p", { class: "hint", style: "margin:0", text: "Put the sections in the order you want and switch off any you don't. Social buttons come from your profile in People; Your links come from Links." }),
-        pick.el, h("div", { class: "btns" }, save)));
-    }
+    const homeSet = theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => isHomeSetting(st) && st.type !== "heading") : [];
+    if (homeSet.length) main.append(h("h2", { class: "sec-title", text: "Layout" }), h("p", { class: "hint", style: "margin:-6px 0 10px", text: "The sections on your home screen, in order. Switch off any you don't want. Social buttons come from the profiles in Lineup; your links come from Links." }),
+      settingsForm(homeSet, "Save layout"), h("h2", { class: "sec-title", style: "margin-top:24px", text: "Pinned picks" }),
+      h("p", { class: "hint", style: "margin:-6px 0 10px", text: "Big cards at the top of your home screen: a show, a video, an announcement. The first one is the biggest." }));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     let P = [], editing = null;
     const reloadP = async () => { P = (await q(sb.from("home_picks").select("*").eq("site_id", sid()).order("sort", { ascending: true }))).sort((a, b) => (a.sort - b.sort) || String(a.created_at || "").localeCompare(String(b.created_at || ""))); };
@@ -2932,25 +2925,23 @@ td select.status.st-few_left { color: var(--warn); }
     draw();
     return { el: box, get value() { return items.map((x) => ({ key: x.key, on: x.on })); } };
   }
-  async function viewTheme(main) {
-    const theme = await loadTheme();
-    if (!theme || !Array.isArray(theme.settings)) {
-      main.append(head("Design settings", "Switches that belong to your site's design."), h("section", { class: "card" }, empty("Nothing to set", "Your site's design doesn't have any extra settings.")));
-      return;
-    }
-    main.append(head("Design settings", (theme.name ? theme.name + ". " : "") + "These switches come with your site's design, so a different design will have different ones."));
+  // Design settings that belong to the home screen live on the Home screen page; everything else on Design.
+  // A design marks them with "page": "home", or by key (home, home_*) and a "Home screen" heading.
+  const isHomeSetting = (st) => st.page === "home" || (st.type === "heading" ? /home screen/i.test(st.label || "") : /^home($|_)/.test(st.key || ""));
+  // One form for a set of design settings. Saves only those keys, so the two pages don't overwrite each other.
+  function settingsForm(list, saveLabel) {
     const vals = Object.assign({}, S.site.theme || {});
     const inputs = {};
     // "order": a list the comic arranges and switches on or off (menu order, Home screen sections).
     // Saved as [{ key, on }]. Options the design adds later show up at the end, with their default.
     const orderList = (st, v) => { const o = orderPicker(st, v); inputs[st.key] = o; return o.el; };
-    const rows = theme.settings.map((st) => {
+    const rows = list.map((st) => {
       if (st.type === "heading") return h("div", { class: "set-head" }, h("h2", { text: st.label }), st.help ? h("p", { class: "hint", text: st.help }) : null);
       const v = st.key in vals ? vals[st.key] : st.default;
       if (st.type === "order") return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), orderList(st, v));
       let input;
       if (st.type === "toggle") input = h("label", { class: "switch" }, (inputs[st.key] = h("input", { type: "checkbox", role: "switch", checked: !!v, "aria-label": st.label })), h("span"));
-      else if (st.type === "select") input = (inputs[st.key] = h("select", { "aria-label": st.label, style: "width:auto" }, (st.options || []).map((o) => { const [ov, ol] = Array.isArray(o) ? o : [o, o]; return h("option", { value: ov, text: ol, selected: ov === v }); })));
+      else if (st.type === "select") input = (inputs[st.key] = h("select", { "aria-label": st.label, style: "width:auto" }, (st.options || []).map((o) => { const [ov, ol] = Array.isArray(o) ? o : [o, o]; return h("option", { value: ov, text: ol, selected: String(v) === String(ov) }); })));
       else if (st.type === "lines") { const ta = h("textarea", { "aria-label": st.label, style: "min-height:150px;width:100%", placeholder: st.placeholder || "One per line" }); ta.value = (Array.isArray(v) ? v : []).join("\n");
         inputs[st.key] = { get value() { return ta.value.split(/\n+/).map((x) => x.trim()).filter(Boolean).slice(0, st.max || 50); } };
         return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), ta); }
@@ -2958,14 +2949,32 @@ td select.status.st-few_left { color: var(--warn); }
       else input = (inputs[st.key] = h("input", { value: v ?? "", placeholder: st.placeholder || "", "aria-label": st.label, style: "max-width:260px" }));
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), input);
     });
-    const save = h("button", { class: "btn primary", type: "submit", text: "Save design settings" });
-    main.append(h("form", { class: "card stack", onsubmit: async (e) => {
+    const save = h("button", { class: "btn primary", type: "submit", text: saveLabel });
+    return h("form", { class: "card stack", onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true;
       const out = {};
-      for (const st of theme.settings) { if (st.type === "heading") continue; const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; }
+      for (const st of list) { if (st.type === "heading") continue; const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; }
       try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, out) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
       save.disabled = false;
-    } }, h("div", { class: "switches" }, rows), h("div", { class: "btns" }, save)));
+    } }, h("div", { class: "switches" }, rows), h("div", { class: "btns" }, save));
+  }
+  // Which parts of the site are on (Shows, Podcast, Forum…). Off hides it from the site and the menu; nothing is deleted.
+  function sectionsCard() {
+    return h("section", { class: "card" }, h("h2", { text: "Sections" }), h("p", { class: "sub", text: "Turning one off hides it from your site and from the menu. Nothing is deleted." }), h("div", { class: "switches" }, FEATURES.map(([k, l, d]) => {
+      const box = h("input", { type: "checkbox", role: "switch", checked: F(k), "aria-label": l, onchange: async (e) => {
+        const features = { ...(S.site.features || {}), [k]: e.target.checked };
+        try { await q(sb.from("sites").update({ features }).eq("id", sid())); S.site.features = features; route(); toast(l + (e.target.checked ? " is on." : " is off.")); }
+        catch (err) { e.target.checked = !e.target.checked; toast(errText(err), { bad: true }); }
+      } });
+      return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), h("label", { class: "switch" }, box, h("span")));
+    })));
+  }
+  async function viewTheme(main) {
+    const theme = await loadTheme();
+    const list = theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => !isHomeSetting(st)) : [];
+    const homeToo = hasExtra("home_picks") || (theme && Array.isArray(theme.settings) && theme.settings.some(isHomeSetting));
+    main.append(head("Design", (theme && theme.name ? theme.name + ". " : "") + "What's on your site and how it looks: sections, the menu, colors and the extras that come with your design." + (homeToo ? " What's on the home screen is under Home screen." : "")));
+    main.append(h("div", { class: "stack" }, sectionsCard(), F("podcast") ? podcastsCard() : null, list.some((st) => st.type !== "heading") ? settingsForm(list, "Save design") : null));
   }
 
   /* ======================================================
@@ -3363,7 +3372,7 @@ td select.status.st-few_left { color: var(--warn); }
   const FEATURES = [["shows", "Shows & tour dates", "Your upcoming shows with ticket links."], ["podcast", "Podcast", "Episode archive that updates itself from your feed."], ["videos", "Videos", "Your latest YouTube uploads."],
     ["merch", "Merch", "Items you sell, linked to your store."], ["blog", "Blog", "Write posts for your fans. Drafts stay private until you publish."], ["fans", "Fan list", "Fans sign up with their email and city, so you can tell them when you're playing nearby."], ["forum", "Forum", "Message boards for your fans."], ["chat", "Chat room", "A live chat room that's always open for fans."]];
   async function viewSettings(main) {
-    main.append(head("Settings", "Your site's name and address, which sections are on, who can log in, and the code for using it on your own website."));
+    main.append(head("Settings", "Your site's name and address, who can log in, and the code for using it on your own website. Which sections are on is under Design."));
     const name = h("input", { value: S.site.name });
     const domainIn = h("input", { value: S.site.domain || "", disabled: !S.isPlatform, placeholder: "yourname.com", autocapitalize: "none" });
     const siteCard = h("form", { class: "card stack", onsubmit: async (e) => {
@@ -3372,14 +3381,6 @@ td select.status.st-few_left { color: var(--warn); }
       if (S.isPlatform) patch.domain = cleanDomain(domainIn.value) || null;
       try { await q(sb.from("sites").update(patch).eq("id", sid())); Object.assign(S.site, patch); route(); toast("Saved."); } catch (err) { toast(errText(err), { bad: true }); }
     } }, h("h2", { text: "Your site" }), h("div", { class: "grid" }, field("Site name", name, "c8"), field("Address", domainIn, "c4")), h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Save" })));
-    const feats = h("section", { class: "card" }, h("h2", { text: "Sections" }), h("p", { class: "sub", text: "Turning one off hides it from your site and from the menu. Nothing is deleted." }), h("div", { class: "switches" }, FEATURES.map(([k, l, d]) => {
-      const box = h("input", { type: "checkbox", role: "switch", checked: F(k), "aria-label": l, onchange: async (e) => {
-        const features = { ...(S.site.features || {}), [k]: e.target.checked };
-        try { await q(sb.from("sites").update({ features }).eq("id", sid())); S.site.features = features; route(); toast(l + (e.target.checked ? " is on." : " is off.")); }
-        catch (err) { e.target.checked = !e.target.checked; toast(errText(err), { bad: true }); }
-      } });
-      return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), h("label", { class: "switch" }, box, h("span")));
-    })));
     // For comics who keep their own website: the snippet that puts this site's live content on it
     const snippet = '<div data-comictable="shows"></div>\n<div data-comictable="fans"></div>\n<script src="https://comictable.com/embed.js" data-site="' + sid() + '"><\/script>';
     const embedCard = h("section", { class: "card stack" }, h("h2", { text: "Use on your own website" }),
@@ -3388,7 +3389,7 @@ td select.status.st-few_left { color: var(--warn); }
       h("div", { class: "hint", text: "Other pieces: data-comictable=\"episodes\", \"videos\" or \"posts\". Add data-limit=\"5\" to show fewer. Add data-accent=\"#ff3b6b\" to the script for your button color." }),
       h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Copy snippet", onclick: async () => toast((await copyText(snippet)) ? "Copied. Paste it into your site's HTML or embed block." : "Couldn't copy. Select it and copy instead.") })));
     // One page, four tabs, so nothing is buried at the bottom.
-    const panes = [["general", "General", siteCard], ["sections", "Sections", feats], ["podcasts", "Podcasts", podcastsCard()], ["team", "Team", teamCard()], ["embed", "Your own website", embedCard]];
+    const panes = [["general", "General", siteCard], ["team", "Team", teamCard()], ["embed", "Your own website", embedCard]];
     if (!panes.some((x) => x[0] === SETTAB)) SETTAB = "general";
     const tabs = h("div", { class: "tabs", role: "tablist", "aria-label": "Settings" });
     const show = () => { panes.forEach(([k, , el]) => { el.hidden = k !== SETTAB; }); tabs.querySelectorAll("button").forEach((b) => { const on = b.dataset.tab === SETTAB; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }); };
@@ -3544,7 +3545,7 @@ td select.status.st-few_left { color: var(--warn); }
       }
     } },
       h("h2", { text: "Start a new site" }),
-      h("p", { class: "sub", text: "Makes the comic's space on ComicTable: their shows, podcast, videos and fans, kept separate from everyone else's. Then add the comic in that site's Settings → Team. As a super admin you can manage every site without being on its team." }),
+      h("p", { class: "sub", text: "Makes the comic's space on ComicTable: their shows, podcast, videos and fans, kept separate from everyone else's. Then add the comic in that site's Lineup, and give them a login there. As a super admin you can manage every site without being on its team." }),
       h("div", { class: "grid" }, field("Comic or show name", name, "c6"), field("Site id (used in the launch settings)", id, "c6"), field("Their web address", dom, "c12")),
       h("div", null, h("b", { text: "What's on their site" }), h("div", { class: "btns", style: "margin-top:8px" }, kinds.map(([k, l]) => h("label", { class: "pill", style: "cursor:pointer;gap:6px;display:inline-flex;align-items:center" }, boxes[k], l)))),
       h("div", { class: "hint", text: "You can change any of this later in that site's Settings." }), msg, h("div", { class: "btns" }, btn));
