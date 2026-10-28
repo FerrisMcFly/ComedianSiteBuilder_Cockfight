@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { eventsFromHtml, eventsFromIcs, whenOf, mentions, importShows } from "../netlify/lib/shows.mjs";
+import { eventsFromHtml, eventsFromIcs, whenOf, mentions, importShows, eventsFromMicrodata, eventsFromJson, icsLinkIn, parseListing, fetchProblem } from "../netlify/lib/shows.mjs";
 
 const club = readFileSync(new URL("./fixtures/club.html", import.meta.url), "utf8");
 const ics = readFileSync(new URL("./fixtures/tour.ics", import.meta.url), "utf8");
@@ -68,5 +68,24 @@ test("auto-add: new dates go straight onto the comic's calendar, skipping ones a
 });
 
 test("a page with no dates says what to try instead", async () => {
-  await assert.rejects(importShows(fakeDb({}), { id: "s", site_id: "x", url: "https://x.example/" }, page("<html>nothing</html>")), /No show dates found/);
+  await assert.rejects(importShows(fakeDb({}), { id: "s", site_id: "x", url: "https://x.example/" }, page("<html>nothing</html>")), /couldn't see any shows/);
+});
+
+test("show finder: microdata, embedded JSON, linked calendar feeds, plain-English errors", async () => {
+  const md = `<div itemscope itemtype="https://schema.org/ComedyEvent"><h3 itemprop="name">Rita Ramos</h3><meta itemprop="startDate" content="2030-11-06T19:30:00"><a itemprop="url" href="https://t.example/1">Tickets</a></div>
+    <div itemscope itemtype="http://schema.org/Event"><span itemprop="name">Open Mic</span><time itemprop="startDate" datetime="2030-11-07T20:00">Nov 7</time></div>`;
+  const a = eventsFromMicrodata(md);
+  assert.equal(a.length, 2);
+  assert.equal(JSON.stringify([a[0].date, a[0].time, a[0].title, a[0].url]), JSON.stringify(["2030-11-06", "7:30 PM", "Rita Ramos", "https://t.example/1"]));
+  const nx = `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { shows: [
+    { title: "Rita Ramos Live", start_date: "2030-12-01T21:45:00", venue: { name: "Funny Place", city: "St. Louis", state: "MO" }, ticket_url: "https://tix.example/9", sold_out: true },
+    { id: 2, slug: "nope" }] } } })}</script>`;
+  const b = eventsFromJson(nx);
+  assert.equal(b.length, 1);
+  assert.equal(JSON.stringify([b[0].date, b[0].time, b[0].venue, b[0].city, b[0].status, b[0].url]), JSON.stringify(["2030-12-01", "9:45 PM", "Funny Place", "St. Louis, MO", "sold_out", "https://tix.example/9"]));
+  assert.equal(parseListing(nx).length, 1);
+  assert.equal(icsLinkIn('<a href="webcal://club.example/cal.ics">Subscribe</a>', "https://club.example/shows"), "https://club.example/cal.ics");
+  assert.equal(icsLinkIn('<a href="/feeds/shows.ics">Add</a>', "https://club.example/shows"), "https://club.example/feeds/shows.ics");
+  assert.match(fetchProblem("thestandnyc.com", 403), /blocks automatic checks/);
+  assert.match(fetchProblem("x.com", 404), /isn't there anymore/);
 });
