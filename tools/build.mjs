@@ -33,7 +33,11 @@ if (id === "platform") {
     if (existsSync(t)) cpSync(t, join(out, "themes", s + ".json"));
   }
   writeConfig(out, { PLATFORM: true, ...logins, ...db }, "the ComicTable admin");
-  writeFileSync(join(out, "_headers"), ["/app.html", "/login", "/dashboard"].map((p) => p + "\n  X-Robots-Tag: noindex, nofollow\n").join(""));
+  // comictable.com/embed.js: the data kit plus small widgets, for comics who keep their own site
+  writeFileSync(join(out, "embed.js"), "/* ComicTable embed. See https://comictable.com */\n(function () {\nvar EMBED_CFG = " + JSON.stringify(db) + ";\n" +
+    readFileSync(join(root, "platform", "sdk", "csb.js"), "utf8") + "\n" + readFileSync(join(root, "platform", "embed", "widgets.js"), "utf8") + "\n})();\n");
+  writeFileSync(join(out, "_headers"), ["/app.html", "/login", "/dashboard"].map((p) => p + "\n  X-Robots-Tag: noindex, nofollow\n").join("") +
+    "/embed.js\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=300\n");
   writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/admin  /login  301", "/admin.html  /login  301"].join("\n") + "\n");
   console.log(`Built the ComicTable admin into ${out} (${sites.length} site${sites.length === 1 ? "" : "s"} known)`);
 } else {
