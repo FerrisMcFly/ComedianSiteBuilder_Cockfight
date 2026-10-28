@@ -641,21 +641,26 @@ test("club database: search, edit (shows follow), merge duplicates, add", async 
   assert.ok(db.venues.find((v) => v.name === "Helium" && v.state === "OR" && v.verified));
 });
 
-test("comics: add a comic without a site, put them on a site, edit their profile", async () => {
+test("comics: a card grid with filters; open one to add them to a site, edit, and see their dates", async () => {
   const { w, d, db } = await open("#ct/comics", (db) => { db.sites.push({ id: "apes", name: "Modern Apes", features: {} }); });
-  await wait(80);
+  await wait(100);
+  const main = () => d.querySelector("main");
+  assert.equal(main().querySelectorAll(".comic-card").length, 4);
+  btn(d, /^Not on a site$/, main()).click(); await wait();
+  assert.deepEqual([...main().querySelectorAll(".comic-card b")].map((b) => b.textContent), ["Daniel Bridge-Gadd"]);
   d.getElementById("addComic").click(); await wait();
   set(w, d.getElementById("newComicName"), "Sam Newcomic");
-  d.getElementById("newComicName").form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(120);
+  d.getElementById("newComicName").form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(150);
   const c = db.comics.find((x) => x.name === "Sam Newcomic");
   assert.ok(c);
-  const main = d.querySelector("main");
-  assert.match(main.textContent, /Not on any site yet/);
-  const sel = main.querySelector('select[aria-label="Add to a site"]'); sel.value = "apes";
-  btn(d, /^Add$/, main).click(); await wait(80);
+  assert.match(main().textContent, /← All comics.*Sam Newcomic/s);
+  assert.match(main().textContent, /Put them on a site first/);
+  const sel = main().querySelector('select[aria-label="Add to a site"]'); sel.value = "apes";
+  btn(d, /^Add$/, main()).click(); await wait(150);
   assert.ok(db.hosts.find((h) => h.site_id === "apes" && h.comic_id === c.id));
-  const form = main.querySelector("form.card");
+  assert.match(main().textContent, /Modern Apes/);
+  const form = main().querySelector("form.card");
   form.querySelector("textarea").value = "Sam bio";
-  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(100);
   assert.equal(db.comics.find((x) => x.id === c.id).bio, "Sam bio");
 });
