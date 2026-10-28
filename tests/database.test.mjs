@@ -27,7 +27,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -247,4 +247,22 @@ test("show finder: show sources and found shows follow the same rules as shows",
   assert.equal((await rows(OWNER, "select count(*)::int n from found_shows"))[0].n, 1);
   // the same listing is only kept once
   assert.match(await as(OWNER, `insert into found_shows (site_id, comic_id, key, date) values ('cockfight', 'tristan-bowling', 'k1', current_date + 2)`), /duplicate|unique/i);
+});
+
+test("a comic's own login can edit their profile and dates on every site they're on, and sees them all in one list", async () => {
+  const LEV = "33333333-3333-3333-3333-333333333333";
+  await q(`insert into auth.users values ('${LEV}', 'lev@x') on conflict do nothing`);
+  await q(`update comics set user_id = '${LEV}' where id = 'lev-fer'`);
+  // Lev isn't on anyone's team, but his comic login still covers his own stuff
+  assert.equal(await as(LEV, `update comics set bio = 'Lev wrote this' where id = 'lev-fer'`), "ok");
+  assert.equal((await q("select bio from hosts where comic_id = 'lev-fer' and site_id = 'cockfight'"))[0].bio, "Lev wrote this");
+  assert.equal(await as(LEV, `update comics set bio = 'not mine' where id = 'colum-tyrrell'`), "ok");
+  assert.notEqual((await q("select bio from comics where id = 'colum-tyrrell'"))[0].bio, "not mine");
+  const levHost = (await q("select id from hosts where comic_id = 'lev-fer' and site_id = 'cockfight'"))[0].id;
+  assert.equal(await as(LEV, `insert into shows (site_id, host, date, venue) values ('cockfight', '${levHost}', current_date + 8, 'Lev solo night')`), "ok");
+  // ...but not Cockfight's own stuff
+  assert.equal(await as(LEV, `update sites set name = 'Levfight' where id = 'cockfight'`), "ok");
+  assert.equal((await q("select name from sites where id = 'cockfight'"))[0].name, "Cockfight");
+  const mine = (await rows(LEV, "select r from comic_shows('lev-fer') r")).map((x) => x.r);
+  assert.ok(mine.some((r) => r.venue === "Lev solo night" && r.site_name === "Cockfight"));
 });

@@ -456,6 +456,14 @@ td select.status.st-few_left { color: var(--warn); }
   const hostComic = (id) => (S.hosts.find((x) => x.id === id) || {}).comic_id || null;
   const crew = () => S.hosts.filter((x) => !x.hidden && x.comic_id).map((x) => x.comic_id);
 
+  // Which people on this site have their own login (comics.user_id)
+  async function loadLogins() {
+    S.logins = {};
+    const ids = S.hosts.map((x) => x.comic_id).filter(Boolean);
+    if (!ids.length) return;
+    try { (await q(sb.from("comics").select("id, user_id").in("id", ids))).forEach((c) => { S.logins[c.id] = c.user_id || null; }); } catch (e) {}
+  }
+
   async function loadAll() {
     const site = sid();
     const [hosts, shows, episodes, videos, merch, venues, sources, settings] = await Promise.all([
@@ -469,6 +477,7 @@ td select.status.st-few_left { color: var(--warn); }
       q(sb.from("settings").select("*").eq("site_id", site))
     ]);
     Object.assign(S, { hosts, shows, episodes, videos, merch, venues, sources, settings: Object.fromEntries(settings.map((r) => [r.key, r.value])) });
+    await loadLogins();
   }
   const reload = {
     shows: async () => { S.shows = await loadShows(sid()); },
@@ -477,7 +486,7 @@ td select.status.st-few_left { color: var(--warn); }
     merch: async () => { S.merch = await q(sb.from("merch").select("*").eq("site_id", sid()).order("sort", { ascending: true })); },
     venues: async () => { S.venues = await q(sb.from("venues").select("*").order("name", { ascending: true })); },
     sources: async () => { S.sources = await loadSources(sid()); },
-    hosts: async () => { S.hosts = await q(sb.from("hosts").select("*").eq("site_id", sid()).order("sort", { ascending: true })); }
+    hosts: async () => { S.hosts = await q(sb.from("hosts").select("*").eq("site_id", sid()).order("sort", { ascending: true })); await loadLogins(); }
   };
 
   /* ============ addresses ============ */
@@ -523,6 +532,9 @@ td select.status.st-few_left { color: var(--warn); }
         q(sb.from("admins").select("site_id").eq("user_id", session.user.id)),
         q(sb.from("platform_admins").select("user_id").eq("user_id", session.user.id))]);
       S.isPlatform = plat.length > 0;
+      // Is this login a comic? Then they get a "Me" page with their profile and dates on every site.
+      try { S.me = (await q(sb.from("comics").select("*").eq("user_id", session.user.id)))[0] || null; } catch (e) { S.me = null; }
+      S.uid = session.user.id;
       if (!mine.length && !S.isPlatform) { await sb.auth.signOut(); return showLogin("This login isn't an admin of any site yet."); }
       // Super admins get every site; everyone else gets only the sites they're on the team of.
       S.sites = S.isPlatform ? await q(sb.from("sites").select("*").order("name", { ascending: true }))
@@ -545,6 +557,7 @@ td select.status.st-few_left { color: var(--warn); }
   /* ============ shell ============ */
   const SECTIONS = [
     { id: "home", label: "Home", ico: "🏠", render: viewHome },
+    { id: "me", label: "Me", ico: "👤", meOnly: true, render: viewMe },
     { id: "shows", group: "Content", label: "Shows", ico: "🎟️", feat: "shows", count: () => S.shows.filter((s) => s.date >= today()).length, render: viewShows },
     { id: "podcast", group: "Content", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
     { id: "videos", group: "Content", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
@@ -564,7 +577,7 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "sites", group: "ComicTable", label: "All sites", ico: "🧩", platform: true, render: viewSites }
   ];
   const hasExtra = (x) => !!(THEME && (x === "design" ? Array.isArray(THEME.settings) && THEME.settings.length : Array.isArray(THEME.extras) && THEME.extras.includes(x)));
-  const visible = () => SECTIONS.filter((s) => (!s.platform || S.isPlatform) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
+  const visible = () => SECTIONS.filter((s) => (!s.platform || S.isPlatform) && (!s.meOnly || S.me) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
   const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
   window.addEventListener("hashchange", () => { if (S.site) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
@@ -1504,62 +1517,135 @@ td select.status.st-few_left { color: var(--warn); }
       } catch (e) {}
     })();
     S.hosts.forEach((x, idx) => {
-      const shared = !!x.comic_id;
-      const own = h("input", { type: "checkbox", checked: !!(x.own_bio || x.own_title) });
-      const inp = { name: h("input", { value: x.name, required: true }), title: h("input", { value: x.title || "", placeholder: "Comedian" }), status: h("input", { value: x.status || "", placeholder: "Automatic" }), bio: h("textarea", { value: x.bio || "" }) };
-      for (const [k, , ph] of SOC) inp[k] = h("input", { type: "url", value: x[k] || "", placeholder: ph });
-      let pic = x.photo_url ? h("img", { class: "avatar", src: x.photo_url, alt: "" }) : h("div", { class: "avatar", text: "No photo" });
-      const file = h("input", { type: "file", accept: "image/*", style: "display:none" });
-      file.addEventListener("change", () => { if (file.files[0]) { const im = h("img", { class: "avatar", src: URL.createObjectURL(file.files[0]), alt: "" }); pic.replaceWith(im); pic = im; } });
-      const msg = h("div", { class: "err" });
-      const save = h("button", { class: "btn primary", type: "submit", text: "Save changes" });
-      const showCount = S.shows.filter((s) => s.host === x.id).length;
-      const swap = async (a, b) => {
-        const A = S.hosts[a], B = S.hosts[b];
-        try { await q(sb.from("hosts").update({ sort: b }).eq("id", A.id)); await q(sb.from("hosts").update({ sort: a }).eq("id", B.id)); await reload.hosts(); route(); } catch (e) { toast(errText(e), { bad: true }); }
-      };
-      const card = h("form", { class: "card stack" + (x.hidden ? " is-hidden" : ""), onsubmit: async (e) => {
-        e.preventDefault(); save.disabled = true; msg.textContent = "";
-        const prof = { name: inp.name.value.trim(), status: inp.status.value.trim() || null };
-        for (const [k] of SOC) prof[k] = inp[k].value.trim() || null;
-        const words = { title: inp.title.value.trim() || "Comedian", bio: inp.bio.value.trim() };
-        try {
-          if (file.files[0]) prof.photo_url = await uploadImage(file.files[0], x.comic_id || x.id);
-          if (!shared) await q(sb.from("hosts").update({ ...prof, ...words }).eq("id", x.id));
-          else if (own.checked) {
-            await q(sb.from("comics").update(prof).eq("id", x.comic_id));
-            await q(sb.from("hosts").update({ ...words, own_bio: true, own_title: true }).eq("id", x.id));
-          } else {
-            await q(sb.from("comics").update({ ...prof, ...words }).eq("id", x.comic_id));
-            if (x.own_bio || x.own_title) await q(sb.from("hosts").update({ own_bio: false, own_title: false }).eq("id", x.id));
-          }
-          await reload.hosts(); file.value = ""; toast(prof.name + " saved."); route();
-        } catch (err) { msg.textContent = errText(err); save.disabled = false; }
-      } },
-        h("div", { class: "person-top" }, pic, h("div", { style: "min-width:0;flex:1" }, h("b", { text: x.name }), x.hidden ? h("span", { class: "pill", style: "margin-left:6px", text: "Hidden" }) : null,
-          h("div", { class: "hint", text: showCount ? showCount + " show" + (showCount > 1 ? "s" : "") : "No shows yet" }),
-          h("div", { class: "btns", style: "margin-top:6px;gap:4px" }, h("label", { class: "btn sm" }, "Change photo", file),
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " earlier", text: "↑", disabled: idx === 0, onclick: () => swap(idx, idx - 1) }),
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " later", text: "↓", disabled: idx === S.hosts.length - 1, onclick: () => swap(idx, idx + 1) })))),
-        shared ? h("div", { class: "hint", "data-also": x.comic_id, hidden: true }) : null,
-        h("div", { class: "grid" }, field("Name", inp.name, "c6"), field("Title", inp.title, "c6"), field("Status", inp.status, "c12"), field("Bio", inp.bio, "c12")),
-        shared ? h("label", { class: "check" }, own, "Use a different title and bio on " + S.site.name) : null,
-        h("details", { class: "quiet" }, h("summary", { text: "Social links" }), h("div", { class: "grid", style: "margin-top:8px" }, SOC.map(([k, l]) => field(l, inp[k], "c12")))),
-        msg,
-        h("div", { class: "btns" }, save,
-          h("button", { class: "btn ghost", type: "button", text: x.hidden ? "Show on site" : "Hide from site", title: "Hidden people keep their info and shows, but don't appear on your site", onclick: async () => {
-            try { await q(sb.from("hosts").update({ hidden: !x.hidden }).eq("id", x.id)); await reload.hosts(); await reload.shows(); route(); toast(x.hidden ? x.name + " is back on your site." : x.name + " is hidden from your site."); } catch (e) { toast(errText(e), { bad: true }); }
-          } }),
-          h("button", { class: "btn ghost danger", type: "button", text: "Remove…", onclick: (e) => {
-            const zone = e.currentTarget.parentNode;
-            zone.replaceWith(h("div", { class: "newclub stack", style: "gap:8px" }, h("b", { text: "Take " + x.name + " off " + S.site.name + "?" }),
-              h("span", { class: "hint", text: shared ? "Their page here goes away. Their profile and show dates stay theirs, and keep showing on any other site they're on." : (showCount ? "This also deletes their " + showCount + " show" + (showCount > 1 ? "s" : "") + ". To keep everything, use Hide from site instead." : "Their page goes away. This can't be undone.") }),
-              h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Yes, remove", onclick: async () => {
-                try { await q(sb.from("hosts").delete().eq("id", x.id)); await reload.hosts(); await reload.shows(); route(); toast(x.name + " is off " + S.site.name + "."); } catch (er) { toast(errText(er), { bad: true }); }
-              } }), h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: () => route() }))));
-          } })));
-      grid.append(card);
+      grid.append(personCard(x, idx));
     });
+  }
+  /* ======================================================
+     ME (a comic's own login)
+     ====================================================== */
+  async function viewMe(main) {
+    const me = S.me;
+    main.append(head("Me", "Your profile and your dates, on every site you're on. Change something here and it changes everywhere."));
+    const wrap = h("div", { class: "stack" }); main.append(wrap);
+    const sitesCard = h("section", { class: "card" }, h("h2", { text: "Your sites" }), h("p", { class: "hint", text: "Loading…" }));
+    const datesCard = h("section", { class: "card" }, h("h2", { text: "Your upcoming dates" }), h("p", { class: "hint", text: "Loading…" }));
+    const here = S.hosts.find((x) => x.comic_id === me.id);
+    wrap.append(sitesCard, datesCard, personCard({ ...me, id: here ? here.id : null, comic_id: me.id }, 0, { me: true }));
+    let mySites = [];
+    try {
+      const rows = await q(sb.from("hosts").select("site_id, id").eq("comic_id", me.id));
+      const sites = await q(sb.from("sites").select("id, name, domain").in("id", rows.map((r) => r.site_id)));
+      mySites = sites.map((st) => ({ ...st, host: rows.find((r) => r.site_id === st.id).id, team: S.sites.some((x) => x.id === st.id) }));
+      sitesCard.replaceChildren(h("h2", { text: "Your sites" }), h("p", { class: "sub", text: "You're on these. Your name, photo, socials, bio and dates show on all of them." }),
+        h("div", null, mySites.map((st) => h("div", { class: "switch-row" },
+          h("div", null, h("b", { text: st.name }), st.id === sid() ? h("span", { class: "pill", style: "margin-left:6px", text: "Open now" }) : null, h("div", { class: "hint", text: st.domain || "No web address yet" })),
+          h("div", { class: "btns" },
+            st.team && st.id !== sid() ? h("button", { class: "btn sm", type: "button", text: "Open", onclick: () => switchSite(st.id, "home") }) : null,
+            st.domain ? h("a", { class: "btn sm ghost", href: "https://" + st.domain, target: "_blank", rel: "noopener", text: "Visit ↗" }) : null)))));
+    } catch (e) { sitesCard.replaceChildren(h("h2", { text: "Your sites" }), h("p", { class: "err", text: errText(e) })); }
+    try {
+      const dates = await q(sb.rpc("comic_shows", { p_comic: me.id }));
+      // adding dates happens on a site you're on: this one if you're on it, otherwise the first one you can open
+      const addHere = here ? () => { go("shows"); setTimeout(() => openRun({ host: here.id })); }
+        : (() => { const st = mySites.find((x) => x.team); return st ? async () => { await switchSite(st.id, "shows"); const hh = S.hosts.find((x) => x.comic_id === me.id); setTimeout(() => openRun({ host: hh && hh.id })); } : null; })();
+      datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Your upcoming dates (" + dates.length + ")" }),
+          addHere ? h("button", { class: "btn primary", type: "button", text: "+ Add dates", onclick: addHere }) : null),
+        h("p", { class: "sub", text: "Every date you add shows on all your sites. Live shows with a whole crew are marked with the show's name." }),
+        dates.length ? h("div", null, dates.map((d) => h("div", { class: "switch-row" },
+          h("div", { style: "min-width:0" }, h("b", { text: shortDate(d.date) + (d.time ? " at " + d.time : "") + " · " + (d.venue || d.city || "Show") }),
+            h("div", { class: "hint", text: [d.city, d.event ? "🎉 " + d.site_name + " live show" : "", d.status === "sold_out" ? "Sold out" : d.status === "cancelled" ? "Cancelled" : ""].filter(Boolean).join(" · ") })),
+          d.url ? h("a", { class: "btn sm ghost", href: d.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : h("span", { class: "pill warn", text: "No ticket link" }))))
+          : empty("No upcoming dates", "Add some and they'll show on every site you're on."));
+    } catch (e) { datesCard.replaceChildren(h("h2", { text: "Your upcoming dates" }), h("p", { class: "err", text: /comic_shows|function/i.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) })); }
+  }
+
+  // On a site's People page: give a comic their own login (or see that they have one).
+  function loginBox(x) {
+    const has = S.logins && S.logins[x.comic_id];
+    const first1 = x.name.split(" ")[0];
+    if (has) return h("div", { class: "hint" }, "🔑 " + first1 + " has their own login" + (has === S.uid ? " (that's you)" : "") + ". They can edit their profile and dates from any site they're on.");
+    const box = h("div");
+    const open = () => {
+      const user = h("input", { placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
+      const pass = h("input", { type: "text", placeholder: "starting password (8+)", "aria-label": "Starting password" });
+      const own = h("input", { type: "checkbox" });
+      const msg = h("div", { class: "err" });
+      box.replaceChildren(h("div", { class: "newclub stack", style: "gap:8px" }, h("b", { text: "Give " + first1 + " a login" }),
+        h("div", { class: "hint", text: "They'll be able to edit their own profile and dates on every site they're on, and they join " + S.site.name + "'s team." }),
+        h("div", { class: "grid" }, field("Username or email", user, "c6"), field("Starting password", pass, "c6")),
+        h("label", { class: "check" }, own, "Make them an owner of " + S.site.name + " (for their own site)"), msg,
+        h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Create login", onclick: async (e) => {
+          msg.textContent = ""; if (!user.value.trim()) { user.classList.add("bad"); user.focus(); return; }
+          const b = e.currentTarget; b.disabled = true;
+          try { await teamCall({ action: "link_comic", comic_id: x.comic_id, email: loginEmail(user.value), password: pass.value, role: own.checked ? "owner" : "editor" });
+            await loadLogins(); toast(first1 + " can log in now as " + loginEmail(user.value) + "."); route(); }
+          catch (er) { msg.textContent = er.message; b.disabled = false; }
+        } }), h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: () => box.replaceChildren(btn0) }))));
+      user.focus();
+    };
+    const btn0 = h("button", { class: "btn ghost sm", type: "button", text: "🔑 Give " + first1 + " a login", onclick: open });
+    box.append(btn0);
+    return box;
+  }
+
+  // One person's card: their shared profile, plus (on a site's People page) this site's own controls.
+  function personCard(x, idx, opts = {}) {
+    const shared = !!x.comic_id, lineup = !opts.me;
+    const own = h("input", { type: "checkbox", checked: !!(x.own_bio || x.own_title) });
+    const inp = { name: h("input", { value: x.name, required: true }), title: h("input", { value: x.title || "", placeholder: "Comedian" }), status: h("input", { value: x.status || "", placeholder: "Automatic" }), bio: h("textarea", { value: x.bio || "" }) };
+    for (const [k, , ph] of SOC) inp[k] = h("input", { type: "url", value: x[k] || "", placeholder: ph });
+    let pic = x.photo_url ? h("img", { class: "avatar", src: x.photo_url, alt: "" }) : h("div", { class: "avatar", text: "No photo" });
+    const file = h("input", { type: "file", accept: "image/*", style: "display:none" });
+    file.addEventListener("change", () => { if (file.files[0]) { const im = h("img", { class: "avatar", src: URL.createObjectURL(file.files[0]), alt: "" }); pic.replaceWith(im); pic = im; } });
+    const msg = h("div", { class: "err" });
+    const save = h("button", { class: "btn primary", type: "submit", text: "Save changes" });
+    const showCount = S.shows.filter((s) => s.host === x.id).length;
+    const swap = async (a, b) => {
+      const A = S.hosts[a], B = S.hosts[b];
+      try { await q(sb.from("hosts").update({ sort: b }).eq("id", A.id)); await q(sb.from("hosts").update({ sort: a }).eq("id", B.id)); await reload.hosts(); route(); } catch (e) { toast(errText(e), { bad: true }); }
+    };
+    const card = h("form", { class: "card stack" + (x.hidden ? " is-hidden" : ""), onsubmit: async (e) => {
+      e.preventDefault(); save.disabled = true; msg.textContent = "";
+      const prof = { name: inp.name.value.trim(), status: inp.status.value.trim() || null };
+      for (const [k] of SOC) prof[k] = inp[k].value.trim() || null;
+      const words = { title: inp.title.value.trim() || "Comedian", bio: inp.bio.value.trim() };
+      try {
+        if (file.files[0]) prof.photo_url = await uploadImage(file.files[0], x.comic_id || x.id);
+        if (!shared) await q(sb.from("hosts").update({ ...prof, ...words }).eq("id", x.id));
+        else if (lineup && own.checked) {
+          await q(sb.from("comics").update(prof).eq("id", x.comic_id));
+          await q(sb.from("hosts").update({ ...words, own_bio: true, own_title: true }).eq("id", x.id));
+        } else {
+          await q(sb.from("comics").update({ ...prof, ...words }).eq("id", x.comic_id));
+          if (lineup && (x.own_bio || x.own_title)) await q(sb.from("hosts").update({ own_bio: false, own_title: false }).eq("id", x.id));
+        }
+        await reload.hosts(); if (opts.me) S.me = { ...S.me, ...prof, ...words }; file.value = ""; toast(prof.name + " saved."); route();
+      } catch (err) { msg.textContent = errText(err); save.disabled = false; }
+    } },
+      h("div", { class: "person-top" }, pic, h("div", { style: "min-width:0;flex:1" }, h("b", { text: x.name }), x.hidden ? h("span", { class: "pill", style: "margin-left:6px", text: "Hidden" }) : null,
+        lineup ? h("div", { class: "hint", text: showCount ? showCount + " show" + (showCount > 1 ? "s" : "") : "No shows yet" }) : h("div", { class: "hint", text: "Your profile on every site you're on" }),
+        h("div", { class: "btns", style: "margin-top:6px;gap:4px" }, h("label", { class: "btn sm" }, "Change photo", file),
+          lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " earlier", text: "↑", disabled: idx === 0, onclick: () => swap(idx, idx - 1) }) : null,
+          lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " later", text: "↓", disabled: idx === S.hosts.length - 1, onclick: () => swap(idx, idx + 1) }) : null))),
+      shared && lineup ? h("div", { class: "hint", "data-also": x.comic_id, hidden: true }) : null,
+      h("div", { class: "grid" }, field("Name", inp.name, "c6"), field("Title", inp.title, "c6"), field("Status", inp.status, "c12"), field("Bio", inp.bio, "c12")),
+      shared && lineup ? h("label", { class: "check" }, own, "Use a different title and bio on " + S.site.name) : null,
+      h("details", { class: "quiet" }, h("summary", { text: "Social links" }), h("div", { class: "grid", style: "margin-top:8px" }, SOC.map(([k, l]) => field(l, inp[k], "c12")))),
+      msg,
+      lineup && shared ? loginBox(x) : null,
+      h("div", { class: "btns" }, save, !lineup ? null :
+        h("button", { class: "btn ghost", type: "button", text: x.hidden ? "Show on site" : "Hide from site", title: "Hidden people keep their info and shows, but don't appear on your site", onclick: async () => {
+          try { await q(sb.from("hosts").update({ hidden: !x.hidden }).eq("id", x.id)); await reload.hosts(); await reload.shows(); route(); toast(x.hidden ? x.name + " is back on your site." : x.name + " is hidden from your site."); } catch (e) { toast(errText(e), { bad: true }); }
+        } }),
+        !lineup ? null : h("button", { class: "btn ghost danger", type: "button", text: "Remove…", onclick: (e) => {
+          const zone = e.currentTarget.parentNode;
+          zone.replaceWith(h("div", { class: "newclub stack", style: "gap:8px" }, h("b", { text: "Take " + x.name + " off " + S.site.name + "?" }),
+            h("span", { class: "hint", text: shared ? "Their page here goes away. Their profile and show dates stay theirs, and keep showing on any other site they're on." : (showCount ? "This also deletes their " + showCount + " show" + (showCount > 1 ? "s" : "") + ". To keep everything, use Hide from site instead." : "Their page goes away. This can't be undone.") }),
+            h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Yes, remove", onclick: async () => {
+              try { await q(sb.from("hosts").delete().eq("id", x.id)); await reload.hosts(); await reload.shows(); route(); toast(x.name + " is off " + S.site.name + "."); } catch (er) { toast(errText(er), { bad: true }); }
+            } }), h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: () => route() }))));
+        } })));
+    return card;
   }
 
 

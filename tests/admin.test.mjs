@@ -52,6 +52,7 @@ function makeDb() {
   const client = { auth: { getSession: async () => ({ data: { session: { access_token: "tok", user: { id: "u1", email: "ferris@x.com" } } } }), signOut: async () => {}, onAuthStateChange() {} },
     rpc: async (name, args) => name === "site_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.site_id === args.p_site))), error: null }
       : name === "site_videos" ? { data: JSON.parse(JSON.stringify(db.videos.filter((x) => x.site_id === args.p_site))), error: null }
+      : name === "comic_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.date >= fri.slice(0, 4) + "-01-03").filter((x) => x.comic_id === args.p_comic || (x.host && (db.hosts.find((h) => h.id === x.host) || {}).comic_id === args.p_comic)).map((x) => ({ ...x, site_name: "Cockfight", event: false })))), error: null }
       : name === "fans_near_shows" ? { data: db.shows.filter((x) => x.date >= fri).map((x) => ({ show_id: x.id, fans: (db.fans || []).length })), error: null }
       : name === "fans_near_show" ? { data: JSON.parse(JSON.stringify(db.fans || [])), error: null }
       : name === "create_site" ? (db.sites.push({ id: args.p_id, name: args.p_name, domain: args.p_domain, features: {}, created_at: "2026-10-27" }), db.admins.push({ user_id: "u1", site_id: args.p_id, role: "owner" }), { data: null, error: null })
@@ -476,3 +477,37 @@ test("show finder: watch a page for someone, then add or ignore what it found", 
   assert.equal(posted.kind, "shows");
 });
 function shortDay(iso) { const d = new Date(iso + "T12:00:00"); return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()] + " " + d.getDate(); }
+
+test("a comic with their own login gets a Me page: their sites, all their dates, one profile", async () => {
+  const { w, d, db } = await open("#me", (db) => {
+    db.comics.find((c) => c.id === "lev-fer").user_id = "u1";
+    db.sites.push({ id: "lev-fer", name: "Lev Fer", domain: "levfer.com", features: { shows: true } });
+    db.hosts.push({ id: "lev-fer-lev", site_id: "lev-fer", comic_id: "lev-fer", name: "Lev Fer", sort: 0 });
+    db.shows.push({ id: "s5", site_id: "lev-fer", host: "lev-fer-lev", comic_id: "lev-fer", date: fri, time: "9:00 PM", venue: "Comedy Cellar", city: "New York, NY", url: "https://t/cc" });
+  });
+  await wait(80);
+  const main = d.querySelector("main");
+  assert.ok([...d.querySelectorAll(".nav-btn")].some((b) => /Me/.test(b.textContent)));
+  assert.match(main.textContent, /Your sites.*Cockfight.*Lev Fer.*levfer\.com/s);
+  assert.match(main.textContent, /Your upcoming dates \(1\).*Comedy Cellar/s);
+  // editing here edits the comic, not one site's copy
+  const card = main.querySelector("form.card");
+  card.querySelector("textarea").value = "Lev's own words";
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.equal(db.comics.find((c) => c.id === "lev-fer").bio, "Lev's own words");
+  // nobody without a comic login sees Me
+  const other = await open("");
+  assert.ok(![...other.d.querySelectorAll(".nav-btn")].some((b) => /^👤/.test(b.textContent.trim())));
+});
+
+test("people: give a comic their own login", async () => {
+  const { w, d } = await open("#people");
+  let sent = null;
+  w.fetch = async (u, o) => { sent = JSON.parse(o.body); return { ok: true, json: async () => ({ ok: true }) }; };
+  const card = [...d.querySelectorAll(".people form")].find((f) => /Lev Fer/.test(f.querySelector("b").textContent));
+  btn(d, /Give Lev a login/, card).click(); await wait();
+  const inputs = card.querySelectorAll(".newclub input");
+  set(w, inputs[0], "lev"); set(w, inputs[1], "supersecret"); inputs[2].checked = true;
+  btn(d, /^Create login$/, card).click(); await wait(60);
+  assert.deepEqual([sent.action, sent.comic_id, sent.email, sent.role], ["link_comic", "lev-fer", "lev@comictable.com", "owner"]);
+});
