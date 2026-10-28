@@ -359,7 +359,7 @@ test("platform admins can start a new comic's site and land on it ready to set u
   assert.equal(site.features.forum, true); assert.equal(site.features.chat, false);
   assert.equal(d.querySelector(".brand").textContent, "Jane Doe");
   assert.equal(w.location.hash, "#people");
-  assert.ok(d.querySelector("select[aria-label=Site]"), "site switcher appears once you have two sites");
+  assert.ok(d.getElementById("sitePick"), "site switcher appears once you have two sites");
 });
 
 test("people who aren't platform admins never see All sites", async () => {
@@ -394,9 +394,10 @@ test("fan list: who's near each show, copy their emails, find and remove fans", 
 test("super admins see every site, comics only their own", async () => {
   const addJane = (db) => db.sites.push({ id: "jane", name: "Jane Doe", features: { shows: true } });
   const sup = await open("", addJane);
-  assert.deepEqual([...sup.d.querySelectorAll("select[aria-label=Site] option")].map((o) => o.textContent).sort(), ["Cockfight", "Jane Doe"]);
+  sup.d.getElementById("sitePick").click(); await wait();
+  assert.deepEqual([...sup.d.querySelectorAll(".sp-item b")].map((o) => o.textContent).sort(), ["Cockfight", "Jane Doe"]);
   const comic = await open("", (db) => { addJane(db); db.platform_admins = []; });
-  assert.equal(comic.d.querySelector("select[aria-label=Site]"), null, "a comic on one site gets no site switcher");
+  assert.equal(comic.d.getElementById("sitePick"), null, "a comic on one site gets no site switcher");
   assert.equal(comic.d.querySelector(".brand").textContent, "Cockfight");
 });
 
@@ -527,4 +528,32 @@ test("blog: write a draft, publish it, see it in the list", async () => {
   d.getElementById("publishPost").click(); await wait(60);
   assert.equal(db.blog_posts[0].published, true);
   assert.equal(db.blog_posts[0].body, "It was **hot**.");
+});
+
+test("site finder: with 50 sites, type a few letters and press Enter; recent sites come first", async () => {
+  const { w, d } = await open("#home", (db) => {
+    for (let i = 1; i <= 50; i++) db.sites.push({ id: "comic-" + i, name: "Comic Number " + i, domain: "comic" + i + ".com", features: { shows: true } });
+    db.sites.push({ id: "lev-fer", name: "Lev Fer", domain: "levfer.com", features: { shows: true } });
+  });
+  assert.match(d.querySelector(".sp-hint").textContent, /52 sites/);
+  d.dispatchEvent(new w.KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })); await wait();
+  const input = d.getElementById("sitePickerSearch");
+  assert.ok(input, "⌘K opens the finder");
+  assert.match(d.querySelector(".sp-group").textContent, /All sites \(52\)/);
+  set(w, input, "lev"); await wait();
+  assert.deepEqual([...d.querySelectorAll(".sp-item b")].map((b) => b.textContent), ["Lev Fer"]);
+  input.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Enter", bubbles: true })); await wait(120);
+  assert.equal(d.querySelector(".site-pick .brand").textContent, "Lev Fer");
+  // next time, Lev is under Recent... well, he's open now; switch back and check
+  d.getElementById("sitePick").click(); await wait();
+  set(w, d.getElementById("sitePickerSearch"), "levfer.com"); await wait();
+  assert.equal(d.querySelectorAll(".sp-item").length, 1, "web addresses match too");
+  d.getElementById("sitePickerSearch").dispatchEvent(new w.KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await wait();
+  assert.equal(d.getElementById("sitePicker"), null);
+  d.getElementById("sitePick").click(); await wait();
+  set(w, d.getElementById("sitePickerSearch"), "cockf"); await wait();
+  d.getElementById("sitePickerSearch").dispatchEvent(new w.KeyboardEvent("keydown", { key: "Enter", bubbles: true })); await wait(120);
+  d.getElementById("sitePick").click(); await wait();
+  assert.equal(d.querySelector(".sp-group").textContent, "Recent");
+  assert.equal(d.querySelector(".sp-item b").textContent, "Lev Fer");
 });

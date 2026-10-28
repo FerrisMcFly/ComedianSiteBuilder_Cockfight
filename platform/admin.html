@@ -53,6 +53,22 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.015em; }
 .ct-mark::before { content: "🪑 "; }
 .ct-mark.sm { font-size: 13px; }
 .brand-sub { font-size: 12px; color: var(--muted); padding: 0 10px 14px; }
+.site-pick { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; background: none; border: 1px solid var(--line); border-radius: 12px; padding: 8px 4px 8px 0; cursor: pointer; color: var(--text); font: inherit; }
+.site-pick:hover { border-color: var(--line-strong, #cfc9c0); background: var(--bg); }
+.site-pick .sp-txt { display: grid; min-width: 0; flex: 1; }
+.site-pick .brand, .site-pick .brand-sub { padding: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-pick .sp-arrow { font-size: 18px; color: var(--muted); padding-right: 8px; }
+.sp-hint { font-size: 11px; color: var(--muted); padding: 6px 10px 12px; }
+.sp-wrap { position: fixed; inset: 0; background: rgba(20, 18, 16, .35); display: grid; justify-items: center; align-items: start; padding: 10vh 16px 16px; z-index: 50; }
+.sp-box { width: 100%; max-width: 560px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 20px 60px -20px rgba(0,0,0,.45); overflow: hidden; display: grid; }
+.sp-box > input { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; font-size: 18px; padding: 16px 18px; background: var(--panel); }
+.sp-box > input:focus { outline: none; box-shadow: none; }
+.sp-list { max-height: min(60vh, 520px); overflow-y: auto; padding: 6px; }
+.sp-group { font-size: 11px; font-weight: 700; color: var(--muted); padding: 10px 12px 4px; letter-spacing: .02em; }
+.sp-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-radius: 10px; padding: 10px 12px; cursor: pointer; color: var(--text); font: inherit; }
+.sp-item .hint { margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+.sp-item[aria-selected="true"] { background: var(--accent-soft, #fde8e6); }
+.sp-foot { border-top: 1px solid var(--line); padding: 8px 14px; font-size: 12px; }
 .nav-btn { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; background: none; border: 0; border-radius: 10px; padding: 9px 10px; cursor: pointer; color: var(--muted); font-weight: 600; }
 .nav-btn .ico { width: 20px; text-align: center; }
 .nav-btn .cnt { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -598,11 +614,15 @@ td select.status.st-few_left { color: var(--warn); }
         h("span", { class: "ico", "aria-hidden": "true", text: s.ico }), h("span", { text: s.label }), s.count ? h("span", { class: "cnt", text: s.count() }) : null));
       return out;
     });
-    const siteSwitch = S.sites.length > 1 ? h("select", { "aria-label": "Site", onchange: (e) => switchSite(e.target.value) },
-      S.sites.map((s) => h("option", { value: s.id, text: s.name, selected: s.id === sid() }))) : null;
+    // With more than one site, the name at the top opens the site finder (also ⌘K / Ctrl+K anywhere).
+    const many = S.sites.length > 1;
+    const top = many ? h("button", { class: "site-pick", type: "button", id: "sitePick", "aria-haspopup": "dialog", title: "Switch site (⌘K)", onclick: openSitePicker },
+        h("span", { class: "sp-txt" }, h("span", { class: "brand", text: S.site.name }), h("span", { class: "brand-sub", text: S.site.domain || "No web address yet" })),
+        h("span", { class: "sp-arrow", "aria-hidden": "true", text: "⌄" }))
+      : h("div", null, h("div", { class: "brand", text: S.site.name }), h("div", { class: "brand-sub", text: S.site.domain || "Your site" }));
     const main = h("main", { id: "main" });
     root.replaceChildren(h("div", { class: "app" },
-      h("aside", { class: "side" }, h("div", { class: "brand", text: S.site.name }), h("div", { class: "brand-sub", text: S.site.domain || "Your site" }), siteSwitch, nav,
+      h("aside", { class: "side" }, top, many ? h("div", { class: "sp-hint", text: S.sites.length + " sites · ⌘K to switch" }) : null, nav,
         h("div", { class: "side-foot" }, h("span", { class: "ct-mark sm", text: "ComicTable" }), h("span", { text: "Logged in as " + S.user }),
           h("div", { class: "links" }, S.site.domain || !CFG.PLATFORM ? h("a", { href: S.site.domain ? "https://" + S.site.domain : "./", target: "_blank", rel: "noopener", text: "View site ↗" }) : null,
             h("a", { href: "#", onclick: async (e) => { e.preventDefault(); await sb.auth.signOut(); S.site = null; showLogin(); }, text: "Log out" })))),
@@ -610,8 +630,57 @@ td select.status.st-few_left { color: var(--warn); }
     cur.render(main);
     window.scrollTo && window.scrollTo(0, 0);
   }
+  /* ---------- site finder: type a few letters, Enter. Recent sites first. ---------- */
+  const recentSites = () => { try { return JSON.parse(store.get("csb_recent_sites") || "[]"); } catch (e) { return []; } };
+  function openSitePicker() {
+    if (S.sites.length < 2 || $("sitePicker")) return;
+    const back = document.activeElement;
+    const input = h("input", { type: "search", id: "sitePickerSearch", placeholder: "Find a site: name or web address", autocomplete: "off", "aria-label": "Find a site", role: "combobox", "aria-controls": "sitePickerList", "aria-expanded": "true" });
+    const list = h("div", { class: "sp-list", id: "sitePickerList", role: "listbox", "aria-label": "Sites" });
+    let items = [], active = 0;
+    const close = () => { wrap.remove(); if (back && back.focus) back.focus(); };
+    const pick = (st) => { close(); if (st.id !== sid()) switchSite(st.id); };
+    const draw = () => {
+      const t = input.value.trim().toLowerCase();
+      const byName = S.sites.slice().sort((a, b) => a.name.localeCompare(b.name));
+      const recent = recentSites().map((id) => S.sites.find((x) => x.id === id)).filter((x) => x && x.id !== sid()).slice(0, 5);
+      const match = (st) => !t || st.name.toLowerCase().includes(t) || String(st.domain || "").includes(t) || st.id.includes(t);
+      const groups = t ? [["Matches", byName.filter(match)]]
+        : [["Recent", recent], ["All sites (" + S.sites.length + ")", byName.filter((x) => !recent.includes(x))]];
+      items = []; list.replaceChildren();
+      for (const [label, sites] of groups) {
+        if (!sites.length) continue;
+        list.append(h("div", { class: "sp-group", text: label }));
+        for (const st of sites) {
+          const i = items.length; items.push(st);
+          list.append(h("button", { type: "button", role: "option", class: "sp-item", id: "sp-" + i, "aria-selected": String(i === active), onclick: () => pick(st), onmousemove: () => { if (active !== i) { active = i; mark(); } } },
+            h("b", { text: st.name }), st.id === sid() ? h("span", { class: "pill", text: "Open now" }) : null, h("span", { class: "hint", text: st.domain || st.id })));
+        }
+      }
+      if (!items.length) list.append(h("div", { class: "empty", style: "padding:18px" }, h("b", { text: "No site matches “" + input.value.trim() + "”" }), S.isPlatform ? h("button", { class: "btn sm", type: "button", style: "margin-top:10px", text: "Start a new site", onclick: () => { close(); go("sites"); } }) : null));
+      mark();
+    };
+    const mark = () => { items.forEach((_, i) => { const b = $("sp-" + i); if (b) b.setAttribute("aria-selected", String(i === active)); }); const cur = $("sp-" + active); if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: "nearest" }); input.setAttribute("aria-activedescendant", items.length ? "sp-" + active : ""); };
+    input.addEventListener("input", () => { active = 0; draw(); });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") { e.preventDefault(); active = Math.min(items.length - 1, active + 1); mark(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); active = Math.max(0, active - 1); mark(); }
+      else if (e.key === "Enter") { e.preventDefault(); if (items[active]) pick(items[active]); }
+      else if (e.key === "Escape") { e.preventDefault(); close(); }
+    });
+    const wrap = h("div", { class: "sp-wrap", id: "sitePicker", onmousedown: (e) => { if (e.target === wrap) close(); } },
+      h("div", { class: "sp-box", role: "dialog", "aria-modal": "true", "aria-label": "Switch site" }, input, list,
+        h("div", { class: "sp-foot hint", text: "↑ ↓ to move · Enter to open · Esc to close" })));
+    document.body.append(wrap);
+    draw(); input.focus();
+  }
+  document.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && S.site && S.sites.length > 1) { e.preventDefault(); openSitePicker(); }
+  });
+
   async function switchSite(id, sec) {
     store.set("csb_site", id); S.site = S.sites.find((s) => s.id === id);
+    store.set("csb_recent_sites", JSON.stringify([id].concat(recentSites().filter((x) => x !== id)).slice(0, 8)));
     await loadAll(); await loadTheme();
     if (sec && location.hash.slice(1) !== sec) location.hash = sec; else route();
   }
