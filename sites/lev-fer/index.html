@@ -244,7 +244,22 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px var(--f-mono); letter-spacing: .14em; color: var(--glow-dim); text-transform: uppercase; border-top: 1px solid rgba(127,211,255,.18); padding-top: 12px; }
 .legal { grid-column: 1 / -1; margin: 0; max-width: 90ch; text-transform: none; letter-spacing: .04em; line-height: 1.6; }
 
+/* phone: a sticky bar with the menu as swipeable chips, so every section is one tap away from anywhere */
+.mbar { display: none; }
 @media (max-width: 820px) {
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: rgba(3,7,15,.96); }
+  .mbar { display: block; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+    background: rgba(3,7,15,.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(127,211,255,.25); }
+  .mbar nav { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;
+    padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+  .mbar nav::-webkit-scrollbar { display: none; }
+  .mbar a { flex: none; scroll-snap-align: start; display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; text-decoration: none; white-space: nowrap;
+    font: 12px var(--f-display); letter-spacing: .12em; text-transform: uppercase; color: var(--glow); border: 1px solid rgba(127,211,255,.35); background: rgba(127,211,255,.06); }
+  .mbar a[aria-current="page"] { background: var(--amber); border-color: var(--amber); color: var(--void); }
+  .screen { scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 70px); }
+  #who { display: none; }
+  .strip { padding-bottom: 8px; } .tip { font-size: 12px; }
+  .chatlog { height: 52vh; }
   .lobby, .record { grid-template-columns: 1fr; }
   /* on a phone the content comes first (visitors arrive from a link in a bio); the menu follows */
   .lobby > .screen { order: -1; }
@@ -257,6 +272,8 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   .date { grid-template-columns: 64px minmax(0, 1fr); } .date .tix { grid-column: 1 / -1; }
   footer { grid-template-columns: 1fr; }
 }
+/* touch screens: the A/B controller is for keyboards; tap targets get room */
+@media (pointer: coarse) { .pad-row { display: none; } .btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; } }
 @media (prefers-reduced-motion: reduce) { .bar i, .screen::after, #app { animation: none; } }
 </style>
 </head>
@@ -264,6 +281,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
 <canvas id="sky" aria-hidden="true"></canvas>
 <div class="scan" aria-hidden="true"></div>
 
+<div class="mbar"><nav id="mnav" aria-label="Menu"></nav></div>
 <div class="wrap">
   <div class="strip">
     <span class="load">Now loading <span class="bar"><i></i></span> <span class="tip" id="tip">Tip: This is not Halo 2. Please stop emailing us.</span></span>
@@ -352,6 +370,12 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   };
   var pages = function () { return ["home"].concat(orderOf(T().menu, MENU_DEFAULT)).filter(function (k) { return PAGES[k][2](); }); };
   function nav(cur) {
+    // the phone bar: same items, short labels
+    $("mnav").replaceChildren.apply($("mnav"), pages().map(function (k) {
+      if (k === "support") { var sp = support(); return el("a", { href: sp.url, target: "_blank", rel: "noopener", text: sp.label }); }
+      return el("a", { href: "#/" + k, "aria-current": k === cur ? "page" : null, text: PAGES[k][0] });
+    }));
+    var on = $("mnav").querySelector("[aria-current]"); if (on && on.scrollIntoView && phone()) try { on.scrollIntoView({ inline: "center", block: "nearest" }); } catch (e) {}
     $("nav").replaceChildren.apply($("nav"), pages().map(function (k) {
       if (k === "support") { var sp = support(); return el("a", { href: sp.url, target: "_blank", rel: "noopener" }, [sp.label, el("small", { text: "Opens " + host(sp.url) })]); }
       return el("a", { href: "#/" + k, "aria-current": k === cur ? "page" : null }, [PAGES[k][0], el("small", { text: PAGES[k][1] })]);
@@ -376,9 +400,22 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     ({ home: viewHome, shows: viewShows, clips: viewClips, podcast: viewPodcast, blog: viewBlog, forum: viewForum, chat: viewChat, list: viewList, about: viewAbout, socials: viewSocials, press: viewPress }[page])(app, parts[1], parts[2]);
     $("screen").classList.remove("engaged");
   }
-  window.addEventListener("hashchange", route);
+  var phone = function () { return window.matchMedia && matchMedia("(max-width: 820px)").matches; };
+  // On a phone, going somewhere brings you to it: the content scrolls up under the menu bar.
+  function toContent() {
+    if (!phone()) return;
+    var top = $("screen").getBoundingClientRect().top;
+    if (Math.abs(top - (document.querySelector(".mbar").offsetHeight + 8)) > 24) try { $("screen").scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" }); } catch (e) { $("screen").scrollIntoView(); }
+  }
+  window.addEventListener("hashchange", function () { route(); toContent(); });
+  // tapping the section you're already on still takes you to it
+  ["nav", "mnav"].forEach(function (id) { $(id).addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#/"]'); if (!a) return;
+    var here = (location.hash || "#/home").replace(/^#\/?$/, "#/home");
+    if (a.getAttribute("href") === here) { e.preventDefault(); toContent(); }
+  }); });
   var go = function (page) { location.hash = "#/" + page; };
-  var head = function (title, sub) { return [el("h2", { class: "head", text: title }), sub ? el("p", { class: "sub" }, [].concat(sub)) : null]; };
+  var head = function (title, sub) { return [el("h2", { class: "head", text: title })].concat(sub ? [el("p", { class: "sub" }, [].concat(sub))] : []); };
   var empty = function (title, line) { return el("div", { class: "empty" }, [el("b", { text: title }), line ? el("span", { text: line }) : null]); };
 
   /* ---------- bits ---------- */
