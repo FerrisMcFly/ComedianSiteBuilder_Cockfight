@@ -282,8 +282,10 @@ footer a { font-weight: 700; text-decoration: none; }
 
     // The comic decides what's on the Coaster itself ("front"), what's under More, and what's off.
     var plan = CSB.coasterPlan ? CSB.coasterPlan(c) : {}, front = [], more = [], frontBtns = [], moreBtns = [];
-    var put = function (key, node) { if (!node) return; var w = plan[key] || "front"; if (w === "front") front.push(node); else if (w === "more") more.push(node); };
-    var putBtn = function (key, node) { if (!node) return; var w = plan[key] || "front"; if (w === "front") frontBtns.push(node); else if (w === "more") moreBtns.push(node); };
+    // Each item is made once, then placed in the comic's order. Buttons next to each other share a row.
+    var items = {};
+    var put = function (key, node) { if (node) items[key] = { node: node }; };
+    var putBtn = function (key, node) { if (node) items[key] = { node: node, btn: true }; };
 
     // ---- who (always) ----
     parts.push(el("section", { class: "who" }, [el("h1", { text: c.name }), c.title ? el("p", { class: "title", text: c.title }) : null,
@@ -363,8 +365,18 @@ footer a { font-weight: 700; text-decoration: none; }
       else if (navigator.clipboard) navigator.clipboard.writeText(here).then(function () { toast("Link copied"); }, function () { toast(here); });
       else toast(here);
     } });
-    frontBtns.push(share);
     var row = function (btns) { return btns.length ? el("div", { class: btns.length > 1 ? "row2 links" : "links" }, btns) : null; };
+    var order = CSB.coasterOrder ? CSB.coasterOrder(c) : Object.keys(items);
+    ["front", "more"].forEach(function (where) {
+      var out = where === "front" ? front : more, btns = where === "front" ? frontBtns : moreBtns;
+      order.forEach(function (k) {
+        var it = items[k]; if (!it || (plan[k] || "front") !== where) return;
+        if (it.btn) { btns.push(it.node); return; }
+        if (btns.length) { out.push(row(btns.splice(0))); }
+        out.push(it.node);
+      });
+    });
+    frontBtns.push(share);
 
     // ---- put it together: the Coaster, then More ----
     parts.push.apply(parts, front.concat([row(frontBtns)]).filter(Boolean));

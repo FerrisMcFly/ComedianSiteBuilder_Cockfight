@@ -385,6 +385,14 @@
     return out;
   }
 
-  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
+  // The order the comic put their Coaster items in (saved as coaster.order); anything new goes at the end.
+  function coasterOrder(c) {
+    var saved = (c && c.coaster && Array.isArray(c.coaster.order)) ? c.coaster.order : [], keys = COASTER_ITEMS.map(function (x) { return x[0]; });
+    var out = saved.filter(function (k, i) { return keys.indexOf(k) >= 0 && saved.indexOf(k) === i; });
+    keys.forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
+    return out;
+  }
+
+  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

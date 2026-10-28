@@ -273,6 +273,10 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .looks i { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(var(--pulp) 62%, var(--ring) 62%); border: 3px solid var(--pulp); box-shadow: 0 0 0 1px var(--line-strong); }
 .looks small { font-size: 11px; color: var(--muted); font-weight: 600; }
 .plan .switch-row { gap: 12px; flex-wrap: wrap; }
+.plan-row { cursor: grab; }
+.plan-row.dragging { opacity: .45; }
+.order-btns { display: flex; flex-direction: column; gap: 2px; }
+.order-btns .btn { padding: 2px 8px; min-height: 0; line-height: 1.2; }
 .mini-coaster.color img { filter: none; mix-blend-mode: normal; }
 .looks i.rainbow { background: conic-gradient(#C4452E, #E0A21A, #2E7D4F, #2F6FB5, #8D5BD6, #C4452E); border-color: var(--panel); }
 .looks button:disabled { opacity: .45; cursor: not-allowed; }
@@ -283,6 +287,13 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .linkish { border: 0; background: none; padding: 0; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; }
 .fine-tune { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; background: var(--bg); border-radius: 10px; padding: 10px 12px; }
 .site-only { border-top: 1px solid var(--line); padding-top: 12px; }
+.drag-grip { flex: none; display: inline-grid; place-items: center; width: 30px; height: 36px; margin: 0 2px 0 -6px; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: grab; touch-action: none; padding: 0; }
+.drag-grip svg { width: 16px; height: 16px; }
+.drag-grip:hover, .drag-grip:focus-visible { background: var(--bg); color: var(--text); }
+.drag-grip:active { cursor: grabbing; }
+[data-drag] { transition: transform .16s ease; }
+[data-drag].dragging { transition: none; position: relative; z-index: 5; box-shadow: 0 12px 28px rgba(0,0,0,.28); background: var(--panel); border-radius: 12px; opacity: .97; }
+.is-sorting { user-select: none; -webkit-user-select: none; }
 .attention { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 @media (max-width: 560px) { .coaster-edit { grid-template-columns: 1fr; justify-items: center; } }
 .comic-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; align-items: center; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px 16px; cursor: pointer; color: var(--text); font: inherit; width: 100%; }
@@ -1791,6 +1802,82 @@ td select.status.st-few_left { color: var(--warn); }
      PRESS KIT: a comic's approved photos and bios, for clubs
      (belongs to the comic, so it's the same on every site they're on)
      ====================================================== */
+  /* ---------------- drag to reorder: mouse, finger or keyboard ---------------- */
+  // Every list you can reorder on ComicTable works the same way: each row has data-drag="<key>" and a grip.
+  // Hold the grip and slide (mouse or finger; the page scrolls near the edges), or focus it and press ↑/↓.
+  // onMove(from, to) saves the new order and redraws.
+  const GRIP_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><circle cx="5.5" cy="3.5" r="1.4"/><circle cx="10.5" cy="3.5" r="1.4"/><circle cx="5.5" cy="8" r="1.4"/><circle cx="10.5" cy="8" r="1.4"/><circle cx="5.5" cy="12.5" r="1.4"/><circle cx="10.5" cy="12.5" r="1.4"/></g></svg>';
+  function grip(label) {
+    const b = h("button", { class: "drag-grip", type: "button", "aria-label": "Reorder " + label + ": drag, or press the arrow keys", title: "Drag to reorder" });
+    b.innerHTML = GRIP_SVG;
+    return b;
+  }
+  let dragFocus = null;  // after a keyboard move, put focus back on the grip of the row that moved
+  function sortable(list, onMove) {
+    const rows = () => [...list.children].filter((el) => el.hasAttribute("data-drag"));
+    const done = async (from, to, key) => {
+      if (from === to) return;
+      dragFocus = key;
+      try { await onMove(from, to); } catch (e) { toast(errText(e), { bad: true }); }
+      setTimeout(() => { const g = dragFocus && document.querySelector('[data-drag="' + CSS.escape(dragFocus) + '"] .drag-grip'); if (g) g.focus(); dragFocus = null; }, 0);
+    };
+    list.addEventListener("keydown", (e) => {
+      const g = e.target.closest && e.target.closest(".drag-grip"); if (!g) return;
+      const row = g.closest("[data-drag]"); if (!row || row.parentElement !== list) return;
+      const all = rows(), i = all.indexOf(row);
+      const to = e.key === "ArrowUp" ? i - 1 : e.key === "ArrowDown" ? i + 1 : e.key === "Home" ? 0 : e.key === "End" ? all.length - 1 : null;
+      if (to === null) return;
+      e.preventDefault();
+      if (to >= 0 && to < all.length) done(i, to, row.dataset.drag);
+    });
+    list.addEventListener("pointerdown", (e) => {
+      const g = e.target.closest && e.target.closest(".drag-grip"); if (!g || (e.button !== undefined && e.button !== 0)) return;
+      const row = g.closest("[data-drag]"); if (!row || row.parentElement !== list) return;
+      e.preventDefault();
+      const all = rows(), from = all.indexOf(row);
+      if (all.length < 2) return;
+      const boxes = all.map((el) => el.getBoundingClientRect());
+      // the others slide by exactly the space the dragged row takes up (its height plus the gap between rows)
+      const gap = Math.max(0, boxes[1].top - boxes[0].bottom);
+      const step = boxes[from].height + gap;
+      let startY = e.clientY, scrolled = 0, lastY = e.clientY, to = from, raf = null;
+      try { g.setPointerCapture(e.pointerId); } catch (er) {}
+      row.classList.add("dragging"); list.classList.add("is-sorting");
+      const place = () => {
+        const dy = lastY - startY + scrolled;
+        row.style.transform = "translateY(" + dy + "px)";
+        const mid = boxes[from].top + boxes[from].height / 2 + dy;
+        to = 0; boxes.forEach((b, i) => { if (i !== from && b.top + b.height / 2 < mid) to++; });
+        all.forEach((el, i) => {
+          if (el === row) return;
+          const shift = from < to && i > from && i <= to ? -step : from > to && i >= to && i < from ? step : 0;
+          el.style.transform = shift ? "translateY(" + shift + "px)" : "";
+        });
+      };
+      const edge = () => {  // scroll the page when dragging near the top or bottom of the screen
+        const vh = window.innerHeight || 800, zone = 70;
+        const by = lastY < zone ? -Math.ceil((zone - lastY) / 6) : lastY > vh - zone ? Math.ceil((lastY - (vh - zone)) / 6) : 0;
+        if (by && window.scrollBy) { const y0 = window.scrollY; window.scrollBy(0, by); scrolled += window.scrollY - y0; place(); }
+        raf = by ? requestAnimationFrame(edge) : null;
+      };
+      const move = (ev) => { lastY = ev.clientY; place(); if (!raf && window.requestAnimationFrame) raf = requestAnimationFrame(edge); };
+      const up = () => {
+        g.removeEventListener("pointermove", move); g.removeEventListener("pointerup", up); g.removeEventListener("pointercancel", up);
+        if (raf && window.cancelAnimationFrame) cancelAnimationFrame(raf);
+        all.forEach((el) => { el.style.transform = ""; }); row.classList.remove("dragging"); list.classList.remove("is-sorting");
+        done(from, to, row.dataset.drag);
+      };
+      g.addEventListener("pointermove", move); g.addEventListener("pointerup", up); g.addEventListener("pointercancel", up);
+    });
+    return list;
+  }
+  // Save a new order for rows that have a "sort" column, renumbering only the ones that changed.
+  async function resort(table, rows, from, to, match = (q0, r) => q0.eq("id", r.id)) {
+    const next = rows.slice(); const [m] = next.splice(from, 1); next.splice(to, 0, m);
+    for (let i = 0; i < next.length; i++) if (next[i].sort !== i) await q(match(sb.from(table).update({ sort: i }), next[i]));
+  }
+  const arrMove = (arr, from, to) => { const [m] = arr.splice(from, 1); arr.splice(to, 0, m); };
+
   /* ---------------- Coasters ---------------- */
   // A comic's Coaster is their card on ComicTable (the comics row): comictable.com/<id>.
   // The same editor shows on a comic's page (super admins) and on Me (the comic themselves).
@@ -1851,13 +1938,21 @@ td select.status.st-few_left { color: var(--warn); }
     const bills = h("input", { type: "checkbox", role: "switch", checked: c.on_bills !== false, "aria-label": "Show who else is on the bill" });
     const ITEMS = (window.CSB && CSB.COASTER_ITEMS) || [];
     const plan = (window.CSB && CSB.coasterPlan) ? CSB.coasterPlan(c) : {};
-    const planRows = h("div", { class: "plan" }, ITEMS.map(([k, l, , d]) => {
+    // ...and in what order: arrows everywhere, drag on a computer
+    const order = (window.CSB && CSB.coasterOrder) ? CSB.coasterOrder(c) : ITEMS.map((x) => x[0]);
+    const planRows = h("div", { class: "plan" });
+    const drawPlan = () => planRows.replaceChildren(...order.map((k, i) => {
+      const it = ITEMS.find((x) => x[0] === k); if (!it) return null;
+      const [, l, , d] = it;
       const seg = h("div", { class: "seg", role: "group", "aria-label": l });
-      const draw = () => seg.replaceChildren(...[["front", "Up front"], ["more", "Under More"], ["off", "Off"]].map(([v, t]) =>
-        h("button", { type: "button", "aria-pressed": String(plan[k] === v), text: t, onclick: () => { plan[k] = v; draw(); } })));
-      draw();
-      return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), seg);
-    }));
+      const drawSeg = () => seg.replaceChildren(...[["front", "Up front"], ["more", "Under More"], ["off", "Off"]].map(([v, t]) =>
+        h("button", { type: "button", "aria-pressed": String(plan[k] === v), text: t, onclick: () => { plan[k] = v; drawSeg(); } })));
+      drawSeg();
+      return h("div", { class: "switch-row plan-row", "data-drag": k }, grip(l),
+        h("div", { style: "flex:1;min-width:0" }, h("b", { text: l }), h("div", { class: "hint", text: d })), seg);
+    }).filter(Boolean));
+    sortable(planRows, (from, to) => { arrMove(order, from, to); drawPlan(); });
+    drawPlan();
     paint();
     return {
       url,
@@ -1868,7 +1963,7 @@ td select.status.st-few_left { color: var(--warn); }
       look: h("div", { class: "coaster-edit" }, preview, h("div", { class: "stack", style: "gap:8px;min-width:0" }, h("b", { text: "Coaster look" }), looks,
         h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }), customBox, customNote)),
       more: h("details", { class: "quiet coaster-more" }, h("summary", { text: "What's on " + yours + " Coaster" }),
-        h("p", { class: "hint", style: "margin:8px 0 0", text: "Keep it simple: a few things up front. Fans tap More for the rest." }), planRows,
+        h("p", { class: "hint", style: "margin:8px 0 0", text: "Keep it simple: a few things up front. Fans tap More for the rest. Drag the grips to change the order." }), planRows,
         h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
           h("div", { class: "hint", text: "When another comic on ComicTable has the same club on the same night, you show up on each other's dates. Nobody has to tag anyone." })),
           h("label", { class: "switch" }, bills, h("span"))), proBox),
@@ -1876,7 +1971,7 @@ td select.status.st-few_left { color: var(--warn); }
       patch() {
         const t = tapeUrl.value.trim();
         const out = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
-        if ("coaster" in c) out.coaster = { ...plan, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
+        if ("coaster" in c) out.coaster = { ...plan, order: [...order], ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
         return out;
       }
     };
@@ -2157,19 +2252,13 @@ td select.status.st-few_left { color: var(--warn); }
               await reload.merch(); toast("Added " + name.value.trim() + "."); redraw();
             } catch (err) { msg.textContent = errText(err); b.disabled = false; }
           } }))));
-      const listCard = h("section", { class: "card" }, h("h2", { text: "Your merch" }), S.merch.length ? h("div", null, S.merch.map((m, i) => h("div", { class: "merch-row" },
+      const listCard = h("section", { class: "card" }, h("h2", { text: "Your merch" }), S.merch.length ? sortable(h("div", null, S.merch.map((m, i) => h("div", { class: "merch-row", "data-drag": m.id }, grip(m.name),
         m.image_url ? h("img", { src: m.image_url, alt: "" }) : h("div", { class: "ph" }),
         h("div", { style: "min-width:0" }, h("b", { text: m.name }), h("div", { class: "hint wrap-any", text: [m.price, m.hidden ? "Hidden" : "", m.url ? "" : "No buy link"].filter(Boolean).join(" · ") })),
         h("div", { class: "btns" },
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => swap(i, i - 1) }),
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === S.merch.length - 1, onclick: () => swap(i, i + 1) }),
           h("button", { class: "btn ghost sm", type: "button", text: m.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("merch").update({ hidden: !m.hidden }).eq("id", m.id)); m.hidden = !m.hidden; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
-          h("button", { class: "btn ghost sm danger", type: "button", text: "Delete", onclick: async () => { try { await q(sb.from("merch").delete().eq("id", m.id)); await reload.merch(); redraw(); toast("Deleted " + m.name + "."); } catch (e) { toast(errText(e), { bad: true }); } } })))))
+          h("button", { class: "btn ghost sm danger", type: "button", text: "Delete", onclick: async () => { try { await q(sb.from("merch").delete().eq("id", m.id)); await reload.merch(); redraw(); toast("Deleted " + m.name + "."); } catch (e) { toast(errText(e), { bad: true }); } } }))))), async (from, to) => { await resort("merch", S.merch, from, to); await reload.merch(); redraw(); })
         : empty("Nothing for sale yet", "Add your first item above."));
-      async function swap(a, b) {
-        const A = S.merch[a], B = S.merch[b];
-        try { await q(sb.from("merch").update({ sort: b }).eq("id", A.id)); await q(sb.from("merch").update({ sort: a }).eq("id", B.id)); await reload.merch(); redraw(); } catch (e) { toast(errText(e), { bad: true }); }
-      }
       wrap.replaceChildren(add, listCard); refreshNav();
     };
     redraw();
@@ -2277,7 +2366,7 @@ td select.status.st-few_left { color: var(--warn); }
       name.focus();
     } });
     main.append(head("Lineup", "Everyone on " + S.site.name + ". Each person gets their own page, bio, photo, socials and show dates.", addBtn), addBox);
-    const grid = h("div", { class: "people" }); main.append(grid);
+    const grid = sortable(h("div", { class: "people" }), async (from, to) => { await resort("hosts", S.hosts, from, to); await reload.hosts(); route(); }); main.append(grid);
     if (!S.hosts.length) grid.append(h("section", { class: "card" }, empty("No one here yet", "Add the first person above.")));
     // which other sites each person is on, so it's clear what a shared change affects
     const elsewhere = {};
@@ -2788,11 +2877,7 @@ td select.status.st-few_left { color: var(--warn); }
     const msg = h("div", { class: "err" });
     const save = h("button", { class: "btn primary", type: "submit", text: shared ? "Save Coaster" : "Save changes" });
     const showCount = S.shows.filter((s) => s.host === x.id).length;
-    const swap = async (a, b) => {
-      const A = S.hosts[a], B = S.hosts[b];
-      try { await q(sb.from("hosts").update({ sort: b }).eq("id", A.id)); await q(sb.from("hosts").update({ sort: a }).eq("id", B.id)); await reload.hosts(); route(); } catch (e) { toast(errText(e), { bad: true }); }
-    };
-    const card = h("form", { class: "card stack" + (x.hidden ? " is-hidden" : ""), onsubmit: async (e) => {
+    const card = h("form", { class: "card stack" + (x.hidden ? " is-hidden" : ""), "data-drag": lineup ? x.id : null, onsubmit: async (e) => {
       e.preventDefault(); msg.textContent = "";
       const bad = cf ? cf.check() : ""; if (bad) { msg.textContent = bad; return; }
       save.disabled = true;
@@ -2820,12 +2905,10 @@ td select.status.st-few_left { color: var(--warn); }
         await reload.hosts(); if (opts.me) S.me = { ...S.me, ...prof, ...words }; file.value = ""; toast(prof.name + " saved."); route();
       } catch (err) { msg.textContent = errText(err); save.disabled = false; }
     } },
-      h("div", { class: "person-top" }, pic, h("div", { style: "min-width:0;flex:1" }, h("b", { text: x.name }), x.hidden ? h("span", { class: "pill", style: "margin-left:6px", text: "Hidden" }) : null,
+      h("div", { class: "person-top" }, lineup ? grip(x.name) : null, pic, h("div", { style: "min-width:0;flex:1" }, h("b", { text: x.name }), x.hidden ? h("span", { class: "pill", style: "margin-left:6px", text: "Hidden" }) : null,
         lineup ? h("div", { class: "hint", text: showCount ? showCount + " show" + (showCount > 1 ? "s" : "") : "No shows yet" }) : h("div", { class: "hint", text: opts.comic ? "Their Coaster: on every site they're on" : "Your Coaster: on every site you're on" }),
         cf ? cf.link : null,
-        h("div", { class: "btns", style: "margin-top:6px;gap:4px" }, h("label", { class: "btn sm" }, "Change photo", file),
-          lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " earlier", text: "↑", disabled: idx === 0, onclick: () => swap(idx, idx - 1) }) : null,
-          lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " later", text: "↓", disabled: idx === S.hosts.length - 1, onclick: () => swap(idx, idx + 1) }) : null))),
+        h("div", { class: "btns", style: "margin-top:6px;gap:4px" }, h("label", { class: "btn sm" }, "Change photo", file)))),
       shared && lineup ? h("div", { class: "hint", "data-also": x.comic_id, hidden: true }) : null,
       h("div", { class: "grid" }, field("Name", inp.name, "c6"), field("Title", inp.title, "c6"), field("Status", inp.status, "c12"), field("Bio", inp.bio, "c12")),
       // The fine-tuning (Tape, look, what's on it) lives on the Coaster page. On Lineup the card links there; a comic
@@ -3058,10 +3141,10 @@ td select.status.st-few_left { color: var(--warn); }
           p ? h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => { editing = null; draw(); } }) : h("span", { class: "hint", text: "Tip: pin a show from Shows (⋯ → Pin to Home screen) and it fills itself in." })));
     }
     function draw() {
-      const list = h("section", { class: "card" }, h("h2", { text: "Your picks" }), P.length ? h("div", null, P.map((p, i) => {
+      const list = h("section", { class: "card" }, h("h2", { text: "Your picks" }), P.length ? sortable(h("div", null, P.map((p, i) => {
         if (editing === p.id) return form(p);
         const kindName = (PICK_KINDS.find((k) => k[0] === p.kind) || [0, "Pick"])[1];
-        return h("div", { class: "switch-row", style: "flex-wrap:wrap" },
+        return h("div", { class: "switch-row", style: "flex-wrap:wrap", "data-drag": p.id }, grip(p.headline),
           h("div", { style: "min-width:0;flex:1 1 300px" },
             h("div", { class: "btns" }, i === 0 ? h("span", { class: "pill red", text: "Featured" }) : null, h("span", { class: "pill", text: kindName }),
               p.hidden ? h("span", { class: "pill warn", text: "Hidden" }) : ended(p) ? h("span", { class: "pill", text: "Ended" }) : h("span", { class: "pill ok", text: "Live" })),
@@ -3071,8 +3154,6 @@ td select.status.st-few_left { color: var(--warn); }
             p.image_url ? h("img", { class: "pick-thumb", src: p.image_url, alt: "" }) : null,
             p.ends_on ? h("div", { class: "hint", text: "Until " + shortDate(p.ends_on) }) : null),
           h("div", { class: "btns" },
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => reorder(i, i - 1) }),
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === P.length - 1, onclick: () => reorder(i, i + 1) }),
             h("button", { class: "btn ghost sm", type: "button", text: "Edit", onclick: () => { editing = p.id; draw(); } }),
             h("button", { class: "btn ghost sm", type: "button", text: p.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("home_picks").update({ hidden: !p.hidden }).eq("id", p.id)); await reloadP(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
             h("button", { class: "btn ghost sm danger", type: "button", text: "Remove", onclick: async () => {
@@ -3080,7 +3161,7 @@ td select.status.st-few_left { color: var(--warn); }
                 toast("Removed.", { action: { label: "Undo", run: async () => { const { id, ...row } = p; try { await q(sb.from("home_picks").insert(row)); await reloadP(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
               catch (e) { toast(errText(e), { bad: true }); }
             } })));
-      })) : empty("Nothing pinned yet", "Add a pick above, or pin a show from Shows."));
+      })), (from, to) => reorder(from, to)) : empty("Nothing pinned yet", "Add a pick above, or pin a show from Shows."));
       wrap.replaceChildren(editing ? h("div") : form(null), list);
     }
     async function reorder(a, b) {
@@ -3119,27 +3200,21 @@ td select.status.st-few_left { color: var(--warn); }
         h("div", { class: "grid" }, field("Text", text, "c12"), field("Link", link, "c6"), field("Link text", label, "c6"), field("Show from", starts, "c3"), field("Until", ends, "c3"),
           h("label", { class: "check c6", style: "align-self:end;padding-bottom:10px" }, pin, "Pin it (the big one)")),
         h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Post announcement" }), h("span", { class: "hint", text: "Leave the dates empty to show it until you remove it." })));
-      const list = h("section", { class: "card" }, h("h2", { text: "Your announcements" }), ANN.length ? h("div", null, ANN.map((a, i) => {
+      const list = h("section", { class: "card" }, h("h2", { text: "Your announcements" }), ANN.length ? sortable(h("div", null, ANN.map((a, i) => {
         const [st, cls] = state(a);
-        return h("div", { class: "switch-row", style: "flex-wrap:wrap" },
+        return h("div", { class: "switch-row", style: "flex-wrap:wrap", "data-drag": a.id }, grip(a.text),
           h("div", { style: "min-width:0;flex:1 1 300px" }, h("div", { class: "btns" }, a.pinned ? h("span", { class: "pill red", text: "Pinned" }) : null, h("span", { class: cls, text: st })),
             h("div", { class: "wrap-any", style: "margin-top:4px;font-weight:600", text: a.text }), a.link ? h("div", { class: "hint wrap-any", text: (a.link_label || "Link") + " → " + a.link }) : null,
             a.starts_on || a.ends_on ? h("div", { class: "hint", text: (a.starts_on ? "From " + shortDate(a.starts_on) : "") + (a.ends_on ? " until " + shortDate(a.ends_on) : "") }) : null),
           h("div", { class: "btns" },
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => reorder(i, i - 1) }),
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === ANN.length - 1, onclick: () => reorder(i, i + 1) }),
             h("button", { class: "btn ghost sm", type: "button", text: a.pinned ? "Unpin" : "Pin", onclick: async () => { try { await q(sb.from("announcements").update({ pinned: !a.pinned }).eq("id", a.id)); await reloadAnn(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
             h("button", { class: "btn ghost sm danger", type: "button", text: "Remove", onclick: async () => {
               try { await q(sb.from("announcements").delete().eq("id", a.id)); await reloadAnn(); draw();
                 toast("Removed.", { action: { label: "Undo", run: async () => { const { id, ...r } = a; try { await q(sb.from("announcements").insert(r)); await reloadAnn(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
               catch (e) { toast(errText(e), { bad: true }); }
             } })));
-      })) : empty("No announcements", "Post one above."));
+      })), async (from, to) => { await resort("announcements", ANN, from, to); await reloadAnn(); draw(); }) : empty("No announcements", "Post one above."));
       wrap.replaceChildren(add, list);
-    }
-    async function reorder(a, b) {
-      const A = ANN[a], B = ANN[b];
-      try { await q(sb.from("announcements").update({ sort: b }).eq("id", A.id)); await q(sb.from("announcements").update({ sort: a }).eq("id", B.id)); await reloadAnn(); draw(); } catch (e) { toast(errText(e), { bad: true }); }
     }
     draw();
   }
@@ -3162,17 +3237,15 @@ td select.status.st-few_left { color: var(--warn); }
         if (!/^https?:\/\//i.test(url.value.trim())) { url.classList.add("bad"); url.focus(); return; }
         try { await q(sb.from("links").insert({ site_id: sid(), label: label.value.trim(), url: url.value.trim(), sort: L.length })); await reloadL(); draw(); toast("Link added."); } catch (err) { toast(errText(err), { bad: true }); }
       } }, h("h2", { text: "Add a link" }), h("div", { class: "grid" }, field("Text", label, "c5"), field("Address", url, "c7")), h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add link" })));
-      const list = h("section", { class: "card" }, h("h2", { text: "Your links" }), L.length ? h("div", null, L.map((l, i) => h("div", { class: "switch-row" },
+      const list = h("section", { class: "card" }, h("h2", { text: "Your links" }), L.length ? sortable(h("div", null, L.map((l, i) => h("div", { class: "switch-row", "data-drag": l.id }, grip(l.label),
         h("div", { style: "min-width:0" }, h("b", { text: l.label }), h("div", { class: "hint wrap-any", text: l.url + (l.hidden ? " · Hidden" : "") })),
         h("div", { class: "btns" },
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => swap(i, i - 1) }),
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === L.length - 1, onclick: () => swap(i, i + 1) }),
           h("button", { class: "btn ghost sm", type: "button", text: l.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("links").update({ hidden: !l.hidden }).eq("id", l.id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
-          sure("Delete", async () => { try { await q(sb.from("links").delete().eq("id", l.id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } })))))
+          sure("Delete", async () => { try { await q(sb.from("links").delete().eq("id", l.id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } }))))),
+          async (from, to) => { await resort("links", L, from, to); await reloadL(); draw(); })
         : empty("No links yet", "Add your first one above."));
       wrap.replaceChildren(add, list);
     }
-    async function swap(a, b) { try { await q(sb.from("links").update({ sort: b }).eq("id", L[a].id)); await q(sb.from("links").update({ sort: a }).eq("id", L[b].id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } }
     draw();
   }
 
@@ -3186,12 +3259,11 @@ td select.status.st-few_left { color: var(--warn); }
     const saved = Array.isArray(v) ? v.filter((x) => x && opts.some((o) => o.key === x.key)) : [];
     let items = saved.map((x) => ({ ...opts.find((o) => o.key === x.key), on: !!x.on })).concat(opts.filter((o) => !saved.some((x) => x.key === o.key)));
     const box = h("div", { class: "order-list" });
-    const draw = () => box.replaceChildren(...items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off") },
+    const draw = () => box.replaceChildren(...items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off"), "data-drag": it.key }, grip(it.label),
       h("div", { style: "min-width:0;flex:1 1 220px" }, h("b", { text: it.label }), it.help ? h("div", { class: "hint", text: it.help }) : null),
       h("div", { class: "btns" },
-        h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " up", text: "↑", disabled: i === 0, onclick: () => { [items[i - 1], items[i]] = [items[i], items[i - 1]]; draw(); } }),
-        h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " down", text: "↓", disabled: i === items.length - 1, onclick: () => { [items[i + 1], items[i]] = [items[i], items[i + 1]]; draw(); } }),
         h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: it.on, "aria-label": "Show " + it.label, onchange: (e) => { it.on = e.target.checked; draw(); } }), h("span"))))));
+    sortable(box, (from, to) => { arrMove(items, from, to); draw(); });
     draw();
     return { el: box, get value() { return items.map((x) => ({ key: x.key, on: x.on })); } };
   }
@@ -3224,15 +3296,14 @@ td select.status.st-few_left { color: var(--warn); }
     const box = h("div", { class: "order-list" }, h("p", { class: "hint", text: "Loading your home screen…" }));
     const move = (i, j) => { if (j < 0 || j >= items.length) return; const [m] = items.splice(i, 1); items.splice(j, 0, m); draw(); };
     function draw() {
-      box.replaceChildren(...(items.length ? items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off") },
+      box.replaceChildren(...(items.length ? items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off"), "data-drag": it.key }, grip(it.label),
         h("div", { style: "min-width:0;flex:1 1 220px" }, h("div", { class: "btns", style: "gap:6px" }, h("span", { class: "pill", text: GROUP_NAME[it.group] || it.group }), h("b", { class: "wrap-any", text: it.label })), it.sub ? h("div", { class: "hint wrap-any", text: it.sub }) : null),
         h("div", { class: "btns" },
           h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " to the top", text: "⤒", disabled: i === 0, onclick: () => move(i, 0) }),
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " up", text: "↑", disabled: i === 0, onclick: () => move(i, i - 1) }),
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " down", text: "↓", disabled: i === items.length - 1, onclick: () => move(i, i + 1) }),
           h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: it.on, "aria-label": "Show " + it.label, onchange: (e) => { it.on = e.target.checked; draw(); } }), h("span")))))
         : [empty("Nothing to arrange yet", "Add links, socials, shows or a podcast and they'll show up here.")]));
     }
+    sortable(box, (from, to) => move(from, to));
     if (!window.CSB || !CSB.homeArrange) { box.replaceChildren(h("p", { class: "err", text: "Couldn't load the layout tools. Refresh the page." })); return { el: box, ready: Promise.resolve(), get value() { return (S.site.theme || {}).home_items; } }; }
     const ready = homeData().then((d) => {
       const cat = CSB.homeCatalog(d), t = S.site.theme || {};
@@ -3417,18 +3488,17 @@ td select.status.st-few_left { color: var(--warn); }
       const B = FORUM.boards;
       const rows = B.map((b, i) => {
         const nm = h("input", { value: b.name, "aria-label": "Board name" }), ds = h("input", { value: b.description || "", placeholder: "What goes here", "aria-label": "Board description" });
-        return h("div", { class: "switch-row", style: "flex-wrap:wrap;align-items:start" },
+        return h("div", { class: "switch-row", style: "flex-wrap:wrap;align-items:start", "data-drag": b.id }, grip(b.name),
           h("div", { class: "grid", style: "flex:1 1 360px" }, field("Name", nm, "c5"), field("Description", ds, "c7")),
           h("div", { class: "btns", style: "padding-top:22px" },
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => swapB(i, i - 1) }),
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === B.length - 1, onclick: () => swapB(i, i + 1) }),
             h("button", { class: "btn ghost sm", type: "button", text: b.locked ? "Locked" : "Lock", title: "Locked boards: only hosts can start topics", onclick: () => upd(b, { locked: !b.locked }, b.locked ? "Unlocked " + b.name + "." : "Locked " + b.name + ". Only hosts can start topics there.") }),
             h("button", { class: "btn ghost sm", type: "button", text: b.hidden ? "Hidden" : "Hide", onclick: () => upd(b, { hidden: !b.hidden }, b.hidden ? b.name + " is visible again." : b.name + " is hidden from fans.") }),
             h("button", { class: "btn sm", type: "button", text: "Save", onclick: () => { if (!nm.value.trim()) { nm.classList.add("bad"); return; } upd(b, { name: nm.value.trim(), description: ds.value.trim() || null }, "Saved."); } }),
             B.length > 1 ? h("button", { class: "btn ghost sm danger", type: "button", text: "Delete", onclick: (e) => deleteBoard(b, e.currentTarget.closest(".switch-row")) }) : null));
       });
       const nm = h("input", { placeholder: "Merch Talk", "aria-label": "New board name" }), ds = h("input", { placeholder: "Show off your gear", "aria-label": "New board description" });
-      body.replaceChildren(h("section", { class: "card" }, h("h2", { text: "Boards" }), h("p", { class: "sub", text: "Boards appear on your forum in this order." }), h("div", null, rows)),
+      body.replaceChildren(h("section", { class: "card" }, h("h2", { text: "Boards" }), h("p", { class: "sub", text: "Boards appear on your forum in this order. Drag to change it." }),
+          sortable(h("div", null, rows), async (from, to) => { await resort("boards", FORUM.boards, from, to, (q0, r) => q0.eq("site_id", sid()).eq("id", r.id)); await loadBoards(); drawBoards(); })),
         h("section", { class: "card stack" }, h("h2", { text: "Add a board" }), h("div", { class: "grid" }, field("Name", nm, "c5"), field("Description", ds, "c7")),
           h("div", { class: "btns" }, h("button", { class: "btn primary", type: "button", text: "Add board", onclick: async () => {
             if (!nm.value.trim()) { nm.classList.add("bad"); nm.focus(); return; }
@@ -3438,7 +3508,6 @@ td select.status.st-few_left { color: var(--warn); }
           } }))));
     }
     async function upd(b, patch, msg) { try { await q(sb.from("boards").update(patch).eq("site_id", sid()).eq("id", b.id)); logMod("edit board", b.name); await loadBoards(); drawBoards(); toast(msg); } catch (e) { toast(errText(e), { bad: true }); } }
-    async function swapB(a, b) { const A = FORUM.boards[a], Bb = FORUM.boards[b]; try { await q(sb.from("boards").update({ sort: b }).eq("site_id", sid()).eq("id", A.id)); await q(sb.from("boards").update({ sort: a }).eq("site_id", sid()).eq("id", Bb.id)); await loadBoards(); drawBoards(); } catch (e) { toast(errText(e), { bad: true }); } }
     async function deleteBoard(b, rowEl) {
       let count = 0;
       try { count = (await q(sb.from("threads").select("id").eq("site_id", sid()).eq("board", b.id))).length; } catch (e) {}

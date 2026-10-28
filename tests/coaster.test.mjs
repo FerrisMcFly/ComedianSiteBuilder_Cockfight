@@ -155,3 +155,11 @@ test("comictable.com/<address> finds the comic; an old link with their id still 
   assert.equal(b.window.document.querySelector("h1").textContent, "Lev Fer");
   assert.equal(b.window.location.pathname, "/lev-fer");
 });
+
+test("the comic's order: items show up front and under More in the order they chose", async () => {
+  const base = { id: "lev-fer", name: "Lev Fer", short_bio: "Bio.", instagram: "https://instagram.com/l", tape_url: "https://www.youtube.com/watch?v=abcdefghijk" };
+  const { d } = await load("/lev-fer", { comics: [{ ...base, coaster: { tape: "front", bio: "front", order: ["bio", "tape", "socials"] } }] });
+  const main = d.getElementById("app");
+  const pos = (sel) => [...main.querySelectorAll("*")].indexOf(main.querySelector(sel));
+  assert.ok(pos(".bio") < pos(".frame") && pos(".frame") < pos(".socials"), "bio, then the Tape, then socials");
+});

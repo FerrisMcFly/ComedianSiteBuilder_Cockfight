@@ -76,6 +76,8 @@ async function open(hash = "", prep, theme = THEME_JSON) {
 const THEME_JSON = JSON.parse(readFileSync(new URL("../sites/cockfight/theme.json", import.meta.url), "utf8"));
 const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
 const btn = (d, re, scope = d) => [...scope.querySelectorAll("button")].find((b) => re.test(b.textContent));
+// Reordering: every list drags by its grip; the keyboard (arrow keys on the grip) does the same thing
+const press = (w, el, key) => el.dispatchEvent(new w.KeyboardEvent("keydown", { key, bubbles: true }));
 const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", { bubbles: true })); };
 
 test("home shows a greeting, stats and to-dos", async () => {
@@ -718,7 +720,7 @@ test("Home screen picks: add one, pin a show to the top, reorder", async () => {
   assert.match(shown[0].headline, /Laugh Boston/);
 
   w.location.hash = "#picks"; await wait(80);
-  btn(d, /^↓$/).click(); await wait(60);
+  press(w, d.querySelector("main [data-drag] .drag-grip"), "ArrowDown"); await wait(60);
   assert.deepEqual(db.home_picks.slice().sort((a, b) => a.sort - b.sort).map((p) => p.headline)[0], "New special out now");
 });
 
@@ -736,7 +738,7 @@ test("Design: look settings and the site's sections; home screen settings live o
   set(w, d.querySelector('textarea[aria-label="Your loading-screen jokes"]'), "One\n\n  Two  \n");
   const rows = () => [...d.querySelectorAll(".order-row")];
   assert.deepEqual(rows().map((r) => r.querySelector("b").textContent), ["Tour Dates", "Clips"]);
-  rows()[1].querySelector('[aria-label="Move Clips up"]').click(); await wait();
+  press(w, rows()[1].querySelector(".drag-grip"), "ArrowUp"); await wait();
   const form = [...d.querySelectorAll("form.card")].find((f) => /Save design/.test(f.textContent));
   form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.menu)).map((x) => x.key), ["clips", "shows"]);
@@ -1038,3 +1040,16 @@ test("Lineup: each person's card is their Coaster, with the fine-tuning on the C
   assert.deepEqual([c.tape_url, c.look, c.bio], ["https://youtu.be/abcdefghijk", "night", "New bio"]);
 });
 
+
+test("Coaster settings: reorder what's on it (drag, or arrow keys on the grip); the order is saved", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => { db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id })); });
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  const card = d.querySelector("main form.card");
+  card.querySelector("details.coaster-more").open = true;
+  press(w, card.querySelector('[data-drag="tape"] .drag-grip'), "ArrowUp"); await wait();
+  press(w, card.querySelector('[data-drag="tape"] .drag-grip'), "ArrowUp"); await wait();
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const order = db.comics.find((c) => c.id === "lev-fer").coaster.order;
+  assert.deepEqual(JSON.parse(JSON.stringify(order)).slice(0, 5), ["next", "links", "tape", "socials", "join"]);
+});
