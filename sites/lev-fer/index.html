@@ -180,11 +180,11 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 
 /* shows */
 .dates { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
-.date { display: grid; grid-template-columns: 86px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 12px 14px; border-left: 4px solid var(--glow-dim); background: linear-gradient(90deg, rgba(127,211,255,.08), var(--panel) 40%); }
+.date { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 12px 14px; border-left: 4px solid var(--glow-dim); background: linear-gradient(90deg, rgba(127,211,255,.08), var(--panel) 40%); }
 .date:hover { border-left-color: var(--amber); }
 .date.cancelled { opacity: .55; } .date.cancelled strong { text-decoration: line-through; }
 .d { font: 15px/1.2 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--amber); text-transform: uppercase; }
-.d b { display: block; font: 400 22px var(--f-display); color: var(--ink); }
+.d b { display: block; font: 400 20px var(--f-display); color: var(--ink); white-space: nowrap; }
 .where { min-width: 0; } .where strong { display: block; font-size: 19px; letter-spacing: .02em; overflow-wrap: anywhere; } .where span { color: var(--glow-dim); }
 
 /* clips */
@@ -285,7 +285,10 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
 }
 @media (max-width: 520px) {
   .screen { padding: 0 16px 22px; } h2.head { margin: 0 -16px 6px; padding: 12px 16px; }
-  .date { grid-template-columns: 64px minmax(0, 1fr); } .date .tix { grid-column: 1 / -1; }
+  /* phones: the date gets its own line above the club, so long names and wide fonts never overlap */
+  .date { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .d { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .d b { display: inline; font-size: 18px; }
   footer { grid-template-columns: 1fr; }
 }
 /* touch screens: the A/B controller is for keyboards; tap targets get room */
