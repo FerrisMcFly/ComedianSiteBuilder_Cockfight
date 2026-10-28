@@ -10,6 +10,8 @@ This turns ComicTable into its own thing at **comictable.com**, with Cockfight a
 - **Show finder:** ComicTable checks tour pages, club calendars, ticket pages and calendar links for new dates every hour
 - **Fan list:** fans sign up with their city and you see who's near each show. It's off until you turn it on.
 - **Super admin:** you can see and manage every site
+- **Comic logins and the Me page:** give a comic their own login from People. They see every site they're on, all their dates, and one profile to edit.
+- **Blog:** write posts in the dashboard and publish them to the site. Turn it on in Settings → Sections.
 
 ---
 

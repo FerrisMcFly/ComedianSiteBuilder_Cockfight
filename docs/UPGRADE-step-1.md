@@ -70,7 +70,9 @@ Each new feature that needs the database changed comes with its own small file i
 | `10_fans.sql` | The fan list |
 | `11_comics.sql` | Comics shared across sites: one profile and one set of dates everywhere they're on, plus whole-show events |
 | `12_show_finder.sql` | The show finder: pages ComicTable checks for new dates, and the Found shows list |
-| `UPGRADE_V2_ALL.sql` | 07 to 12 in one paste. See `docs/GO-LIVE-v2.md` |
+| `13_me.sql` | A comic's own login sees all their dates across sites (the Me page) |
+| `14_blog.sql` | The blog |
+| `UPGRADE_V2_ALL.sql` | 07 to 14 in one paste. See `docs/GO-LIVE-v2.md` |
 
 ## If something goes wrong
 - **"Couldn't load your site" in the admin:** `04_platform.sql` hasn't been run yet.
