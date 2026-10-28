@@ -189,3 +189,13 @@ test("the home page intro comes from Profile → About when it's filled in", asy
   const { d } = await load({ ...base, sites: [{ id: "cockfight", features: { shows: true }, profile: { about: "Three idiots and a microphone." } }] });
   assert.equal(d.getElementById("aboutText").textContent, "Three idiots and a microphone.");
 });
+
+test("blog posts come through the data kit, safely formatted", async () => {
+  const w = { localStorage: { getItem() {}, setItem() {} } };
+  const fn = new Function("window", "globalThis", sdk + "; return window.CSB;");
+  const CSB = fn(w, w);
+  const html = CSB.markdown("## Hi\n\n**bold** <script>x()</script> [a](https://a.com) [b](javascript:alert(1))\n\nhttps://youtu.be/dQw4w9WgXcQ");
+  assert.match(html, /<h2>Hi<\/h2>/); assert.match(html, /<strong>bold<\/strong>/); assert.match(html, /&lt;script&gt;/);
+  assert.match(html, /<a href="https:\/\/a.com"/); assert.doesNotMatch(html, /href="javascript/);
+  assert.match(html, /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+});

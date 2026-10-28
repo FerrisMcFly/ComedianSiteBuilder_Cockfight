@@ -511,3 +511,20 @@ test("people: give a comic their own login", async () => {
   btn(d, /^Create login$/, card).click(); await wait(60);
   assert.deepEqual([sent.action, sent.comic_id, sent.email, sent.role], ["link_comic", "lev-fer", "lev@comictable.com", "owner"]);
 });
+
+test("blog: write a draft, publish it, see it in the list", async () => {
+  const { w, d, db } = await open("#blog", (db) => { db.sites[0].features.blog = true; db.blog_posts = []; });
+  await wait(60);
+  assert.match(d.querySelector("main").textContent, /No posts yet/);
+  d.getElementById("newPost").click(); await wait(30);
+  set(w, d.getElementById("postTitle"), "Road Story: Key West!");
+  assert.equal(d.getElementById("postSlug").value, "road-story-key-west");
+  d.getElementById("postBody").value = "It was **hot**.";
+  d.getElementById("saveDraft").click(); await wait(60);
+  assert.equal(db.blog_posts.length, 1); assert.equal(db.blog_posts[0].published, false);
+  assert.match(d.querySelector("main").textContent, /Road Story: Key West!.*Draft/);
+  btn(d, /^Edit$/).click(); await wait(30);
+  d.getElementById("publishPost").click(); await wait(60);
+  assert.equal(db.blog_posts[0].published, true);
+  assert.equal(db.blog_posts[0].body, "It was **hot**.");
+});
