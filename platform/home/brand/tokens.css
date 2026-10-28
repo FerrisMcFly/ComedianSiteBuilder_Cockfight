@@ -1,0 +1,38 @@
+/* ComicTable brand tokens. Source of truth: the approved brand board and the Visual Brand Bible.
+   The four core colors are the board's. The rest are derived states, checked for WCAG contrast.
+   Use on ComicTable's own pages only: comics' sites keep their own look. */
+
+@font-face { font-family: "CT Display"; font-weight: 700; font-display: swap; src: url("/fonts/encode-sans-condensed-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "CT Display"; font-weight: 800; font-display: swap; src: url("/fonts/encode-sans-condensed-latin-800-normal.woff2") format("woff2"); }
+@font-face { font-family: "CT Display"; font-weight: 900; font-display: swap; src: url("/fonts/encode-sans-condensed-latin-900-normal.woff2") format("woff2"); }
+
+:root {
+  /* Core (from the board) */
+  --ct-charcoal: #1F1F1F;
+  --ct-redwood: #C4452E;
+  --ct-mustard: #E0A21A;
+  --ct-ivory: #F3EAD7;
+
+  /* Derived */
+  --ct-paper: #FAF6EE;          /* lighter ivory for long reading and form fields */
+  --ct-ivory-deep: #E6DAC2;     /* rules and dividers on ivory */
+  --ct-muted: #5E5A52;          /* secondary text on ivory, 5.7:1 */
+  --ct-redwood-hover: #A93A26;  /* hover/pressed, and small redwood text on ivory (5.3:1) */
+  --ct-redwood-bright: #E66A4B; /* redwood on charcoal backgrounds (5.6:1 on #161616) */
+  --ct-ink-2: #2B2B2B;          /* raised surface on charcoal */
+  --ct-night: #161616;          /* deepest dark */
+
+  /* Type */
+  --ct-display: "CT Display", "Encode Sans Condensed", "Arial Narrow", sans-serif;
+  --ct-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ct-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Spacing (8pt) and shape */
+  --ct-s1: 4px; --ct-s2: 8px; --ct-s3: 12px; --ct-s4: 16px; --ct-s5: 24px; --ct-s6: 32px; --ct-s7: 48px; --ct-s8: 64px; --ct-s9: 96px;
+  --ct-radius: 6px;             /* restrained: buttons, inputs, cards */
+}
+
+/* Contrast notes
+   White on redwood: 4.96:1 (buttons, 16px semibold+).
+   Redwood on ivory: 4.14:1 (large text only; use --ct-redwood-hover for small text).
+   Charcoal on mustard: 7.3:1 (mustard is a fill, never text on ivory). */
