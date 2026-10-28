@@ -330,6 +330,9 @@ form.card.is-hidden { opacity: .7; }
 .brand-screen .btn.primary:hover { background: #a93a26; }
 .brand-screen .err { color: #ff8a70; }
 .brand-screen a.hint { color: rgba(243,234,215,.7); }
+.linkish { background: none; border: 0; padding: 4px; font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; justify-self: center; color: var(--muted); }
+.brand-screen .linkish { color: rgba(243,234,215,.75); }
+.brand-screen .linkish:hover { color: #f3ead7; }
 .login { width: 100%; max-width: 380px; }
 
 .toast { position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 12px 16px; border-radius: 12px; display: flex; gap: 14px; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,.25); z-index: 60; max-width: calc(100% - 32px); font-weight: 600; }
@@ -632,14 +635,67 @@ td select.status.st-few_left { color: var(--warn); }
       let r = { error: true };
       for (const email of tries) { r = await sb.auth.signInWithPassword({ email, password: pass.value }); if (!r.error) break; }
       btn.disabled = false;
-      if (r.error) return showLogin("Wrong username or password.");
+      if (r.error) return showLogin(loginProblem(r.error));
       boot();
     } },
       wordmark("ct-mark login-mark"), h("h1", { text: "Log in to update your site." }),
-      field("Username or email", user), field("Password", pass), msg ? h("div", { class: "err", text: msg }) : null, btn);
+      field("Username or email", user), field("Password", pass), msg ? h("div", { class: "err", role: "alert", text: msg }) : null, btn,
+      h("button", { class: "linkish", type: "button", text: "Forgot password?", onclick: () => showForgot(user.value.trim()) }));
     root.replaceChildren(h("div", { class: "login-wrap brand-screen" }, h("div", { class: "stack", style: "width:100%;max-width:380px;justify-items:center" }, form,
       CFG.PLATFORM ? h("a", { class: "hint", href: "/", text: "Back to comictable.com" }) : null)));
     user.focus();
+  }
+
+  // What went wrong logging in, in plain words (Supabase locks sign-ins for a few minutes after many tries)
+  function loginProblem(err) {
+    const m = String((err && err.message) || ""), st = err && err.status;
+    if (st === 429 || /rate limit|too many/i.test(m)) return "Too many tries. Wait about 5 minutes, then log in with your full email.";
+    if (/not confirmed/i.test(m)) return "This login's email isn't confirmed yet. Ask whoever set it up to confirm it in Supabase.";
+    if (/fetch|network/i.test(m)) return "Couldn't reach ComicTable. Check your connection and try again.";
+    return "Wrong username or password.";
+  }
+  // Forgot password: email a link that comes back here to set a new one
+  function showForgot(typed) {
+    setPath("login"); document.title = "Reset password · ComicTable";
+    const email = h("input", { id: "fpEmail", type: "email", autocomplete: "email", required: true, value: typed && typed.includes("@") ? typed : "" });
+    const msg = h("div", { class: "err", role: "status" });
+    const btn = h("button", { class: "btn primary big", type: "submit", text: "Email me a reset link" });
+    const form = h("form", { class: "card login stack", onsubmit: async (e) => {
+      e.preventDefault(); msg.textContent = "";
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) { msg.textContent = "Type the email you log in with."; return; }
+      btn.disabled = true;
+      const r = await sb.auth.resetPasswordForEmail(email.value.trim(), { redirectTo: location.origin + "/login" });
+      btn.disabled = false;
+      if (r.error) { msg.textContent = loginProblem(r.error) === "Wrong username or password." ? r.error.message : loginProblem(r.error); return; }
+      form.replaceChildren(wordmark("ct-mark login-mark"), h("h1", { text: "Check your email." }),
+        h("p", { class: "sub", style: "text-align:center", text: "If " + email.value.trim() + " has a ComicTable login, a reset link is on its way. Open it on this device. It works once, for an hour." }),
+        h("button", { class: "linkish", type: "button", text: "Back to log in", onclick: () => showLogin() }));
+    } },
+      wordmark("ct-mark login-mark"), h("h1", { text: "Reset your password." }), field("Email", email), msg, btn,
+      h("button", { class: "linkish", type: "button", text: "Back to log in", onclick: () => showLogin() }));
+    root.replaceChildren(h("div", { class: "login-wrap brand-screen" }, h("div", { class: "stack", style: "width:100%;max-width:380px;justify-items:center" }, form)));
+    email.focus();
+  }
+  // Arrived from a reset email: set the new password
+  function showNewPassword(msg) {
+    setPath("login"); document.title = "New password · ComicTable";
+    const p1 = h("input", { id: "npPass", type: "password", autocomplete: "new-password", minlength: "8", required: true });
+    const p2 = h("input", { id: "npPass2", type: "password", autocomplete: "new-password", minlength: "8", required: true });
+    const err = h("div", { class: "err", role: "alert", text: msg || "" });
+    const btn = h("button", { class: "btn primary big", type: "submit", text: "Save new password" });
+    const form = h("form", { class: "card login stack", onsubmit: async (e) => {
+      e.preventDefault(); err.textContent = "";
+      if (p1.value.length < 8) { err.textContent = "Use at least 8 characters."; return; }
+      if (p1.value !== p2.value) { err.textContent = "Those don't match."; return; }
+      btn.disabled = true;
+      const r = await sb.auth.updateUser({ password: p1.value });
+      btn.disabled = false;
+      if (r.error) { err.textContent = r.error.message; return; }
+      history.replaceState && history.replaceState(null, "", location.pathname);
+      toast("New password saved. You're logged in."); boot();
+    } }, wordmark("ct-mark login-mark"), h("h1", { text: "Choose a new password." }), field("New password", p1), field("Type it again", p2), err, btn);
+    root.replaceChildren(h("div", { class: "login-wrap brand-screen" }, h("div", { class: "stack", style: "width:100%;max-width:380px;justify-items:center" }, form)));
+    p1.focus();
   }
 
   // The ComicTable wordmark (production vector from the brand kit; "Comic" follows the text color, "Table" is redwood)
@@ -647,8 +703,13 @@ td select.status.st-few_left { color: var(--warn); }
   const wordmark = (cls) => { const el = h("span", { class: cls }); el.innerHTML = WORDMARK; return el; };
 
   async function boot() {
+    // Coming back from a reset email: a dead link explains itself; a good one asks for the new password
+    const hp = new URLSearchParams(location.hash.replace(/^#/, ""));
+    if (hp.get("error_code")) { history.replaceState && history.replaceState(null, "", location.pathname); return showLogin(/expired/i.test(hp.get("error_code") + hp.get("error_description")) ? "That reset link has expired or was already used. Ask for a new one below." : "That link didn't work. Ask for a new one below."); }
+    const recovering = hp.get("type") === "recovery";
     const { data } = await sb.auth.getSession();
     const session = data && data.session;
+    if (session && recovering) return showNewPassword();
     if (!session) return showLogin();
     S.token = session.access_token;
     S.email = session.user.email;
@@ -675,7 +736,7 @@ td select.status.st-few_left { color: var(--warn); }
         h("button", { class: "btn", type: "button", text: "Log out", onclick: async () => { await sb.auth.signOut(); showLogin(); } }))));
       return;
     }
-    sb.auth.onAuthStateChange((_ev, s) => { if (s) S.token = s.access_token; });
+    sb.auth.onAuthStateChange((ev, s) => { if (s) S.token = s.access_token; if (ev === "PASSWORD_RECOVERY") showNewPassword(); });
     await loadTheme();
     // Where you land: super admins and comics start at the ComicTable level; a one-site team member goes straight to their site.
     const h0 = location.hash.slice(1);
@@ -1664,7 +1725,7 @@ td select.status.st-few_left { color: var(--warn); }
      PRESS KIT: a comic's approved photos and bios, for clubs
      (belongs to the comic, so it's the same on every site they're on)
      ====================================================== */
-  const PRESS_HOST = "https://comictable.com";
+  const PRESS_HOST = CFG.PLATFORM && /^https:/.test(location.origin) ? location.origin : "https://comictable.com";
   const pressLink = (comicId) => PRESS_HOST + "/press/" + encodeURIComponent(comicId);
   const words = (s) => (String(s || "").trim().match(/\S+/g) || []).length;
   function imageSize(file) {
