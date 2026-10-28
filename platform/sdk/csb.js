@@ -7,6 +7,8 @@
  *   <script src="config.js"></script>          // window.COCKFIGHT_CONFIG = { SITE_ID, SUPABASE_URL, SUPABASE_ANON_KEY }
  *   <script src="sdk/csb.js"></script>
  *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards, posts, picks }
+ *   Podcasts the comic switched off in Settings → "Podcasts on your site" (profile.podcasts_off, by name) are left out
+ *   of episodes and of CSB.elsewhere, so every design follows the same choice.
  *   CSB.elsewhere(people) → the other live ComicTable sites these people are on (a podcast they co-host, say),
  *   each with its latest episode when it's a podcast: [{ id, name, domain, url, podcast, people, episode }]
  *   picks: the comic's Home screen picks, in order (the first is the featured one). A pick made from a show carries
@@ -75,6 +77,7 @@
       optional(api("home_picks?select=*&order=sort.asc&hidden=is.false&" + site()))
     ]).then(function (r) {
       var s = r[0][0] || { id: cfg.site, features: {}, profile: {}, theme: {}, community: {} };
+      podcastsOff = offList(s.profile);
       var today = todayISO();
       var people = r[1].filter(visible).map(function (h) {
         return { id: h.id, comic: h.comic_id || "", name: h.name, title: h.title || "", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "",
@@ -92,7 +95,7 @@
         site: { id: s.id, name: s.name, domain: s.domain },
         features: s.features || {}, profile: s.profile || {}, theme: s.theme || {}, community: s.community || {},
         people: people, shows: shows,
-        episodes: r[3].filter(visible).map(function (e) { return { id: e.id, number: e.num, title: e.title, posted: e.posted, length: e.length || "", link: e.url || e.audio_url || "", audio: e.audio_url || "", image: e.image_url || "", patreon: e.patreon || "", description: e.blurb || "", show: e.show_name || "" }; }),
+        episodes: r[3].filter(visible).filter(function (e) { return !podOff(e.show_name); }).map(function (e) { return { id: e.id, number: e.num, title: e.title, posted: e.posted, length: e.length || "", link: e.url || e.audio_url || "", audio: e.audio_url || "", image: e.image_url || "", patreon: e.patreon || "", description: e.blurb || "", show: e.show_name || "" }; }),
         videos: r[4].filter(visible).sort(function (a, b) { return (b.featured - a.featured) || String(b.published || "").localeCompare(String(a.published || "")); })
           .map(function (v) { return { id: v.youtube_id, title: v.title, published: v.published, thumbnail: v.thumbnail_url || ("https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg"), link: v.url || ("https://www.youtube.com/watch?v=" + v.youtube_id), featured: !!v.featured, channel: v.channel || "", person: v.host || "" }; }),
         merch: r[5].filter(visible).map(function (m) { return { id: m.id, name: m.name, price: m.price || "", image: m.image_url || "", link: m.url || "" }; }),
@@ -116,6 +119,9 @@
       });
   }
 
+  var podcastsOff = [];
+  function offList(profile) { return ((profile || {}).podcasts_off || []).map(function (x) { return String(x).trim().toLowerCase(); }); }
+  function podOff(name) { return !!name && podcastsOff.indexOf(String(name).trim().toLowerCase()) >= 0; }
   // Other live ComicTable sites the same comics are on. Optional: any failure just means "none".
   function elsewhere(people) {
     var ids = (people || []).map(function (p) { return p.comic; }).filter(Boolean);
@@ -125,7 +131,7 @@
       var sites = {}; hs.forEach(function (h) { (sites[h.site_id] = sites[h.site_id] || []).push(h.name); });
       var sids = Object.keys(sites); if (!sids.length) return [];
       return api("sites?select=id,name,domain,features&id=in.(" + sids.map(encodeURIComponent).join(",") + ")").then(function (rows) {
-        rows = rows.filter(function (x) { return x.domain; }); // only sites that are live on their own address
+        rows = rows.filter(function (x) { return x.domain && !((x.features || {}).podcast && podOff(x.name)); }); // live sites only, minus podcasts switched off here
         return Promise.all(rows.map(function (x) {
           var pod = !!(x.features || {}).podcast;
           var ep = pod ? api("episodes?select=num,title,posted,url,audio_url,image_url,show_name&hidden=is.false&order=num.desc&limit=1&site_id=eq." + encodeURIComponent(x.id)).catch(function () { return []; }) : Promise.resolve([]);

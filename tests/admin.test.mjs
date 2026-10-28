@@ -725,3 +725,17 @@ test("Profile: the link preview card updates as you type and saves", async () =>
   d.querySelector("form.card").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   assert.equal(db.sites[0].profile.share_title, "COCKFIGHT LIVE");
 });
+
+test("Settings: every podcast the site's comics are on, each with its own switch", async () => {
+  const { w, d, db } = await open("#settings", (db) => {
+    db.episodes[0].show_name = "Cockfight";
+    db.sites.push({ id: "modern-apes", name: "The Modern Apes Podcast", domain: "modernapes.com", features: { podcast: true } });
+    db.hosts.push({ id: "ma-tristan", site_id: "modern-apes", comic_id: "tristan-bowling", name: "Tristan Bowling", sort: 0 });
+  });
+  await wait(120);
+  const card = [...d.querySelectorAll(".card")].find((c) => /Podcasts on your site/.test(c.textContent));
+  assert.match(card.textContent, /Cockfight.*Connected to this site.*The Modern Apes Podcast.*On ComicTable at modernapes\.com/s);
+  const sw = card.querySelector('[aria-label="Show The Modern Apes Podcast on this site"]');
+  sw.checked = false; sw.dispatchEvent(new w.Event("change")); await wait(60);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].profile.podcasts_off)), ["the modern apes podcast"]);
+});

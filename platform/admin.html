@@ -3009,7 +3009,38 @@ td select.status.st-few_left { color: var(--warn); }
       h("pre", { class: "snippet", text: snippet }),
       h("div", { class: "hint", text: "Other pieces: data-comictable=\"episodes\", \"videos\" or \"posts\". Add data-limit=\"5\" to show fewer. Add data-accent=\"#ff3b6b\" to the script for your button color." }),
       h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Copy snippet", onclick: async () => toast((await copyText(snippet)) ? "Copied. Paste it into your site's HTML or embed block." : "Couldn't copy. Select it and copy instead.") })));
-    main.append(h("div", { class: "stack" }, siteCard, feats, teamCard(), embedCard));
+    main.append(h("div", { class: "stack" }, siteCard, feats, podcastsCard(), teamCard(), embedCard));
+  }
+  // Every podcast this site's comics are on: feeds connected here, and ComicTable podcasts they co-host.
+  // Each one can be left off this site (profile.podcasts_off, by name); the data kit filters it for every design.
+  function podcastsCard() {
+    const card = h("section", { class: "card stack" }, h("h2", { style: "margin:0", text: "Podcasts on your site" }), h("p", { class: "hint", text: "Looking for your podcasts…" }));
+    (async () => {
+      const names = new Map();
+      (S.episodes || []).forEach((e) => { const n = (e.show_name || "").trim(); if (n && !names.has(n.toLowerCase())) names.set(n.toLowerCase(), { name: n, where: "Connected to this site" }); });
+      try {
+        const comics = [...new Set((S.hosts || []).map((x) => x.comic_id).filter(Boolean))];
+        if (comics.length) {
+          const hs = await q(sb.from("hosts").select("site_id").in("comic_id", comics).neq("site_id", sid()));
+          const ids = [...new Set(hs.map((x) => x.site_id))];
+          if (ids.length) (await q(sb.from("sites").select("id,name,domain,features").in("id", ids))).filter((x) => x.domain && (x.features || {}).podcast)
+            .forEach((x) => { const k = x.name.toLowerCase(); names.set(k, { name: x.name, where: names.has(k) ? "Connected here, and on ComicTable at " + x.domain : "On ComicTable at " + x.domain + ". Shows up by itself" }); });
+        }
+      } catch (e) {}
+      const off = new Set(((S.site.profile || {}).podcasts_off || []).map((x) => String(x).toLowerCase()));
+      if (!names.size) { card.replaceChildren(h("h2", { style: "margin:0", text: "Podcasts on your site" }), empty("No podcasts yet", "Connect one in Podcast, or join a podcast's site on ComicTable, and it'll show up here.")); return; }
+      card.replaceChildren(h("h2", { style: "margin:0", text: "Podcasts on your site" }),
+        h("p", { class: "sub", style: "margin:0", text: "Every podcast you're on. Switch one off to leave it off this site. It stays on its own site, and nothing is deleted." }),
+        h("div", { class: "switches" }, [...names.entries()].map(([k, x]) => h("div", { class: "switch-row" },
+          h("div", null, h("b", { text: x.name }), h("div", { class: "hint", text: x.where })),
+          h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: !off.has(k), "aria-label": "Show " + x.name + " on this site", onchange: async (e) => {
+            e.target.checked ? off.delete(k) : off.add(k);
+            const profile = { ...(S.site.profile || {}), podcasts_off: [...off] };
+            try { await saveSite({ profile }, x.name + (e.target.checked ? " is on your site." : " is off your site.")); }
+            catch (err) { e.target.checked = !e.target.checked; e.target.checked ? off.delete(k) : off.add(k); toast(errText(err), { bad: true }); }
+          } }), h("span"))))));
+    })();
+    return card;
   }
   const loginEmail = (u) => { u = String(u || "").trim(); return u.includes("@") ? u.toLowerCase() : u.toLowerCase() + "@" + loginDom(); };
   async function teamCall(body) {

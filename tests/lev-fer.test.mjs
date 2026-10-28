@@ -179,3 +179,19 @@ test("a podcast connected here and also on ComicTable shows once", async () => {
   assert.match(pod.textContent, /Cockfight.*91\. Own copy/s);
   assert.ok(menu(d).includes("Podcast"));
 });
+
+test("Lev picks which podcasts are on his site: one on, one off, or none", async () => {
+  const base = { ...full, home_picks: [], hosts: [{ ...full.hosts[0], comic_id: "lev-fer" }],
+    other_hosts: [{ site_id: "cockfight", comic_id: "lev-fer", name: "Lev Fer" }, { site_id: "other-pod", comic_id: "lev-fer", name: "Lev Fer" }],
+    other_sites: [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com", features: { podcast: true } }, { id: "other-pod", name: "Other Pod", domain: "otherpod.com", features: { podcast: true } }],
+    other_episodes: [{ num: 5, title: "Ep", url: "https://pod/5" }] };
+  const podText = (d) => ([...d.querySelectorAll(".block")].find((b) => /^Podcast/.test(b.textContent)) || { textContent: "" }).textContent;
+  let { d } = await load(base); await wait(120);
+  assert.match(podText(d), /Cockfight.*Other Pod/s, "both by default");
+  const oneOff = { ...base, sites: [{ ...full.sites[0], profile: { podcasts_off: ["Cockfight"] } }] };
+  ({ d } = await load(oneOff)); await wait(120);
+  assert.doesNotMatch(podText(d), /Cockfight/); assert.match(podText(d), /Other Pod/);
+  const allOff = { ...base, sites: [{ ...full.sites[0], profile: { podcasts_off: ["cockfight", "other pod"] } }] };
+  ({ d } = await load(allOff)); await wait(120);
+  assert.equal(podText(d), ""); assert.ok(!menu(d).includes("Podcast"));
+});
