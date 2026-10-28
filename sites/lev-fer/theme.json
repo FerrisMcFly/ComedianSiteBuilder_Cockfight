@@ -173,6 +173,12 @@
           true
         ],
         [
+          "press",
+          "Press",
+          "Approved photos and bio for clubs, from your press kit.",
+          true
+        ],
+        [
           "support",
           "Support button",
           "Your Patreon (or other support link) as a menu item.",

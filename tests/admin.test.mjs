@@ -58,7 +58,7 @@ function makeDb() {
       : name === "fans_near_show" ? { data: JSON.parse(JSON.stringify(db.fans || [])), error: null }
       : name === "create_site" ? (db.sites.push({ id: args.p_id, name: args.p_name, domain: args.p_domain, features: {}, created_at: "2026-10-27" }), db.admins.push({ user_id: "u1", site_id: args.p_id, role: "owner" }), { data: null, error: null })
       : name === "venue_slots" && args.v === "v1" ? { data: [{ dow: 5, show_time: "7:30 PM", uses: 3 }, { dow: 5, show_time: "10:00 PM", uses: 2 }], error: null } : { data: [], error: null },
-    from, storage: { from: () => ({}) } };
+    from, storage: { from: (bucket) => ({ upload: async (path) => { (db.uploads = db.uploads || []).push(bucket + "/" + path); return { error: null }; }, remove: async (paths) => { (db.removed = db.removed || []).push(...paths); return { error: null }; }, getPublicUrl: (path) => ({ data: { publicUrl: "https://s/storage/v1/object/public/" + bucket + "/" + path } }) }) } };
   return { db, client };
 }
 
@@ -80,8 +80,10 @@ const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", 
 test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open("#home");
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  assert.equal(d.querySelectorAll(".nav-btn").length, 14);
-  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Content", "Community", "Site extras"]);
+  assert.equal(d.querySelectorAll(".nav-btn").length, 15);
+  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Schedule", "Media", "Audience", "Site"]);
+  assert.equal([...d.querySelectorAll(".nav-btn")].pop().dataset.sec, "settings", "Settings sits at the bottom");
+  assert.match(d.querySelector(".crumbs").textContent, /ComicTable.*Cockfight/s);
   assert.ok(d.querySelector(".back-ct"), "a way back up to ComicTable");
   assert.match(d.body.textContent, /Connect your podcast/);
 });
@@ -320,7 +322,7 @@ test("site extras only appear when the site's front end uses them", async () => 
   const { d } = await open("#home", null, null);
   const labels = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
   assert.ok(!labels.some((l) => /Announcements|Links|Design settings/.test(l)), labels.join(","));
-  assert.ok(labels.some((l) => /Profile/.test(l)) && labels.some((l) => /Settings/.test(l)));
+  assert.ok(labels.some((l) => /Site profile/.test(l)) && labels.some((l) => /Settings/.test(l)) && labels.some((l) => /Press kit/.test(l)));
   assert.doesNotMatch(d.querySelector("main").textContent, /Post an announcement/);
   const only = await open("#home", null, { extras: ["links"] });
   const l2 = [...only.d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
@@ -537,7 +539,7 @@ test("site finder: with 50 sites, type a few letters and press Enter; recent sit
     for (let i = 1; i <= 50; i++) db.sites.push({ id: "comic-" + i, name: "Comic Number " + i, domain: "comic" + i + ".com", features: { shows: true } });
     db.sites.push({ id: "lev-fer", name: "Lev Fer", domain: "levfer.com", features: { shows: true } });
   });
-  assert.match(d.querySelector(".sp-hint").textContent, /52 sites/);
+  assert.match(d.querySelector(".kbd-btn").textContent, /Switch site/);
   d.dispatchEvent(new w.KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })); await wait();
   const input = d.getElementById("sitePickerSearch");
   assert.ok(input, "⌘K opens the finder");
@@ -566,7 +568,7 @@ test("your account: name, password, email, and where you have access", async () 
   set(w, d.getElementById("acctName"), "Ferris");
   d.getElementById("acctName").form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   assert.equal(JSON.stringify(db.authUpdates[0]), JSON.stringify({ data: { name: "Ferris" } }));
-  assert.match(d.querySelector(".side-foot").textContent, /Logged in as Ferris/);
+  assert.equal(d.querySelector(".acct-name").textContent, "Ferris");
   const p1 = d.getElementById("acctPass"), p2 = d.getElementById("acctPass2");
   p1.value = "newpassword1"; p2.value = "different";
   p1.form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(30);
@@ -738,4 +740,53 @@ test("Settings: every podcast the site's comics are on, each with its own switch
   const sw = card.querySelector('[aria-label="Show The Modern Apes Podcast on this site"]');
   sw.checked = false; sw.dispatchEvent(new w.Event("change")); await wait(60);
   assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].profile.podcasts_off)), ["the modern apes podcast"]);
+});
+
+test("Home screen picks: a YouTube link plays on the home screen and can use the video's thumbnail; videos pin to Home", async () => {
+  const theme = { name: "Console Lobby", extras: ["home_picks"], settings: [] };
+  const { w, d, db } = await open("#picks", (db) => {
+    db.home_picks = [];
+    db.videos = [{ id: "v1", site_id: "cockfight", youtube_id: "abcdefghijk", title: "Crowd work in Boston", url: "https://www.youtube.com/watch?v=abcdefghijk", thumbnail_url: "https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg", published: "2026-10-01", hidden: false }];
+  }, theme);
+  const form = d.querySelector("form.card");
+  set(w, form.querySelector('input[aria-label="Headline"]'), "New special");
+  set(w, form.querySelector('input[aria-label="Button link"]'), "https://youtu.be/abcdefghijk");
+  assert.match(form.textContent, /will play right on your home screen/);
+  btn(d, /Use the video's thumbnail/).click(); await wait(20);
+  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.equal(db.home_picks[0].image_url, "https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg");
+
+  w.location.hash = "#videos"; await wait(80);
+  btn(d, /^Pin to Home$/).click(); await wait(60);
+  const top = db.home_picks.slice().sort((a, b) => a.sort - b.sort)[0];
+  assert.deepEqual([top.kind, top.headline, top.link, top.image_url], ["video", "Crowd work in Boston", "https://www.youtube.com/watch?v=abcdefghijk", "https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg"]);
+});
+
+test("press kit: per comic, with bios, credits, booking contact, approved photos and a link for clubs", async () => {
+  const { w, d, db } = await open("#press", (db) => {
+    db.press_photos = [
+      { id: "ph1", comic_id: "colum-tyrrell", url: "https://s/storage/v1/object/public/press/colum-tyrrell/1.jpg", web_url: "https://s/storage/v1/object/public/press/colum-tyrrell/1-web.jpg", is_primary: true, sort: 0, width: 3000, height: 4000 },
+      { id: "ph2", comic_id: "colum-tyrrell", url: "https://s/storage/v1/object/public/press/colum-tyrrell/2.jpg", is_primary: false, sort: 1 }];
+    db.comics.find((c) => c.id === "colum-tyrrell").bio = "Colum is from Ireland and does crowd work at every show he can find.";
+  });
+  await wait(80);
+  assert.match(d.querySelector("h1").textContent, /Press kit/);
+  assert.ok(d.querySelector(".seg"), "a site with several comics picks whose kit to edit");
+  assert.match(d.querySelector(".press-link").textContent, /comictable\.com\/press\/colum-tyrrell$/);
+  assert.equal(d.querySelectorAll(".press-tile").length, 2);
+  assert.ok(d.querySelector(".press-tile.primary"));
+  btn(d, /Start from profile bio/).click();
+  set(w, d.querySelector('input[aria-label="Booking contact"]'), "book@colum.example");
+  set(w, d.querySelector('textarea[aria-label="Credits"]'), "Comedy Central\nJFL New Faces");
+  d.querySelector('textarea[aria-label="Short bio"]').form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const c = db.comics.find((x) => x.id === "colum-tyrrell");
+  assert.equal(c.booking_contact, "book@colum.example");
+  assert.equal(c.credits, "Comedy Central\nJFL New Faces");
+  assert.match(c.short_bio, /^Colum is from Ireland/);
+  btn(d, /^Make primary$/).click(); await wait(80);
+  assert.deepEqual(db.press_photos.filter((p) => p.is_primary).map((p) => p.id), ["ph2"], "one primary at a time");
+  btn(d, /^Remove$/).click(); await wait(80);
+  assert.equal(db.press_photos.length, 1);
+  assert.ok((db.removed || []).length, "the files are deleted too");
+  assert.ok(db.press_photos[0].is_primary, "there's always a primary photo left");
 });

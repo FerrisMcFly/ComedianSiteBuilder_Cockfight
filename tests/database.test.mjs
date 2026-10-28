@@ -22,12 +22,14 @@ test("all database files run, and the upgrades can run twice", async () => {
   db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create schema auth; create table auth.users (id uuid primary key, email text);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
-    create schema storage; create table storage.buckets (id text primary key, name text, public boolean);
+    create schema storage; create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
     create table storage.objects (id serial primary key, bucket_id text, name text); alter table storage.objects enable row level security;
+    create function storage.foldername(name text) returns text[] language sql immutable as $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
+    grant usage on schema storage to anon, authenticated; grant select, insert, update, delete on storage.objects to authenticated; grant usage, select on sequence storage.objects_id_seq to authenticated; grant execute on function storage.foldername(text) to authenticated;
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -289,4 +291,18 @@ test("home picks: public sees live ones, only the site's admins change them", as
   assert.equal((await q("select count(*)::int n from home_picks where headline = 'Hacked'"))[0].n, 0);
   assert.equal(await as(COMIC, `insert into home_picks (site_id, headline, kind) values ('othercomic', 'My special', 'video')`), "ok");
   assert.match(await as(COMIC, `insert into home_picks (site_id, headline, kind) values ('othercomic', 'x', 'nonsense')`), /check constraint/);
+});
+
+test("press kit: anyone can see a comic's approved photos and bios; only people who can edit that comic change them", async () => {
+  const LEV = "33333333-3333-3333-3333-333333333333";
+  assert.equal(await as(LEV, `update comics set short_bio = 'Lev is a comic.', booking_contact = 'book@lev.example' where id = 'lev-fer'`), "ok");
+  assert.equal((await q("select short_bio from comics where id = 'lev-fer'"))[0].short_bio, "Lev is a comic.");
+  assert.equal(await as(LEV, `insert into press_photos (comic_id, url, credit, orientation, is_primary) values ('lev-fer', 'https://p/lev-1.jpg', 'Photo: A. Person', 'portrait', true)`), "ok");
+  assert.match(await as(LEV, `insert into press_photos (comic_id, url, is_primary) values ('lev-fer', 'https://p/lev-2.jpg', true)`), /duplicate|unique/i, "only one primary photo");
+  assert.match(await as(LEV, `insert into press_photos (comic_id, url) values ('colum-tyrrell', 'https://p/not-mine.jpg')`), /row-level security/i);
+  assert.equal((await rows(null, "select url from press_photos where comic_id = 'lev-fer'")).length, 1, "clubs see it without logging in");
+  // files: a comic uploads into their own folder only
+  assert.equal(await as(LEV, `insert into storage.objects (bucket_id, name) values ('press', 'lev-fer/headshot.jpg')`), "ok");
+  assert.match(await as(LEV, `insert into storage.objects (bucket_id, name) values ('press', 'colum-tyrrell/headshot.jpg')`), /row-level security/i);
+  assert.match(await as(LEV, `update comics set short_bio = repeat('x', 601) where id = 'lev-fer'`), /check/i);
 });
