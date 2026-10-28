@@ -278,6 +278,10 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .looks button:disabled { opacity: .45; cursor: not-allowed; }
 .color-pick { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; }
 .color-pick input { width: 34px; height: 34px; padding: 0; border: 1px solid var(--line-strong); border-radius: 50%; background: none; cursor: pointer; overflow: hidden; }
+.coaster-link { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
+.coaster-link a { font-weight: 650; color: var(--text); }
+.linkish { border: 0; background: none; padding: 0; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; }
+.site-only { border-top: 1px solid var(--line); padding-top: 12px; }
 .attention { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 @media (max-width: 560px) { .coaster-edit { grid-template-columns: 1fr; justify-items: center; } }
 .comic-card { display: grid; grid-template-columns: 52px minmax(0, 1fr); grid-template-rows: auto auto; gap: 4px 12px; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; color: var(--text); font: inherit; box-shadow: var(--shadow); }
@@ -293,7 +297,8 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .post-preview { border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; line-height: 1.6; min-height: 200px; }
 .post-preview img { max-width: 100%; border-radius: 8px; }
 .post-preview .csb-video iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 8px; }
-.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 620px), 1fr)); gap: 18px; align-items: start; }
+.people > .card { max-width: 820px; }
 .person-top { display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
 .avatar { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; background: var(--bg); border: 1px solid var(--line); flex: none; display: grid; place-items: center; color: var(--muted); font-size: 11px; text-align: center; }
 form.card.is-hidden { opacity: .7; }
@@ -620,10 +625,11 @@ td select.status.st-few_left { color: var(--warn); }
 
   // Which people on this site have their own login (comics.user_id)
   async function loadLogins() {
-    S.logins = {};
+    S.logins = {}; S.coasters = {};
     const ids = S.hosts.map((x) => x.comic_id).filter(Boolean);
     if (!ids.length) return;
-    try { (await q(sb.from("comics").select("id, user_id").in("id", ids))).forEach((c) => { S.logins[c.id] = c.user_id || null; }); } catch (e) {}
+    S.coasters = {};  // each person's Coaster (comics row), for their card on Lineup
+    try { (await q(sb.from("comics").select("*").in("id", ids))).forEach((c) => { S.logins[c.id] = c.user_id || null; S.coasters[c.id] = c; }); } catch (e) {}
   }
 
   async function loadAll() {
@@ -1781,19 +1787,12 @@ td select.status.st-few_left { color: var(--warn); }
   const LOOKS = [["classic", "Classic", "#F7F0DF", "#C4452E", "#1F1F1F"], ["night", "Night", "#232120", "#D9583F", "#F3EAD7"], ["redwood", "Redwood", "#F3EAD7", "#1F1F1F", "#A93A26"],
     ["mustard", "Mustard", "#1F1F1F", "#E0A21A", "#E0A21A"], ["spooky", "Spooky", "#1E1726", "#F07C1F", "#F07C1F", "Seasonal"], ["holiday", "Holiday", "#FBF3E4", "#D9443A", "#17321F", "Seasonal"]];
   const coasterUrl = (c) => PRESS_HOST + "/" + encodeURIComponent(c.handle || c.id);
-  function coasterCard(c, opts = {}) {
-    const ready = "look" in c;  // the database has 21_coasters.sql
+  // The Coaster's own settings (Tape, look, what's on it, also on the bill), as pieces for a person's card to place in
+  // its form. The card saves them with everything else in one go: one card, one Save, wherever a comic is edited.
+  function coasterFields(c, opts = {}) {
+    if (!c || !("look" in c)) return null;  // the database doesn't have 21_coasters.sql yet
     const yours = opts.me ? "your" : c.name.split(" ")[0] + "'s";
     const url = coasterUrl(c);
-    const card = h("section", { class: "card stack coaster-card" });
-    const headRow = h("div", { class: "toolbar" }, h("div", null, h("h2", { style: "margin:0", text: opts.me ? "Your Coaster" : "Coaster" }),
-        h("div", { class: "hint wrap-any" }, h("a", { href: url, target: "_blank", rel: "noopener", text: url.replace(/^https?:\/\//, "") }))),
-      h("div", { class: "btns" }, h("a", { class: "btn sm", href: url, target: "_blank", rel: "noopener", text: "Open ↗" }),
-        h("button", { class: "btn sm ghost", type: "button", text: "Copy link", onclick: async () => toast((await copyText(url)) ? "Coaster link copied." : "Couldn't copy. Try again.") })));
-    card.append(headRow, h("p", { class: "sub", style: "margin:0", text: opts.me
-      ? "Your card on ComicTable: your photo, Tape, next dates and links on one page. Put it in your bio. Every site you're on pulls from it."
-      : c.name + "'s card on ComicTable: photo, Tape, next dates and links on one page. Every site they're on pulls from it." }));
-    if (!ready) { card.append(h("p", { class: "hint", text: "Tape and looks appear once supabase/21_coasters.sql (in UPGRADE_V3_ALL.sql) is run." })); return card; }
     let look = c.look || "classic";
     // Custom (their own colors) comes with a site on ComicTable, or Pro. The database checks this too.
     let onSite = opts.onSite;
@@ -1814,6 +1813,11 @@ td select.status.st-few_left { color: var(--warn); }
         h("label", { class: "check" }, noBand, "No band")),
       h("div", { class: "btns" }, h("span", { class: "hint", text: "Photo:" }), photoSeg));
     const customNote = h("p", { class: "hint", style: "margin:0" });
+    const looks = h("div", { class: "looks", role: "group", "aria-label": "Look" }, [...LOOKS.map(([k, l, pulp, ring, print, tag]) =>
+      h("button", { type: "button", "data-look": k, "aria-pressed": "false", onclick: () => { look = k; paint(); } },
+        h("i", { style: `--pulp:${pulp};--ring:${ring};--print:${print}` }), h("span", { text: l }), tag ? h("small", { text: tag }) : null)),
+      h("button", { type: "button", "data-look": "custom", "aria-pressed": "false", onclick: () => { if (!canCustom()) return; look = "custom"; paint(); } },
+        h("i", { class: "rainbow" }), h("span", { text: "Custom" }))]);
     const paint = () => {
       const L = LOOKS.find((x) => x[0] === look);
       const [pulp, ring, print] = L ? [L[2], L[3], L[4]] : [style.pulp, style.band === "none" ? style.ink : style.band, style.ink];
@@ -1821,18 +1825,12 @@ td select.status.st-few_left { color: var(--warn); }
       preview.classList.toggle("color", look === "custom" && style.photo === "color");
       preview.replaceChildren(c.photo_url ? h("img", { src: c.photo_url, alt: "" }) : h("b", { text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }));
       looks.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.look === look)));
-      const custBtn = looks.querySelector('[data-look="custom"]');
-      custBtn.disabled = !canCustom() && look !== "custom";
+      looks.querySelector('[data-look="custom"]').disabled = !canCustom() && look !== "custom";
       customBox.hidden = look !== "custom";
       customNote.textContent = canCustom() ? "" : onSite === false ? "Custom looks (your own colors) come with a site on ComicTable." : "";
     };
-    const looks = h("div", { class: "looks", role: "group", "aria-label": "Look" }, [...LOOKS.map(([k, l, pulp, ring, print, tag]) =>
-      h("button", { type: "button", "data-look": k, "aria-pressed": "false", onclick: () => { look = k; paint(); } },
-        h("i", { style: `--pulp:${pulp};--ring:${ring};--print:${print}` }), h("span", { text: l }), tag ? h("small", { text: tag }) : null)),
-      h("button", { type: "button", "data-look": "custom", "aria-pressed": "false", onclick: () => { if (!canCustom()) return; look = "custom"; paint(); } },
-        h("i", { class: "rainbow" }), h("span", { text: "Custom" }))]);
     if (onSite === undefined) q(sb.from("hosts").select("id").eq("comic_id", c.id)).then((r) => { onSite = r.length > 0; paint(); }, () => {});
-    // Pro isn't sold yet; ComicTable admins can switch it on by hand
+    // Pro isn't sold yet; ComicTable admins can switch it on by hand (saves right away)
     const proBox = S.isOwner && opts.admin ? h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Pro" }), h("div", { class: "hint", text: "Not for sale yet. Switching it on gives " + c.name.split(" ")[0] + " the Custom look without a site." })),
       h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: !!c.pro, "aria-label": "Pro", onchange: async (e) => {
         try { await q(sb.from("comics").update({ pro: e.target.checked }).eq("id", c.id)); c.pro = e.target.checked; paint(); toast(c.name + (c.pro ? " has Pro." : " is back on the free Coaster.")); }
@@ -1841,7 +1839,6 @@ td select.status.st-few_left { color: var(--warn); }
     const tapeUrl = h("input", { type: "url", value: c.tape_url || "", placeholder: "https://www.youtube.com/watch?v=…", "aria-label": "Tape link" });
     const tapeTitle = h("input", { value: c.tape_title || "", maxlength: "120", placeholder: "Live at the Comedy Cellar, 2026", "aria-label": "Tape title" });
     const bills = h("input", { type: "checkbox", role: "switch", checked: c.on_bills !== false, "aria-label": "Show who else is on the bill" });
-    // What shows on the Coaster, what waits under More, and what's off
     const ITEMS = (window.CSB && CSB.COASTER_ITEMS) || [];
     const plan = (window.CSB && CSB.coasterPlan) ? CSB.coasterPlan(c) : {};
     const planRows = h("div", { class: "plan" }, ITEMS.map(([k, l, , d]) => {
@@ -1851,32 +1848,28 @@ td select.status.st-few_left { color: var(--warn); }
       draw();
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), seg);
     }));
-    const msg = h("div", { class: "err" });
-    const save = h("button", { class: "btn primary", type: "submit", text: "Save Coaster" });
-    const form = h("form", { class: "stack", onsubmit: async (e) => {
-      e.preventDefault(); msg.textContent = "";
-      const t = tapeUrl.value.trim();
-      if (t && !/^https:\/\//i.test(t)) { msg.textContent = "The Tape needs a full link that starts with https://"; tapeUrl.focus(); return; }
-      save.disabled = true;
-      const patch = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
-      if ("coaster" in c) patch.coaster = { ...plan, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
-      try { await q(sb.from("comics").update(patch).eq("id", c.id)); Object.assign(c, patch); if (opts.me && S.me) Object.assign(S.me, patch); toast("Coaster saved."); }
-      catch (er) { msg.textContent = errText(er); }
-      save.disabled = false;
-    } },
-      h("div", { class: "coaster-edit" }, preview, h("div", { class: "stack", style: "gap:8px;min-width:0" }, h("b", { text: "Look" }), looks,
-        h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }), customBox, customNote)),
-      proBox,
-      h("div", { class: "grid" }, field("The Tape: " + yours + " best set right now", tapeUrl, "c12"), field("What it is", tapeTitle, "c12")),
-      h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
-        h("div", { class: "hint", text: "When another comic on ComicTable has the same club on the same night, you show up on each other's dates. Nobody has to tag anyone." })),
-        h("label", { class: "switch" }, bills, h("span"))),
-      "coaster" in c ? h("div", { class: "stack", style: "gap:4px" }, h("b", { text: "What's on it" }),
-        h("p", { class: "hint", style: "margin:0", text: "Keep it simple: a few things up front. Fans tap More for the rest." }), planRows) : null,
-      msg, h("div", { class: "btns" }, save, h("a", { class: "btn ghost", href: url, target: "_blank", rel: "noopener", text: "See it ↗" })));
-    card.append(form);
     paint();
-    return card;
+    return {
+      url,
+      // a line under the name: the Coaster's address, with Open
+      link: h("div", { class: "hint coaster-link" }, h("a", { href: url, target: "_blank", rel: "noopener", text: url.replace(/^https?:\/\//, "") + " ↗" }),
+        h("button", { class: "linkish", type: "button", text: "Copy", onclick: async () => toast((await copyText(url)) ? "Coaster link copied." : "Couldn't copy. Try again.") })),
+      tape: h("div", { class: "grid" }, field("The Tape: " + yours + " best set right now", tapeUrl, "c8"), field("What it is", tapeTitle, "c4")),
+      look: h("div", { class: "coaster-edit" }, preview, h("div", { class: "stack", style: "gap:8px;min-width:0" }, h("b", { text: "Coaster look" }), looks,
+        h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }), customBox, customNote)),
+      more: h("details", { class: "quiet coaster-more" }, h("summary", { text: "What's on " + yours + " Coaster" }),
+        h("p", { class: "hint", style: "margin:8px 0 0", text: "Keep it simple: a few things up front. Fans tap More for the rest." }), planRows,
+        h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
+          h("div", { class: "hint", text: "When another comic on ComicTable has the same club on the same night, you show up on each other's dates. Nobody has to tag anyone." })),
+          h("label", { class: "switch" }, bills, h("span"))), proBox),
+      check() { const t = tapeUrl.value.trim(); if (t && !/^https:\/\//i.test(t)) { tapeUrl.focus(); return "The Tape needs a full link that starts with https://"; } return ""; },
+      patch() {
+        const t = tapeUrl.value.trim();
+        const out = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
+        if ("coaster" in c) out.coaster = { ...plan, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
+        return out;
+      }
+    };
   }
   // A site asks before adding a comic who has their own login. They answer on Me.
   async function askForComic(c, siteId) {
@@ -2480,7 +2473,7 @@ td select.status.st-few_left { color: var(--warn); }
 
     // dates everywhere
     const datesCard = h("section", { class: "card" }, h("h2", { text: "Upcoming dates" }), h("p", { class: "hint", text: "Loading…" }));
-    left.append(datesCard, personCard({ ...c, id: null, comic_id: c.id }, 0, { comic: true }));
+    left.append(personCard({ ...c, id: null, comic_id: c.id }, 0, { comic: true, onSite: sites.length > 0 }), datesCard);
     try {
       const dates = await q(sb.rpc("comic_shows", { p_comic: c.id }));
       datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Upcoming dates (" + dates.length + ")" }),
@@ -2491,7 +2484,6 @@ td select.status.st-few_left { color: var(--warn); }
           : empty("No upcoming dates", sites.length ? "Add some, or point the show finder at their tour page." : "Put them on a site first."));
     } catch (e) { datesCard.replaceChildren(h("h2", { text: "Upcoming dates" }), h("p", { class: "err", text: errText(e) })); }
 
-    right.append(coasterCard(c, { onSite: sites.length > 0, admin: true }));
     // sites
     const addSel = h("select", { "aria-label": "Add to a site", style: "max-width:240px" }, h("option", { value: "", text: "Put them on a site…" }),
       S.sites.filter((st) => !sites.some((x) => x.site_id === st.id)).sort((a, b) => a.name.localeCompare(b.name)).map((st) => h("option", { value: st.id, text: st.name })));
@@ -2653,7 +2645,7 @@ td select.status.st-few_left { color: var(--warn); }
     const datesCard = h("section", { class: "card" }, h("h2", { text: "Your upcoming dates" }), h("p", { class: "hint", text: "Loading…" }));
     const here = S.hosts.find((x) => x.comic_id === me.id);
     const asks = h("div");
-    wrap.append(asks, coasterCard(me, { me: true }), sitesCard, datesCard, personCard({ ...me, id: here ? here.id : null, comic_id: me.id }, 0, { me: true }));
+    wrap.append(asks, personCard({ ...me, id: here ? here.id : null, comic_id: me.id }, 0, { me: true }), sitesCard, datesCard);
     requestsCard(me).then((c) => { if (c) asks.replaceWith(c); });
     let mySites = [];
     try {
@@ -2716,6 +2708,9 @@ td select.status.st-few_left { color: var(--warn); }
   function personCard(x, idx, opts = {}) {
     const shared = !!x.comic_id, lineup = !(opts.me || opts.comic);
     const own = h("input", { type: "checkbox", checked: !!(x.own_bio || x.own_title) });
+    // This card is the person's Coaster: the Tape, look and what's on it are saved with everything else.
+    const coasterRow = !shared ? null : (opts.me || opts.comic) ? { ...x, id: x.comic_id } : (S.coasters || {})[x.comic_id];
+    const cf = coasterRow ? coasterFields(coasterRow, { me: opts.me, admin: opts.comic, onSite: lineup ? true : opts.onSite }) : null;
     // a photo just for this site (21_coasters.sql); otherwise the photo is the Coaster's
     const ownPhoto = shared && lineup && "own_photo" in x ? h("input", { type: "checkbox", checked: !!x.own_photo }) : null;
     const inp = { name: h("input", { value: x.name, required: true }), title: h("input", { value: x.title || "", placeholder: "Comedian" }), status: h("input", { value: x.status || "", placeholder: "Automatic" }), bio: h("textarea", { value: x.bio || "" }) };
@@ -2726,15 +2721,17 @@ td select.status.st-few_left { color: var(--warn); }
     const file = h("input", { type: "file", accept: "image/*", style: "display:none" });
     file.addEventListener("change", () => { if (file.files[0]) { const im = h("img", { class: "avatar", src: URL.createObjectURL(file.files[0]), alt: "" }); pic.replaceWith(im); pic = im; } });
     const msg = h("div", { class: "err" });
-    const save = h("button", { class: "btn primary", type: "submit", text: "Save changes" });
+    const save = h("button", { class: "btn primary", type: "submit", text: shared ? "Save Coaster" : "Save changes" });
     const showCount = S.shows.filter((s) => s.host === x.id).length;
     const swap = async (a, b) => {
       const A = S.hosts[a], B = S.hosts[b];
       try { await q(sb.from("hosts").update({ sort: b }).eq("id", A.id)); await q(sb.from("hosts").update({ sort: a }).eq("id", B.id)); await reload.hosts(); route(); } catch (e) { toast(errText(e), { bad: true }); }
     };
     const card = h("form", { class: "card stack" + (x.hidden ? " is-hidden" : ""), onsubmit: async (e) => {
-      e.preventDefault(); save.disabled = true; msg.textContent = "";
-      const prof = { name: inp.name.value.trim(), status: inp.status.value.trim() || null };
+      e.preventDefault(); msg.textContent = "";
+      const bad = cf ? cf.check() : ""; if (bad) { msg.textContent = bad; return; }
+      save.disabled = true;
+      const prof = { name: inp.name.value.trim(), status: inp.status.value.trim() || null, ...(cf ? cf.patch() : {}) };
       for (const k of COL_SOC) prof[k] = inp[k].value.trim() || null;
       if (hasMore) { const more = {}; for (const [k] of SOC) if (!COL_SOC.includes(k) && inp[k] && inp[k].value.trim()) more[k] = inp[k].value.trim(); prof.socials = more; }
       const words = { title: inp.title.value.trim() || "Comedian", bio: inp.bio.value.trim() };
@@ -2743,6 +2740,7 @@ td select.status.st-few_left { color: var(--warn); }
         if (file.files[0]) pic = await uploadImage(file.files[0], x.comic_id || x.id);
         const sitePhoto = !!(ownPhoto && ownPhoto.checked);
         if (pic && !sitePhoto) prof.photo_url = pic;
+        if (cf && coasterRow) Object.assign(coasterRow, cf.patch());
         if (!shared) await q(sb.from("hosts").update({ ...prof, ...words }).eq("id", x.id));
         else {
           // the Coaster first, then this site's own bits
@@ -2758,20 +2756,15 @@ td select.status.st-few_left { color: var(--warn); }
       } catch (err) { msg.textContent = errText(err); save.disabled = false; }
     } },
       h("div", { class: "person-top" }, pic, h("div", { style: "min-width:0;flex:1" }, h("b", { text: x.name }), x.hidden ? h("span", { class: "pill", style: "margin-left:6px", text: "Hidden" }) : null,
-        lineup ? h("div", { class: "hint", text: showCount ? showCount + " show" + (showCount > 1 ? "s" : "") : "No shows yet" }) : h("div", { class: "hint", text: opts.comic ? "Their profile on every site they're on" : "Your profile on every site you're on" }),
+        lineup ? h("div", { class: "hint", text: showCount ? showCount + " show" + (showCount > 1 ? "s" : "") : "No shows yet" }) : h("div", { class: "hint", text: opts.comic ? "Their Coaster: on every site they're on" : "Your Coaster: on every site you're on" }),
+        cf ? cf.link : null,
         h("div", { class: "btns", style: "margin-top:6px;gap:4px" }, h("label", { class: "btn sm" }, "Change photo", file),
           lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " earlier", text: "↑", disabled: idx === 0, onclick: () => swap(idx, idx - 1) }) : null,
           lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " later", text: "↓", disabled: idx === S.hosts.length - 1, onclick: () => swap(idx, idx + 1) }) : null))),
       shared && lineup ? h("div", { class: "hint", "data-also": x.comic_id, hidden: true }) : null,
       h("div", { class: "grid" }, field("Name", inp.name, "c6"), field("Title", inp.title, "c6"), field("Status", inp.status, "c12"), field("Bio", inp.bio, "c12")),
-      shared && lineup ? (() => {
-        const first = x.name.split(" ")[0], custom = [x.own_title && "title", x.own_bio && "bio", x.own_photo && "photo"].filter(Boolean);
-        return h("div", { class: "stack", style: "gap:6px" },
-          h("div", null, custom.length ? h("span", { class: "pill red", text: "Custom for " + S.site.name + ": " + custom.join(", ") })
-            : h("span", { class: "pill ok", text: "Using " + first + "'s Coaster" })),
-          h("label", { class: "check" }, own, "Use a different title and bio on " + S.site.name),
-          ownPhoto ? h("label", { class: "check" }, ownPhoto, "Use a different photo on " + S.site.name + " (the next photo you pick stays here)") : null);
-      })() : null,
+      cf ? cf.tape : null,
+      cf ? cf.look : null,
       (() => {
         const filled = SOC.filter(([k]) => inp[k] && inp[k].value).length;
         const d = h("details", { class: "quiet", "data-socials": x.id, open: OPEN_SOCIALS === x.id || null }, h("summary", { text: "Social links" + (filled ? " (" + filled + ")" : "") }),
@@ -2781,6 +2774,15 @@ td select.status.st-few_left { color: var(--warn); }
         if (OPEN_SOCIALS === x.id) { OPEN_SOCIALS = null; setTimeout(() => { try { d.scrollIntoView({ block: "center", behavior: "smooth" }); const f = d.querySelector("input"); f && f.focus({ preventScroll: true }); } catch (e) {} }, 60); }
         return d;
       })(),
+      cf ? cf.more : null,
+      shared && lineup ? (() => {
+        const first = x.name.split(" ")[0], custom = [x.own_title && "title", x.own_bio && "bio", x.own_photo && "photo"].filter(Boolean);
+        return h("div", { class: "stack site-only", style: "gap:6px" }, h("b", { text: "Only on " + S.site.name }),
+          h("div", null, custom.length ? h("span", { class: "pill red", text: "Custom for " + S.site.name + ": " + custom.join(", ") })
+            : h("span", { class: "pill ok", text: "Using " + first + "'s Coaster" })),
+          h("label", { class: "check" }, own, "Use a different title and bio on " + S.site.name),
+          ownPhoto ? h("label", { class: "check" }, ownPhoto, "Use a different photo on " + S.site.name + " (the next photo you pick stays here)") : null);
+      })() : null,
       msg,
       lineup && shared ? loginBox(x) : null,
       h("div", { class: "btns" }, save, !lineup ? null :

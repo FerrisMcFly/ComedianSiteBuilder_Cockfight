@@ -272,10 +272,10 @@ test("moderation saves house rules; chat can be closed", async () => {
   assert.equal(db.chat_messages[0].is_mod, true); assert.equal(db.chat_messages[0].author, "Colum Tyrrell");
 });
 
-test("people cards say Save changes, not the person's name", async () => {
+test("each person's card is their Coaster: it says Save Coaster, not the person's name", async () => {
   const { d } = await open("#people");
   const labels = [...d.querySelectorAll(".people form button[type=submit]")].map((b) => b.textContent);
-  assert.deepEqual([...new Set(labels)], ["Save changes"]);
+  assert.deepEqual([...new Set(labels)], ["Save Coaster"]);
 });
 
 test("several YouTube channels, each with an owner", async () => {
@@ -899,8 +899,8 @@ test("Coasters: pick a look, set the Tape, choose what's up front and what's und
   });
   await wait(80);
   [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
-  const card = d.querySelector(".coaster-card");
-  assert.ok(card, "the comic's page has their Coaster");
+  const card = d.querySelector("main form.card");
+  assert.ok(card.querySelector(".looks"), "the comic's card is their Coaster");
   assert.match(card.textContent, /comictable\.com\/lev-fer/);
   btn(d, /Spooky/, card).click();
   assert.equal(card.querySelector('.looks [aria-pressed="true"]').dataset.look, "spooky");
@@ -909,12 +909,12 @@ test("Coasters: pick a look, set the Tape, choose what's up front and what's und
   btn(d, /^Up front$/, card.querySelector('[aria-label="The Tape"]')).click();
   btn(d, /^Off$/, card.querySelector('[aria-label="Booking"]')).click();
   card.querySelector('input[aria-label="Show who else is on the bill"]').checked = false;
-  card.querySelector("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   const lev = db.comics.find((c) => c.id === "lev-fer");
   assert.deepEqual([lev.look, lev.tape_url, lev.tape_title, lev.on_bills, lev.coaster.tape, lev.coaster.booking, lev.coaster.socials], ["spooky", "https://youtu.be/abcdefghijk", "Live at the Cellar", false, "front", "off", "front"]);
   // a bad Tape link doesn't save
   set(w, card.querySelector('input[aria-label="Tape link"]'), "youtube.com/whatever");
-  card.querySelector("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
   assert.match(card.textContent, /starts with https/);
   assert.equal(db.comics.find((c) => c.id === "lev-fer").tape_url, "https://youtu.be/abcdefghijk");
 });
@@ -933,11 +933,11 @@ test("Coasters: a site asks before adding a comic with their own login, and the 
   assert.deepEqual(site.db.coaster_requests.map((r) => [r.comic_id, r.site_id, r.requested_by]), [["daniel-bridge-gadd", "cockfight", "u1"]]);
   assert.ok(!site.db.hosts.some((h) => h.comic_id === "daniel-bridge-gadd"), "not added until he says yes");
   // Daniel sees it on Me
-  const me = await open("#ct/me", (db) => { db.comics.find((c) => c.id === "daniel-bridge-gadd").user_id = "u1"; db.platform_admins = [];
+  const me = await open("#ct/me", (db) => { Object.assign(db.comics.find((c) => c.id === "daniel-bridge-gadd"), { user_id: "u1", look: "classic", coaster: {} }); db.platform_admins = [];
     db.coaster_requests = [{ id: "r1", comic_id: "daniel-bridge-gadd", site_id: "cockfight", status: "pending", created_at: "2026-10-28" }]; });
   await wait(120);
   assert.match(me.d.querySelector("main").textContent, /A site wants to add you.*Cockfight/s);
-  assert.ok(me.d.querySelector(".coaster-card"), "and his own Coaster to edit");
+  assert.ok(me.d.querySelector("main form.card .looks"), "and his own Coaster to edit");
   btn(me.d, /^Say yes$/).click(); await wait(60);
   assert.deepEqual(JSON.parse(JSON.stringify(me.db.rpcCalls.find((c) => c[0] === "answer_coaster_request"))), ["answer_coaster_request", { p_id: "r1", p_yes: true }]);
 });
@@ -969,7 +969,7 @@ test("Coasters: Custom colors for comics on a site; Pro is ComicTable's switch",
   await wait(80);
   // Daniel isn't on a site: Custom is locked
   [...d.querySelectorAll(".comic-card")].find((b) => /Daniel/.test(b.textContent)).click(); await wait(120);
-  let card = d.querySelector(".coaster-card");
+  let card = d.querySelector("main form.card");
   assert.ok(card.querySelector('[data-look="custom"]').disabled);
   assert.match(card.textContent, /come with a site/);
   // ComicTable admin switches Pro on: unlocked
@@ -979,14 +979,30 @@ test("Coasters: Custom colors for comics on a site; Pro is ComicTable's switch",
   // Lev is on Cockfight: Custom with his own colors and a full-color photo
   btn(d, /All Coasters/).click(); await wait(80);
   [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
-  card = d.querySelector(".coaster-card");
+  card = d.querySelector("main form.card");
   card.querySelector('[data-look="custom"]').click();
   assert.ok(!card.querySelector(".custom-look").hidden);
   set(w, card.querySelector('input[aria-label="Board color"]'), "#101010");
   btn(d, /^Full color$/, card).click();
-  card.querySelector("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   const lev = db.comics.find((c) => c.id === "lev-fer");
   assert.equal(lev.look, "custom");
   assert.deepEqual(JSON.parse(JSON.stringify(lev.coaster.style)), { pulp: "#101010", ink: "#1F1F1F", band: "#C4452E", photo: "color" });
   assert.equal(lev.coaster.next, "front", "what's-on-it choices are kept alongside");
+});
+
+test("Lineup: each person's card is their Coaster; one Save covers the profile, Tape and look", async () => {
+  const { w, d, db } = await open("#people", (db) => {
+    db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id }));
+  });
+  await wait(80);
+  const lev = [...d.querySelectorAll(".people form.card")].find((c) => /Lev Fer/.test(c.textContent));
+  assert.match(lev.querySelector(".coaster-link").textContent, /comictable\.com\/lev-fer/);
+  assert.match(lev.textContent, /Only on Cockfight/);
+  set(w, lev.querySelector('input[aria-label="Tape link"]'), "https://youtu.be/abcdefghijk");
+  btn(d, /^Night$/, lev).click();
+  lev.querySelector("textarea").value = "New bio";
+  lev.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(100);
+  const c = db.comics.find((x) => x.id === "lev-fer");
+  assert.deepEqual([c.tape_url, c.look, c.bio], ["https://youtu.be/abcdefghijk", "night", "New bio"]);
 });
