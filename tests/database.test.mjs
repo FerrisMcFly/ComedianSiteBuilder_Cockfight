@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -317,4 +317,11 @@ test("press kit: anyone can see a comic's approved photos and bios; only people 
   assert.equal(await as(LEV, `insert into storage.objects (bucket_id, name) values ('press', 'lev-fer/headshot.jpg')`), "ok");
   assert.match(await as(LEV, `insert into storage.objects (bucket_id, name) values ('press', 'colum-tyrrell/headshot.jpg')`), /row-level security/i);
   assert.match(await as(LEV, `update comics set short_bio = repeat('x', 601) where id = 'lev-fer'`), /check/i);
+});
+
+test("more socials: a comic's Threads, Twitch and the rest follow them to every site", async () => {
+  await db.exec(`update comics set socials = '{"threads": "https://www.threads.net/@lev", "twitch": "https://www.twitch.tv/lev"}' where id = 'lev-fer'`);
+  const hs = await q("select socials from hosts where comic_id = 'lev-fer'");
+  assert.ok(hs.length > 0 && hs.every((h) => h.socials.threads === "https://www.threads.net/@lev" && h.socials.twitch), JSON.stringify(hs));
+  await assert.rejects(db.exec(`update comics set socials = '"nope"' where id = 'lev-fer'`), /socials_size/);
 });

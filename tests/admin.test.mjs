@@ -829,3 +829,20 @@ test("Home screen page: every item on its own row (each link, each social, each 
   assert.deepEqual(saved.map((x) => x.key), ["social:youtube", "me", "link:l1", "social:instagram", "podcast:cockfight", "list"]);
   assert.equal(saved.find((x) => x.key === "social:instagram").on, false);
 });
+
+test("profile: more social platforms, saved to the comic so every site gets them; Home screen jumps straight to them", async () => {
+  const theme = { name: "Console Lobby", extras: ["home_picks", "links"], settings: [{ key: "home_items", label: "Home screen", type: "home_items" }] };
+  const { w, d, db } = await open("#picks", (db) => {
+    db.home_picks = [];
+    db.hosts.forEach((x) => { x.socials = {}; }); db.comics.forEach((c) => { c.socials = {}; });
+  }, theme);
+  await wait(80);
+  btn(d, /Edit your socials/).click(); await wait(120);
+  const det = d.querySelector('details[data-socials="colum"]');
+  assert.ok(det && det.open, "opens the first person's Social links");
+  for (const name of ["Threads", "Bluesky", "Twitch", "Spotify", "Cameo"]) assert.ok(det.querySelector(`input[aria-label="${name}"]`), name);
+  set(w, det.querySelector('input[aria-label="Threads"]'), "https://www.threads.net/@colum");
+  det.closest("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const c = db.comics.find((x) => x.id === "colum-tyrrell");
+  assert.deepEqual(JSON.parse(JSON.stringify(c.socials)), { threads: "https://www.threads.net/@colum" });
+});

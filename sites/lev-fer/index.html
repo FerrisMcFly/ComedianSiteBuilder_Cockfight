@@ -453,7 +453,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   var person = function () { return D.people[0] || { name: D.site.name, bio: "", photo: "", title: "", socials: {} }; };
   function socialLinks() {
     var s = person().socials || {}, out = [];
-    [["instagram", "Instagram"], ["youtube", "YouTube"], ["tiktok", "TikTok"], ["twitter", "X"], ["website", "Website"]].forEach(function (x) { if (s[x[0]]) out.push([x[1], s[x[0]]]); });
+    (CSB.SOCIALS || []).forEach(function (x) { if (s[x[0]]) out.push([x[1], s[x[0]]]); });
     D.links.forEach(function (l) { out.push([l.label, l.url]); });
     return out;
   }
@@ -509,7 +509,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   var ICON = { instagram: "IG", youtube: "YT", tiktok: "TT", twitter: "X", website: "WWW" };
   // One renderer per kind of Home screen item. "row" items are link buttons, and neighbours stack into one list;
   // "block" items are bigger cards. The order and on/off come from Lev's dashboard (CSB.homeArrange).
-  var SOCIAL_ICON = { instagram: "IG", youtube: "YT", tiktok: "TT", twitter: "X", website: "WWW" };
+  var SOCIAL = {}; (CSB.SOCIALS || []).forEach(function (x) { SOCIAL[x[0]] = { name: x[1], short: x[2] }; });
   function homeItem(key) {
     var me = person(), p = D.profile || {};
     if (key === "me") {
@@ -522,9 +522,9 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     if (key.indexOf("link:") === 0) { var l = D.links.find(function (x) { return "link:" + x.id === key; }); return l ? { row: lnk({ label: l.label, sub: host(l.url), url: l.url, icon: l.icon || "↗" }) } : null; }
     if (key.indexOf("social:") === 0) {
       var k = key.slice(7), u = (me.socials || {})[k]; if (!u) return null;
-      var name = { instagram: "Instagram", youtube: "YouTube", tiktok: "TikTok", twitter: "X", website: "Website" }[k] || k;
+      var name = (SOCIAL[k] || {}).name || k;
       return { social: el("a", { class: "btn soc", href: safeHref(u), target: "_blank", rel: "noopener", text: name }),
-        row: lnk({ label: name, sub: host(u).replace(/^(instagram|tiktok|x|twitter)\.com\//, "@").replace(/^@@/, "@"), url: u, icon: SOCIAL_ICON[k] || "↗" }) };
+        row: lnk({ label: name, sub: host(u).replace(/^(instagram|tiktok|x|twitter)\.com\//, "@").replace(/^@@/, "@"), url: u, icon: (SOCIAL[k] || {}).short || "↗" }) };
     }
     if (key === "support") { var sp = support(); return sp ? { row: lnk({ label: sp.label, sub: host(sp.url), url: sp.url, icon: "♥", gold: true, go: "Support" }) } : null; }
     if (key === "picks") return D.picks.length ? { block: el("div", { class: "picks" }, D.picks.map(pickCard)) } : null;

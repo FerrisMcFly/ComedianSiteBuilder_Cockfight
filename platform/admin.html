@@ -2039,7 +2039,12 @@ td select.status.st-few_left { color: var(--warn); }
       img.src = url;
     });
   }
-  const SOC = [["instagram", "Instagram", "https://www.instagram.com/…"], ["youtube", "YouTube", "https://www.youtube.com/@…"], ["tiktok", "TikTok", "https://www.tiktok.com/@…"], ["twitter", "X / Twitter", "https://x.com/…"], ["website", "Linktree or website", "https://linktr.ee/…"]];
+  // Every social a comic can add (the list lives in the data kit so sites and dashboard agree).
+  // The first five have their own columns; the rest are saved in the socials JSON (19_more_socials.sql).
+  const SOC = (window.CSB && CSB.SOCIALS ? CSB.SOCIALS : [["instagram", "Instagram", "", "https://www.instagram.com/…"], ["youtube", "YouTube", "", "https://www.youtube.com/@…"], ["tiktok", "TikTok", "", "https://www.tiktok.com/@…"], ["twitter", "X", "", "https://x.com/…"], ["website", "Website", "", "https://linktr.ee/…"]])
+    .map(([k, l, , ph]) => [k, k === "twitter" ? "X / Twitter" : k === "website" ? "Linktree or website" : l, ph]);
+  const COL_SOC = ["instagram", "youtube", "tiktok", "twitter", "website"];
+  let OPEN_SOCIALS = null;  // a person id whose Social links should open (from "Edit your socials")
   // Comics live on ComicTable, not on one site. A site's People are its lineup: each card edits the comic's
   // shared profile (seen on every site they're on), and a site can keep its own title and bio for them.
   async function newComicId(name) {
@@ -2542,7 +2547,9 @@ td select.status.st-few_left { color: var(--warn); }
     const shared = !!x.comic_id, lineup = !(opts.me || opts.comic);
     const own = h("input", { type: "checkbox", checked: !!(x.own_bio || x.own_title) });
     const inp = { name: h("input", { value: x.name, required: true }), title: h("input", { value: x.title || "", placeholder: "Comedian" }), status: h("input", { value: x.status || "", placeholder: "Automatic" }), bio: h("textarea", { value: x.bio || "" }) };
-    for (const [k, , ph] of SOC) inp[k] = h("input", { type: "url", value: x[k] || "", placeholder: ph });
+    const moreSoc = (x.socials && typeof x.socials === "object") ? x.socials : {};
+    const hasMore = "socials" in x;  // the database has 19_more_socials.sql
+    for (const [k, l, ph] of SOC) if (COL_SOC.includes(k) || hasMore) inp[k] = h("input", { type: "url", value: (COL_SOC.includes(k) ? x[k] : moreSoc[k]) || "", placeholder: ph, "aria-label": l });
     let pic = x.photo_url ? h("img", { class: "avatar", src: x.photo_url, alt: "" }) : h("div", { class: "avatar", text: "No photo" });
     const file = h("input", { type: "file", accept: "image/*", style: "display:none" });
     file.addEventListener("change", () => { if (file.files[0]) { const im = h("img", { class: "avatar", src: URL.createObjectURL(file.files[0]), alt: "" }); pic.replaceWith(im); pic = im; } });
@@ -2556,7 +2563,8 @@ td select.status.st-few_left { color: var(--warn); }
     const card = h("form", { class: "card stack" + (x.hidden ? " is-hidden" : ""), onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true; msg.textContent = "";
       const prof = { name: inp.name.value.trim(), status: inp.status.value.trim() || null };
-      for (const [k] of SOC) prof[k] = inp[k].value.trim() || null;
+      for (const k of COL_SOC) prof[k] = inp[k].value.trim() || null;
+      if (hasMore) { const more = {}; for (const [k] of SOC) if (!COL_SOC.includes(k) && inp[k] && inp[k].value.trim()) more[k] = inp[k].value.trim(); prof.socials = more; }
       const words = { title: inp.title.value.trim() || "Comedian", bio: inp.bio.value.trim() };
       try {
         if (file.files[0]) prof.photo_url = await uploadImage(file.files[0], x.comic_id || x.id);
@@ -2579,7 +2587,15 @@ td select.status.st-few_left { color: var(--warn); }
       shared && lineup ? h("div", { class: "hint", "data-also": x.comic_id, hidden: true }) : null,
       h("div", { class: "grid" }, field("Name", inp.name, "c6"), field("Title", inp.title, "c6"), field("Status", inp.status, "c12"), field("Bio", inp.bio, "c12")),
       shared && lineup ? h("label", { class: "check" }, own, "Use a different title and bio on " + S.site.name) : null,
-      h("details", { class: "quiet" }, h("summary", { text: "Social links" }), h("div", { class: "grid", style: "margin-top:8px" }, SOC.map(([k, l]) => field(l, inp[k], "c12")))),
+      (() => {
+        const filled = SOC.filter(([k]) => inp[k] && inp[k].value).length;
+        const d = h("details", { class: "quiet", "data-socials": x.id, open: OPEN_SOCIALS === x.id || null }, h("summary", { text: "Social links" + (filled ? " (" + filled + ")" : "") }),
+          h("p", { class: "hint", style: "margin:8px 0 0", text: "Paste the full link for each one you use. They show on " + (shared ? "every site you're on" : "your site") + ", and you choose which go on your home screen under Home screen → Layout." }),
+          h("div", { class: "grid", style: "margin-top:8px" }, SOC.filter(([k]) => inp[k]).map(([k, l]) => field(l, inp[k], "c6"))),
+          hasMore ? null : h("p", { class: "hint", text: "More platforms (Threads, Bluesky, Twitch, Spotify…) appear once supabase/19_more_socials.sql is run." }));
+        if (OPEN_SOCIALS === x.id) { OPEN_SOCIALS = null; setTimeout(() => { try { d.scrollIntoView({ block: "center", behavior: "smooth" }); const f = d.querySelector("input"); f && f.focus({ preventScroll: true }); } catch (e) {} }, 60); }
+        return d;
+      })(),
       msg,
       lineup && shared ? loginBox(x) : null,
       h("div", { class: "btns" }, save, !lineup ? null :
@@ -2737,8 +2753,10 @@ td select.status.st-few_left { color: var(--warn); }
         try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, { home_items: pick.value }) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
         save.disabled = false;
       } }, h("h2", { style: "margin:0", text: "Layout" }),
-        h("p", { class: "hint", style: "margin:0", text: "Everything on your home screen, one row each. Put it in any order and switch off anything you don't want there. Nothing is deleted. Socials come from your profile in People, links from Links, podcasts from Podcast and Settings." }),
-        pick.el, h("div", { class: "btns" }, save)));
+        h("p", { class: "hint", style: "margin:0", text: "Everything on your home screen, one row each. Put it in any order and switch off anything you don't want there. Nothing is deleted." }),
+        pick.el, h("div", { class: "btns" }, save,
+          h("button", { class: "btn ghost", type: "button", text: "Edit your socials →", onclick: () => { const me = (S.hosts || []).filter((x) => !x.hidden)[0]; OPEN_SOCIALS = me ? me.id : null; go("people"); } }),
+          hasExtra("links") ? h("button", { class: "btn ghost", type: "button", text: "Add a link →", onclick: () => go("links") }) : null)));
     }
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     let P = [], editing = null;
@@ -2939,7 +2957,7 @@ td select.status.st-few_left { color: var(--warn); }
       }
     } catch (e) {}
     const off = ((S.site.profile || {}).podcasts_off || []).map((x) => String(x).toLowerCase());
-    return { people: [{ photo: me.photo_url, bio: me.bio, socials: { instagram: me.instagram, youtube: me.youtube, tiktok: me.tiktok, twitter: me.twitter, website: me.website } }],
+    return { people: [{ photo: me.photo_url, bio: me.bio, socials: CSB.socialsOf ? CSB.socialsOf(me) : { instagram: me.instagram, youtube: me.youtube, tiktok: me.tiktok, twitter: me.twitter, website: me.website } }],
       links: links.filter((l) => !l.hidden), profile: S.site.profile || {}, features: S.site.features || {},
       picks: picks.filter((x) => !x.hidden && (!x.ends_on || x.ends_on >= today())), shows: (S.shows || []).filter((x) => x.date >= today() && !x.hidden_here),
       episodes: (S.episodes || []).map((e) => ({ show: e.show_name })).filter((e) => !off.includes(String(e.show || "").toLowerCase())),

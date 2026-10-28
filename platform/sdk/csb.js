@@ -83,7 +83,7 @@
       var today = todayISO();
       var people = r[1].filter(visible).map(function (h) {
         return { id: h.id, comic: h.comic_id || "", name: h.name, title: h.title || "", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "",
-          socials: { instagram: h.instagram || "", youtube: h.youtube || "", tiktok: h.tiktok || "", twitter: h.twitter || "", website: h.website || "" } };
+          socials: socialsOf(h) };
       });
       var shows = r[2].filter(function (x) { return x.date >= today; }).map(function (x) {
         // person: whose solo date it is. event: a show by the whole site (a live podcast), with lineup = people ids.
@@ -314,7 +314,23 @@
    */
   var HOME_GROUPS = ["me", "links", "socials", "support", "picks", "shows", "podcast", "special", "list", "blog", "clips"];
   var HOME_OFF = { clips: true };
-  var SOCIALS = [["instagram", "Instagram"], ["youtube", "YouTube"], ["tiktok", "TikTok"], ["twitter", "X"], ["website", "Website"]];
+// Every social a comic can add, in the order they're listed: [key, name, short label for small buttons, example].
+  // The first five have their own database columns; the rest live in the socials JSON (19_more_socials.sql).
+  var SOCIALS = [
+    ["instagram", "Instagram", "IG", "https://www.instagram.com/…"], ["youtube", "YouTube", "YT", "https://www.youtube.com/@…"],
+    ["tiktok", "TikTok", "TT", "https://www.tiktok.com/@…"], ["twitter", "X", "X", "https://x.com/…"],
+    ["threads", "Threads", "TH", "https://www.threads.net/@…"], ["bluesky", "Bluesky", "BS", "https://bsky.app/profile/…"],
+    ["facebook", "Facebook", "FB", "https://www.facebook.com/…"], ["twitch", "Twitch", "TW", "https://www.twitch.tv/…"],
+    ["kick", "Kick", "K", "https://kick.com/…"], ["snapchat", "Snapchat", "SC", "https://www.snapchat.com/add/…"],
+    ["spotify", "Spotify", "SP", "https://open.spotify.com/…"], ["apple_podcasts", "Apple Podcasts", "AP", "https://podcasts.apple.com/…"],
+    ["soundcloud", "SoundCloud", "SC", "https://soundcloud.com/…"], ["substack", "Substack", "SS", "https://….substack.com"],
+    ["cameo", "Cameo", "CM", "https://www.cameo.com/…"], ["website", "Website", "WWW", "https://linktr.ee/… or your own site"]];
+  var COLUMN_SOCIALS = ["instagram", "youtube", "tiktok", "twitter", "website"];
+  function socialsOf(h) {
+    var out = {}, more = (h && h.socials && typeof h.socials === "object") ? h.socials : {};
+    SOCIALS.forEach(function (x) { var v = COLUMN_SOCIALS.indexOf(x[0]) >= 0 ? h[x[0]] : more[x[0]]; if (v && /^https?:\/\//i.test(String(v).trim())) out[x[0]] = String(v).trim(); });
+    return out;
+  }
   var hostOf = function (u) { return String(u || "").replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""); };
   function homeCatalog(d) {
     d = d || {};
@@ -357,6 +373,6 @@
     return list;
   }
 
-  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.4" };
+  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);
