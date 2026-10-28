@@ -32,7 +32,7 @@ function makeDb() {
     const f = []; let op = "select", payload, single = false;
     const b = {
       select() { return b; }, order() { return b; }, limit() { return b; }, single() { single = true; return b; },
-      eq(k, v) { f.push((r) => r[k] === v); return b; }, neq(k, v) { f.push((r) => r[k] !== v); return b; },
+      eq(k, v) { f.push((r) => r[k] === v); return b; }, neq(k, v) { f.push((r) => r[k] !== v); return b; }, not(k, op, v) { f.push((r) => op === "is" ? (r[k] ?? null) !== v : r[k] !== v); return b; },
       ilike(k, v) { const re = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$", "i"); f.push((r) => re.test(r[k] || "")); return b; },
       like(k, v) { const re = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$"); f.push((r) => re.test(r[k] || "")); return b; }, gte(k, v) { f.push((r) => r[k] >= v); return b; }, lt(k, v) { f.push((r) => r[k] < v); return b; }, in(k, vs) { f.push((r) => vs.includes(r[k])); return b; },
       insert(r) { op = "insert"; payload = [].concat(r).map((x) => ({ id: "n" + (++n), ...x })); return b; },
@@ -608,4 +608,54 @@ test("appearance: pick dark, light or match the computer", async () => {
   d.querySelector('[data-theme-choice="system"]').click();
   assert.equal(d.documentElement.getAttribute("data-theme"), null);
   assert.ok(d.querySelector(".nav-btn svg"), "menu uses line icons");
+});
+
+test("club database: search, edit (shows follow), merge duplicates, add", async () => {
+  const { w, d, db } = await open("#ct/clubs", (db) => {
+    db.venues.push({ id: "v3", name: "laugh boston", city: "boston", state: "MA", status: "approved", verified: false });
+    db.shows.push({ id: "s7", site_id: "cockfight", host: "lev", date: fri, venue: "laugh boston", city: "boston, MA", venue_id: "v3" });
+  });
+  await wait(80);
+  const main = d.querySelector("main");
+  assert.match(main.textContent, /3 of 3 clubs/);
+  set(w, d.getElementById("clubSearchAll"), "laugh"); await wait();
+  assert.match(main.textContent, /2 of 3 clubs/);
+  // edit the messy one
+  const row = [...main.querySelectorAll("tbody tr")].find((r) => /laugh boston/.test(r.textContent) && /Needs a check/.test(r.textContent));
+  btn(d, /^Edit$/, row).click(); await wait();
+  set(w, d.getElementById("cfName"), "Laugh Boston (old)"); set(w, d.getElementById("cfCity"), "Boston");
+  d.getElementById("cfName").form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.equal(db.venues.find((v) => v.id === "v3").name, "Laugh Boston (old)");
+  assert.equal(db.shows.find((s) => s.id === "s7").venue, "Laugh Boston (old)", "shows at the club take the new name");
+  // merge it into the real one
+  const row2 = [...d.querySelectorAll("main tbody tr")].find((r) => /\(old\)/.test(r.textContent));
+  btn(d, /^Edit$/, row2).click(); await wait();
+  const sel = d.querySelector('select[aria-label="Merge into"]'); sel.value = "v1";
+  btn(d, /^Merge$/).click(); await wait(80);
+  assert.equal(db.shows.find((s) => s.id === "s7").venue_id, "v1");
+  assert.ok(!db.venues.find((v) => v.id === "v3"));
+  // add a new club
+  d.getElementById("addClub").click(); await wait();
+  set(w, d.getElementById("cfName"), "Helium"); set(w, d.getElementById("cfCity"), "Portland"); set(w, d.getElementById("cfState"), "or");
+  d.getElementById("cfName").form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.ok(db.venues.find((v) => v.name === "Helium" && v.state === "OR" && v.verified));
+});
+
+test("comics: add a comic without a site, put them on a site, edit their profile", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => { db.sites.push({ id: "apes", name: "Modern Apes", features: {} }); });
+  await wait(80);
+  d.getElementById("addComic").click(); await wait();
+  set(w, d.getElementById("newComicName"), "Sam Newcomic");
+  d.getElementById("newComicName").form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(120);
+  const c = db.comics.find((x) => x.name === "Sam Newcomic");
+  assert.ok(c);
+  const main = d.querySelector("main");
+  assert.match(main.textContent, /Not on any site yet/);
+  const sel = main.querySelector('select[aria-label="Add to a site"]'); sel.value = "apes";
+  btn(d, /^Add$/, main).click(); await wait(80);
+  assert.ok(db.hosts.find((h) => h.site_id === "apes" && h.comic_id === c.id));
+  const form = main.querySelector("form.card");
+  form.querySelector("textarea").value = "Sam bio";
+  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.equal(db.comics.find((x) => x.id === c.id).bio, "Sam bio");
 });

@@ -659,7 +659,7 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, render: viewMySites },
     { id: "sites", group: "Platform", label: "Sites", ico: "🧩", platform: true, count: () => S.sites.length, render: viewSites },
     { id: "comics", group: "Platform", label: "Comics", ico: "🎤", platform: true, render: viewComics },
-    { id: "clubs", group: "Platform", label: "Club database", ico: "🏛️", platform: true, render: (m) => { m.append(head("Club database", "The comedy clubs every site picks from when adding shows.")); m.append(clubsReview()); } },
+    { id: "clubs", group: "Platform", label: "Club database", ico: "🏛️", platform: true, render: viewClubs },
     { id: "account", group: "You", label: "Your account", ico: "🔐", render: viewAccount }
   ];
   const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me));
@@ -1821,28 +1821,138 @@ td select.status.st-few_left { color: var(--warn); }
       h("section", { class: "card" }, h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Sites" }), h("button", { class: "btn primary sm", type: "button", text: "+ New site", onclick: () => goCT("sites") })), h("div", null, siteRows)));
   }
 
-  async function viewComics(main) {
-    main.append(head("Comics", "Every comic on ComicTable, and the sites they're on. A comic's profile, dates and YouTube are shared by all their sites."));
+  /* ---------- Club database (super admins) ---------- */
+  const clubQ = { t: "", only: "all" };
+  async function viewClubs(main) {
+    const addBox = h("div");
+    main.append(head("Club database", "Every comedy club on ComicTable. Comics pick from this list when they add shows, so clean names here make everyone's sites look right.",
+      h("button", { class: "btn primary", type: "button", id: "addClub", text: "+ Add a club", onclick: () => { addBox.replaceChildren(clubForm(null, () => { addBox.replaceChildren(); draw(); })); } })), addBox);
     const card = h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" })); main.append(card);
-    try {
-      const [comics, lineups] = await Promise.all([q(sb.from("comics").select("*").order("name", { ascending: true })), q(sb.from("hosts").select("site_id, comic_id"))]);
-      const search = h("input", { type: "search", placeholder: "Find a comic", "aria-label": "Find a comic", style: "max-width:320px" });
-      const box = h("div");
-      const draw = () => {
-        const t = search.value.trim().toLowerCase();
-        const rows = comics.filter((c) => !t || c.name.toLowerCase().includes(t));
-        box.replaceChildren(rows.length ? h("div", null, rows.map((c) => {
-          const on = lineups.filter((l) => l.comic_id === c.id).map((l) => S.sites.find((x) => x.id === l.site_id)).filter(Boolean);
-          return h("div", { class: "switch-row" },
-            h("div", { class: "person-top", style: "margin:0;min-width:0" }, c.photo_url ? h("img", { class: "avatar", style: "width:40px;height:40px", src: c.photo_url, alt: "" }) : h("div", { class: "avatar", style: "width:40px;height:40px", text: "" }),
-              h("div", { style: "min-width:0" }, h("b", { text: c.name }), c.user_id ? h("span", { class: "pill", style: "margin-left:6px", text: "🔑 Has a login" }) : null,
-                h("div", { class: "hint", text: on.length ? "On " + on.map((x) => x.name).join(", ") : "Not on any site" }))),
-            h("div", { class: "btns" }, on.map((st) => h("button", { class: "btn sm ghost", type: "button", text: st.name, onclick: () => switchSite(st.id, "people") }))));
-        })) : empty("No comics match", ""));
-      };
-      search.addEventListener("input", draw); draw();
-      card.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: comics.length + " comics" }), search), box);
-    } catch (e) { card.replaceChildren(h("p", { class: "err", text: errText(e) })); }
+    let uses = {};
+    try { (await q(sb.from("shows").select("venue_id").not("venue_id", "is", null))).forEach((r) => { uses[r.venue_id] = (uses[r.venue_id] || 0) + 1; }); } catch (e) {}
+    const search = h("input", { type: "search", id: "clubSearchAll", placeholder: "Search name, city or state", value: clubQ.t, "aria-label": "Search clubs", style: "max-width:300px" });
+    const filt = h("div", { class: "seg", role: "group", "aria-label": "Show" }, [["all", "All"], ["new", "Needs a check"], ["unused", "No shows"]].map(([v, l]) =>
+      h("button", { type: "button", "aria-pressed": String(clubQ.only === v), text: l, onclick: () => { clubQ.only = v; draw(); } })));
+    const body = h("div");
+    search.addEventListener("input", () => { clubQ.t = search.value; drawList(); });
+    function drawList() {
+      const t = clubQ.t.trim().toLowerCase();
+      const rows = S.venues.filter((v) => (!t || (v.name + " " + v.city + " " + (v.state || "")).toLowerCase().includes(t))
+        && (clubQ.only === "all" || (clubQ.only === "new" && !v.verified) || (clubQ.only === "unused" && !uses[v.id])))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      body.replaceChildren(h("div", { class: "hint", style: "margin:8px 0", text: rows.length + " of " + S.venues.length + " clubs" }),
+        rows.length ? h("div", { class: "tablewrap" }, h("table", { class: "shows-table" },
+          h("thead", null, h("tr", null, ["Club", "City", "Shows", "", ""].map((x) => h("th", { text: x })))),
+          h("tbody", null, rows.slice(0, 300).map((v) => clubRow(v))))) : empty("No clubs match", "Try another search, or add it."),
+        rows.length > 300 ? h("p", { class: "hint", text: "Showing the first 300. Search to narrow it down." }) : null);
+    }
+    function clubRow(v) {
+      const tr = h("tr", null,
+        h("td", null, h("b", { text: v.name }), v.verified ? null : h("span", { class: "pill warn", style: "margin-left:6px", text: "Needs a check" }), v.website ? h("div", { class: "hint wrap-any", text: v.website }) : null),
+        h("td", { text: venueCity(v) }),
+        h("td", { class: "nowrap", text: String(uses[v.id] || 0) }),
+        h("td", null, v.verified ? null : h("button", { class: "btn sm", type: "button", text: "Looks good", onclick: async () => { try { await q(sb.from("venues").update({ verified: true }).eq("id", v.id)); v.verified = true; drawList(); toast("Checked."); } catch (e) { toast(errText(e), { bad: true }); } } })),
+        h("td", { class: "actions" }, h("button", { class: "btn ghost sm", type: "button", text: "Edit", onclick: () => tr.replaceWith(h("tr", { class: "editing" }, h("td", { colspan: "5" }, clubForm(v, () => { draw(); })))) })));
+      return tr;
+    }
+    function clubForm(v, done) {
+      const f = { name: h("input", { value: v ? v.name : "", placeholder: "Club name", id: "cfName" }), city: h("input", { value: v ? v.city : "", placeholder: "City", id: "cfCity" }),
+        state: h("input", { value: v ? v.state || "" : "", placeholder: "NY", maxlength: "3", id: "cfState" }), website: h("input", { type: "url", value: v ? v.website || "" : "", placeholder: "https://…" }),
+        address: h("input", { value: v ? v.address || "" : "", placeholder: "Street address (optional)" }) };
+      const msg = h("div", { class: "err" });
+      const others = S.venues.filter((x) => !v || x.id !== v.id).sort((a, b) => a.name.localeCompare(b.name));
+      const mergeSel = v ? h("select", { "aria-label": "Merge into", style: "max-width:320px" }, h("option", { value: "", text: "Merge into another club…" }), others.map((x) => h("option", { value: x.id, text: x.name + " · " + venueCity(x) }))) : null;
+      return h("form", { class: "card stack", style: "box-shadow:none", onsubmit: async (e) => {
+        e.preventDefault(); msg.textContent = "";
+        const row = { name: f.name.value.trim(), city: f.city.value.trim(), state: f.state.value.trim().toUpperCase() || null, website: f.website.value.trim() || null, address: f.address.value.trim() || null, verified: true };
+        if (!row.name || !row.city) { msg.textContent = "A club needs a name and a city."; return; }
+        try {
+          if (v) {
+            await q(sb.from("venues").update(row).eq("id", v.id));
+            // keep every show at this club in step with the cleaned-up name
+            await q(sb.from("shows").update({ venue: row.name, city: row.state ? row.city + ", " + row.state : row.city }).eq("venue_id", v.id));
+          } else await q(sb.from("venues").insert({ ...row, status: "approved" }));
+          await reload.venues(); toast(v ? "Saved. Shows at this club were updated too." : row.name + " added."); done();
+        } catch (er) { msg.textContent = /duplicate|unique/i.test(errText(er)) ? "That club is already in the list." : errText(er); }
+      } }, h("h2", { text: v ? "Edit " + v.name : "Add a club" }),
+        h("div", { class: "grid" }, field("Name", f.name, "c6"), field("City", f.city, "c4"), field("State", f.state, "c2"), field("Website", f.website, "c6"), field("Address", f.address, "c6")), msg,
+        h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: v ? "Save club" : "Add club" }), h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: done })),
+        v ? h("div", { class: "newclub stack", style: "gap:8px" }, h("b", { text: "Duplicate? Merge it" }), h("div", { class: "hint", text: "Moves every show at " + v.name + " (" + (uses[v.id] || 0) + ") to the club you pick, then removes this one." }),
+          h("div", { class: "btns" }, mergeSel, h("button", { class: "btn sm", type: "button", text: "Merge", onclick: async () => {
+            const into = S.venues.find((x) => x.id === mergeSel.value); if (!into) { mergeSel.focus(); return; }
+            try {
+              await q(sb.from("shows").update({ venue_id: into.id, venue: into.name, city: venueCity(into) }).eq("venue_id", v.id));
+              await q(sb.from("venues").delete().eq("id", v.id));
+              await reload.venues(); toast("Merged into " + into.name + "."); done();
+            } catch (er) { toast(errText(er), { bad: true }); }
+          } }), sure("Delete club", async () => { try { await q(sb.from("venues").delete().eq("id", v.id)); await reload.venues(); toast("Deleted. Shows that were there keep their club name."); done(); } catch (er) { toast(errText(er), { bad: true }); } }))) : null);
+    }
+    function draw() {
+      filt.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-pressed", String(["all", "new", "unused"][i] === clubQ.only)));
+      drawList();
+    }
+    card.replaceChildren(h("div", { class: "toolbar" }, filt, search), body);
+    draw();
+  }
+
+  /* ---------- Comics (super admins) ---------- */
+  let comicOpen = null;
+  async function viewComics(main) {
+    const addBox = h("div");
+    main.append(head("Comics", "Every comic on ComicTable. A comic's profile, dates and YouTube are shared by all their sites.",
+      h("button", { class: "btn primary", type: "button", id: "addComic", text: "+ Add a comic", onclick: () => {
+        const name = h("input", { id: "newComicName", placeholder: "Full name", maxlength: "60" });
+        const msg = h("div", { class: "err" });
+        addBox.replaceChildren(h("form", { class: "card stack", onsubmit: async (e) => {
+          e.preventDefault(); const n = name.value.trim(); if (!n) { name.focus(); return; }
+          try { const id = await newComicId(n); await q(sb.from("comics").insert({ id, name: n, title: "Comedian", bio: "" })); comicOpen = id; toast(n + " added. Fill in their profile, then put them on a site."); route(); }
+          catch (er) { msg.textContent = errText(er); }
+        } }, h("h2", { text: "Add a comic" }), h("p", { class: "sub", text: "They don't need a site yet. You can put them on one, or several, after." }), field("Name", name), msg,
+          h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add comic" }), h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => addBox.replaceChildren() }))));
+        name.focus();
+      } })), addBox);
+    const card = h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" })); main.append(card);
+    let comics, lineups;
+    try { [comics, lineups] = await Promise.all([q(sb.from("comics").select("*").order("name", { ascending: true })), q(sb.from("hosts").select("id, site_id, comic_id"))]); }
+    catch (e) { card.replaceChildren(h("p", { class: "err", text: errText(e) })); return; }
+    const search = h("input", { type: "search", placeholder: "Find a comic", "aria-label": "Find a comic", style: "max-width:320px" });
+    const box = h("div");
+    const onSites = (c) => lineups.filter((l) => l.comic_id === c.id).map((l) => ({ ...l, site: S.sites.find((x) => x.id === l.site_id) })).filter((x) => x.site);
+    const draw = () => {
+      const t = search.value.trim().toLowerCase();
+      const rows = comics.filter((c) => !t || c.name.toLowerCase().includes(t));
+      box.replaceChildren(h("div", { class: "hint", style: "margin:8px 0", text: rows.length + " comic" + (rows.length === 1 ? "" : "s") }),
+        rows.length ? h("div", null, rows.map((c) => comicOpen === c.id ? comicEditor(c) : h("div", { class: "switch-row" },
+          h("div", { class: "person-top", style: "margin:0;min-width:0" }, c.photo_url ? h("img", { class: "avatar", style: "width:40px;height:40px", src: c.photo_url, alt: "" }) : h("div", { class: "avatar", style: "width:40px;height:40px" }),
+            h("div", { style: "min-width:0" }, h("b", { text: c.name }), c.user_id ? h("span", { class: "pill", style: "margin-left:6px", text: "Has a login" }) : null,
+              h("div", { class: "hint", text: onSites(c).length ? "On " + onSites(c).map((x) => x.site.name).join(", ") : "Not on any site yet" }))),
+          h("button", { class: "btn sm", type: "button", text: "Manage", onclick: () => { comicOpen = c.id; draw(); } })))) : empty("No comics match", ""));
+    };
+    function comicEditor(c) {
+      const sites = onSites(c);
+      const addSel = h("select", { "aria-label": "Add to a site", style: "max-width:260px" }, h("option", { value: "", text: "Put them on a site…" }),
+        S.sites.filter((st) => !sites.some((x) => x.site_id === st.id)).sort((a, b) => a.name.localeCompare(b.name)).map((st) => h("option", { value: st.id, text: st.name })));
+      const wrapEd = h("div", { class: "stack", style: "padding:12px 0;border-bottom:1px solid var(--line)" },
+        h("div", { class: "toolbar", style: "margin:0" }, h("h2", { style: "margin:0", text: c.name }), h("button", { class: "btn ghost sm", type: "button", text: "Close", onclick: () => { comicOpen = null; draw(); } })),
+        h("section", { class: "card stack", style: "box-shadow:none" }, h("b", { text: "Sites" }),
+          sites.length ? h("div", null, sites.map((x) => h("div", { class: "switch-row" }, h("span", { text: x.site.name }),
+            h("div", { class: "btns" }, h("button", { class: "btn sm ghost", type: "button", text: "Open", onclick: () => switchSite(x.site_id, "people") }),
+              sure("Take off", async () => { try { await q(sb.from("hosts").delete().eq("id", x.id)); lineups = lineups.filter((l) => l.id !== x.id); toast(c.name + " is off " + x.site.name + ". Their dates stay theirs."); draw(); } catch (e) { toast(errText(e), { bad: true }); } })))))
+            : h("p", { class: "hint", text: "Not on any site yet." }),
+          h("div", { class: "btns" }, addSel, h("button", { class: "btn sm", type: "button", text: "Add", onclick: async () => {
+            const st = S.sites.find((x) => x.id === addSel.value); if (!st) { addSel.focus(); return; }
+            let id = st.id + "-" + (slug(c.name.split(" ")[0]) || "person"); while (lineups.some((l) => l.id === id)) id = id + "-" + Math.floor(Math.random() * 900 + 100);
+            try { const cnt = lineups.filter((l) => l.site_id === st.id).length; await q(sb.from("hosts").insert({ id, site_id: st.id, comic_id: c.id, name: c.name, sort: cnt })); lineups.push({ id, site_id: st.id, comic_id: c.id }); toast(c.name + " is on " + st.name + " now."); draw(); }
+            catch (e) { toast(errText(e), { bad: true }); }
+          } }))),
+        personCard({ ...c, id: null, comic_id: c.id }, 0, { comic: true }),
+        h("div", { class: "btns" }, sure("Delete comic", async () => {
+          try { await q(sb.from("comics").delete().eq("id", c.id)); comics = comics.filter((x) => x.id !== c.id); comicOpen = null; toast(c.name + " deleted."); draw(); } catch (e) { toast(errText(e), { bad: true }); }
+        }), h("span", { class: "hint", text: "Deleting removes them from every site, along with their dates." })));
+      return wrapEd;
+    }
+    search.addEventListener("input", draw); draw();
+    card.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "All comics" }), search), box);
   }
 
   function viewMySites(main) {
@@ -1997,7 +2107,7 @@ td select.status.st-few_left { color: var(--warn); }
 
   // One person's card: their shared profile, plus (on a site's People page) this site's own controls.
   function personCard(x, idx, opts = {}) {
-    const shared = !!x.comic_id, lineup = !opts.me;
+    const shared = !!x.comic_id, lineup = !(opts.me || opts.comic);
     const own = h("input", { type: "checkbox", checked: !!(x.own_bio || x.own_title) });
     const inp = { name: h("input", { value: x.name, required: true }), title: h("input", { value: x.title || "", placeholder: "Comedian" }), status: h("input", { value: x.status || "", placeholder: "Automatic" }), bio: h("textarea", { value: x.bio || "" }) };
     for (const [k, , ph] of SOC) inp[k] = h("input", { type: "url", value: x[k] || "", placeholder: ph });
@@ -2030,7 +2140,7 @@ td select.status.st-few_left { color: var(--warn); }
       } catch (err) { msg.textContent = errText(err); save.disabled = false; }
     } },
       h("div", { class: "person-top" }, pic, h("div", { style: "min-width:0;flex:1" }, h("b", { text: x.name }), x.hidden ? h("span", { class: "pill", style: "margin-left:6px", text: "Hidden" }) : null,
-        lineup ? h("div", { class: "hint", text: showCount ? showCount + " show" + (showCount > 1 ? "s" : "") : "No shows yet" }) : h("div", { class: "hint", text: "Your profile on every site you're on" }),
+        lineup ? h("div", { class: "hint", text: showCount ? showCount + " show" + (showCount > 1 ? "s" : "") : "No shows yet" }) : h("div", { class: "hint", text: opts.comic ? "Their profile on every site they're on" : "Your profile on every site you're on" }),
         h("div", { class: "btns", style: "margin-top:6px;gap:4px" }, h("label", { class: "btn sm" }, "Change photo", file),
           lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " earlier", text: "↑", disabled: idx === 0, onclick: () => swap(idx, idx - 1) }) : null,
           lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " later", text: "↓", disabled: idx === S.hosts.length - 1, onclick: () => swap(idx, idx + 1) }) : null))),
