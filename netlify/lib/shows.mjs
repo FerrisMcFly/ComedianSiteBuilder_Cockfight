@@ -77,9 +77,84 @@ export function eventsFromIcs(ics) {
   return out;
 }
 
+/* ---------- events marked up in the page itself (schema.org microdata) ---------- */
+export function eventsFromMicrodata(html) {
+  const out = [];
+  const parts = (" " + String(html)).split(/(?=<[^>]+itemtype=["'][^"']*schema\.org\/\w*Event["'])/i).slice(1);
+  for (const chunk0 of parts) {
+    const chunk = chunk0.slice(0, 6000);
+    const prop = (k) => {
+      const m = chunk.match(new RegExp("<[^>]*itemprop=[\"']" + k + "[\"'][^>]*>", "i"));
+      if (!m) return "";
+      const tag = m[0], attr = tag.match(/(?:content|datetime|href)=["']([^"']*)["']/i);
+      if (attr) return attr[1];
+      const after = chunk.slice(chunk.indexOf(tag) + tag.length);
+      return after.split("<")[0].trim();
+    };
+    const when = whenOf(prop("startDate"));
+    if (!when) continue;
+    const title = decode(prop("name"));
+    out.push({ date: when.date, time: when.time, title, venue: "", city: decode(prop("addressLocality")), url: prop("url") || null,
+      status: /sold\s*out/i.test(chunk) ? "sold_out" : "on_sale", people: [], text: title + " " + decode(chunk.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")).slice(0, 600) });
+  }
+  return out;
+}
+
+/* ---------- show data the page ships as JSON for its own scripts (Next.js and similar) ---------- */
+const DATE_KEYS = ["startDate", "start_date", "start", "startTime", "start_time", "dateTime", "date_time", "datetime", "showtime", "showTime", "eventDate", "event_date", "performance_date", "date"];
+const NAME_KEYS = ["name", "title", "headliner", "headliner_name", "eventName", "event_name", "showName", "show_name"];
+export function eventsFromJson(html) {
+  const out = [];
+  const re = /<script[^>]*type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  const walk = (node, depth) => {
+    if (!node || typeof node !== "object" || depth > 12 || out.length > 500) return;
+    if (Array.isArray(node)) { node.forEach((n) => walk(n, depth + 1)); return; }
+    const dk = DATE_KEYS.find((k) => typeof node[k] === "string" && /^\d{4}-\d{2}-\d{2}/.test(node[k]));
+    const nk = NAME_KEYS.find((k) => typeof node[k] === "string" && node[k].trim());
+    if (dk && nk) {
+      const when = whenOf(node[dk]);
+      // a date with no clock time: look for a separate time field
+      const t = !when.time && typeof (node.time || node.showtime_display || node.start_time_display) === "string" ? node.time || node.showtime_display || node.start_time_display : null;
+      const v = node.venue || node.location || {};
+      const venue = typeof v === "string" ? v : str(v.name);
+      const city = typeof v === "object" ? [str(v.city || (v.address && v.address.addressLocality)), str(v.state || (v.address && v.address.addressRegion))].filter(Boolean).join(", ") : "";
+      const people = arr(node.performers || node.comedians || node.lineup || node.artists).map((x) => str(typeof x === "object" ? x.name || x.title : x)).filter(Boolean);
+      const url = [node.ticket_url, node.ticketUrl, node.tickets_url, node.purchase_url, node.url, node.link].find((x) => typeof x === "string" && /^https?:/.test(x)) || null;
+      const title = decode(String(node[nk]).trim());
+      out.push({ date: when.date, time: when.time || (t && /\d/.test(t) ? t.toUpperCase().replace(/\s*(AM|PM)/, " $1") : null), title, venue: decode(venue), city: decode(city), url,
+        status: node.sold_out || node.soldOut || /sold\s*out/i.test(title) ? "sold_out" : node.cancelled || node.canceled ? "cancelled" : "on_sale",
+        people, text: decode([title, people.join(" "), str(node.description || node.subtitle || "")].join(" ")) });
+      return;
+    }
+    for (const k in node) walk(node[k], depth + 1);
+  };
+  while ((m = re.exec(html))) { try { walk(JSON.parse(m[1]), 0); } catch (e) { /* not JSON we can use */ } }
+  return out;
+}
+
+// A calendar feed the page links to (Subscribe / Add to calendar)
+export function icsLinkIn(html, base) {
+  const m = String(html).match(/<link[^>]+type=["']text\/calendar["'][^>]*href=["']([^"']+)["']/i) || String(html).match(/href=["']((?:webcal|https?):\/\/[^"']+\.ics(?:\?[^"']*)?|[^"']+\.ics(?:\?[^"']*)?)["']/i);
+  if (!m) return null;
+  try { return new URL(decode(m[1]).replace(/^webcal:/i, "https:"), base).href; } catch (e) { return null; }
+}
+
 export function parseListing(body, contentType = "") {
   if (/text\/calendar/i.test(contentType) || /^\s*BEGIN:VCALENDAR/i.test(body)) return eventsFromIcs(body);
-  return eventsFromHtml(body);
+  const ld = eventsFromHtml(body);
+  if (ld.length) return ld;
+  const md = eventsFromMicrodata(body);
+  if (md.length) return md;
+  return eventsFromJson(body);
+}
+
+// What a failed page check means, in plain words
+export function fetchProblem(host, status) {
+  if (status === 401 || status === 403 || status === 429) return `${host} blocks automatic checks, so ComicTable can't read it. Try the comic's own tour page, a ticket page, or a calendar (.ics) link instead.`;
+  if (status === 404 || status === 410) return `That page isn't there anymore on ${host}. Check the link.`;
+  if (status >= 500) return `${host} is having trouble right now. ComicTable will try again next hour.`;
+  return `${host} didn't send the page (error ${status}).`;
 }
 
 // Does a listing mention this comic? Full name, or their last name when it's distinctive enough.
@@ -98,10 +173,19 @@ const norm = (s) => String(s || "").toLowerCase().replace(/^the\s+/, "").replace
 
 /* ---------- running a show source ---------- */
 export async function importShows(db, src, fetchImpl = fetch) {
-  const r = await fetchImpl(src.url, { headers: UA, redirect: "follow" });
-  if (!r.ok) throw new Error(`${new URL(src.url).hostname} answered ${r.status}`);
-  const all = parseListing(await r.text(), r.headers && r.headers.get ? r.headers.get("content-type") || "" : "");
-  if (!all.length) throw new Error("No show dates found on this page. Try the page that lists the shows, a ticket page, or a calendar (.ics) link.");
+  const host0 = new URL(src.url).hostname;
+  let r;
+  try { r = await fetchImpl(src.url, { headers: UA, redirect: "follow" }); } catch (e) { throw new Error(`Couldn't reach ${host0}. ComicTable will try again next hour.`); }
+  if (!r.ok) throw new Error(fetchProblem(host0, r.status));
+  const ctype = r.headers && r.headers.get ? r.headers.get("content-type") || "" : "";
+  const body = await r.text();
+  let all = parseListing(body, ctype);
+  // Nothing in the page itself, but it links a calendar feed: read that instead.
+  if (!all.length && !/text\/calendar/i.test(ctype)) {
+    const ics = icsLinkIn(body, src.url);
+    if (ics) { try { const r2 = await fetchImpl(ics, { headers: UA, redirect: "follow" }); if (r2.ok) all = eventsFromIcs(await r2.text()); } catch (e) { /* fall through to the message below */ } }
+  }
+  if (!all.length) throw new Error("ComicTable couldn't see any shows on this page. Some clubs load their calendar in a way it can't read yet. Try the comic's tour page, a ticket page, or a calendar (.ics) link.");
 
   let comic = null, host = src.host || null;
   if (src.comic_id) comic = (await db.from("comics").select("id, name").eq("id", src.comic_id).maybeSingle()).data;

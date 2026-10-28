@@ -55,6 +55,8 @@ test("a project only rebuilds when its own files change", () => {
   assert.equal(run("cockfight", ["platform/home/index.html"]), "skip", "front page edits don't rebuild Cockfight");
   assert.equal(run("platform", ["platform/home/index.html"]), "build");
   assert.equal(run("cockfight", ["sites/cockfight/index.html"]), "build");
+  assert.equal(run("cockfight", ["netlify/lib/shows.mjs"]), "skip", "server code only rebuilds ComicTable");
+  assert.equal(run("platform", ["netlify/lib/shows.mjs"]), "build");
   assert.equal(run("lev-fer", ["sites/cockfight/index.html"]), "skip", "Cockfight edits don't rebuild Lev's site");
   assert.equal(run("lev-fer", ["platform/sdk/csb.js"]), "build", "the data kit is shared by every site");
 });
