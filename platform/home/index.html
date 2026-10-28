@@ -3,86 +3,155 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ComicTable · Less admin. More stage time.</title>
-<meta name="description" content="ComicTable runs the boring half of a comic's website: shows, ticket links, episodes and fans, from one dashboard.">
+<title>ComicTable · The engine behind comedians' websites</title>
+<meta name="description" content="ComicTable runs comedians' and comedy podcasts' websites: shows, tickets, episodes, videos, fans and a blog, from one dashboard, on the comic's own domain.">
+<meta name="theme-color" content="#F3EAD7">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:title" content="ComicTable">
+<meta property="og:description" content="The engine behind comedians' websites.">
+<meta property="og:image" content="https://comictable.com/brand/icon-512.png">
+<link rel="preload" href="/fonts/encode-sans-condensed-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,700&family=Special+Elite&family=Oswald:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,700&family=Special+Elite&family=Oswald:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand/tokens.css">
 <style>
-/* ComicTable front page. Cobalt and white, one warm yellow for highlights. Soft depth, no cartoon outlines.
-   The fun is in the try-your-name preview and the demo; the rest stays tidy. */
+/* ComicTable front page. Built to the approved brand: ivory paper, charcoal type, redwood for action,
+   mustard sparingly, editorial grid with numbered sections, real black-and-white stage photography. */
 :root {
-  --cobalt: #2b3cf0; --cobalt-deep: #1a27b8; --ink: #0f1222; --text: #1a1d2e; --muted: #5f6478; --line: #e6e8f0;
-  --paper: #f5f6fb; --white: #fff; --yellow: #ffd84d; --pink: #ff5c8a;
-  --display: "Bricolage Grotesque", system-ui, sans-serif; --font: "Inter", system-ui, sans-serif;
-  --lift: 0 1px 2px rgba(15,18,34,.06), 0 18px 40px -18px rgba(15,18,34,.25);
+  --ink: var(--ct-charcoal); --red: var(--ct-redwood); --red-h: var(--ct-redwood-hover); --mus: var(--ct-mustard);
+  --bg: var(--ct-ivory); --paper: var(--ct-paper); --rule: var(--ct-ivory-deep); --muted: var(--ct-muted);
+  --display: var(--ct-display); --font: var(--ct-sans);
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--white); color: var(--text); font: 400 17px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 17px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
 a { color: inherit; }
-:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.dark :focus-visible { outline-color: var(--bg); }
 [hidden] { display: none !important; }
-.wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
-h1, h2, h3 { font-family: var(--display); letter-spacing: -0.035em; line-height: 1; margin: 0; }
-.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 16px/1 var(--font); padding: 15px 22px; border-radius: 12px; text-decoration: none; border: 0; cursor: pointer; transition: transform .12s, box-shadow .12s, background .12s; }
-.btn.y { background: var(--yellow); color: var(--ink); box-shadow: 0 10px 24px -10px rgba(255,216,77,.8); }
-.btn.y:hover { transform: translateY(-1px); }
-.btn.ghost { color: var(--white); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.45); }
-.btn.ghost:hover { background: rgba(255,255,255,.1); }
-.btn.dark { background: var(--ink); color: var(--white); }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 900; letter-spacing: -0.01em; line-height: .95; margin: 0; }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 16px/1 var(--font); padding: 15px 24px; border-radius: var(--ct-radius); text-decoration: none; border: 0; cursor: pointer; transition: background .12s; }
+.btn.red { background: var(--red); color: #fff; }
+.btn.red:hover { background: var(--red-h); }
+.link { font-weight: 600; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1.5px; }
+.link:hover { color: var(--red-h); }
+
+/* section label: "01 / How it works" over a rule */
+.label { display: flex; gap: 10px; font: 700 13px/1 var(--font); letter-spacing: .14em; text-transform: uppercase; padding-bottom: 12px; border-bottom: 1.5px solid var(--ink); margin: 0 0 40px; }
+.label b { font-weight: 700; color: var(--red-h); }
+.dark .label { border-color: rgba(243,234,215,.5); }
+.dark .label b { color: var(--mus); }
+
+/* header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 0; border-bottom: 1.5px solid var(--ink); }
+.top .logo img { height: 34px; width: auto; display: block; }
+.top nav { display: flex; gap: 28px; align-items: center; font-weight: 500; font-size: 15px; }
+.top nav a { text-decoration: none; }
+.top nav a:not(.btn):hover { color: var(--red-h); }
+.top nav .btn { padding: 11px 18px; font-size: 15px; }
 
 /* hero */
-.hero { position: relative; color: var(--white); background: radial-gradient(1200px 600px at 85% -10%, #5b6bff 0%, transparent 60%), radial-gradient(900px 500px at -10% 110%, #1c26a8 0%, transparent 60%), var(--cobalt); overflow: hidden; }
-.hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; mask-image: linear-gradient(#000, transparent 80%); }
-.top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
-.mark { font: 800 22px/1 var(--display); letter-spacing: -0.03em; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
-.mark i { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); }
-.top nav { display: flex; gap: 26px; align-items: center; font-weight: 500; font-size: 15px; color: rgba(255,255,255,.85); }
-.top nav a { text-decoration: none; }
-.top nav a:hover { color: var(--white); }
-.top nav .login { color: var(--white); background: rgba(255,255,255,.12); padding: 8px 14px; border-radius: 10px; }
-.hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: center; padding: 40px 0 96px; }
-.eyebrow { display: inline-flex; gap: 8px; align-items: center; background: rgba(255,255,255,.12); border-radius: 999px; padding: 6px 12px 6px 8px; font-size: 14px; font-weight: 500; margin-bottom: 22px; }
-.eyebrow b { background: var(--yellow); color: var(--ink); border-radius: 999px; padding: 2px 8px; font-size: 12px; }
-.hero h1 { font-size: clamp(50px, 6.4vw, 86px); font-weight: 800; margin-bottom: 22px; }
-.hero h1 em { font-style: normal; color: var(--yellow); }
-.hero p { font-size: 20px; color: rgba(255,255,255,.82); max-width: 30em; margin: 0 0 30px; }
-.ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+.hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 0; border-bottom: 1.5px solid var(--ink); }
+.hero-copy { padding: 72px 48px 64px 0; display: flex; flex-direction: column; justify-content: center; }
+.hero h1 { font-size: clamp(54px, 7.4vw, 104px); margin-bottom: 28px; }
+.hero h1 span { color: var(--red); }
+.hero p { font-size: 20px; line-height: 1.5; max-width: 30em; margin: 0 0 34px; }
+.ctas { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+.photo { position: relative; min-height: 540px; background: var(--ink); overflow: hidden; margin-right: calc(-1 * max(32px, (100vw - 1200px) / 2 + 32px)); }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; filter: grayscale(1) contrast(1.08) brightness(.92); }
+.photo figcaption { position: absolute; left: 16px; bottom: 12px; font-size: 11px; color: rgba(243,234,215,.7); letter-spacing: .04em; }
+.photo figcaption a { text-decoration: none; }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1.5px solid var(--ink); }
+.facts div { padding: 22px 24px 24px 0; font-size: 15px; color: var(--muted); }
+.facts div + div { padding-left: 24px; border-left: 1px solid var(--rule); }
+.facts b { display: block; font: 800 24px/1.1 var(--display); color: var(--ink); margin-bottom: 4px; letter-spacing: 0; }
 
-/* try-your-name */
-.try { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 18px; padding: 16px; backdrop-filter: blur(6px); }
-.try-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
-.try label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.8); white-space: nowrap; }
-.try input { flex: 1; min-width: 0; font: 700 20px/1 var(--display); letter-spacing: -0.02em; padding: 10px 12px; border-radius: 10px; border: 0; background: var(--white); color: var(--ink); }
-.try input:focus { outline: 3px solid var(--yellow); }
-.window { border-radius: 12px; overflow: hidden; background: var(--white); box-shadow: 0 30px 60px -20px rgba(5,8,40,.6); }
-.window .bar { display: flex; align-items: center; gap: 6px; padding: 9px 12px; background: #eef0f6; color: var(--muted); font-size: 12px; }
-.window .bar i { width: 10px; height: 10px; border-radius: 50%; background: #d4d7e2; }
-.window .url { margin-left: 8px; flex: 1; background: var(--white); border-radius: 6px; padding: 4px 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.screen { position: relative; height: 330px; overflow: hidden; color: var(--ink); }
-.look { position: absolute; inset: 0; padding: 22px 24px; opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s; }
+section.band { padding: 104px 0; }
+h2 { font-size: clamp(42px, 5.4vw, 72px); margin-bottom: 18px; }
+.intro { font-size: 19px; color: var(--muted); max-width: 34em; margin: 0 0 48px; }
+
+/* 01 how it works: one date, two sites */
+.sync-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 64px; align-items: center; }
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 44px 1fr; gap: 8px; padding: 18px 0; border-top: 1px solid var(--rule); }
+.steps li::before { content: counter(s, decimal-leading-zero); font: 800 20px/1.3 var(--display); color: var(--red); }
+.steps b { display: block; font-size: 18px; }
+.steps span { color: var(--muted); font-size: 16px; }
+.demo { position: relative; }
+.dash { background: var(--paper); border: 1.5px solid var(--ink); border-radius: var(--ct-radius); padding: 14px 16px; width: 84%; }
+.dash .bar { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; margin-bottom: 10px; }
+.dash .bar img { width: 18px; height: 18px; }
+.dash .bar span { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: auto; }
+.dash .row { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; border: 1px solid var(--rule); background: #fff; border-radius: var(--ct-radius); padding: 9px 10px; font-size: 14px; }
+.dash .cal { background: var(--ink); color: var(--bg); border-radius: 4px; text-align: center; padding: 4px 9px; font: 700 11px/1.1 var(--font); letter-spacing: .06em; }
+.dash .cal b { display: block; font: 900 20px/1 var(--display); letter-spacing: 0; }
+.dash .add { background: var(--red); color: #fff; border-radius: 4px; padding: 8px 12px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+.dash .t b { display: block; } .dash .t span { color: var(--muted); font-size: 12px; }
+.sites2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; margin-left: 10%; }
+.mini { border-radius: var(--ct-radius); overflow: hidden; border: 1.5px solid var(--ink); background: #fff; }
+.mini .url { background: var(--paper); border-bottom: 1px solid var(--rule); color: var(--muted); font-size: 11px; padding: 6px 10px; }
+.mini .body { padding: 14px; min-height: 164px; }
+.mnight .body { background: #0d1a46; color: #f3e6c4; text-align: center; }
+.mnight .k { font: 700 10px/1 var(--font); letter-spacing: .16em; color: #ffcf5a; }
+.mnight h4 { font: italic 700 24px/1 "Playfair Display", serif; margin: 6px 0 10px; color: #fff; }
+.mnight .gig { display: flex; justify-content: space-between; gap: 6px; border-top: 1px solid rgba(243,230,196,.22); padding: 6px 0; font-size: 12.5px; text-align: left; }
+.mnight .gig a { background: #ffcf5a; color: #0d1a46; border-radius: 999px; padding: 1px 8px; font-weight: 700; font-size: 11px; }
+.mclean h4 { font: 800 26px/0.9 var(--font); letter-spacing: -0.05em; margin: 4px 0 12px; color: #111; }
+.mclean .gig { display: flex; justify-content: space-between; gap: 6px; border-top: 1px solid #ececf2; padding: 6px 0; font-size: 12.5px; color: #111; }
+.mclean .gig a { color: #2b3cf0; font-weight: 700; font-size: 12px; }
+.gig.new { opacity: 0; transform: translateY(-6px); }
+.demo.play .gig.new { animation: land .5s cubic-bezier(.2,.8,.2,1) forwards; }
+.demo.play .mnight .gig.new { animation-delay: 1s; }
+.demo.play .mclean .gig.new { animation-delay: 1.2s; }
+.demo.play .dash .add { animation: press .45s ease .4s; }
+@keyframes land { to { opacity: 1; transform: none; } }
+@keyframes press { 40% { transform: scale(.92); } }
+.replay { margin: 14px 0 0 10%; background: none; border: 0; color: var(--muted); font: 500 14px var(--font); text-decoration: underline; cursor: pointer; padding: 0; }
+
+/* 02 what it runs */
+.runs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 40px; row-gap: 8px; }
+.run { border-top: 1.5px solid var(--ink); padding: 18px 0 30px; }
+.run .n { font: 700 13px/1 var(--font); letter-spacing: .1em; color: var(--red-h); }
+.run h3 { font-size: 34px; margin: 12px 0 10px; }
+.run p { margin: 0; color: var(--muted); font-size: 16px; }
+
+/* 03 templates: try it with your name */
+.tpl { background: var(--paper); border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); }
+.tpl-grid { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 64px; align-items: start; }
+.try label { display: block; font: 700 13px/1 var(--font); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
+.try input { width: 100%; font: 800 30px/1 var(--display); padding: 12px 14px; border-radius: var(--ct-radius); border: 1.5px solid var(--ink); background: #fff; color: var(--ink); }
+.looks { display: flex; gap: 0; margin-top: 22px; border: 1.5px solid var(--ink); border-radius: var(--ct-radius); overflow: hidden; }
+.looks button { flex: 1; font: 600 14px/1 var(--font); padding: 12px 8px; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
+.looks button + button { border-left: 1.5px solid var(--ink); }
+.looks button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.window { border-radius: var(--ct-radius); overflow: hidden; border: 1.5px solid var(--ink); background: #fff; }
+.window .bar { display: flex; align-items: center; gap: 6px; padding: 9px 12px; background: var(--bg); border-bottom: 1px solid var(--rule); color: var(--muted); font-size: 12px; }
+.window .bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--rule); }
+.window .url { margin-left: 8px; flex: 1; background: #fff; border-radius: 4px; padding: 4px 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.screen { position: relative; height: 340px; overflow: hidden; color: #111; }
+.look { position: absolute; inset: 0; padding: 24px 26px; opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s; }
 .look.on { opacity: 1; visibility: visible; }
 .look .row { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 8px 0; font-size: 14px; }
-.looks { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
-.looks button { font: 600 13px/1 var(--font); padding: 8px 12px; border-radius: 999px; border: 0; background: rgba(255,255,255,.14); color: var(--white); cursor: pointer; }
-.looks button[aria-pressed="true"] { background: var(--white); color: var(--ink); }
 .lnight { background: #0d1a46 radial-gradient(ellipse at 50% -20%, #2c47a6, transparent 60%); color: #f3e6c4; text-align: center; }
 .lnight .k { font: 700 11px/1 var(--font); letter-spacing: .18em; color: #ffcf5a; margin-top: 6px; }
-.lnight .nm { font: italic 700 44px/1 "Playfair Display", serif; color: #fff; margin: 12px 0 16px; overflow-wrap: anywhere; }
+.lnight .nm { font: italic 700 46px/1 "Playfair Display", serif; color: #fff; margin: 12px 0 16px; overflow-wrap: anywhere; }
 .lnight .row { border-top: 1px solid rgba(243,230,196,.22); text-align: left; }
 .lnight .row a { background: #ffcf5a; color: #0d1a46; border-radius: 999px; padding: 5px 11px; font-weight: 700; font-size: 12px; }
 .lclean { background: #fff; }
 .lclean .nav { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; }
 .lclean .nav span:last-child { color: #8a8f9e; display: flex; gap: 12px; font-weight: 500; }
-.lclean .nm { font: 800 56px/0.9 var(--display); letter-spacing: -0.05em; margin: 26px 0 18px; overflow-wrap: anywhere; }
+.lclean .nm { font: 800 58px/0.9 var(--font); letter-spacing: -0.055em; margin: 26px 0 18px; overflow-wrap: anywhere; }
 .lclean .row { border-top: 1px solid #ececf2; }
-.lclean .row a { color: var(--cobalt); font-weight: 700; font-size: 13px; text-decoration: none; }
+.lclean .row a { color: #2b3cf0; font-weight: 700; font-size: 13px; text-decoration: none; }
 .lzine { background: #edece8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.14'/%3E%3C/svg%3E"); font-family: "Special Elite", "Courier New", monospace; }
 .lzine .nm { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 18px; transform: rotate(-2deg); }
-.lzine .nm span { font: 800 32px/1 var(--display); padding: 4px 6px; background: #fff; border: 1px solid #111; }
+.lzine .nm span { font: 800 32px/1 var(--font); padding: 4px 6px; background: #fff; border: 1px solid #111; }
 .lzine .nm span:nth-child(3n+1) { background: #111; color: #edece8; font-family: "Special Elite", monospace; }
-.lzine .nm span:nth-child(4n+2) { background: var(--pink); color: #fff; transform: rotate(4deg); }
+.lzine .nm span:nth-child(4n+2) { background: #ff5c8a; color: #fff; transform: rotate(4deg); }
 .lzine .nm span.sp { background: none; border: 0; width: 8px; padding: 0; }
 .lzine .scrap { background: #fff; padding: 8px 14px; transform: rotate(1deg); box-shadow: 2px 3px 0 rgba(0,0,0,.2); }
 .lzine .row { border-top: 1px dashed #111; }
@@ -93,210 +162,201 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.035em; line-height:
 .lmarq .nm { font: 500 38px/1.05 Oswald, sans-serif; text-transform: uppercase; letter-spacing: .03em; margin-top: 6px; color: #fff4dc; text-shadow: 0 0 14px rgba(255,210,122,.6); overflow-wrap: anywhere; }
 .lmarq .row { border-top: 1px solid rgba(255,236,207,.2); text-align: left; }
 .lmarq .row a { color: #3d0d18; background: #ffd27a; border-radius: 4px; padding: 3px 10px; font: 500 12px Oswald, sans-serif; letter-spacing: .05em; }
+.note { font-size: 15px; color: var(--muted); margin: 18px 0 0; }
 
-/* sections */
-section.band { padding: 104px 0; }
-.kick { color: var(--cobalt); font-weight: 600; font-size: 15px; margin: 0 0 12px; }
-h2 { font-size: clamp(38px, 4.8vw, 60px); font-weight: 800; margin-bottom: 14px; color: var(--ink); }
-.intro { font-size: 19px; color: var(--muted); max-width: 32em; margin: 0 0 48px; }
+/* 04 three ways in: charcoal field */
+.dark { background: var(--ink); color: var(--bg); }
+.dark .intro { color: rgba(243,234,215,.72); }
+.ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 40px; }
+.way { border-top: 1.5px solid rgba(243,234,215,.5); padding-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+.way .tag { align-self: flex-start; padding: 5px 0; font: 700 12px/1 var(--font); letter-spacing: .1em; text-transform: uppercase; color: rgba(243,234,215,.7); }
+.way.hot .tag { background: var(--mus); color: var(--ink); padding: 5px 8px; border-radius: 3px; }
+.way h3 { font-size: 40px; }
+.way p { margin: 0; color: rgba(243,234,215,.75); }
+.way code { display: block; margin-top: 8px; background: var(--ct-night); border: 1px solid #333; color: var(--bg); border-radius: var(--ct-radius); padding: 12px; font: 500 12.5px/1.5 var(--ct-mono); overflow-x: auto; white-space: pre; }
 
-/* demo */
-.sync { background: var(--paper); }
-.sync-grid { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 56px; align-items: center; }
-.demo { position: relative; }
-.dash { background: var(--white); border-radius: 14px; padding: 14px 16px; box-shadow: var(--lift); width: 82%; }
-.dash .bar { display: flex; align-items: center; gap: 8px; font: 700 13px var(--display); margin-bottom: 10px; color: var(--ink); }
-.dash .bar i { width: 8px; height: 8px; border-radius: 50%; background: #e5484d; }
-.dash .bar span { color: var(--muted); font: 500 12px var(--font); margin-left: auto; }
-.dash .row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; }
-.dash .cal { background: var(--ink); color: var(--white); border-radius: 8px; text-align: center; padding: 3px 8px; font: 700 11px/1.1 var(--display); }
-.dash .cal b { display: block; font-size: 18px; }
-.dash .add { background: var(--cobalt); color: var(--white); border-radius: 8px; padding: 7px 12px; font-weight: 600; font-size: 13px; white-space: nowrap; }
-.dash .t b { display: block; } .dash .t span { color: var(--muted); font-size: 12px; }
-.sites2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; margin-left: 9%; }
-.mini { border-radius: 12px; overflow: hidden; box-shadow: var(--lift); background: var(--white); }
-.mini .url { background: #eef0f6; color: var(--muted); font-size: 11px; padding: 6px 10px; }
-.mini .body { padding: 14px; min-height: 160px; }
-.mnight .body { background: #0d1a46; color: #f3e6c4; text-align: center; }
-.mnight .k { font: 700 10px/1 var(--font); letter-spacing: .16em; color: #ffcf5a; }
-.mnight h4 { font: italic 700 24px/1 "Playfair Display", serif; margin: 6px 0 10px; color: #fff; }
-.mnight .gig { display: flex; justify-content: space-between; gap: 6px; border-top: 1px solid rgba(243,230,196,.22); padding: 6px 0; font-size: 12.5px; text-align: left; }
-.mnight .gig a { background: #ffcf5a; color: #0d1a46; border-radius: 999px; padding: 1px 8px; font-weight: 700; font-size: 11px; }
-.mclean h4 { font: 800 26px/0.9 var(--display); letter-spacing: -0.05em; margin: 4px 0 12px; color: var(--ink); }
-.mclean .gig { display: flex; justify-content: space-between; gap: 6px; border-top: 1px solid #ececf2; padding: 6px 0; font-size: 12.5px; }
-.mclean .gig a { color: var(--cobalt); font-weight: 700; font-size: 12px; }
-.gig.new { opacity: 0; transform: translateY(-6px); }
-.demo.play .gig.new { animation: land .55s cubic-bezier(.2,.8,.2,1.2) forwards; }
-.demo.play .mnight .gig.new { animation-delay: 1s; }
-.demo.play .mclean .gig.new { animation-delay: 1.25s; }
-.demo.play .dash .add { animation: press .5s ease .4s; }
-@keyframes land { to { opacity: 1; transform: none; } }
-@keyframes press { 40% { transform: scale(.9); } }
-.points { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
-.points li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; }
-.points li::before { content: "✓"; width: 28px; height: 28px; border-radius: 8px; background: #e6e9ff; color: var(--cobalt); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
-.points b { display: block; color: var(--ink); }
-.points span { color: var(--muted); font-size: 16px; }
-.replay { margin: 14px 0 0 9%; background: none; border: 0; color: var(--muted); font: 500 14px var(--font); text-decoration: underline; cursor: pointer; padding: 0; }
-
-/* tools */
-.tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-.tool { background: var(--white); border: 1px solid var(--line); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(15,18,34,.04); }
-.tool .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; margin-bottom: 6px; }
-.tool h3 { font-size: 22px; letter-spacing: -0.02em; color: var(--ink); font-weight: 700; }
-.tool p { margin: 0; color: var(--muted); font-size: 15.5px; }
-
-/* ways */
-.ways-band { background: var(--ink); color: var(--white); }
-.ways-band h2 { color: var(--white); }
-.ways-band .intro { color: #a7abc0; }
-.ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-.way { background: #181c33; border: 1px solid #262b4a; border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 10px; }
-.way .tag { align-self: flex-start; font-weight: 600; font-size: 12px; border-radius: 999px; padding: 4px 10px; background: rgba(255,255,255,.08); color: #c9cde3; }
-.way h3 { font-size: 28px; font-weight: 700; }
-.way p { margin: 0; color: #a7abc0; }
-.way.hot { background: var(--cobalt); border-color: var(--cobalt); }
-.way.hot p { color: rgba(255,255,255,.85); } .way.hot .tag { background: var(--yellow); color: var(--ink); }
-.way code { display: block; margin-top: auto; background: #0b0e1c; color: #dfe3f5; border-radius: 10px; padding: 12px; font: 500 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; white-space: pre; }
-
-/* proof + ask */
-.running { display: flex; flex-wrap: wrap; gap: 16px; }
-.running a { background: var(--paper); border-radius: 16px; padding: 18px 22px; text-decoration: none; min-width: 280px; max-width: 440px; }
-.running a b { display: block; font: 700 22px var(--display); letter-spacing: -0.02em; color: var(--ink); }
-.running a span { color: var(--muted); font-size: 15px; }
-.running a:hover { background: #eceefa; }
-.ask { background: var(--cobalt); color: var(--white); border-radius: 28px; padding: 56px; display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 44px; align-items: start; background-image: radial-gradient(700px 400px at 100% 0%, #5b6bff, transparent 60%); }
-.ask h2 { color: var(--white); }
-.ask p { color: rgba(255,255,255,.85); font-size: 19px; margin: 0; }
-form { display: grid; gap: 10px; }
-input, textarea { font: 400 16px var(--font); color: var(--ink); background: var(--white); border: 0; border-radius: 12px; padding: 14px 16px; width: 100%; }
-input:focus, textarea:focus { outline: 3px solid var(--yellow); }
-textarea { min-height: 90px; resize: vertical; }
-.msg { min-height: 1.4em; color: var(--yellow); font-weight: 600; }
-.done { font: 800 34px/1.05 var(--display); margin: 0 0 8px; }
-footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 36px; padding-bottom: 44px; color: var(--muted); font-size: 15px; }
+/* 05 live + ask */
+.live { display: flex; flex-wrap: wrap; gap: 0; margin-top: -40px; }
+.live a { flex: 1 1 280px; padding: 22px 0; text-decoration: none; display: grid; grid-template-columns: 1fr auto; align-items: center; border-bottom: 1px solid var(--rule); }
+.live a b { font: 900 34px/1 var(--display); }
+.live a span { color: var(--muted); font-size: 16px; grid-column: 1; }
+.live a i { grid-row: 1 / span 2; grid-column: 2; font-style: normal; font-weight: 600; color: var(--red-h); }
+.live a:hover b { color: var(--red); }
+.ask { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 64px; align-items: start; }
+.ask p { color: var(--muted); font-size: 19px; margin: 0; }
+form { display: grid; gap: 12px; }
+.f label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+input, textarea { font: 400 16px var(--font); color: var(--ink); background: #fff; border: 1.5px solid #8f897d; border-radius: var(--ct-radius); padding: 13px 14px; width: 100%; }
+input:focus, textarea:focus { outline: 3px solid var(--ink); outline-offset: 1px; border-color: var(--ink); }
+textarea { min-height: 96px; resize: vertical; }
+.msg { min-height: 1.4em; color: var(--red-h); font-weight: 600; }
+.done { font: 900 40px/1 var(--display); margin: 0 0 10px; }
+.name-why { font-size: 15px; color: var(--muted); max-width: 34em; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--rule); }
+footer { border-top: 1.5px solid var(--ink); }
+footer .wrap { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding-top: 28px; padding-bottom: 40px; color: var(--muted); font-size: 14px; }
+footer .left { display: flex; align-items: center; gap: 12px; }
+footer img { width: 28px; height: 28px; }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .gig.new { opacity: 1; transform: none; } .demo.play .gig.new, .demo.play .dash .add { animation: none; } .look { transition: none; } }
-@media (max-width: 940px) {
-  .hero-grid, .sync-grid, .ask { grid-template-columns: 1fr; }
-  .tools, .ways { grid-template-columns: 1fr; }
+@media (max-width: 960px) {
+  .hero, .sync-grid, .ask, .tpl-grid { grid-template-columns: 1fr; }
+  .hero-copy { padding: 48px 0 40px; }
+  .photo { min-height: 340px; margin: 0 -32px; }
+  .runs, .ways { grid-template-columns: 1fr; }
+  .ways { row-gap: 36px; }
+  .facts { grid-template-columns: 1fr 1fr; }
+  .facts div:nth-child(3) { padding-left: 0; border-left: 0; }
+  .facts div:nth-child(n+3) { border-top: 1px solid var(--rule); }
   .dash { width: 100%; } .sites2, .replay { margin-left: 0; }
   section.band { padding: 72px 0; }
-  .ask { padding: 32px 22px; }
+  .sync-grid, .tpl-grid, .ask { gap: 40px; }
   .top nav .hide-sm { display: none; }
 }
-@media (max-width: 520px) { .wrap { padding: 0 16px; } .sites2 { grid-template-columns: 1fr; } .screen { height: 320px; } .lnight .nm { font-size: 34px; } .lclean .nm { font-size: 40px; } .lmarq .nm { font-size: 28px; } .lzine .nm span { font-size: 26px; } }
+@media (max-width: 560px) {
+  .wrap { padding: 0 16px; }
+  .photo { margin: 0 -16px; min-height: 280px; }
+  .top .logo img { height: 26px; }
+  .top nav { gap: 16px; }
+  .facts { grid-template-columns: 1fr; }
+  .facts div, .facts div + div { padding: 16px 0; border-left: 0; }
+  .facts div + div { border-top: 1px solid var(--rule); }
+  .sites2 { grid-template-columns: 1fr; }
+  .screen { height: 320px; }
+  .lnight .nm { font-size: 34px; } .lclean .nm { font-size: 40px; } .lmarq .nm { font-size: 28px; } .lzine .nm span { font-size: 24px; }
+  .looks button { font-size: 13px; padding: 11px 4px; }
+}
 </style>
 </head>
 <body>
-<header class="hero">
+<header>
   <div class="wrap">
     <div class="top">
-      <a class="mark" href="/"><i aria-hidden="true"></i>ComicTable</a>
-      <nav aria-label="Main"><a class="hide-sm" href="#sync">How it works</a><a class="hide-sm" href="#tools">Features</a><a class="hide-sm" href="#ways">Get started</a><a class="login" href="/login">Log in</a></nav>
+      <a class="logo" href="/" aria-label="ComicTable home"><img src="/brand/comictable-wordmark.svg" alt="ComicTable" width="200" height="39"></a>
+      <nav aria-label="Main"><a class="hide-sm" href="#how">How it works</a><a class="hide-sm" href="#runs">Features</a><a class="hide-sm" href="#ways">Ways in</a><a href="/login">Log in</a><a class="btn red" href="#ask">Get started</a></nav>
     </div>
-    <div class="hero-grid">
-      <div>
-        <div class="eyebrow"><b>New</b> Websites for comedians</div>
-        <h1>Less admin.<br><em>More stage time.</em></h1>
-        <p>ComicTable runs the boring half of a comic's website. Shows, ticket links, episodes, fans. You get one dashboard.</p>
-        <div class="ctas"><a class="btn y" href="#ask">Get your site</a><a class="btn ghost" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See one live</a></div>
+    <div class="hero">
+      <div class="hero-copy">
+        <h1>The engine behind comedians' <span>websites.</span></h1>
+        <p>Shows, tickets, podcasts, videos, fans and a blog, all run from one dashboard. The site stays on the comic's own domain, in their own look.</p>
+        <div class="ctas"><a class="btn red" href="#ask">Get started</a><a class="link" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See a site running on it</a></div>
       </div>
-      <div class="try">
-        <div class="try-row"><label for="tryName">Try it with your name</label><input id="tryName" value="Your Name" maxlength="28" autocomplete="off" spellcheck="false"></div>
-        <div class="window" aria-label="Preview of your site">
-          <div class="bar"><i></i><i></i><i></i><span class="url" id="tryUrl">yourname.com</span></div>
-          <div class="screen">
-            <div class="look lnight on">
-              <div class="k">LIVE ON TOUR</div><div class="nm" data-name></div>
-              <div class="row"><span>Fri, Nov 6 · Comedy Cellar</span><a>Tickets</a></div>
-              <div class="row"><span>Sat, Nov 7 · The Stand</span><a>Tickets</a></div>
-              <div class="row"><span>Fri, Nov 13 · Laugh Boston</span><a>Tickets</a></div>
-            </div>
-            <div class="look lclean">
-              <div class="nav"><span data-name></span><span><span>Shows</span><span>Podcast</span><span>Videos</span></span></div>
-              <div class="nm" data-name></div>
-              <div class="row"><span><b>Nov 6</b>&nbsp; Comedy Cellar, New York</span><a>Tickets</a></div>
-              <div class="row"><span><b>Nov 7</b>&nbsp; The Stand, New York</span><a>Tickets</a></div>
-              <div class="row"><span><b>Nov 13</b>&nbsp; Laugh Boston, Boston</span><a>Tickets</a></div>
-            </div>
-            <div class="look lzine">
-              <div class="nm" id="zineName"></div>
-              <div class="scrap"><div class="row"><span>11/6 comedy cellar</span><a>tix</a></div><div class="row"><span>11/7 the stand</span><a>tix</a></div><div class="row"><span>11/13 laugh boston</span><a>tix</a></div></div>
-            </div>
-            <div class="look lmarq">
-              <div class="sign"><div class="k">TONIGHT</div><div class="nm" data-name></div></div>
-              <div class="row"><span>Fri, Nov 6 · Comedy Cellar</span><a>TIX</a></div>
-              <div class="row"><span>Sat, Nov 7 · The Stand</span><a>TIX</a></div>
-            </div>
-          </div>
+      <figure class="photo" style="margin-top:0;margin-bottom:0">
+        <img src="https://images.unsplash.com/photo-1641903806973-17eaf2d2634f?fm=jpg&amp;q=70&amp;w=1400&amp;auto=format&amp;fit=crop" alt="A microphone on a stand in front of a brick wall, under a single stage light" loading="eager">
+        <figcaption>Photo: <a href="https://unsplash.com/photos/a-microphone-on-a-stand-in-front-of-a-brick-wall-B53qfHDHa_Y" target="_blank" rel="noopener">Simon H / Unsplash</a></figcaption>
+      </figure>
+    </div>
+    <div class="facts">
+      <div><b>One profile</b>Each comic's dates and bio follow them to every site they're on.</div>
+      <div><b>Own domain</b>Fans go to yourname.com, not to us.</div>
+      <div><b>Hourly checks</b>New episodes, uploads and listed dates come in on their own.</div>
+      <div><b>Any site</b>Use a template, go custom, or plug into a site you already have.</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="band" id="how"><div class="wrap">
+    <p class="label"><b>01</b> / How it works</p>
+    <div class="sync-grid">
+      <div>
+        <h2>Add a date once. Every site has it.</h2>
+        <p class="intro" style="margin-bottom:28px">A comic is one profile on ComicTable. Their own site, their podcast's site, a club's lineup page: they all read from the same place.</p>
+        <ol class="steps">
+          <li><div><b>Add the show</b><span>Pick the club, paste the ticket link. Showtimes fill themselves in.</span></div></li>
+          <li><div><b>It goes everywhere</b><span>Every site the comic is on lists it, in that site's own design.</span></div></li>
+          <li><div><b>Fans nearby hear about it</b><span>Fans sign up by city. You see who lives near each show.</span></div></li>
+        </ol>
+      </div>
+      <div class="demo" id="demo" aria-label="Demo: one show added in the dashboard appears on two sites">
+        <div class="dash">
+          <div class="bar"><img src="/brand/comictable-mark.svg" alt="">ComicTable <span>Shows</span></div>
+          <div class="row"><div class="cal">NOV<b>14</b></div><div class="t"><b>Comedy Cellar · 9:30 PM</b><span>New York, NY · tickets linked</span></div><div class="add">Add show</div></div>
         </div>
+        <div class="sites2">
+          <div class="mini mnight"><div class="url">thepodcast.com</div><div class="body">
+            <div class="k">ON TOUR</div><h4>The Podcast</h4>
+            <div class="gig"><span>Nov 7 · Laugh Boston</span><a>Tickets</a></div>
+            <div class="gig new"><span>Nov 14 · Comedy Cellar</span><a>Tickets</a></div>
+          </div></div>
+          <div class="mini mclean"><div class="url">theirname.com</div><div class="body">
+            <h4>Their Name</h4>
+            <div class="gig"><span><b>Nov 7</b> Laugh Boston</span><a>Tickets</a></div>
+            <div class="gig new"><span><b>Nov 14</b> Comedy Cellar</span><a>Tickets</a></div>
+          </div></div>
+        </div>
+        <button class="replay" type="button" id="replay">Replay</button>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="band" id="runs" style="padding-top:0"><div class="wrap">
+    <p class="label"><b>02</b> / What it runs</p>
+    <h2>Turn on what you need.</h2>
+    <p class="intro">Everything is edited from one dashboard. Comics, co-hosts and their teams each get their own login.</p>
+    <div class="runs">
+      <div class="run"><span class="n">2.1</span><h3>Shows</h3><p>A weekend of dates in about a minute, with ticket links and sold-out labels.</p></div>
+      <div class="run"><span class="n">2.2</span><h3>Show finder</h3><p>Watches club calendars and tour pages, and brings back dates you haven't added.</p></div>
+      <div class="run"><span class="n">2.3</span><h3>Podcast and YouTube</h3><p>New episodes and uploads post themselves.</p></div>
+      <div class="run"><span class="n">2.4</span><h3>Fan list</h3><p>Sign-ups by city, so you know who to tell when you're in town.</p></div>
+      <div class="run"><span class="n">2.5</span><h3>Forum and chat</h3><p>A room for your fans, with your own moderators.</p></div>
+      <div class="run"><span class="n">2.6</span><h3>Blog and merch</h3><p>Posts for the bits that didn't make the set, and a shelf for the shirts.</p></div>
+    </div>
+  </div></section>
+
+  <section class="band tpl" id="templates"><div class="wrap">
+    <p class="label"><b>03</b> / Templates</p>
+    <div class="tpl-grid">
+      <div class="try">
+        <h2>The site looks like the comic, not like us.</h2>
+        <p class="intro" style="margin-bottom:28px">Start from a template and change the colors, fonts and sections. Or have one designed from scratch.</p>
+        <label for="tryName">Try it with your name</label>
+        <input id="tryName" value="Your Name" maxlength="28" autocomplete="off" spellcheck="false">
         <div class="looks" role="group" aria-label="Pick a look">
           <button type="button" data-look="0" aria-pressed="true">Late Night</button>
           <button type="button" data-look="1" aria-pressed="false">Clean</button>
           <button type="button" data-look="2" aria-pressed="false">Zine</button>
           <button type="button" data-look="3" aria-pressed="false">Marquee</button>
         </div>
+        <p class="note">Four of the starting points. Every one runs on the same engine.</p>
       </div>
-    </div>
-  </div>
-</header>
-
-<main>
-  <section class="band sync" id="sync"><div class="wrap sync-grid">
-    <div>
-      <p class="kick">How it works</p>
-      <h2>Add it once. It's everywhere.</h2>
-      <p class="intro" style="margin-bottom:28px">Every comic is one profile on ComicTable. Their own site, their podcast's site, wherever they are: it all updates together.</p>
-      <ul class="points">
-        <li><div><b>One dashboard</b><span>Shows, episodes, videos and fans for every site you're on.</span></div></li>
-        <li><div><b>Updates itself</b><span>New episodes, uploads and found tour dates show up on their own.</span></div></li>
-        <li><div><b>Your address, your look</b><span>Fans go to yourname.com. It looks like you, not like us.</span></div></li>
-      </ul>
-    </div>
-    <div class="demo" id="demo" aria-label="Demo: one show added in the dashboard appears on two sites">
-      <div class="dash">
-        <div class="bar"><i></i>ComicTable <span>Shows</span></div>
-        <div class="row"><div class="cal">NOV<b>14</b></div><div class="t"><b>Comedy Cellar · 9:30 PM</b><span>New York, NY · tickets pasted</span></div><div class="add">Add show</div></div>
+      <div class="window" aria-label="Preview of your site">
+        <div class="bar"><i></i><i></i><i></i><span class="url" id="tryUrl">yourname.com</span></div>
+        <div class="screen">
+          <div class="look lnight on">
+            <div class="k">LIVE ON TOUR</div><div class="nm" data-name></div>
+            <div class="row"><span>Fri, Nov 6 · Comedy Cellar</span><a>Tickets</a></div>
+            <div class="row"><span>Sat, Nov 7 · The Stand</span><a>Tickets</a></div>
+            <div class="row"><span>Fri, Nov 13 · Laugh Boston</span><a>Tickets</a></div>
+          </div>
+          <div class="look lclean">
+            <div class="nav"><span data-name></span><span><span>Shows</span><span>Podcast</span><span>Videos</span></span></div>
+            <div class="nm" data-name></div>
+            <div class="row"><span><b>Nov 6</b>&nbsp; Comedy Cellar, New York</span><a>Tickets</a></div>
+            <div class="row"><span><b>Nov 7</b>&nbsp; The Stand, New York</span><a>Tickets</a></div>
+            <div class="row"><span><b>Nov 13</b>&nbsp; Laugh Boston, Boston</span><a>Tickets</a></div>
+          </div>
+          <div class="look lzine">
+            <div class="nm" id="zineName"></div>
+            <div class="scrap"><div class="row"><span>11/6 comedy cellar</span><a>tix</a></div><div class="row"><span>11/7 the stand</span><a>tix</a></div><div class="row"><span>11/13 laugh boston</span><a>tix</a></div></div>
+          </div>
+          <div class="look lmarq">
+            <div class="sign"><div class="k">TONIGHT</div><div class="nm" data-name></div></div>
+            <div class="row"><span>Fri, Nov 6 · Comedy Cellar</span><a>TIX</a></div>
+            <div class="row"><span>Sat, Nov 7 · The Stand</span><a>TIX</a></div>
+          </div>
+        </div>
       </div>
-      <div class="sites2">
-        <div class="mini mnight"><div class="url">thepodcast.com</div><div class="body">
-          <div class="k">ON TOUR</div><h4>The Podcast</h4>
-          <div class="gig"><span>Nov 7 · Laugh Boston</span><a>Tickets</a></div>
-          <div class="gig new"><span>Nov 14 · Comedy Cellar</span><a>Tickets</a></div>
-        </div></div>
-        <div class="mini mclean"><div class="url">theirname.com</div><div class="body">
-          <h4>Their Name</h4>
-          <div class="gig"><span><b>Nov 7</b> Laugh Boston</span><a>Tickets</a></div>
-          <div class="gig new"><span><b>Nov 14</b> Comedy Cellar</span><a>Tickets</a></div>
-        </div></div>
-      </div>
-      <button class="replay" type="button" id="replay">Replay</button>
     </div>
   </div></section>
 
-  <section class="band" id="tools"><div class="wrap">
-    <p class="kick">Features</p>
-    <h2>What it does.</h2>
-    <p class="intro">Turn on what you need.</p>
-    <div class="tools">
-      <div class="tool"><div class="ic" style="background:#e6e9ff">🎟️</div><h3>Shows</h3><p>A weekend of dates in about a minute. Showtimes fill themselves in.</p></div>
-      <div class="tool"><div class="ic" style="background:#fff4cc">🔎</div><h3>Show finder</h3><p>Watches club calendars and tour pages. Brings back new dates.</p></div>
-      <div class="tool"><div class="ic" style="background:#ffe3ec">🎧</div><h3>Podcast and YouTube</h3><p>New episodes and uploads post themselves.</p></div>
-      <div class="tool"><div class="ic" style="background:#e3f6ea">💌</div><h3>Fan list</h3><p>Fans sign up by city. You see who's near each show.</p></div>
-      <div class="tool"><div class="ic" style="background:#efe6ff">💬</div><h3>Forum and chat</h3><p>Your fans, your room, your ban button.</p></div>
-      <div class="tool"><div class="ic" style="background:#e6f3ff">✍️</div><h3>Blog</h3><p>For the bits that didn't make the set.</p></div>
-    </div>
-  </div></section>
-
-  <section class="band ways-band" id="ways"><div class="wrap">
-    <p class="kick" style="color:var(--yellow)">Get started</p>
+  <section class="band dark" id="ways"><div class="wrap">
+    <p class="label"><b>04</b> / Ways in</p>
     <h2>Three ways in.</h2>
-    <p class="intro">Same engine either way. Switch later and keep everything.</p>
+    <p class="intro">Same engine every way. Switch later and keep everything.</p>
     <div class="ways">
-      <div class="way"><span class="tag">Fastest</span><h3>Template</h3><p>Pick one. Add your name, photo and colors. Live today.</p></div>
-      <div class="way hot"><span class="tag">Most yours</span><h3>Custom</h3><p>We design it with you. Nobody else gets it.</p></div>
-      <div class="way"><span class="tag">Keep yours</span><h3>Your own site</h3><p>Squarespace, Wix, whatever. Paste one snippet. Your shows stay current.</p>
+      <div class="way"><span class="tag">Fastest</span><h3>Template</h3><p>Pick one, add your name, photo and colors. Live the same day.</p></div>
+      <div class="way hot"><span class="tag">Most yours</span><h3>Custom</h3><p>Designed with you, from scratch. Nobody else gets it.</p></div>
+      <div class="way"><span class="tag">Keep yours</span><h3>Your own site</h3><p>Squarespace, Wix, anything. Paste one snippet and your shows stay current.</p>
         <code>&lt;div data-comictable="shows"&gt;&lt;/div&gt;
 &lt;script src="https://comictable.com/embed.js"
   data-site="your-name"&gt;&lt;/script&gt;</code></div>
@@ -304,32 +364,36 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
   </div></section>
 
   <section class="band"><div class="wrap">
-    <p class="kick">On ComicTable</p>
-    <h2 style="margin-bottom:30px">See one live.</h2>
-    <div class="running">
-      <a href="https://cockfightpodcast.com" target="_blank" rel="noopener"><b>Cockfight</b><span>A comedy podcast. There's a chicken.</span></a>
+    <p class="label"><b>05</b> / Running on ComicTable</p>
+    <div class="live">
+      <a href="https://cockfightpodcast.com" target="_blank" rel="noopener"><b>Cockfight</b><span>A comedy podcast. cockfightpodcast.com</span><i>Visit ↗</i></a>
     </div>
   </div></section>
 
-  <section style="padding:0 0 104px" id="ask"><div class="wrap">
+  <section class="band" id="ask" style="padding-top:0"><div class="wrap">
+    <p class="label"><b>06</b> / Get started</p>
     <div class="ask">
-      <div><h2>Want in?</h2><p>Tell us who you are. We'll get back to you.</p></div>
+      <div>
+        <h2>Want a site on it?</h2>
+        <p>Tell us who you are and what you need. We'll reply by email.</p>
+        <p class="name-why">Why the name: the comics' table is the one at the back of the club, where the people on the lineup sit. That's who this is for.</p>
+      </div>
       <div id="askBox">
         <form id="askForm" novalidate>
-          <input id="aName" placeholder="Your name" autocomplete="name" maxlength="120" aria-label="Your name">
-          <input id="aEmail" type="email" placeholder="Email" autocomplete="email" maxlength="200" aria-label="Email">
-          <input id="aAct" placeholder="What do you do? Stand-up, a podcast, both" maxlength="200" aria-label="What do you do?">
-          <input id="aLinks" placeholder="Where can we see you? Instagram, YouTube, your site" maxlength="1000" aria-label="Where can we see you?">
-          <textarea id="aNote" placeholder="Template, custom, or your own site? Anything else?" maxlength="2000" aria-label="Anything else"></textarea>
+          <div class="f"><label for="aName">Your name</label><input id="aName" autocomplete="name" maxlength="120"></div>
+          <div class="f"><label for="aEmail">Email</label><input id="aEmail" type="email" autocomplete="email" maxlength="200"></div>
+          <div class="f"><label for="aAct">What do you do?</label><input id="aAct" placeholder="Stand-up, a podcast, both" maxlength="200"></div>
+          <div class="f"><label for="aLinks">Where can we see you?</label><input id="aLinks" placeholder="Instagram, YouTube, your site" maxlength="1000"></div>
+          <div class="f"><label for="aNote">Anything else?</label><textarea id="aNote" placeholder="Template, custom, or your own site?" maxlength="2000"></textarea></div>
           <div class="msg" id="aMsg" role="status" aria-live="polite"></div>
-          <div><button class="btn y" type="submit" id="aSend">Send</button></div>
+          <div><button class="btn red" type="submit" id="aSend">Send</button></div>
         </form>
       </div>
     </div>
   </div></section>
 </main>
 
-<footer><div class="wrap"><span>© <span id="yr"></span> ComicTable</span><a href="/login">Comics: log in</a></div></footer>
+<footer><div class="wrap"><span class="left"><img src="/brand/comictable-mark.svg" alt="" width="28" height="28"><span>© <span id="yr"></span> ComicTable</span></span><a href="/login">Comics: log in</a></div></footer>
 
 <script src="config.js"></script>
 <script>
@@ -353,7 +417,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
   input.addEventListener("input", function () { clearInterval(timer); draw(); });
   input.addEventListener("focus", function () { if (input.value === "Your Name") input.select(); });
   draw();
-  if (!still) timer = setInterval(function () { show((cur + 1) % looks.length); }, 3000);
+  if (!still) timer = setInterval(function () { show((cur + 1) % looks.length); }, 3200);
 
   // sync demo: plays when it scrolls into view, and on Replay
   var demo = $("demo");
