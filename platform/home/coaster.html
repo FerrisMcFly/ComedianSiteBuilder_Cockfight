@@ -186,6 +186,7 @@ footer a { font-weight: 700; text-decoration: none; }
   var initials = function (n) { return String(n || "?").split(/\s+/).map(function (w) { return w[0] || ""; }).join("").slice(0, 2).toUpperCase(); };
   var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   function niceTime(t) {
+    if (/[ap]\.?m/i.test(String(t || ""))) return String(t).replace(/\s*([ap])\.?m\.?/i, function (_, x) { return x.toLowerCase() + "m"; }).replace(":00", "");  // "9:30 PM" → "9:30pm"
     var m = String(t || "").match(/^(\d{1,2}):(\d{2})/); if (!m) return t || "";
     var hh = +m[1], ap = hh >= 12 ? "pm" : "am"; hh = hh % 12 || 12; return hh + (m[2] === "00" ? "" : ":" + m[2]) + ap;
   }

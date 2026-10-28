@@ -484,7 +484,7 @@ test("show finder: watch a page for someone, then add or ignore what it found", 
 });
 function shortDay(iso) { const d = new Date(iso + "T12:00:00"); return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()] + " " + d.getDate(); }
 
-test("a comic with their own login gets a Me page: their sites, all their dates, one profile", async () => {
+test("a comic with their own login gets Coaster and Dates in the sidebar: one Coaster, all their dates", async () => {
   const { w, d, db } = await open("#ct/me", (db) => {
     db.comics.find((c) => c.id === "lev-fer").user_id = "u1";
     db.sites.push({ id: "lev-fer", name: "Lev Fer", domain: "levfer.com", features: { shows: true } });
@@ -492,18 +492,41 @@ test("a comic with their own login gets a Me page: their sites, all their dates,
     db.shows.push({ id: "s5", site_id: "lev-fer", host: "lev-fer-lev", comic_id: "lev-fer", date: fri, time: "9:00 PM", venue: "Comedy Cellar", city: "New York, NY", url: "https://t/cc" });
   });
   await wait(80);
-  const main = d.querySelector("main");
-  assert.ok([...d.querySelectorAll(".nav-btn")].some((b) => /Me/.test(b.textContent)));
-  assert.match(main.textContent, /Your sites.*Cockfight.*Lev Fer.*levfer\.com/s);
-  assert.match(main.textContent, /Your upcoming dates \(1\).*Comedy Cellar/s);
+  const nav = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent.trim());
+  assert.ok(nav.some((t) => /Coaster$/.test(t)) && nav.some((t) => /Dates$/.test(t)), nav.join(" | "));
+  let main = d.querySelector("main");
+  assert.match(main.querySelector("h1").textContent, /Coaster/);
   // editing here edits the comic, not one site's copy
   const card = main.querySelector("form.card");
   card.querySelector("textarea").value = "Lev's own words";
   card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
   assert.equal(db.comics.find((c) => c.id === "lev-fer").bio, "Lev's own words");
-  // nobody without a comic login sees Me
+  w.location.hash = "#ct/dates"; await wait(100);
+  main = d.querySelector("main");
+  assert.match(main.textContent, /Upcoming \(1\).*Comedy Cellar/s);
+  // nobody without a comic login sees Coaster or Dates
   const other = await open("");
-  assert.ok(![...other.d.querySelectorAll(".nav-btn")].some((b) => /^👤/.test(b.textContent.trim())));
+  assert.ok(![...other.d.querySelectorAll(".nav-btn")].some((b) => /Dates$/.test(b.textContent.trim())));
+});
+
+test("a Coaster with no site: the comic logs in, lands on their Coaster, and adds a date right there", async () => {
+  const { w, d, db } = await open("", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+  });
+  await wait(100);
+  assert.equal(w.location.hash, "#ct/me");
+  assert.ok(d.querySelector("main form.card .looks"), "their Coaster, ready to edit");
+  assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /Your sites/.test(b.textContent)), "no sites, no Your sites");
+  w.location.hash = "#ct/dates"; await wait(100);
+  btn(d, /Add a date/).click(); await wait();
+  const f = d.querySelector("main form.newclub");
+  set(w, f.querySelector('input[aria-label="Club"]'), "Comedy Cellar");
+  set(w, f.querySelector('input[aria-label="Date"]'), fri);
+  set(w, f.querySelector('input[aria-label="Time"]'), "21:30");
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const added = db.shows.find((x) => x.comic_id === "solo-sam");
+  assert.deepEqual([added.site_id, added.venue, added.time, added.date], [null, "Comedy Cellar", "9:30 PM", fri]);
 });
 
 test("people: give a comic their own login", async () => {
@@ -991,14 +1014,22 @@ test("Coasters: Custom colors for comics on a site; Pro is ComicTable's switch",
   assert.equal(lev.coaster.next, "front", "what's-on-it choices are kept alongside");
 });
 
-test("Lineup: each person's card is their Coaster; one Save covers the profile, Tape and look", async () => {
-  const { w, d, db } = await open("#people", (db) => {
-    db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id }));
-  });
+test("Lineup: each person's card is their Coaster, with the fine-tuning on the Coaster page", async () => {
+  // ComicTable staff: a link to the comic's Coaster page
+  let { w, d, db } = await open("#people", (db) => { db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id })); });
   await wait(80);
-  const lev = [...d.querySelectorAll(".people form.card")].find((c) => /Lev Fer/.test(c.textContent));
+  let lev = [...d.querySelectorAll(".people form.card")].find((c) => /Lev Fer/.test(c.textContent));
   assert.match(lev.querySelector(".coaster-link").textContent, /comictable\.com\/lev-fer/);
   assert.match(lev.textContent, /Only on Cockfight/);
+  assert.ok(!lev.querySelector('input[aria-label="Tape link"]'), "no fine-tuning on Lineup");
+  btn(d, /Coaster settings/, lev).click(); await wait(120);
+  assert.equal(w.location.hash, "#ct/comics");
+  assert.ok(d.querySelector('main input[aria-label="Tape link"]'), "the Coaster page has it");
+  // a site's own owner, with a comic nobody has claimed: the fine-tuning is right there, folded away
+  ({ w, d, db } = await open("#people", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "owner" }];
+    db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id })); }));
+  await wait(80);
+  lev = [...d.querySelectorAll(".people form.card")].find((c) => /Lev Fer/.test(c.textContent));
   set(w, lev.querySelector('input[aria-label="Tape link"]'), "https://youtu.be/abcdefghijk");
   btn(d, /^Night$/, lev).click();
   lev.querySelector("textarea").value = "New bio";
@@ -1006,3 +1037,4 @@ test("Lineup: each person's card is their Coaster; one Save covers the profile, 
   const c = db.comics.find((x) => x.id === "lev-fer");
   assert.deepEqual([c.tape_url, c.look, c.bio], ["https://youtu.be/abcdefghijk", "night", "New bio"]);
 });
+

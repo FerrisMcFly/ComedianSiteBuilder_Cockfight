@@ -45,7 +45,7 @@ test("next dates with tickets, and who else is on the bill links to their Coaste
     comics: [{ id: "lev-fer", name: "Lev Fer" }],
     "rpc/comic_shows": [
       { id: "s1", date: day(3), time: "20:00", venue: "Comedy Cellar", city: "New York", url: "https://tix/1", status: "on_sale" },
-      { id: "s2", date: day(5), venue: "The Stand", city: "New York", status: "sold_out" },
+      { id: "s2", date: day(5), time: "9:30 PM", venue: "The Stand", city: "New York", status: "sold_out" },
       { id: "s3", date: day(6), venue: "Gone", status: "cancelled" }],
     "rpc/also_on_bill": [{ show_id: "s1", comic_id: "colum-tyrrell", name: "Colum Tyrrell", photo_url: null }] });
   const rows = d.querySelectorAll(".stub");
@@ -53,6 +53,7 @@ test("next dates with tickets, and who else is on the bill links to their Coaste
   assert.match(rows[0].textContent, /Comedy Cellar.*New York · 8pm/);
   assert.equal(rows[0].querySelector("a.btn").getAttribute("href"), "https://tix/1");
   assert.match(rows[1].textContent, /Sold out/);
+  assert.match(rows[1].textContent, /New York · 9:30pm/, "a 9:30 PM show says 9:30pm");
   const other = rows[0].querySelector(".bill a");
   assert.equal(other.getAttribute("href"), "/colum-tyrrell");
   assert.match(other.textContent, /CTColum Tyrrell/);

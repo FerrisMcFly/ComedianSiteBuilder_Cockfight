@@ -367,6 +367,27 @@ end $$;
 drop trigger if exists comics_coaster_guard on comics;
 create trigger comics_coaster_guard before insert or update on comics for each row execute function public.coaster_guard();
 
+/* ---------------- dates on a Coaster with no site ---------------- */
+-- A comic's own date doesn't need a site: site_id can be empty when the date belongs to a comic.
+-- A whole-show event (no comic) still belongs to a site. (The old 'cockfight' default goes: it was never right for new rows.)
+alter table shows alter column site_id drop default;
+alter table shows alter column site_id drop not null;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'shows_has_owner') then
+    alter table shows add constraint shows_has_owner check (site_id is not null or comic_id is not null);
+  end if;
+end $$;
+-- Every upcoming date for one comic, including ones with no site. (Same as in 13_me.sql, so either can run last.)
+create or replace function public.comic_shows(p_comic text)
+returns setof jsonb language sql stable set search_path = public as $$
+  select to_jsonb(s) || jsonb_build_object('site_name', st.name, 'event', s.comic_id is null)
+  from shows s left join sites st on st.id = s.site_id
+  where (s.comic_id = p_comic or p_comic = any (s.lineup)) and s.date >= current_date
+  order by s.date, s.time;
+$$;
+grant execute on function public.comic_shows(text) to anon, authenticated;
+
 -- ============================== 99_rules.sql ==============================
 -- ComicTable's access rules: every function and policy that decides who can do what, in one place.
 -- This file always runs LAST (it's at the end of every UPGRADE bundle), so re-running an older upgrade

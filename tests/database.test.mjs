@@ -455,3 +455,15 @@ test("Coaster addresses: one rule for everyone (full name with dashes), made aut
   const bill = await rows(null, "select * from also_on_bill('lev-fer')");
   assert.ok(bill.every((b) => b.handle), "shared bills link by address");
 });
+
+test("a Coaster with no site: the comic adds their own dates, and they show on their Coaster", async () => {
+  const SOLO = "99999999-9999-9999-9999-999999999999";
+  assert.equal(await as(SOLO, `insert into shows (comic_id, date, venue, city) values ('solo-sam', current_date + 4, 'Comedy Cellar', 'New York')`), "ok");
+  assert.match(await as(SOLO, `insert into shows (comic_id, date, venue) values ('lev-fer', current_date + 4, 'Not mine')`), /row-level/i);
+  assert.match(await as(null, `insert into shows (date, venue) values (current_date + 4, 'Nobody')`), /row-level|check|permission/i);
+  const mine = (await rows(null, "select r from comic_shows('solo-sam') r")).map((x) => x.r);
+  assert.ok(mine.some((r) => r.venue === "Comedy Cellar" && r.site_id === null));
+  // an older upgrade run again keeps it working
+  await db.exec(file("UPGRADE_V2_ALL.sql"));
+  assert.ok((await rows(null, "select r from comic_shows('solo-sam') r")).some((x) => x.r.venue === "Comedy Cellar"));
+});

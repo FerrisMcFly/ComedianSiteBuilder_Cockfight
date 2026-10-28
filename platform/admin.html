@@ -281,6 +281,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .coaster-link { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
 .coaster-link a { font-weight: 650; color: var(--text); }
 .linkish { border: 0; background: none; padding: 0; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; }
+.fine-tune { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; background: var(--bg); border-radius: 10px; padding: 10px 12px; }
 .site-only { border-top: 1px solid var(--line); padding-top: 12px; }
 .attention { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 @media (max-width: 560px) { .coaster-edit { grid-template-columns: 1fr; justify-items: center; } }
@@ -823,6 +824,8 @@ td select.status.st-few_left { color: var(--warn); }
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 1.8 14H1.7a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 3.3 7.5a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H7.6A1.6 1.6 0 0 0 9 1.9V1.7a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V7.6A1.6 1.6 0 0 0 20.1 9h.2a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" transform="scale(.9) translate(1.3 1.3)"/>'
   };
   ICONS.picks = '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>';
+  ICONS.me = '<circle cx="12" cy="12" r="8.5"/><path d="M6.5 15.5h11"/><circle cx="12" cy="10" r="2.6"/>';
+  ICONS.dates = '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>';
   ICONS.press = '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6l1.5-2.5h5L16 6"/><circle cx="12" cy="13" r="3.5"/>';
   function navIcon(s) {
     const span = h("span", { class: "ico", "aria-hidden": "true" });
@@ -857,15 +860,17 @@ td select.status.st-few_left { color: var(--warn); }
   // The ComicTable level: above any one site. Super admins get the whole platform; comics get their own home.
   const CT_SECTIONS = [
     { id: "overview", label: "Overview", ico: "🏠", platform: true, render: viewOverview },
-    { id: "me", label: "Me", ico: "👤", meOnly: true, render: viewMe },
+    // Every comic gets a dashboard. What's in the sidebar grows with them: a Coaster, then (with a site) their sites.
+    { id: "me", label: "Coaster", ico: "🎤", meOnly: true, render: viewMe },
+    { id: "dates", label: "Dates", ico: "📅", meOnly: true, render: viewMyDates },
     { id: "press", label: "Press kit", ico: "📷", meOnly: true, render: (main) => { main.append(head("Your press kit", "Approved photos and bios for clubs. It's the same on every site you're on.")); main.append(pressKitEditor(S.me.id)); } },
-    { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, render: viewMySites },
+    { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, needsSite: true, render: viewMySites },
     { id: "sites", group: "Platform", label: "Sites", ico: "🧩", platform: true, count: () => S.sites.length, render: viewSites },
     { id: "comics", group: "Platform", label: "Coasters", ico: "🎤", platform: true, render: viewComics },
     { id: "clubs", group: "Platform", label: "Club database", ico: "🏛️", platform: true, render: viewClubs },
     { id: "account", label: "Your account", ico: "🔐", bottom: true, render: viewAccount }
   ];
-  const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me));
+  const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me) && (!x.needsSite || S.sites.length));
   const atCT = () => location.hash.startsWith("#ct/");
   const goCT = (id) => { const h0 = "#ct/" + id; if (location.hash === h0) route(); else location.hash = h0; };
   const hasExtra = (x) => !!(THEME && (x === "design" ? Array.isArray(THEME.settings) && THEME.settings.length : Array.isArray(THEME.extras) && THEME.extras.includes(x)));
@@ -878,7 +883,7 @@ td select.status.st-few_left { color: var(--warn); }
   const roleAllows = (id) => { const only = ROLE_SECTIONS[myRole()]; return !only || only.includes(id); };
   const visible = () => SECTIONS.filter((s) => roleAllows(s.id) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
   const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
-  window.addEventListener("hashchange", () => { if (S.site) route(); });
+  window.addEventListener("hashchange", () => { if (S.site || S.me) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
 
   function navList(list, cur, onGo) {
@@ -2570,6 +2575,43 @@ td select.status.st-few_left { color: var(--warn); }
       }))));
   }
 
+  // Adding a date without a site (a Coaster on its own). Pick the club from ComicTable's club list so shared bills
+  // can match it; anything not on the list can be typed in.
+  function coasterDateForm(me) {
+    const club = h("input", { placeholder: "Start typing the club", autocomplete: "off", "aria-label": "Club" });
+    const city = h("input", { placeholder: "City", "aria-label": "City" });
+    const date = h("input", { type: "date", min: today(), "aria-label": "Date", required: true });
+    const time = h("input", { type: "time", "aria-label": "Time" });
+    const url = h("input", { type: "url", placeholder: "https://… (tickets)", "aria-label": "Ticket link" });
+    const list = h("div", { class: "stack", style: "gap:4px" });
+    const msg = h("div", { class: "err" });
+    let venue = null, seq = 0;
+    club.addEventListener("input", async () => {
+      venue = null; const t = club.value.trim(), my = ++seq;
+      if (t.length < 2) { list.replaceChildren(); return; }
+      let rows = [];
+      try { rows = await q(sb.from("venues").select("id, name, city, state").ilike("name", "%" + t.replace(/[%_,()]/g, "") + "%").limit(5)); } catch (e) {}
+      if (my !== seq) return;
+      list.replaceChildren(...rows.map((v) => h("button", { class: "btn ghost sm", type: "button", style: "justify-content:flex-start", text: v.name + (v.city ? " · " + v.city + (v.state ? ", " + v.state : "") : ""),
+        onclick: () => { venue = v; club.value = v.name; city.value = [v.city, v.state].filter(Boolean).join(", "); list.replaceChildren(); } })));
+    });
+    const to12 = (t) => { const m = String(t || "").match(/^(\d{1,2}):(\d{2})/); if (!m) return null; const hh = +m[1]; return ((hh % 12) || 12) + ":" + m[2] + (hh >= 12 ? " PM" : " AM"); };
+    return h("form", { class: "newclub stack", style: "gap:10px;margin:12px 0", onsubmit: async (e) => {
+      e.preventDefault(); msg.textContent = "";
+      if (!date.value) { date.focus(); return; }
+      if (!club.value.trim()) { club.focus(); return; }
+      const u = url.value.trim();
+      if (u && !/^https?:\/\//i.test(u)) { msg.textContent = "The ticket link needs to start with https://"; url.focus(); return; }
+      try {
+        await q(sb.from("shows").insert({ comic_id: me.id, site_id: null, date: date.value, time: to12(time.value), venue: club.value.trim(), city: city.value.trim() || null,
+          venue_id: venue && venue.name === club.value.trim() ? venue.id : null, url: u || null, status: "on_sale" }));
+        toast("Date added. It's on your Coaster now."); route();
+      } catch (er) { msg.textContent = /site_id|not-null|null value/i.test(errText(er)) ? "This needs the latest database upgrade." : errText(er); }
+    } }, h("b", { text: "Add a date" }),
+      h("div", { class: "grid" }, field("Club", club, "c6"), field("City", city, "c6")), list,
+      h("div", { class: "grid" }, field("Date", date, "c4"), field("Time", time, "c4"), field("Tickets", url, "c4")), msg,
+      h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add date" })));
+  }
   function viewMySites(main) {
     main.append(head("Your sites", "The sites you can manage."));
     main.append(h("section", { class: "card" }, h("div", null, S.sites.map((st) => h("div", { class: "switch-row" },
@@ -2655,43 +2697,48 @@ td select.status.st-few_left { color: var(--warn); }
   /* ======================================================
      ME (a comic's own login)
      ====================================================== */
+  // A comic's own Coaster page: requests from sites, then their Coaster (everything, including the fine-tuning).
   async function viewMe(main) {
     const me = S.me;
-    main.append(head("Me", "Your Coaster, your profile and your dates, on every site you're on. Change something here and it changes everywhere."));
+    const url = coasterUrl(me);
+    main.append(head("Coaster", "Your card on ComicTable. Put the link in your bio. Every site you're on pulls from it.",
+      h("a", { class: "btn", href: url, target: "_blank", rel: "noopener", text: "See your Coaster ↗" })));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
-    const sitesCard = h("section", { class: "card" }, h("h2", { text: "Your sites" }), h("p", { class: "hint", text: "Loading…" }));
-    const datesCard = h("section", { class: "card" }, h("h2", { text: "Your upcoming dates" }), h("p", { class: "hint", text: "Loading…" }));
     const here = S.hosts.find((x) => x.comic_id === me.id);
     const asks = h("div");
-    wrap.append(asks, personCard({ ...me, id: here ? here.id : null, comic_id: me.id }, 0, { me: true }), sitesCard, datesCard);
+    wrap.append(asks, personCard({ ...me, id: here ? here.id : null, comic_id: me.id }, 0, { me: true }));
     requestsCard(me).then((c) => { if (c) asks.replaceWith(c); });
+  }
+  // A comic's dates, on their Coaster and every site they're on.
+  async function viewMyDates(main) {
+    const me = S.me;
+    const here = S.hosts.find((x) => x.comic_id === me.id);
+    main.append(head("Dates", "Every date you add shows on your Coaster and every site you're on."));
+    const datesCard = h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" }));
+    main.append(datesCard);
     let mySites = [];
     try {
       const rows = await q(sb.from("hosts").select("site_id, id").eq("comic_id", me.id));
-      const sites = await q(sb.from("sites").select("id, name, domain").in("id", rows.map((r) => r.site_id)));
-      mySites = sites.map((st) => ({ ...st, host: rows.find((r) => r.site_id === st.id).id, team: S.sites.some((x) => x.id === st.id) }));
-      sitesCard.replaceChildren(h("h2", { text: "Your sites" }), h("p", { class: "sub", text: "You're on these. Your name, photo, socials, bio and dates show on all of them." }),
-        h("div", null, mySites.map((st) => h("div", { class: "switch-row" },
-          h("div", null, h("b", { text: st.name }), st.id === sid() ? h("span", { class: "pill", style: "margin-left:6px", text: "Open now" }) : null, h("div", { class: "hint", text: st.domain || "No web address yet" })),
-          h("div", { class: "btns" },
-            st.team && st.id !== sid() ? h("button", { class: "btn sm", type: "button", text: "Open", onclick: () => switchSite(st.id, "home") }) : null,
-            st.domain ? h("a", { class: "btn sm ghost", href: "https://" + st.domain, target: "_blank", rel: "noopener", text: "Visit ↗" }) : null)))));
-    } catch (e) { sitesCard.replaceChildren(h("h2", { text: "Your sites" }), h("p", { class: "err", text: errText(e) })); }
+      mySites = rows.map((r) => ({ id: r.site_id, team: S.sites.some((x) => x.id === r.site_id) }));
+    } catch (e) {}
     try {
       const dates = await q(sb.rpc("comic_shows", { p_comic: me.id }));
-      // adding dates happens on a site you're on: this one if you're on it, otherwise the first one you can open
+      // with a site: the site's date tools (club search, runs, show finder); without one: a simple form right here
       const addHere = here ? () => { go("shows"); setTimeout(() => openRun({ host: here.id })); }
         : (() => { const st = mySites.find((x) => x.team); return st ? async () => { await switchSite(st.id, "shows"); const hh = S.hosts.find((x) => x.comic_id === me.id); setTimeout(() => openRun({ host: hh && hh.id })); } : null; })();
-      datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Your upcoming dates (" + dates.length + ")" }),
-          addHere ? h("button", { class: "btn primary", type: "button", text: "+ Add dates", onclick: addHere }) : null),
-        h("p", { class: "sub", text: "Every date you add shows on all your sites. Live shows with a whole crew are marked with the show's name." }),
+      const addBox = h("div");
+      datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Upcoming (" + dates.length + ")" }),
+          h("button", { class: "btn primary", type: "button", text: "+ Add a date", onclick: addHere || (() => addBox.replaceChildren(coasterDateForm(me))) })),
+        addBox,
         dates.length ? h("div", null, dates.map((d) => h("div", { class: "switch-row" },
           h("div", { style: "min-width:0" }, h("b", { text: shortDate(d.date) + (d.time ? " at " + d.time : "") + " · " + (d.venue || d.city || "Show") }),
             h("div", { class: "hint", text: [d.city, d.event ? d.site_name + " live show" : "", d.status === "sold_out" ? "Sold out" : d.status === "cancelled" ? "Cancelled" : ""].filter(Boolean).join(" · ") })),
-          d.url ? h("a", { class: "btn sm ghost", href: d.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : h("span", { class: "pill warn", text: "No ticket link" }))))
-          : empty("No upcoming dates", "Add some and they'll show on every site you're on."));
-    } catch (e) { datesCard.replaceChildren(h("h2", { text: "Your upcoming dates" }), h("p", { class: "err", text: /comic_shows|function/i.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) })); }
+          h("div", { class: "btns" }, d.url ? h("a", { class: "btn sm ghost", href: d.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : h("span", { class: "pill warn", text: "No ticket link" }),
+            !d.site_id && d.comic_id === me.id ? sure("Delete", async () => { try { await q(sb.from("shows").delete().eq("id", d.id)); toast("Date deleted."); route(); } catch (e) { toast(errText(e), { bad: true }); } }) : null))))
+          : empty("No upcoming dates", "Add some and they'll show on your Coaster and every site you're on."));
+    } catch (e) { datesCard.replaceChildren(h("h2", { text: "Dates" }), h("p", { class: "err", text: /comic_shows|function/i.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) })); }
   }
+
 
   // On a site's People page: give a comic their own login (or see that they have one).
   function loginBox(x) {
@@ -2781,8 +2828,18 @@ td select.status.st-few_left { color: var(--warn); }
           lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " later", text: "↓", disabled: idx === S.hosts.length - 1, onclick: () => swap(idx, idx + 1) }) : null))),
       shared && lineup ? h("div", { class: "hint", "data-also": x.comic_id, hidden: true }) : null,
       h("div", { class: "grid" }, field("Name", inp.name, "c6"), field("Title", inp.title, "c6"), field("Status", inp.status, "c12"), field("Bio", inp.bio, "c12")),
-      cf ? cf.tape : null,
-      cf ? cf.look : null,
+      // The fine-tuning (Tape, look, what's on it) lives on the Coaster page. On Lineup the card links there; a comic
+      // nobody has claimed yet is fine-tuned right here by the site's team.
+      cf && !lineup ? cf.tape : null,
+      cf && !lineup ? cf.look : null,
+      cf && lineup ? (() => {
+        const first = x.name.split(" ")[0];
+        if (S.me && x.comic_id === S.me.id) return h("div", { class: "fine-tune" }, h("span", { class: "hint", text: "Your look, Tape and what's on your Coaster:" }), h("a", { class: "btn sm", href: "#ct/me", text: "Coaster settings →" }));
+        if (S.isPlatform) return h("div", { class: "fine-tune" }, h("span", { class: "hint", text: first + "'s look, Tape and what's on their Coaster:" }),
+          h("button", { class: "btn sm", type: "button", text: "Coaster settings →", onclick: () => { comicOpen = x.comic_id; goCT("comics"); } }));
+        if (S.logins && S.logins[x.comic_id]) return h("p", { class: "hint", style: "margin:0", text: first + " has their own login and sets their own Coaster look, Tape and what's on it." });
+        return h("details", { class: "quiet" }, h("summary", { text: "Coaster settings: look, Tape, what's on it" }), cf.tape, cf.look, cf.more);
+      })() : null,
       (() => {
         const filled = SOC.filter(([k]) => inp[k] && inp[k].value).length;
         const d = h("details", { class: "quiet", "data-socials": x.id, open: OPEN_SOCIALS === x.id || null }, h("summary", { text: "Social links" + (filled ? " (" + filled + ")" : "") }),
@@ -2792,7 +2849,7 @@ td select.status.st-few_left { color: var(--warn); }
         if (OPEN_SOCIALS === x.id) { OPEN_SOCIALS = null; setTimeout(() => { try { d.scrollIntoView({ block: "center", behavior: "smooth" }); const f = d.querySelector("input"); f && f.focus({ preventScroll: true }); } catch (e) {} }, 60); }
         return d;
       })(),
-      cf ? cf.more : null,
+      cf && !lineup ? cf.more : null,
       shared && lineup ? (() => {
         const first = x.name.split(" ")[0], custom = [x.own_title && "title", x.own_bio && "bio", x.own_photo && "photo"].filter(Boolean);
         return h("div", { class: "stack site-only", style: "gap:6px" }, h("b", { text: "Only on " + S.site.name }),
