@@ -576,7 +576,8 @@ test("your account: name, password, email, and where you have access", async () 
   p2.value = "newpassword1";
   p1.form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(30);
   assert.equal(JSON.stringify(db.authUpdates.at(-1)), JSON.stringify({ password: "newpassword1" }));
-  assert.match(d.querySelector("main").textContent, /Super admin.*Cockfight.*Owner|Super admin/s);
+  assert.match(d.querySelector("main").textContent, /ComicTable admin\..*Cockfight/s);
+  assert.doesNotMatch(d.querySelector("main").textContent, /null/);
 });
 
 test("super admins land on the ComicTable overview, then open a site and come back", async () => {
@@ -835,4 +836,20 @@ test("All sites: super admins choose what comictable.com shows off", async () =>
   btn(d, /^Save$/).click(); await wait(60);
   assert.equal(db.platform_settings[0].featured_site, "lev-fer");
   assert.equal(JSON.stringify(db.platform_settings[0].showcase), JSON.stringify([{ site: "cockfight", blurb: "A comedy podcast." }, { site: "lev-fer", blurb: "Stand-up from New York." }]));
+});
+
+test("roles: a shows-only login sees just Shows, a moderator just the forum and chat", async () => {
+  const booker = await open("#home", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "shows" }]; db.sites.find((x) => x.id === "cockfight").features = { ...db.sites.find((x) => x.id === "cockfight").features, forum: true, chat: true }; });
+  assert.deepEqual([...booker.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["shows"]);
+  assert.match(booker.d.querySelector("h1").textContent, /Shows/, "they land on Shows");
+  const mod = await open("#home", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "moderator" }]; db.sites.find((x) => x.id === "cockfight").features = { ...db.sites.find((x) => x.id === "cockfight").features, forum: true, chat: true }; });
+  assert.deepEqual([...mod.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["forum", "chat", "moderation"]);
+});
+
+test("roles: ComicTable staff work on every site but can't create sites, change the front page or manage staff", async () => {
+  const { d } = await open("#ct/sites", (db) => { db.platform_admins = [{ user_id: "u1", role: "staff" }]; });
+  await wait(80);
+  assert.doesNotMatch(d.querySelector("main").textContent, /Start a new site|On comictable\.com/);
+  assert.match(d.querySelector("main").textContent, /ComicTable staff/);
+  assert.equal(d.getElementById("stEmail"), null, "no Add to staff form");
 });

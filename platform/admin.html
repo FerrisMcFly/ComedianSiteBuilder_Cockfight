@@ -733,9 +733,13 @@ td select.status.st-few_left { color: var(--warn); }
     S.user = (session.user.user_metadata && session.user.user_metadata.name) || session.user.email.split("@")[0];
     try {
       const [mine, plat] = await Promise.all([
-        q(sb.from("admins").select("site_id").eq("user_id", session.user.id)),
-        q(sb.from("platform_admins").select("user_id").eq("user_id", session.user.id))]);
+        q(sb.from("admins").select("*").eq("user_id", session.user.id)),
+        q(sb.from("platform_admins").select("*").eq("user_id", session.user.id))]);
       S.isPlatform = plat.length > 0;
+      // ComicTable role: admin (everything) or staff (every site, not ComicTable itself). A site's team role per site.
+      S.platformRole = S.isPlatform ? (plat[0].role || "admin") : null;
+      S.isOwner = S.platformRole === "admin";
+      S.roles = Object.fromEntries(mine.map((m) => [m.site_id, m.role || "owner"]));
       // Is this login a comic? Then they get a "Me" page with their profile and dates on every site.
       try { S.me = (await q(sb.from("comics").select("*").eq("user_id", session.user.id)))[0] || null; } catch (e) { S.me = null; }
       S.uid = session.user.id;
@@ -835,7 +839,14 @@ td select.status.st-few_left { color: var(--warn); }
   const atCT = () => location.hash.startsWith("#ct/");
   const goCT = (id) => { const h0 = "#ct/" + id; if (location.hash === h0) route(); else location.hash = h0; };
   const hasExtra = (x) => !!(THEME && (x === "design" ? Array.isArray(THEME.settings) && THEME.settings.length : Array.isArray(THEME.extras) && THEME.extras.includes(x)));
-  const visible = () => SECTIONS.filter((s) => (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
+  // A site's team roles. "shows" and "moderator" see only their part of the dashboard.
+  const SITE_ROLES = [["owner", "Owner", "Everything, including the team"], ["editor", "Editor", "Everything but the team"],
+    ["shows", "Shows only", "Dates, ticket links, clubs and the show finder"], ["moderator", "Moderator", "Forum, chat and bans"]];
+  const roleName = (r) => (SITE_ROLES.find((x) => x[0] === r) || [r, "Editor"])[1];
+  const myRole = () => (S.isPlatform ? "owner" : (S.roles && S.roles[sid()]) || "owner");
+  const ROLE_SECTIONS = { shows: ["shows"], moderator: ["forum", "chat", "moderation"] };
+  const roleAllows = (id) => { const only = ROLE_SECTIONS[myRole()]; return !only || only.includes(id); };
+  const visible = () => SECTIONS.filter((s) => roleAllows(s.id) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
   const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
   window.addEventListener("hashchange", () => { if (S.site) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
@@ -2382,7 +2393,7 @@ td select.status.st-few_left { color: var(--warn); }
     } catch (e) { srcCard.replaceChildren(h("h2", { text: "Channels and pages" }), h("p", { class: "err", text: errText(e) })); }
 
     right.append(h("section", { class: "card stack" }, h("h2", { text: "Delete" }), h("p", { class: "hint", text: "Removes " + c.name + " from every site, along with their dates and channels. This can't be undone." }),
-      h("div", { class: "btns" }, sure("Delete comic", async () => {
+      S.isOwner === false ? null : h("div", { class: "btns" }, sure("Delete comic", async () => {
         try { await q(sb.from("comics").delete().eq("id", c.id)); comicOpen = null; toast(c.name + " deleted."); route(); } catch (e) { toast(errText(e), { bad: true }); }
       }))));
   }
@@ -2458,11 +2469,11 @@ td select.status.st-few_left { color: var(--warn); }
     wrap.append(access);
     try {
       const mine = await q(sb.from("admins").select("site_id, role").eq("user_id", S.uid));
-      access.replaceChildren(h("h2", { text: "Where you have access" }),
-        S.isPlatform ? h("p", { class: "sub" }, h("b", { text: "Super admin. " }), "You can see and manage every site on ComicTable (" + S.sites.length + ").") : null,
+      access.replaceChildren(...[h("h2", { text: "Where you have access" }),
+        S.isPlatform ? h("p", { class: "sub" }, h("b", { text: S.isOwner ? "ComicTable admin. " : "ComicTable staff. " }), S.isOwner ? "You can see and manage every site on ComicTable (" + S.sites.length + "), and ComicTable itself." : "You can work on every site on ComicTable (" + S.sites.length + "). Adding staff, new sites and the front page are for admins.") : null,
         S.me ? h("p", { class: "sub" }, "Your login is linked to ", h("b", { text: S.me.name }), ". You can edit your profile and dates on every site you're on. See ", h("a", { href: "#me", text: "Me" }), ".") : null,
-        mine.length ? h("div", null, mine.map((m) => h("div", { class: "switch-row" }, h("b", { text: (S.sites.find((x) => x.id === m.site_id) || {}).name || m.site_id }), h("span", { class: "pill", text: m.role === "owner" ? "Owner" : "Editor" }))))
-          : S.isPlatform ? null : empty("Not on any team", "Ask a site's owner to add you."));
+        mine.length ? h("div", null, mine.map((m) => h("div", { class: "switch-row" }, h("b", { text: (S.sites.find((x) => x.id === m.site_id) || {}).name || m.site_id }), h("span", { class: "pill", text: roleName(m.role || "owner") }))))
+          : S.isPlatform ? null : empty("Not on any team", "Ask a site's owner to add you.")].filter(Boolean));
     } catch (e) { access.replaceChildren(h("h2", { text: "Where you have access" }), h("p", { class: "err", text: errText(e) })); }
 
     wrap.append(h("section", { class: "card" }, h("h2", { text: "Log out" }), h("p", { class: "sub", text: "Logs you out on this device." }),
@@ -3434,13 +3445,16 @@ td select.status.st-few_left { color: var(--warn); }
       const owner = res.you_are === "owner";
       const user = h("input", { id: "teamUser", placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
       const pass = h("input", { id: "teamPass", type: "text", placeholder: "at least 8 characters", "aria-label": "Starting password" });
-      const role = h("select", { "aria-label": "Role", style: "width:auto" }, h("option", { value: "editor", text: "Editor: can edit everything" }), h("option", { value: "owner", text: "Owner: can also manage the team" }));
+      const role = h("select", { "aria-label": "Role", style: "width:auto" }, ["editor", "owner", "shows", "moderator"].map((k) => { const r = SITE_ROLES.find((x) => x[0] === k); return h("option", { value: k, text: r[1] + ": " + r[2].toLowerCase() }); }));
+      const roleSel = (m) => { const sel = h("select", { "aria-label": "Access for " + m.email, style: "width:auto" }, SITE_ROLES.map(([k, l]) => h("option", { value: k, text: l, selected: m.role === k })));
+        sel.addEventListener("change", async () => { try { await teamCall({ action: "set_role", user_id: m.user_id, role: sel.value }); toast("Changed to " + roleName(sel.value) + "."); draw(); } catch (e) { toast(e.message, { bad: true }); sel.value = m.role; } });
+        return sel; };
       const msg = h("div", { class: "err" });
       card.replaceChildren(h("h2", { text: "Team" }), h("p", { class: "sub", text: "Who can log in to this admin." }),
         h("div", null, res.team.map((m) => h("div", { class: "switch-row" },
           h("div", null, h("b", { text: LOGIN_DOMAINS.reduce((e, d) => e.replace("@" + d, ""), m.email) }), m.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null,
-            h("div", { class: "hint", text: (m.role === "owner" ? "Owner" : "Editor") + (m.last_sign_in ? " · last in " + ago(m.last_sign_in) : " · hasn't logged in yet") })),
-          owner && !m.you ? sure("Remove", async () => { try { await teamCall({ action: "remove", user_id: m.user_id }); toast("Removed from the team."); draw(); } catch (e) { toast(e.message, { bad: true }); } }) : null))),
+            h("div", { class: "hint", text: roleName(m.role) + (m.last_sign_in ? " · last in " + ago(m.last_sign_in) : " · hasn't logged in yet") })),
+          owner && !m.you ? h("div", { class: "btns" }, roleSel(m), sure("Remove", async () => { try { await teamCall({ action: "remove", user_id: m.user_id }); toast("Removed from the team."); draw(); } catch (e) { toast(e.message, { bad: true }); } })) : null))),
         owner ? h("div", { class: "newclub stack", style: "gap:10px;margin-top:12px" }, h("b", { text: "Add someone" }),
           h("div", { class: "grid" }, field("Username or email", user, "c6"), field("Starting password", pass, "c6"), h("div", { class: "field c12" }, h("span", { text: "Access" }), role)),
           h("div", { class: "hint", text: "Send them their username and password yourself. If they already have a login, the password is ignored." }), msg,
@@ -3450,7 +3464,7 @@ td select.status.st-few_left { color: var(--warn); }
             const b = e.currentTarget; b.disabled = true;
             try { await teamCall({ action: "add", email: loginEmail(user.value), password: pass.value, role: role.value }); const em = loginEmail(user.value); toast("Added. They log in with " + em + "."); draw(); }
             catch (er) { msg.textContent = er.message; b.disabled = false; }
-          } }))) : h("p", { class: "hint", text: "Only owners can add or remove people." }));
+          } }))) : h("p", { class: "hint", text: "Only owners can add, change or remove people." }));
     }
     draw(); return card;
   }
@@ -3559,11 +3573,32 @@ td select.status.st-few_left { color: var(--warn); }
     (async () => {
       let list;
       try { list = await q(sb.rpc("platform_admin_list")); } catch (e) { return; }
-      supCard.replaceChildren(h("h2", { text: "Super admins" }), h("p", { class: "sub", text: "People who can see and manage every site on ComicTable. Keep this to just you, and anyone you'd trust with every comic's account." }),
-        h("div", null, list.map((u) => h("div", { class: "switch-row" }, h("div", null, h("b", { text: u.email }), u.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null),
-          u.you ? null : sure("Remove", async () => { try { await q(sb.rpc("remove_platform_admin", { p_user: u.user_id })); toast(u.email + " is no longer a super admin."); route(); } catch (e) { toast(errText(e), { bad: true }); } })))));
+      const staffRole = (r) => (r || "admin") === "admin" ? "Admin" : "Staff";
+      const email = h("input", { id: "stEmail", type: "email", placeholder: "their email", autocapitalize: "none", "aria-label": "Email" });
+      const pass = h("input", { id: "stPass", type: "text", placeholder: "only if they're new: 8+ characters", "aria-label": "Starting password" });
+      const role = h("select", { id: "stRole", "aria-label": "Role", style: "width:auto" }, h("option", { value: "staff", text: "Staff: works on every site and comic" }), h("option", { value: "admin", text: "Admin: everything, like you" }));
+      const msg = h("div", { class: "err" });
+      supCard.replaceChildren(h("h2", { text: "ComicTable staff" }),
+        h("p", { class: "sub", text: "People who work on every site. Admins can do everything. Staff can't add staff, create sites, delete comics or change the front page." }),
+        h("div", null, list.map((u) => h("div", { class: "switch-row" },
+          h("div", null, h("b", { text: u.email }), u.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null, h("div", { class: "hint", text: staffRole(u.role) })),
+          S.isOwner && !u.you ? h("div", { class: "btns" },
+            (() => { const sel = h("select", { "aria-label": "Role for " + u.email, style: "width:auto" }, h("option", { value: "staff", text: "Staff", selected: (u.role || "admin") === "staff" }), h("option", { value: "admin", text: "Admin", selected: (u.role || "admin") === "admin" }));
+              sel.addEventListener("change", async () => { try { await q(sb.rpc("set_platform_role", { p_user: u.user_id, p_role: sel.value })); toast(u.email + " is " + (sel.value === "admin" ? "an admin" : "staff") + " now."); route(); } catch (e) { toast(errText(e), { bad: true }); } });
+              return sel; })(),
+            sure("Remove", async () => { try { await q(sb.rpc("remove_platform_admin", { p_user: u.user_id })); toast(u.email + " is off ComicTable staff."); route(); } catch (e) { toast(errText(e), { bad: true }); } })) : null))),
+        S.isOwner ? h("div", { class: "newclub stack", style: "gap:10px;margin-top:12px" }, h("b", { text: "Add someone" }),
+          h("div", { class: "grid" }, field("Email", email, "c6"), field("Starting password", pass, "c6"), h("div", { class: "field c12" }, h("span", { text: "Role" }), role)),
+          h("div", { class: "hint", text: "If they already have a ComicTable login, the password is ignored. Otherwise send them their email and password yourself." }), msg,
+          h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Add to staff", onclick: async (e) => {
+            msg.textContent = "";
+            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) { email.classList.add("bad"); email.focus(); return; }
+            const b = e.currentTarget; b.disabled = true;
+            try { await teamCall({ action: "staff_add", email: email.value.trim(), password: pass.value, role: role.value }); toast("Added. They log in with " + email.value.trim() + "."); route(); }
+            catch (er) { msg.textContent = er.message; b.disabled = false; }
+          } }))) : null);
     })();
-    wrap.append(reqCard, listCard, showcaseCard(), form, supCard);
+    wrap.append(...[reqCard, listCard, S.isOwner ? showcaseCard() : null, S.isOwner ? form : null, supCard].filter(Boolean));
     try {
       const sites = await q(sb.from("sites").select("*").order("created_at", { ascending: true }));
       const counts = async (t, sidv, extra) => { let qq = sb.from(t).select("id", { count: "exact", head: true }).eq("site_id", sidv); if (extra) qq = extra(qq); const r = await qq; return r.error ? 0 : r.count || 0; };
