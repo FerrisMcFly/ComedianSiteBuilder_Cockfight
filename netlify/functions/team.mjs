@@ -1,4 +1,5 @@
 // POST /.netlify/functions/team  { site_id, action: "list" | "add" | "set_role" | "remove" | "link_comic" | "unlink_comic", email?, password?, user_id?, role? }
+//                                { action: "coaster_login" | "coaster_unlink", comic_id, email?, password? }   (ComicTable staff: a Coaster with no site)
 //                                { action: "staff_add", email, password?, role: "admin" | "staff" }   (ComicTable admins only)
 // Manages who can log in to a site's admin. Any admin can see the team; only owners can add, change or remove people.
 // Site roles: owner (everything, including the team), editor (everything but the team), shows (dates and clubs), moderator (forum and chat).
@@ -52,6 +53,33 @@ export default async (req) => {
     if (error) return json(500, { error: error.message });
     return json(200, { ok: true, existed: !!user.last_sign_in_at });
   }
+  // A login for a Coaster with no site yet (ComicTable staff only). The comic logs in to their Me page and edits their Coaster.
+  if (body.action === "coaster_login" || body.action === "coaster_unlink") {
+    const { data: boss } = await db.from("platform_admins").select("role").eq("user_id", who.user.id).maybeSingle();
+    if (!boss) return json(403, { error: "Only ComicTable staff can do this." });
+    const { data: comic } = await db.from("comics").select("id, name, user_id").eq("id", body.comic_id || "").maybeSingle();
+    if (!comic) return json(400, { error: "No such Coaster." });
+    if (body.action === "coaster_unlink") {
+      const up = await db.from("comics").update({ user_id: null }).eq("id", comic.id);
+      return up.error ? json(500, { error: up.error.message }) : json(200, { ok: true });
+    }
+    const email = String(body.email || "").trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(400, { error: "That doesn't look like a valid login." });
+    let user = await findUserByEmail(db, email);
+    if (!user) {
+      const password = String(body.password || "");
+      if (password.length < 8) return json(400, { error: "Give them a password of at least 8 characters." });
+      const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+      if (error) return json(400, { error: error.message });
+      user = data.user;
+    }
+    if (comic.user_id && comic.user_id !== user.id) return json(400, { error: comic.name + " already has a login. Unlink it first." });
+    const { data: other } = await db.from("comics").select("name").eq("user_id", user.id).neq("id", comic.id).maybeSingle();
+    if (other) return json(400, { error: "That login already belongs to " + other.name + "." });
+    const up = await db.from("comics").update({ user_id: user.id }).eq("id", comic.id);
+    return up.error ? json(500, { error: up.error.message }) : json(200, { ok: true, existed: !!user.last_sign_in_at });
+  }
+
   // ComicTable admins manage every site's team; staff and editors can see it; only owners change it
   const me = await accessFor(db, who.user.id, site);
   if (!me.role) return json(403, { error: "You're not on this site's team." });

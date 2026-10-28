@@ -260,7 +260,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .vid img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: var(--bg); }
 .vid .body { padding: 10px 12px; display: grid; gap: 6px; }
 .vid.hidden img { opacity: .35; }
-.comic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 14px; }
+.comic-grid { display: flex; flex-direction: column; margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
 .coaster-edit { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 20px; align-items: center; }
 .mini-coaster { position: relative; width: 132px; aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--pulp); border: 7px solid var(--pulp);
   box-shadow: 0 3px 0 rgba(0,0,0,.18), 0 10px 18px -4px rgba(0,0,0,.3), inset 0 0 0 1px rgba(0,0,0,.08); transition: background .2s; }
@@ -284,12 +284,14 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .site-only { border-top: 1px solid var(--line); padding-top: 12px; }
 .attention { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 @media (max-width: 560px) { .coaster-edit { grid-template-columns: 1fr; justify-items: center; } }
-.comic-card { display: grid; grid-template-columns: 52px minmax(0, 1fr); grid-template-rows: auto auto; gap: 4px 12px; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; color: var(--text); font: inherit; box-shadow: var(--shadow); }
-.comic-card:hover { border-color: var(--line-strong); }
-.comic-card .avatar { width: 52px; height: 52px; grid-row: span 2; }
-.comic-card .cc-body { display: grid; gap: 2px; min-width: 0; }
-.comic-card .cc-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-.comic-card .cc-meta { grid-column: 2; display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.comic-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; align-items: center; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px 16px; cursor: pointer; color: var(--text); font: inherit; width: 100%; }
+.comic-card:last-child { border-bottom: 0; }
+.comic-card:hover { background: var(--bg); }
+.comic-card .avatar { width: 44px; height: 44px; }
+.comic-card .cc-body { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.comic-card .cc-body > b { font-size: 15px; }
+.comic-card .cc-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.comic-card .cc-meta { justify-self: end; white-space: nowrap; display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); }
 .avatar.initials { display: grid; place-items: center; font-weight: 600; font-size: 15px; color: var(--muted); background: var(--bg); }
 .detail-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
@@ -594,7 +596,7 @@ td select.status.st-few_left { color: var(--warn); }
   const venueById = (id) => S.venues.find((v) => v.id === id);
   const venueCity = (v) => (v.state ? v.city + ", " + v.state : v.city);
   async function q(p) { const r = await p; if (r.error) throw r.error; return r.data; }
-  const sid = () => S.site.id;
+  const sid = () => (S.site ? S.site.id : null);
   // Usernames become user@<site's domain>; anyone can also log in with a full email.
   // A plain username logs in as username@comictable.com; anything with an @ is used as typed.
   const LOGIN_DOMAINS = [CFG.LOGIN_DOMAIN || "comictable.com"];
@@ -769,14 +771,16 @@ td select.status.st-few_left { color: var(--warn); }
       // Is this login a comic? Then they get a "Me" page with their profile and dates on every site.
       try { S.me = (await q(sb.from("comics").select("*").eq("user_id", session.user.id)))[0] || null; } catch (e) { S.me = null; }
       S.uid = session.user.id;
-      if (!mine.length && !S.isPlatform) { await sb.auth.signOut(); return showLogin("This login isn't an admin of any site yet."); }
+      // A comic with a Coaster but no site still gets in: they land on Me and edit their Coaster.
+      if (!mine.length && !S.isPlatform && !S.me) { await sb.auth.signOut(); return showLogin("This login isn't an admin of any site yet."); }
       // Super admins get every site; everyone else gets only the sites they're on the team of.
       S.sites = S.isPlatform ? await q(sb.from("sites").select("*").order("name", { ascending: true }))
         : await q(sb.from("sites").select("*").in("id", mine.map((m) => m.site_id)));
       const pick = store.get("csb_site");
       // On a comic's own /admin, open that comic's site; on the ComicTable admin, the last one used.
-      S.site = (CFG.SITE_ID && S.sites.find((s) => s.id === CFG.SITE_ID)) || S.sites.find((s) => s.id === pick) || S.sites[0];
-      await loadAll();
+      S.site = (CFG.SITE_ID && S.sites.find((s) => s.id === CFG.SITE_ID)) || S.sites.find((s) => s.id === pick) || S.sites[0] || null;
+      if (S.site) await loadAll();
+      else Object.assign(S, { hosts: [], shows: [], episodes: [], videos: [], merch: [], venues: [], sources: [], logins: {}, coasters: {} });
     } catch (e) {
       root.replaceChildren(h("div", { class: "login-wrap" }, h("div", { class: "card login stack" }, h("h1", { text: "Couldn't load your site" }), h("p", { class: "err", text: errText(e) }),
         h("p", { class: "hint", text: "If you just set up the database, make sure 04_platform.sql has been run in Supabase." }),
@@ -935,6 +939,7 @@ td select.status.st-few_left { color: var(--warn); }
   }
 
   function route() {
+    if (!S.site) { if (!atCT() && history.replaceState) history.replaceState(null, "", location.pathname + "#ct/me"); return routeCT(); }  // a Coaster with no site
     if (atCT() && hasCT()) return routeCT();
     if (atCT()) { history.replaceState && history.replaceState(null, "", location.pathname + "#home"); }
     S.level = "site";
@@ -2429,7 +2434,7 @@ td select.status.st-few_left { color: var(--warn); }
     const withLogin = comics.filter((c) => c.user_id).length, noSite = comics.filter((c) => !onSites(c).length).length;
     const stats = h("div", { class: "stats" }, [["Coasters", comics.length, "all"], ["With their own login", withLogin, "login"], ["Not on a site yet", noSite, "nosite"], ["Upcoming dates", shows.length, null]]
       .map(([l, n, f]) => h(f ? "button" : "div", { class: "stat", type: f ? "button" : null, style: f ? "text-align:left;cursor:pointer" : null, onclick: f ? () => { comicQ.only = f; draw(); } : null }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l }))));
-    const search = h("input", { type: "search", placeholder: "Find a comic", value: comicQ.t, "aria-label": "Find a comic", style: "max-width:260px" });
+    const search = h("input", { type: "search", placeholder: "Find a Coaster", value: comicQ.t, "aria-label": "Find a comic", style: "max-width:260px" });
     const filt = h("div", { class: "seg", role: "group", "aria-label": "Show" });
     const sortSel = h("select", { "aria-label": "Sort", style: "width:auto" }, [["name", "A to Z"], ["shows", "Most upcoming dates"], ["new", "Newest"]].map(([v, l]) => h("option", { value: v, text: l, selected: comicQ.sort === v })));
     const grid = h("div", { class: "comic-grid" });
@@ -2441,15 +2446,16 @@ td select.status.st-few_left { color: var(--warn); }
       const t = comicQ.t.trim().toLowerCase();
       let rows = comics.filter((c) => (!t || c.name.toLowerCase().includes(t)) &&
         (comicQ.only === "all" || (comicQ.only === "login" && c.user_id) || (comicQ.only === "nologin" && !c.user_id) || (comicQ.only === "nosite" && !onSites(c).length)));
+      rows = rows.slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
       if (comicQ.sort === "shows") rows = rows.slice().sort((a, b) => upcoming(b) - upcoming(a));
       if (comicQ.sort === "new") rows = rows.slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
       grid.replaceChildren(...(rows.length ? rows.map((c) => {
         const st = onSites(c), n = upcoming(c);
         return h("button", { class: "comic-card", type: "button", onclick: () => { comicOpen = c.id; route(); } },
           c.photo_url ? h("img", { class: "avatar", src: c.photo_url, alt: "" }) : h("div", { class: "avatar initials", text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }),
-          h("div", { class: "cc-body" }, h("b", { text: c.name }), h("span", { class: "hint", text: c.title || "Comedian" }),
+          h("div", { class: "cc-body" }, h("b", { text: c.name }), h("span", { class: "hint", text: (c.title || "Comedian") + (c.handle ? " · comictable.com/" + c.handle : "") }),
             h("div", { class: "cc-chips" }, st.length ? st.map((x) => h("span", { class: "pill", text: x.site.name })) : h("span", { class: "pill warn", text: "No site" }))),
-          h("div", { class: "cc-meta" }, h("span", { text: n + (n === 1 ? " date" : " dates") }), c.user_id ? h("span", { class: "pill ok", text: "Login" }) : null));
+          h("div", { class: "cc-meta" }, c.user_id ? h("span", { class: "pill ok", text: "Login" }) : null, h("span", { text: n + (n === 1 ? " date" : " dates") }), h("span", { "aria-hidden": "true", text: "›" })));
       }) : [empty("No comics match", "Try another search or filter.")]));
     }
     draw();
@@ -2509,12 +2515,24 @@ td select.status.st-few_left { color: var(--warn); }
     const loginCard = h("section", { class: "card stack" }, h("h2", { text: "Login" }));
     if (c.user_id) {
       loginCard.append(h("p", { class: "sub", text: "They have their own login. They see their Me page, edit their profile and dates on every site, and manage the sites they're on the team of." }),
-        sites[0] ? h("div", { class: "btns" }, sure("Unlink login", async () => {
-          try { await teamCall({ action: "unlink_comic", comic_id: c.id, site_id: sites[0].site_id }); toast("Unlinked. The login still exists, but it's no longer " + c.name + "."); await reloadData(); route(); }
+        h("div", { class: "btns" }, sure("Unlink login", async () => {
+          try { await teamCall(sites[0] ? { action: "unlink_comic", comic_id: c.id, site_id: sites[0].site_id } : { action: "coaster_unlink", comic_id: c.id }); toast("Unlinked. The login still exists, but it's no longer " + c.name + "."); await reloadData(); route(); }
           catch (e) { toast(e.message, { bad: true }); }
-        })) : null);
+        })));
     } else if (!sites.length) {
-      loginCard.append(h("p", { class: "hint", text: "Put them on a site first, then you can give them a login." }));
+      // No site yet: a login just for their Coaster (they land on Me)
+      const user = h("input", { placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
+      const pass = h("input", { type: "text", placeholder: "starting password (8+)", "aria-label": "Starting password" });
+      const msg = h("div", { class: "err" });
+      loginCard.append(h("p", { class: "sub", text: "Gives them their own login to edit their Coaster. No site needed: they land on their Me page." }),
+        h("div", { class: "grid" }, field("Username or email", user, "c6"), field("Starting password", pass, "c6")), msg,
+        h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Create login", onclick: async (e) => {
+          msg.textContent = ""; if (!user.value.trim()) { user.focus(); return; }
+          const b = e.currentTarget; b.disabled = true;
+          try { await teamCall({ action: "coaster_login", comic_id: c.id, email: loginEmail(user.value), password: pass.value });
+            toast(c.name + " can log in now as " + loginEmail(user.value) + "."); await reloadData(); route(); }
+          catch (er) { msg.textContent = er.message; b.disabled = false; }
+        } })));
     } else {
       const user = h("input", { placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
       const pass = h("input", { type: "text", placeholder: "starting password (8+)", "aria-label": "Starting password" });
