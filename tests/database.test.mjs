@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -143,6 +143,18 @@ test("fans join a site's list with their city, and the comic sees who's near eac
   const tok = (await q("select token from fans where email = 'ny@x.com'"))[0].token;
   assert.equal((await rows(null, `select leave_fans('${tok}') r`))[0].r, true);
   assert.equal((await q("select count(*)::int n from fans"))[0].n, 1);
+});
+
+test("QR sign-up: fans can say where they met, it's kept on re-signup, and the list knows it came from a QR code", async () => {
+  const boston = (await rows(null, "select id from places where name = 'Boston' and state = 'MA'"))[0].id;
+  assert.equal((await rows(null, `select join_fans('cockfight', 'qr@x.com', ${boston}, 50, 'Laugh Boston · Nov 19', 'qr') r`))[0].r, "joined");
+  assert.equal((await rows(null, `select join_fans('cockfight', 'qr@x.com', ${boston}, 100) r`))[0].r, "updated");
+  const f = (await q("select met_at, source, radius_mi from fans where email = 'qr@x.com'"))[0];
+  assert.deepEqual([f.met_at, f.source, f.radius_mi], ["Laugh Boston · Nov 19", "qr", 100]);
+  assert.equal((await rows(null, `select join_fans('cockfight', 'odd@x.com', ${boston}, 50, null, 'hacker') r`))[0].r, "joined");
+  assert.equal((await q("select source from fans where email = 'odd@x.com'"))[0].source, "site");
+  assert.equal((await rows(null, `select join_fans('cockfight', 'long@x.com', ${boston}, 50, repeat('x', 500)) r`))[0].r, "joined");
+  assert.equal((await q("select length(met_at) n from fans where email = 'long@x.com'"))[0].n, 200);
 });
 
 test("super admins manage every site; a comic's team only sees their own", async () => {

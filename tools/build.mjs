@@ -38,7 +38,8 @@ if (id === "platform") {
     readFileSync(join(root, "platform", "sdk", "csb.js"), "utf8") + "\n" + readFileSync(join(root, "platform", "embed", "widgets.js"), "utf8") + "\n})();\n");
   writeFileSync(join(out, "_headers"), ["/app.html", "/login", "/dashboard"].map((p) => p + "\n  X-Robots-Tag: noindex, nofollow\n").join("") +
     "/embed.js\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=300\n");
-  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/press/*  /press.html  200", "/admin  /login  301", "/admin.html  /login  301"].join("\n") + "\n");
+  // comictable.com/join/<site>: the QR-code fan sign-up, for any comic (their own domain has /join too)
+  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/press/*  /press.html  200", "/admin  /login  301", "/admin.html  /login  301", "/join/*  /join.html  200"].join("\n") + "\n");
   console.log(`Built the ComicTable admin into ${out} (${sites.length} site${sites.length === 1 ? "" : "s"} known)`);
 } else {
   const siteDir = join(root, "sites", id);
@@ -49,6 +50,8 @@ if (id === "platform") {
   const site = JSON.parse(readFileSync(join(siteDir, "site.json"), "utf8"));
   cpSync(siteDir, out, { recursive: true, filter: (src) => !src.endsWith("site.json") });
   cpSync(join(root, "platform", "sdk"), join(out, "sdk"), { recursive: true });
+  // <their domain>/join: the QR-code fan sign-up page, unless the site brings its own
+  if (!existsSync(join(out, "join.html"))) cpSync(join(root, "platform", "home", "join.html"), join(out, "join.html"));
   if (platform.admin_url) {
     // ComicTable's admin has its own home: send /admin there.
     writeFileSync(join(out, "_redirects"), `/admin  ${platform.admin_url}  302\n/admin.html  ${platform.admin_url}  302\n`);

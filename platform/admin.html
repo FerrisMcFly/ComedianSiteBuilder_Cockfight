@@ -422,6 +422,10 @@ td select.status.st-few_left { color: var(--warn); }
 .share-text { line-height: 1.4; overflow-wrap: anywhere; }
 .share-img { margin-top: 8px; width: 100%; aspect-ratio: 1.91 / 1; object-fit: cover; border-radius: 6px; background: #1e1f22; }
 .share-img.none { display: grid; place-items: center; text-align: center; padding: 12px; font-size: 12px; color: #949ba4; }
+.qr-box { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.qr-pic { width: 180px; height: 180px; display: grid; place-items: center; background: #fff; border: 1px solid var(--line); border-radius: 10px; flex: none; overflow: hidden; }
+.qr-pic canvas { width: 180px; height: 180px; image-rendering: pixelated; }
+.qr-inline { padding: 12px 0 16px; border-bottom: 1px solid var(--line); }
 </style>
 </head>
 <body>
@@ -3200,6 +3204,44 @@ td select.status.st-few_left { color: var(--warn); }
   }
 
   /* ======================================================
+     QR CODES (fan sign-up)
+     ====================================================== */
+  // The sign-up page lives on the comic's own domain (/join), or on comictable.com/join/<site> until they have one.
+  const joinUrl = (showId) => (S.site.domain ? "https://" + S.site.domain + "/join" : location.origin + "/join/" + sid()) + (showId ? "?show=" + showId : "");
+  let qrLib = null;
+  const loadQr = () => qrLib || (qrLib = new Promise((ok, no) => {
+    if (window.qrcode) return ok(window.qrcode);
+    const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";
+    sc.onload = () => window.qrcode ? ok(window.qrcode) : no(new Error("no qrcode")); sc.onerror = () => { qrLib = null; no(new Error("Couldn't load the QR maker. Check your connection.")); };
+    document.head.append(sc);
+  }));
+  async function qrMatrix(text) { const make = await loadQr(); const qr = make(0, "M"); qr.addData(text); qr.make(); const n = qr.getModuleCount(); return { n, dark: (r, c) => qr.isDark(r, c) }; }
+  // Black on white with a quiet border, big enough to print on a poster.
+  function qrCanvas(m, px) {
+    const quiet = 4, cell = Math.max(1, Math.floor(px / (m.n + quiet * 2))), size = cell * (m.n + quiet * 2);
+    const c = document.createElement("canvas"); c.width = c.height = size; const g = c.getContext && c.getContext("2d"); if (!g) return c;
+    g.fillStyle = "#fff"; g.fillRect(0, 0, size, size); g.fillStyle = "#000";
+    for (let r = 0; r < m.n; r++) for (let col = 0; col < m.n; col++) if (m.dark(r, col)) g.fillRect((col + quiet) * cell, (r + quiet) * cell, cell, cell);
+    return c;
+  }
+  function qrBox(url, fileName, caption) {
+    const pic = h("div", { class: "qr-pic" }, h("span", { class: "hint", text: "Making the code…" }));
+    const box = h("div", { class: "qr-box" }, pic, h("div", { class: "stack", style: "gap:8px;min-width:0" },
+      caption ? h("b", { text: caption }) : null,
+      h("div", { class: "hint wrap-any", text: url }),
+      h("div", { class: "btns" },
+        h("button", { class: "btn sm", type: "button", text: "Copy link", onclick: async () => toast((await copyText(url)) ? "Link copied." : "Couldn't copy. Try again.") }),
+        h("a", { class: "btn sm ghost", href: url, target: "_blank", rel: "noopener", text: "Open the page ↗" }),
+        h("button", { class: "btn sm primary", type: "button", text: "Download for printing", onclick: async () => {
+          try { const c = qrCanvas(await qrMatrix(url), 2000); const a = h("a", { href: c.toDataURL("image/png"), download: fileName + ".png" }); document.body.append(a); a.click(); a.remove(); }
+          catch (e) { toast(errText(e), { bad: true }); }
+        } }))));
+    qrMatrix(url).then((m) => { const c = qrCanvas(m, 360); c.setAttribute("aria-label", "QR code for " + url); c.setAttribute("role", "img"); pic.replaceChildren(c); },
+      (e) => pic.replaceChildren(h("span", { class: "hint", text: errText(e) })));
+    return box;
+  }
+
+  /* ======================================================
      FAN LIST
      ====================================================== */
   async function copyText(t) {
@@ -3227,6 +3269,11 @@ td select.status.st-few_left { color: var(--warn); }
       h("div", { class: "stat" }, h("div", { class: "n", text: fans.length }), h("div", { class: "l", text: fans.length === 1 ? "fan on your list" : "fans on your list" })),
       h("div", { class: "stat" }, h("div", { class: "n", text: week }), h("div", { class: "l", text: "joined this week" })));
 
+    // QR code: print it for the merch table, put it on a slide, flash it from the stage
+    const qrCard = h("section", { class: "card stack" }, h("h2", { style: "margin:0", text: "Sign-up QR code" }),
+      h("p", { class: "sub", style: "margin:0", text: "Fans scan it and land on a one-screen sign-up: email, city, and (if they want) where they met you. Print it for the merch table or put it on screen after your set. Each show below has its own code too, which fills in where you met." }),
+      F("fans") ? qrBox(joinUrl(), sid() + "-fan-list-qr", null) : h("p", { class: "err", text: "Turn on Fan list in Settings first, or the page won't take sign-ups." }));
+
     // shows, and who's nearby
     const showsCard = h("section", { class: "card" }, h("h2", { text: "Who's near your shows" }),
       h("p", { class: "sub", text: "Fans count as near a show when it's within the distance they picked. Copy their emails and paste them into the BCC line of an email, so fans don't see each other's addresses." }),
@@ -3235,6 +3282,11 @@ td select.status.st-few_left { color: var(--warn); }
         return h("div", { class: "switch-row" },
           h("div", null, h("b", { text: (s.venue || s.city || "Show") + (S.hosts.length > 1 ? " · " + first(s.host) : "") }), h("div", { class: "hint", text: shortDate(s.date) + (s.time ? " at " + s.time : "") + (s.city ? " · " + s.city : "") + (s.venue_id ? "" : " · club not from the club list, so distance can't be measured") })),
           h("div", { class: "btns" }, h("span", { class: "pill" + (n ? "" : " warn"), text: n + (n === 1 ? " fan nearby" : " fans nearby") }),
+            h("button", { class: "btn sm ghost", type: "button", text: "QR for this show", onclick: (e) => {
+              const row = e.currentTarget.closest(".switch-row"), next = row.nextElementSibling;
+              if (next && next.classList.contains("qr-inline")) { next.remove(); return; }
+              row.after(h("div", { class: "qr-inline" }, qrBox(joinUrl(s.id), sid() + "-" + s.date + "-qr", (s.venue || s.city || "Show") + " · " + shortDate(s.date))));
+            } }),
             n ? h("button", { class: "btn sm", type: "button", text: "Copy emails", onclick: async () => {
               try { const list = await q(sb.rpc("fans_near_show", { p_show: s.id, p_site: sid() })); const ok = await copyText(list.map((f) => f.email).join(", ")); toast(ok ? "Copied " + list.length + " email" + (list.length === 1 ? "" : "s") + "." : "Couldn't copy. Try again.", { bad: !ok }); }
               catch (e) { toast(errText(e), { bad: true }); }
@@ -3249,21 +3301,23 @@ td select.status.st-few_left { color: var(--warn); }
       top.length ? h("div", { class: "btns", style: "gap:6px" }, top.map(([c, n]) => h("span", { class: "pill", text: c + " · " + n }))) : empty("Nobody yet", "Once fans sign up, you'll see which cities they're in. That's handy when you're booking a tour."));
 
     // everyone
-    const search = h("input", { type: "search", placeholder: "Search by email or city", "aria-label": "Search fans", style: "max-width:320px" });
+    const search = h("input", { type: "search", placeholder: "Search by email, city or where you met", "aria-label": "Search fans", style: "max-width:320px" });
     const listBox = h("div");
     const drawList = () => {
       const t = search.value.trim().toLowerCase();
-      const rows = fans.filter((f) => !t || f.email.includes(t) || String(f.city || "").toLowerCase().includes(t));
+      const rows = fans.filter((f) => !t || f.email.includes(t) || String(f.city || "").toLowerCase().includes(t) || String(f.met_at || "").toLowerCase().includes(t));
       listBox.replaceChildren(rows.length ? h("div", null, rows.slice(0, 300).map((f) => h("div", { class: "switch-row" },
-        h("div", null, h("b", { text: f.email }), h("div", { class: "hint", text: (f.city ? f.city + (f.state ? ", " + f.state : "") : "No city") + " · within " + f.radius_mi + " miles · joined " + ago(f.created_at) })),
+        h("div", { style: "min-width:0" }, h("b", { class: "wrap-any", text: f.email }), f.source === "qr" ? h("span", { class: "pill", style: "margin-left:6px", text: "QR" }) : null,
+          h("div", { class: "hint", text: (f.city ? f.city + (f.state ? ", " + f.state : "") : "No city") + " · within " + f.radius_mi + " miles · joined " + ago(f.created_at) }),
+          f.met_at ? h("div", { class: "hint wrap-any", text: "Met at: " + f.met_at }) : null),
         sure("Remove", async () => { try { await q(sb.from("fans").delete().eq("id", f.id)); fans.splice(fans.indexOf(f), 1); drawList(); toast("Removed from your list."); } catch (e) { toast(errText(e), { bad: true }); } }))),
         rows.length > 300 ? h("p", { class: "hint", text: "Showing the newest 300. Search to find someone, or download the full list." }) : null)
-        : empty(fans.length ? "No matches" : "No fans yet", fans.length ? "Try another search." : "Your site's sign-up box is where fans join. Share your site and they'll start showing up here."));
+        : empty(fans.length ? "No matches" : "No fans yet", fans.length ? "Try another search." : "Fans join from your site's sign-up box or your QR code. Share either and they'll start showing up here."));
     };
     search.addEventListener("input", drawList);
     const csv = () => {
       const cell = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-      const lines = [["email", "city", "state", "within_miles", "joined"].join(",")].concat(fans.map((f) => [f.email, f.city, f.state, f.radius_mi, String(f.created_at).slice(0, 10)].map(cell).join(",")));
+      const lines = [["email", "city", "state", "within_miles", "met_at", "joined_from", "joined"].join(",")].concat(fans.map((f) => [f.email, f.city, f.state, f.radius_mi, f.met_at, f.source || "site", String(f.created_at).slice(0, 10)].map(cell).join(",")));
       const a = h("a", { href: URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" })), download: sid() + "-fans.csv" });
       document.body.append(a); a.click(); a.remove();
     };
@@ -3272,7 +3326,7 @@ td select.status.st-few_left { color: var(--warn); }
         h("div", { class: "btns" }, search, fans.length ? h("button", { class: "btn sm", type: "button", text: "Download list", onclick: csv }) : null)),
       listBox);
     drawList();
-    wrap.replaceChildren(stats, showsCard, whereCard, allCard);
+    wrap.replaceChildren(stats, qrCard, showsCard, whereCard, allCard);
   }
 
   /* ======================================================
