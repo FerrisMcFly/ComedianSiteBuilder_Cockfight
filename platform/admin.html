@@ -2728,16 +2728,16 @@ td select.status.st-few_left { color: var(--warn); }
     main.append(head("Home screen", "What visitors see first on your site: the sections, in your order, and the picks you pin."));
     // The design's Home screen sections (a theme setting with key "home"), right here as well as in Design
     const theme = await loadTheme();
-    const layoutSt = theme && Array.isArray(theme.settings) && theme.settings.find((x) => x.key === "home" && x.type === "order");
+    const layoutSt = theme && Array.isArray(theme.settings) && theme.settings.find((x) => x.type === "home_items");
     if (layoutSt) {
-      const pick = orderPicker(layoutSt, (S.site.theme || {}).home);
+      const pick = homeItemsEditor();
       const save = h("button", { class: "btn primary", type: "submit", text: "Save layout" });
       main.append(h("form", { class: "card stack", style: "margin-bottom:16px", onsubmit: async (e) => {
         e.preventDefault(); save.disabled = true;
-        try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, { home: pick.value }) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
+        try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, { home_items: pick.value }) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
         save.disabled = false;
       } }, h("h2", { style: "margin:0", text: "Layout" }),
-        h("p", { class: "hint", style: "margin:0", text: "Put the sections in the order you want and switch off any you don't. Social buttons come from your profile in People; Your links come from Links." }),
+        h("p", { class: "hint", style: "margin:0", text: "Everything on your home screen, one row each. Put it in any order and switch off anything you don't want there. Nothing is deleted. Socials come from your profile in People, links from Links, podcasts from Podcast and Settings." }),
         pick.el, h("div", { class: "btns" }, save)));
     }
     const wrap = h("div", { class: "stack" }); main.append(wrap);
@@ -2921,6 +2921,51 @@ td select.status.st-few_left { color: var(--warn); }
     draw();
     return { el: box, get value() { return items.map((x) => ({ key: x.key, on: x.on })); } };
   }
+  // Home screen, item by item: every link, social, podcast and block on its own row, in the comic's order.
+  // Built from the dashboard's own data with the same CSB.homeCatalog / homeArrange the site uses, so they agree.
+  const GROUP_NAME = { me: "You", links: "Link", socials: "Social", support: "Support", picks: "Picks", shows: "Shows", podcast: "Podcast", special: "Video", list: "Mailing list", blog: "Blog", clips: "Videos" };
+  async function homeData() {
+    const me = (S.hosts || []).filter((x) => !x.hidden)[0] || {};
+    const [links, picks, posts] = await Promise.all([
+      q(sb.from("links").select("*").eq("site_id", sid()).order("sort", { ascending: true })).catch(() => []),
+      q(sb.from("home_picks").select("id,hidden,ends_on").eq("site_id", sid())).catch(() => []),
+      q(sb.from("blog_posts").select("id,published").eq("site_id", sid())).catch(() => [])]);
+    let elsewhere = [];
+    try {
+      const comics = [...new Set((S.hosts || []).map((x) => x.comic_id).filter(Boolean))];
+      if (comics.length) {
+        const ids = [...new Set((await q(sb.from("hosts").select("site_id").in("comic_id", comics).neq("site_id", sid()))).map((x) => x.site_id))];
+        if (ids.length) elsewhere = (await q(sb.from("sites").select("id,name,domain,features").in("id", ids))).filter((x) => x.domain && (x.features || {}).podcast).map((x) => ({ name: x.name, podcast: true }));
+      }
+    } catch (e) {}
+    const off = ((S.site.profile || {}).podcasts_off || []).map((x) => String(x).toLowerCase());
+    return { people: [{ photo: me.photo_url, bio: me.bio, socials: { instagram: me.instagram, youtube: me.youtube, tiktok: me.tiktok, twitter: me.twitter, website: me.website } }],
+      links: links.filter((l) => !l.hidden), profile: S.site.profile || {}, features: S.site.features || {},
+      picks: picks.filter((x) => !x.hidden && (!x.ends_on || x.ends_on >= today())), shows: (S.shows || []).filter((x) => x.date >= today() && !x.hidden_here),
+      episodes: (S.episodes || []).map((e) => ({ show: e.show_name })).filter((e) => !off.includes(String(e.show || "").toLowerCase())),
+      elsewhere: elsewhere.filter((x) => !off.includes(x.name.toLowerCase())), videos: (S.videos || []).filter((v) => !v.hidden), posts: posts.filter((x) => x.published) };
+  }
+  function homeItemsEditor() {
+    let items = null;
+    const box = h("div", { class: "order-list" }, h("p", { class: "hint", text: "Loading your home screen…" }));
+    const move = (i, j) => { if (j < 0 || j >= items.length) return; const [m] = items.splice(i, 1); items.splice(j, 0, m); draw(); };
+    function draw() {
+      box.replaceChildren(...(items.length ? items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off") },
+        h("div", { style: "min-width:0;flex:1 1 220px" }, h("div", { class: "btns", style: "gap:6px" }, h("span", { class: "pill", text: GROUP_NAME[it.group] || it.group }), h("b", { class: "wrap-any", text: it.label })), it.sub ? h("div", { class: "hint wrap-any", text: it.sub }) : null),
+        h("div", { class: "btns" },
+          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " to the top", text: "⤒", disabled: i === 0, onclick: () => move(i, 0) }),
+          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " up", text: "↑", disabled: i === 0, onclick: () => move(i, i - 1) }),
+          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " down", text: "↓", disabled: i === items.length - 1, onclick: () => move(i, i + 1) }),
+          h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: it.on, "aria-label": "Show " + it.label, onchange: (e) => { it.on = e.target.checked; draw(); } }), h("span")))))
+        : [empty("Nothing to arrange yet", "Add links, socials, shows or a podcast and they'll show up here.")]));
+    }
+    if (!window.CSB || !CSB.homeArrange) { box.replaceChildren(h("p", { class: "err", text: "Couldn't load the layout tools. Refresh the page." })); return { el: box, ready: Promise.resolve(), get value() { return (S.site.theme || {}).home_items; } }; }
+    const ready = homeData().then((d) => {
+      const cat = CSB.homeCatalog(d), t = S.site.theme || {};
+      items = CSB.homeArrange(cat, t.home_items || CSB.homeFromSections(cat, t.home)); draw();
+    }, (e) => box.replaceChildren(h("p", { class: "err", text: errText(e) })));
+    return { el: box, ready, get value() { return items ? items.map((x) => ({ key: x.key, on: x.on })) : (S.site.theme || {}).home_items; } };
+  }
   async function viewTheme(main) {
     const theme = await loadTheme();
     if (!theme || !Array.isArray(theme.settings)) {
@@ -2936,6 +2981,7 @@ td select.status.st-few_left { color: var(--warn); }
     const rows = theme.settings.map((st) => {
       if (st.type === "heading") return h("div", { class: "set-head" }, h("h2", { text: st.label }), st.help ? h("p", { class: "hint", text: st.help }) : null);
       const v = st.key in vals ? vals[st.key] : st.default;
+      if (st.type === "home_items") { const ed = homeItemsEditor(); inputs[st.key] = ed; return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), ed.el); }
       if (st.type === "order") return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), orderList(st, v));
       let input;
       if (st.type === "toggle") input = h("label", { class: "switch" }, (inputs[st.key] = h("input", { type: "checkbox", role: "switch", checked: !!v, "aria-label": st.label })), h("span"));

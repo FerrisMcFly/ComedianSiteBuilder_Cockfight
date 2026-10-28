@@ -7,7 +7,8 @@ const opened = [];
 after(() => opened.forEach((w) => w.close()));
 
 const html = readFileSync(new URL("../platform/admin.html", import.meta.url), "utf8")
-  .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "").replace('<script src="config.js"></script>', '<script>window.COCKFIGHT_CONFIG={SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>');
+  .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "").replace('<script src="config.js"></script>', '<script>window.COCKFIGHT_CONFIG={SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
+  .replace('<script src="sdk/csb.js"></script>', () => "<script>" + readFileSync(new URL("../platform/sdk/csb.js", import.meta.url), "utf8").replace(/<\/script/g, "<\\/script") + "</script>");
 
 function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 const now = new Date();
@@ -807,14 +808,24 @@ test("fan list: a sign-up QR code for the site and for each show, and where fans
   assert.match(main.querySelector(".card:last-child").textContent, /a@x\.com/);
 });
 
-test("Home screen page: the design's section layout is right there, saved to the design settings", async () => {
-  const theme = { name: "Console Lobby", extras: ["home_picks"], settings: [
-    { key: "home", label: "Home screen sections", type: "order", options: [["me", "You", "", true], ["links", "Your links", "", true], ["socials", "Social buttons", "", true]] }] };
-  const { w, d, db } = await open("#picks", (db) => { db.home_picks = []; }, theme);
-  await wait(60);
+test("Home screen page: every item on its own row (each link, each social, each podcast), in any order, each with a switch", async () => {
+  const theme = { name: "Console Lobby", extras: ["home_picks"], settings: [{ key: "home_items", label: "Home screen", type: "home_items" }] };
+  const { w, d, db } = await open("#picks", (db) => {
+    db.home_picks = [];
+    db.sites[0].features.fans = true;
+    db.links = [{ id: "l1", site_id: "cockfight", label: "Merch", url: "https://shop.test", sort: 0 }];
+    Object.assign(db.hosts[0], { photo_url: "https://p/c.jpg", instagram: "https://instagram.com/c", youtube: "https://youtube.com/@c" });
+    db.episodes[0].show_name = "Cockfight";
+    db.sites[0].features.podcast = true;
+  }, theme);
+  await wait(120);
   const form = [...d.querySelectorAll("form.card")].find((f) => /Layout/.test(f.textContent));
-  assert.ok(form, "the layout shows on the Home screen page");
-  form.querySelector('[aria-label="Move Social buttons up"]').click(); await wait();
+  const labels = () => [...form.querySelectorAll(".order-row b")].map((b) => b.textContent);
+  assert.deepEqual(labels(), ["You", "Merch", "Instagram", "YouTube", "Cockfight", "Mailing list"]);
+  form.querySelector('[aria-label="Move YouTube to the top"]').click(); await wait();
+  const sw = form.querySelector('[aria-label="Show Instagram"]'); sw.checked = false; sw.dispatchEvent(new w.Event("change")); await wait();
   form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
-  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.home)).map((x) => x.key), ["me", "socials", "links"]);
+  const saved = JSON.parse(JSON.stringify(db.sites[0].theme.home_items));
+  assert.deepEqual(saved.map((x) => x.key), ["social:youtube", "me", "link:l1", "social:instagram", "podcast:cockfight", "list"]);
+  assert.equal(saved.find((x) => x.key === "social:instagram").on, false);
 });
