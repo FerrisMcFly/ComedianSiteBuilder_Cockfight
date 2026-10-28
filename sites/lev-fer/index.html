@@ -4,7 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lev Fer</title>
-<meta name="description" content="Lev Fer: stand-up comedy from New York City. Tour dates, clips, blog, forum and chat.">
+<meta name="description" content="Lev Fer: stand-up comedian. Tour dates, clips, podcast and more." data-ct="description">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Lev Fer" data-ct="title">
+<meta property="og:description" content="Lev Fer: stand-up comedian. Tour dates, clips, podcast and more." data-ct="description">
+<meta property="og:image" content="" data-ct="image">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#03070f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -146,6 +152,29 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .me p { margin: 6px 0 12px; max-width: 52ch; }
 @media (max-width: 520px) { .me { grid-template-columns: 110px minmax(0, 1fr); gap: 14px; } .me p { display: none; } }
 
+/* link buttons: the link-in-bio part of the home screen */
+.links { display: grid; gap: 10px; }
+.lnk { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 22px 14px 16px; text-decoration: none; color: var(--ink);
+  background: linear-gradient(90deg, rgba(127,211,255,.16), rgba(127,211,255,.04)); border: 1px solid rgba(127,211,255,.35); border-left: 3px solid var(--glow);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%); transition: transform .15s, background .15s; }
+.lnk:hover, .lnk:focus-visible { transform: translateX(4px); background: linear-gradient(90deg, rgba(255,178,56,.28), rgba(255,178,56,.06)); border-left-color: var(--amber); outline: none; }
+.lnk .ic { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(127,211,255,.45); font: 13px var(--f-display); color: var(--glow); overflow: hidden; }
+.lnk .ic img { width: 100%; height: 100%; object-fit: cover; }
+.lnk strong { display: block; font: 700 19px/1.2 var(--f-body); letter-spacing: .02em; overflow-wrap: anywhere; }
+.lnk small { display: block; color: var(--glow-dim); font-size: 15px; overflow-wrap: anywhere; }
+.lnk .go { font: 12px var(--f-display); letter-spacing: .14em; color: var(--glow); }
+.lnk.gold { background: linear-gradient(90deg, var(--amber), #e6862a); border-color: var(--amber); border-left-color: #fff; color: var(--void); }
+.lnk.gold small, .lnk.gold .go { color: #3b2505; } .lnk.gold .ic { border-color: rgba(3,7,15,.4); color: var(--void); }
+.lnk.gold:hover, .lnk.gold:focus-visible { background: linear-gradient(90deg, #ffd27a, var(--amber)); }
+.block { display: grid; gap: 10px; }
+.block + .block { margin-top: 20px; }
+.block-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; font: 12px var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--glow-dim); border-bottom: 1px solid rgba(127,211,255,.18); padding-bottom: 6px; }
+.block-h a { color: var(--glow); }
+.special { display: grid; gap: 10px; text-decoration: none; }
+.special .thumb { border-color: var(--amber); }
+.special strong { font: 400 clamp(18px, 2.6vw, 24px)/1.2 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--glow); }
+.socrow { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* shows */
 .dates { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
 .date { display: grid; grid-template-columns: 86px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 12px 14px; border-left: 4px solid var(--glow-dim); background: linear-gradient(90deg, rgba(127,211,255,.08), var(--panel) 40%); }
@@ -216,6 +245,10 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
 
 @media (max-width: 820px) {
   .lobby, .record { grid-template-columns: 1fr; }
+  /* on a phone the content comes first (visitors arrive from a link in a bio); the menu follows */
+  .lobby > .screen { order: -1; }
+  .glyphs { display: none; }
+  .title { padding-block: 4px 0; } .plate { padding-block: 18px 14px; }
   .portrait { max-width: 240px; }
 }
 @media (max-width: 520px) {
@@ -240,7 +273,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     <div class="plate">
       <span class="br tl"></span><span class="br tr"></span><span class="br bl"></span><span class="br bb"></span>
       <h1 class="name" id="name">Lev Fer</h1>
-      <p class="tagline" id="tagline"></p>
+      <p class="tagline" id="tagline" hidden></p>
     </div>
   </header>
 
@@ -289,36 +322,57 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   var safeHref = function (u) { return /^(https?:\/\/|#\/)/i.test(u || "") ? u : (u && !/^[a-z]+:/i.test(u) ? "https://" + u : null); };
   var D = null, stopChat = null;
 
-  /* ---------- menu: a section appears only when Lev has it switched on ---------- */
+  /* ---------- menu and home screen: Lev arranges both in Design settings ---------- */
   var F = function (k, dflt) { var v = D.features[k]; return v === undefined ? dflt : !!v; };
-  var PAGES = [
-    ["home", "Home", "What's new", function () { return true; }],
-    ["shows", "Tour Dates", "Upcoming shows & tickets", function () { return F("shows", true); }],
-    ["clips", "Clips", "Videos", function () { return F("videos", true) && D.videos.length; }],
-    ["blog", "Blog", "Posts from Lev", function () { return F("blog", false) && D.posts.length; }],
-    ["forum", "Forum", "Talk with other fans", function () { return F("forum", false) && D.boards.length; }],
-    ["chat", "Chat Room", "Live, right now", function () { return F("chat", false); }],
-    ["list", "Mailing List", "Get dates in your inbox", function () { return F("fans", false); }],
-    ["about", "About", "Who Lev is", function () { return true; }],
-    ["socials", "Socials", "Follow Lev", function () { return socialLinks().length > 0; }],
-    ["press", "Press", "Photos & bio for clubs", function () { return !!(person().comic && CSB.press); }]
-  ];
-  var pages = function () { return PAGES.filter(function (p) { return p[3](); }); };
+  var T = function () { return D.theme || {}; };
+  // Lev's saved order ([{ key, on }]) merged with the defaults, so sections added later still show up.
+  // These defaults match theme.json (a test checks they agree).
+  var MENU_DEFAULT = [["shows", 1], ["clips", 1], ["podcast", 1], ["blog", 1], ["forum", 1], ["chat", 1], ["list", 1], ["about", 1], ["socials", 1], ["press", 1], ["support", 0]];
+  var HOME_DEFAULT = [["me", 1], ["links", 1], ["support", 1], ["picks", 1], ["shows", 1], ["podcast", 1], ["special", 1], ["list", 1], ["blog", 1], ["clips", 0], ["socials", 0]];
+  function orderOf(saved, defaults) {
+    var known = defaults.map(function (x) { return x[0]; }), out = [];
+    (Array.isArray(saved) ? saved : []).forEach(function (x) { if (x && known.indexOf(x.key) >= 0 && !out.some(function (o) { return o[0] === x.key; })) out.push([x.key, x.on ? 1 : 0]); });
+    defaults.forEach(function (d) { if (!out.some(function (o) { return o[0] === d[0]; })) out.push(d); });
+    return out.filter(function (x) { return x[1]; }).map(function (x) { return x[0]; });
+  }
+  var PAGES = {
+    home: ["Home", "What's new", function () { return true; }],
+    shows: ["Tour Dates", "Upcoming shows & tickets", function () { return F("shows", true); }],
+    clips: ["Clips", "Videos", function () { return F("videos", true) && D.videos.length; }],
+    podcast: ["Podcast", "Listen", function () { return (F("podcast", false) && D.episodes.length) || podcastsElsewhere().length; }],
+    blog: ["Blog", "Posts from Lev", function () { return F("blog", false) && D.posts.length; }],
+    forum: ["Forum", "Talk with other fans", function () { return F("forum", false) && D.boards.length; }],
+    chat: ["Chat Room", "Live, right now", function () { return F("chat", false); }],
+    list: ["Mailing List", "Get dates in your inbox", function () { return F("fans", false); }],
+    about: ["About", "Who Lev is", function () { return true; }],
+    socials: ["Socials", "Follow Lev", function () { return socialLinks().length > 0; }],
+    press: ["Press", "Photos & bio for clubs", function () { return !!(person().comic && CSB.press); }],
+    support: [null, null, function () { return !!support(); }]
+  };
+  var pages = function () { return ["home"].concat(orderOf(T().menu, MENU_DEFAULT)).filter(function (k) { return PAGES[k][2](); }); };
   function nav(cur) {
-    $("nav").replaceChildren.apply($("nav"), pages().map(function (p) {
-      return el("a", { href: "#/" + p[0], "aria-current": p[0] === cur ? "page" : null }, [p[1], el("small", { text: p[2] })]);
+    $("nav").replaceChildren.apply($("nav"), pages().map(function (k) {
+      if (k === "support") { var sp = support(); return el("a", { href: sp.url, target: "_blank", rel: "noopener" }, [sp.label, el("small", { text: "Opens " + host(sp.url) })]); }
+      return el("a", { href: "#/" + k, "aria-current": k === cur ? "page" : null }, [PAGES[k][0], el("small", { text: PAGES[k][1] })]);
     }));
+  }
+  var host = function (u) { return String(u).replace(/^https?:\/\/(www\.)?/, "").split("/")[0]; };
+  function support() { var p = D.profile || {}, u = safeHref(p.support_url); return u ? { url: u, label: p.support_label || "Support Lev" } : null; }
+  // Podcasts Lev is on elsewhere on ComicTable, minus any whose feed is also connected right here (no doubles)
+  function podcastsElsewhere() {
+    var own = F("podcast", false) ? D.episodes.map(function (e) { return String(e.show || "").toLowerCase(); }) : [];
+    return (D.elsewhere || []).filter(function (x) { return x.podcast && own.indexOf(String(x.name).toLowerCase()) < 0; });
   }
 
   function route() {
     if (!D) return;
     if (stopChat) { stopChat.stop(); stopChat = null; }
     var parts = location.hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent), page = parts[0] || "home";
-    if (!pages().some(function (p) { return p[0] === page; })) page = "home";
+    if (page === "support" || pages().indexOf(page) < 0) page = "home";
     nav(page);
     var app = $("app"); app.replaceChildren();
     app.style.animation = "none"; void app.offsetWidth; app.style.animation = "";
-    ({ home: viewHome, shows: viewShows, clips: viewClips, blog: viewBlog, forum: viewForum, chat: viewChat, list: viewList, about: viewAbout, socials: viewSocials, press: viewPress }[page])(app, parts[1], parts[2]);
+    ({ home: viewHome, shows: viewShows, clips: viewClips, podcast: viewPodcast, blog: viewBlog, forum: viewForum, chat: viewChat, list: viewList, about: viewAbout, socials: viewSocials, press: viewPress }[page])(app, parts[1], parts[2]);
     $("screen").classList.remove("engaged");
   }
   window.addEventListener("hashchange", route);
@@ -375,24 +429,71 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
         : label && href ? el("a", { class: "btn", href: href, target: ext ? "_blank" : null, rel: ext ? "noopener" : null, text: label }) : null
     ]);
   }
-  function meCard() {
-    var me = person(), p = D.profile || {}; if (!me.photo) return null;
-    var line = (p.about || me.bio || "").split(/\n+/)[0];
-    return el("div", { class: "me" }, [el("img", { src: me.photo, alt: me.name }),
-      el("div", null, [el("b", { text: me.name }), me.title ? el("span", { class: "mini", text: me.title }) : null, line ? el("p", { text: line.length > 220 ? line.slice(0, 217) + "…" : line }) : null,
-        el("a", { class: "btn", href: "#/about", text: "About Lev" })])]);
+  function lnk(o) {
+    var href = safeHref(o.url); if (!href) return null; var ext = /^https?:/i.test(href);
+    return el("a", { class: "lnk" + (o.gold ? " gold" : ""), href: href, target: ext ? "_blank" : null, rel: ext ? "noopener" : null }, [
+      el("span", { class: "ic", "aria-hidden": "true" }, o.image ? [el("img", { src: o.image, alt: "" })] : [o.icon || "▶"]),
+      el("span", null, [el("strong", { text: o.label }), o.sub ? el("small", { text: o.sub }) : null]),
+      el("span", { class: "go", "aria-hidden": "true", text: o.go || (ext ? "Open" : "Go") })]);
   }
+  var block = function (title, more, kids) { return el("section", { class: "block" }, [title ? el("div", { class: "block-h" }, [el("span", { text: title }), more]) : null].concat(kids)); };
+  var ICON = { instagram: "IG", youtube: "YT", tiktok: "TT", twitter: "X", website: "WWW" };
+  var HOME = {
+    me: function () {
+      var me = person(), p = D.profile || {}; if (!me.photo) return null;
+      var line = (p.about || me.bio || "").split(/\n+/)[0];
+      return el("div", { class: "me" }, [el("img", { src: me.photo, alt: me.name }),
+        el("div", null, [el("b", { text: me.name }), me.title ? el("span", { class: "mini", text: me.title }) : null, line ? el("p", { text: line.length > 220 ? line.slice(0, 217) + "…" : line }) : null,
+          el("a", { class: "btn", href: "#/about", text: "About Lev" })])]);
+    },
+    links: function () {
+      var ls = D.links.map(function (l) { return lnk({ label: l.label, sub: host(l.url), url: l.url, icon: l.icon || "↗" }); }).filter(Boolean);
+      return ls.length ? el("div", { class: "links" }, ls) : null;
+    },
+    support: function () { var sp = support(); return sp ? el("div", { class: "links" }, [lnk({ label: sp.label, sub: host(sp.url), url: sp.url, icon: "♥", gold: true, go: "Support" })]) : null; },
+    picks: function () { return D.picks.length ? el("div", { class: "picks" }, D.picks.map(pickCard)) : null; },
+    shows: function () {
+      if (!F("shows", true) || !D.shows.length) return null;
+      var n = Math.max(1, Math.min(20, parseInt(T().home_shows, 10) || 3));
+      return block("Next shows", D.shows.length > n ? el("a", { href: "#/shows", text: "All " + D.shows.length + " dates" }) : null, [el("ul", { class: "dates" }, D.shows.slice(0, n).map(showRow))]);
+    },
+    podcast: function () {
+      var rows = podcastsElsewhere().map(function (x) {
+        var e = x.episode;
+        return lnk({ label: (x.people.length ? "" : "") + x.name, sub: e ? "Latest: " + (e.number ? e.number + ". " : "") + e.title : "Lev's podcast", url: e && e.link ? e.link : x.url, image: e && e.image, icon: "🎧", go: "Listen" });
+      });
+      if (F("podcast", false) && D.episodes.length) { var e = D.episodes[0]; rows.unshift(lnk({ label: e.show || "The podcast", sub: "Latest: " + (e.number ? e.number + ". " : "") + e.title, url: e.link || "#/podcast", image: e.image, icon: "🎧", go: "Listen" })); }
+      rows = rows.filter(Boolean);
+      return rows.length ? block("Podcast", null, [el("div", { class: "links" }, rows)]) : null;
+    },
+    special: function () {
+      var v = D.videos.filter(function (x) { return x.featured; })[0]; if (!v || !F("videos", true)) return null;
+      return block("Featured", null, [el("a", { class: "special", href: v.link, target: "_blank", rel: "noopener" }, [el("div", { class: "thumb" }, [el("img", { src: v.thumbnail, alt: "", loading: "lazy" })]), el("strong", { text: v.title })])]);
+    },
+    list: function () { return F("fans", false) ? el("div", { class: "links" }, [lnk({ label: "Get told when Lev's in your town", sub: "One email when there's a show near you", url: "#/list", icon: "✉", go: "Join" })]) : null; },
+    blog: function () { return F("blog", false) && D.posts.length ? block("From the blog", D.posts.length > 2 ? el("a", { href: "#/blog", text: "All posts" }) : null, [el("div", { class: "list" }, D.posts.slice(0, 2).map(postItem))]) : null; },
+    clips: function () { return F("videos", true) && D.videos.length ? block("Latest clips", el("a", { href: "#/clips", text: "All clips" }), [el("div", { class: "clips" }, D.videos.slice(0, 3).map(clipCard))]) : null; },
+    socials: function () {
+      var s = person().socials || {}, row = ["instagram", "youtube", "tiktok", "twitter", "website"].filter(function (k) { return safeHref(s[k]); })
+        .map(function (k) { return el("a", { class: "btn", href: safeHref(s[k]), target: "_blank", rel: "noopener", text: { instagram: "Instagram", youtube: "YouTube", tiktok: "TikTok", twitter: "X", website: "Website" }[k] }); });
+      return row.length ? el("div", { class: "socrow" }, row) : null;
+    }
+  };
   function viewHome(app) {
-    app.append.apply(app, head("Home", "What Lev wants you to see first"));
-    var mc = meCard(); if (mc) app.append(mc);
-    if (D.picks.length) { app.append(el("div", { class: "picks" }, D.picks.map(pickCard))); return; }
-    // nothing pinned: show what's real right now instead
-    var auto = [];
-    if (D.shows.length && F("shows", true)) { var s = D.shows[0]; auto.push({ kind: "show", headline: (s.venue || s.city) + " · " + MON[day(s.date).getMonth()] + " " + day(s.date).getDate(), text: [s.city !== s.venue ? s.city : "", s.time].filter(Boolean).join(" · "), button: "Get tickets", link: s.tickets, show: s.status === "on_sale" ? null : s }); }
-    if (D.videos.length && F("videos", true)) auto.push({ kind: "video", headline: D.videos[0].title, button: "Watch", link: D.videos[0].link, image: D.videos[0].thumbnail, video: CSB.videoEmbed ? CSB.videoEmbed(D.videos[0].link) : "" });
-    if (D.posts.length && F("blog", false)) auto.push({ kind: "post", headline: D.posts[0].title, text: D.posts[0].excerpt, button: "Read it", link: "#/blog/" + encodeURIComponent(D.posts[0].slug) });
-    if (F("fans", false)) auto.push({ kind: "link", headline: "Get told when Lev's in your town", text: "One email when there's a show near you.", button: "Join the list", link: "#/list" });
-    app.append(auto.length ? el("div", { class: "picks" }, auto.map(pickCard)) : empty("Nothing here yet", "New shows and videos will show up here."));
+    app.append.apply(app, head("Home"));
+    var parts = orderOf(T().home, HOME_DEFAULT).map(function (k) { try { return HOME[k](); } catch (e) { return null; } }).filter(Boolean);
+    if (!parts.length) { app.append(empty("Nothing here yet", "New shows and videos will show up here.")); return; }
+    var wrap = el("div", { class: "home" }); parts.forEach(function (p) { wrap.append(p.classList && p.classList.contains("block") ? p : el("section", { class: "block" }, [p])); }); app.append(wrap);
+  }
+  function viewPodcast(app) {
+    app.append.apply(app, head("Podcast", "Where to listen"));
+    var rows = [];
+    podcastsElsewhere().forEach(function (x) {
+      rows.push(lnk({ label: x.name, sub: "With " + x.people.join(", ") + " · " + x.domain, url: x.url, icon: "🎧", go: "Visit" }));
+      if (x.episode && x.episode.link) rows.push(lnk({ label: (x.episode.number ? x.episode.number + ". " : "") + x.episode.title, sub: "Latest episode of " + x.name, url: x.episode.link, image: x.episode.image, icon: "▶", go: "Listen" }));
+    });
+    if (F("podcast", false)) D.episodes.slice(0, 50).forEach(function (e) { rows.push(lnk({ label: (e.number ? e.number + ". " : "") + e.title, sub: [e.show, niceDate(e.posted), e.length].filter(Boolean).join(" · "), url: e.link, image: e.image, icon: "▶", go: "Listen" })); });
+    app.append(el("div", { class: "links" }, rows.filter(Boolean)));
   }
   function viewShows(app) {
     app.append.apply(app, head("Tour Dates", D.shows.length ? D.shows.length + " upcoming" : "Upcoming shows"));
@@ -556,13 +657,13 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   /* ---------- controller: ↑ ↓ move, A goes in / opens, B backs out ---------- */
   var screen = $("screen");
   var inPanel = function () { return screen.contains(document.activeElement); };
-  var curIdx = function () { var ps = pages(), h = (location.hash.replace(/^#\/?/, "").split("/")[0]) || "home", i = ps.findIndex(function (p) { return p[0] === h; }); return i < 0 ? 0 : i; };
+  var curIdx = function () { var ps = pages(), h = (location.hash.replace(/^#\/?/, "").split("/")[0]) || "home", i = ps.indexOf(h); return i < 0 ? 0 : i; };
   var items = function () { return [].slice.call($("app").querySelectorAll("a, button, input, select, textarea")).filter(function (x) { return x.offsetParent !== null || x === document.activeElement; }); };
   function flash(id) { var b = $(id); b.classList.add("hit"); setTimeout(function () { b.classList.remove("hit"); }, 140); }
   function focusItem(x) { x.focus({ preventScroll: true }); x.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
   function move(dir) {
     if (inPanel()) { var it = items(), i = it.indexOf(document.activeElement); if (it.length) focusItem(it[(i + dir + it.length) % it.length]); return; }
-    var ps = pages(); go(ps[(curIdx() + dir + ps.length) % ps.length][0]);
+    var ps = pages().filter(function (k) { return k !== "support"; }); go(ps[(ps.indexOf(pages()[curIdx()]) + dir + ps.length) % ps.length]);
     setTimeout(function () { var a = $("nav").querySelector("[aria-current]"); a && a.focus({ preventScroll: true }); }, 0);
   }
   function pressA() {
@@ -592,9 +693,13 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
 
   /* ---------- ambience: loading tips, glyph trim, space backdrop ---------- */
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var tips = ["Tip: This is not Halo 2. Please stop emailing us.", "Tip: Lev cannot be dual-wielded.", "Tip: Heckling does not make you respawn faster.",
-    "Tip: Bring a friend. Two-player seating available at most clubs.", "Tip: Sold-out shows cannot be unlocked with a cheat code.", "Tip: The two-drink minimum is not a power-up."];
-  var ti = 0; if (!reduce) setInterval(function () { var t = $("tip"); t.style.opacity = 0; setTimeout(function () { ti = (ti + 1) % tips.length; t.textContent = tips[ti]; t.style.opacity = 1; }, 400); }, 4200);
+  // Lev writes his own in Design settings → Loading-screen jokes; these are the ones the design ships with.
+  var TIPS = ["This is not Halo 2. Please stop emailing us.", "Lev cannot be dual-wielded.", "Heckling does not make you respawn faster.",
+    "Bring a friend. Two-player seating available at most clubs.", "Sold-out shows cannot be unlocked with a cheat code.", "The two-drink minimum is not a power-up."];
+  var tips = TIPS.map(function (t) { return "Tip: " + t; });
+  var ti = 0; if (!reduce) setInterval(function () { if (D && T().tips === false) return; tick(); }, 4200);
+  function tick() { (function () { var t = $("tip"); t.style.opacity = 0; setTimeout(function () { var own = D && Array.isArray(T().tip_lines) && T().tip_lines.length ? T().tip_lines.map(function (x) { return /^tip:/i.test(x) ? x : "Tip: " + x; }) : tips;
+    ti = (ti + 1) % own.length; t.textContent = own[ti]; t.style.opacity = 1; }, 400); })(); }
   var G = "ᐊᐅᐃᐁᑕᑐᑎᑌᒪᒧᒥᒣᓴᓱᓯᓭᔭᔪᔨᔦ◇◈⟁⌬", g = ""; for (var i = 0; i < 40; i++) g += G[Math.floor(Math.random() * G.length)]; $("glyphs").textContent = g;
   (function sky() {
     var c = $("sky"), x = c.getContext && c.getContext("2d"); if (!x) return;
@@ -623,11 +728,20 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     var p = d.profile || {}, me = person();
     document.title = d.site.name + (p.tagline ? " · " + p.tagline : "");
     $("name").textContent = d.site.name;
-    $("tagline").textContent = p.tagline || me.title || "";
+    if (p.tagline) { $("tagline").textContent = p.tagline; $("tagline").hidden = false; }
     $("who").textContent = me.title || "Stand-up comedian";
     $("copy").textContent = "© " + new Date().getFullYear() + " " + d.site.name;
     applyTheme(d.theme);
+    if (T().tips === false) $("tip").hidden = true;
+    else if (Array.isArray(T().tip_lines) && T().tip_lines.length) { ti = -1; tick(); }
+    D.elsewhere = [];
     route();
+    // podcasts and other ComicTable sites Lev is on arrive a moment later
+    CSB.elsewhere(d.people).then(function (x) {
+      if (!x.length) return; D.elsewhere = x;
+      var pg = location.hash.replace(/^#\/?/, "").split("/")[0] || "home";
+      if (pg === "home" || pg === "podcast") route(); else nav(pg);
+    });
   }, function (e) { $("app").replaceChildren(el("h2", { class: "head", text: "Connection lost" }), el("p", { class: "sub", text: "Couldn't load right now. Refresh to try again." })); if (window.console) console.warn(e); });
 })();
 </script>

@@ -697,6 +697,51 @@ test("Home screen picks: add one, pin a show to the top, reorder", async () => {
   assert.deepEqual(db.home_picks.slice().sort((a, b) => a.sort - b.sort).map((p) => p.headline)[0], "New special out now");
 });
 
+test("Design settings: arrange a list, switch items off, and save it", async () => {
+  const theme = { name: "Console Lobby", extras: [], settings: [
+    { type: "heading", label: "Home screen" },
+    { key: "home", label: "Home screen sections", type: "order", options: [["me", "You", "", true], ["shows", "Next shows", "", true], ["clips", "Latest clips", "", false]] },
+    { key: "accent", label: "Highlight color", type: "color", default: "#ffb238" },
+    { key: "tip_lines", label: "Your loading-screen jokes", type: "lines", default: [] }] };
+  const { w, d, db } = await open("#theme", null, theme);
+  set(w, d.querySelector('textarea[aria-label="Your loading-screen jokes"]'), "One\n\n  Two  \n");
+  assert.ok([...d.querySelectorAll(".set-head h2")].some((x) => x.textContent === "Home screen"));
+  const rows = () => [...d.querySelectorAll(".order-row")];
+  assert.deepEqual(rows().map((r) => r.querySelector("b").textContent), ["You", "Next shows", "Latest clips"]);
+  rows()[1].querySelector('[aria-label="Move Next shows up"]').click(); await wait();
+  const sw = rows()[2].querySelector("input[type=checkbox]"); sw.checked = true; sw.dispatchEvent(new w.Event("change"));
+  d.querySelector("form.card").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.home)), [{ key: "shows", on: true }, { key: "me", on: true }, { key: "clips", on: true }]);
+  assert.equal(db.sites[0].theme.accent, "#ffb238");
+  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.tip_lines)), ["One", "Two"]);
+});
+
+test("Profile: the link preview card updates as you type and saves", async () => {
+  const { w, d, db } = await open("#profile");
+  const card = () => d.querySelector(".share-card").textContent;
+  set(w, d.querySelectorAll("input")[0], "Stand-up comedy");
+  assert.match(card(), /Cockfight · Stand-up comedy/);
+  const title = [...d.querySelectorAll(".field")].find((x) => x.textContent.startsWith("Title")).querySelector("input");
+  set(w, title, "COCKFIGHT LIVE");
+  assert.match(card(), /COCKFIGHT LIVE/);
+  d.querySelector("form.card").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.equal(db.sites[0].profile.share_title, "COCKFIGHT LIVE");
+});
+
+test("Settings: every podcast the site's comics are on, each with its own switch", async () => {
+  const { w, d, db } = await open("#settings", (db) => {
+    db.episodes[0].show_name = "Cockfight";
+    db.sites.push({ id: "modern-apes", name: "The Modern Apes Podcast", domain: "modernapes.com", features: { podcast: true } });
+    db.hosts.push({ id: "ma-tristan", site_id: "modern-apes", comic_id: "tristan-bowling", name: "Tristan Bowling", sort: 0 });
+  });
+  await wait(120);
+  const card = [...d.querySelectorAll(".card")].find((c) => /Podcasts on your site/.test(c.textContent));
+  assert.match(card.textContent, /Cockfight.*Connected to this site.*The Modern Apes Podcast.*On ComicTable at modernapes\.com/s);
+  const sw = card.querySelector('[aria-label="Show The Modern Apes Podcast on this site"]');
+  sw.checked = false; sw.dispatchEvent(new w.Event("change")); await wait(60);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].profile.podcasts_off)), ["the modern apes podcast"]);
+});
+
 test("Home screen picks: a YouTube link plays on the home screen and can use the video's thumbnail; videos pin to Home", async () => {
   const theme = { name: "Console Lobby", extras: ["home_picks"], settings: [] };
   const { w, d, db } = await open("#picks", (db) => {

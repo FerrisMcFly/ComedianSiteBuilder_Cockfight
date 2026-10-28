@@ -1,8 +1,217 @@
 {
   "name": "Console Lobby",
-  "description": "Lev Fer's site: an early-2000s console game menu in space. Home, tour dates, clips, blog, forum, chat room and mailing list as menu items.",
-  "extras": ["home_picks", "links"],
+  "description": "Lev Fer's site: an early-2000s console game menu in space, built to be the one link in his bio. Home, tour dates, clips, podcast, blog, forum, chat room and mailing list as menu items.",
+  "extras": [
+    "home_picks",
+    "links"
+  ],
   "settings": [
-    { "key": "accent", "label": "Highlight color", "help": "The selected menu bar and the big buttons.", "type": "color", "default": "#ffb238" }
+    {
+      "type": "heading",
+      "label": "Home screen",
+      "help": "What people see first, usually after tapping the link in your bio. Turn sections on or off and put them in the order you want."
+    },
+    {
+      "key": "home",
+      "label": "Home screen sections",
+      "type": "order",
+      "options": [
+        [
+          "me",
+          "You",
+          "Your photo, name, tagline and the first line of your bio. Photo comes from People.",
+          true
+        ],
+        [
+          "links",
+          "Your links",
+          "Big buttons for everything in Links (your special, merch, anything). Add them under Site extras → Links.",
+          true
+        ],
+        [
+          "support",
+          "Support button",
+          "Patreon, Ko-fi or Substack. Set the link in Profile.",
+          true
+        ],
+        [
+          "picks",
+          "Home screen picks",
+          "The posts you pin under Site extras → Home screen. The first one is big.",
+          true
+        ],
+        [
+          "shows",
+          "Next shows",
+          "Your next few dates with ticket buttons.",
+          true
+        ],
+        [
+          "podcast",
+          "Podcast",
+          "Podcasts you're on, with the latest episode. Shows up by itself for any ComicTable podcast you're part of.",
+          true
+        ],
+        [
+          "special",
+          "Featured video",
+          "The video you starred in Videos, like a special.",
+          true
+        ],
+        [
+          "list",
+          "Mailing list",
+          "A button to join your fan list.",
+          true
+        ],
+        [
+          "blog",
+          "From the blog",
+          "Your two newest posts.",
+          true
+        ],
+        [
+          "clips",
+          "Latest clips",
+          "Your three newest videos.",
+          false
+        ],
+        [
+          "socials",
+          "Social buttons",
+          "Instagram, YouTube, TikTok and the rest from People.",
+          false
+        ]
+      ]
+    },
+    {
+      "key": "home_shows",
+      "label": "How many shows on the Home screen",
+      "type": "select",
+      "options": [
+        [
+          "1",
+          "1"
+        ],
+        [
+          "3",
+          "3"
+        ],
+        [
+          "5",
+          "5"
+        ],
+        [
+          "10",
+          "10"
+        ]
+      ],
+      "default": "3"
+    },
+    {
+      "type": "heading",
+      "label": "Menu",
+      "help": "Home is always first. A section only shows when it has something in it (no blog posts yet, no Blog)."
+    },
+    {
+      "key": "menu",
+      "label": "Menu order",
+      "type": "order",
+      "options": [
+        [
+          "shows",
+          "Tour Dates",
+          "",
+          true
+        ],
+        [
+          "clips",
+          "Clips",
+          "",
+          true
+        ],
+        [
+          "podcast",
+          "Podcast",
+          "",
+          true
+        ],
+        [
+          "blog",
+          "Blog",
+          "",
+          true
+        ],
+        [
+          "forum",
+          "Forum",
+          "",
+          true
+        ],
+        [
+          "chat",
+          "Chat Room",
+          "",
+          true
+        ],
+        [
+          "list",
+          "Mailing List",
+          "",
+          true
+        ],
+        [
+          "about",
+          "About",
+          "",
+          true
+        ],
+        [
+          "socials",
+          "Socials",
+          "",
+          true
+        ],
+        [
+          "press",
+          "Press",
+          "Approved photos and bio for clubs, from your press kit.",
+          true
+        ],
+        [
+          "support",
+          "Support button",
+          "Your Patreon (or other support link) as a menu item.",
+          false
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "label": "Look"
+    },
+    {
+      "key": "accent",
+      "label": "Highlight color",
+      "help": "The selected menu bar and the big buttons.",
+      "type": "color",
+      "default": "#ffb238"
+    },
+    {
+      "key": "tips",
+      "label": "Show loading-screen jokes",
+      "help": "The rotating \"Tip:\" lines at the top.",
+      "type": "toggle",
+      "default": true
+    },
+    {
+      "key": "tip_lines",
+      "label": "Your loading-screen jokes",
+      "help": "One per line. \"Tip:\" is added for you. Leave it empty to use the ones the design comes with.",
+      "type": "lines",
+      "max": 40,
+      "placeholder": "Lev cannot be dual-wielded.\nHeckling does not make you respawn faster.",
+      "default": []
+    }
   ]
 }
