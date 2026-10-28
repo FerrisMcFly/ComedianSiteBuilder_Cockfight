@@ -12,7 +12,7 @@ const ID = /^\/([a-z0-9][a-z0-9-]{0,80})\/?$/i;
 export function withPreview(html, c, origin) {
   const desc = String(c.short_bio || c.bio || `${c.name}'s next dates, Tape and links.`).replace(/\s+/g, " ").trim().slice(0, 180);
   const img = /^https:\/\//i.test(c.photo_url || "") ? c.photo_url : origin + "/brand/og-image.png";
-  const url = origin + "/" + encodeURIComponent(c.id);
+  const url = origin + "/" + encodeURIComponent(c.handle || c.id);
   const tags = [
     `<meta property="og:type" content="profile">`, `<meta property="og:site_name" content="ComicTable">`,
     `<meta property="og:title" content="${esc(c.name)}">`, `<meta property="og:description" content="${esc(desc)}">`,
@@ -34,17 +34,16 @@ export default async (req, deps = {}) => {
   let html = PAGE;
   let comic = null, known = false;
   if (id) {
-    try {
-      const r = await get(`${platform.supabase_url}/rest/v1/comics?select=id,name,short_bio,bio,photo_url&id=eq.${encodeURIComponent(id.toLowerCase())}`,
-        { headers: { apikey: platform.supabase_anon_key, Authorization: "Bearer " + platform.supabase_anon_key } });
-      if (r.ok) { known = true; comic = (await r.json())[0] || null; }
-      if (known && !comic) {  // by name: /lev-fer finds Lev Fer even if his address is different
-        const r2 = await get(`${platform.supabase_url}/rest/v1/comics?select=id,name,short_bio,bio,photo_url&limit=2&name=ilike.${encodeURIComponent(id.replace(/-+/g, " "))}`,
+    // by address (comictable.com/lev-fer), then by an old link that used the comic's id
+    for (const col of ["handle", "id"]) {
+      try {
+        const r = await get(`${platform.supabase_url}/rest/v1/comics?select=id,handle,name,short_bio,bio,photo_url&${col}=eq.${encodeURIComponent(id.toLowerCase())}`,
           { headers: { apikey: platform.supabase_anon_key, Authorization: "Bearer " + platform.supabase_anon_key } });
-        const rows = r2.ok ? await r2.json() : [];
-        if (rows.length === 1) comic = rows[0];
-      }
-    } catch (e) {}
+        if (!r.ok) continue;
+        known = true; comic = (await r.json())[0] || null;
+        if (comic) break;
+      } catch (e) {}
+    }
   }
   if (comic) html = withPreview(html, comic, url.origin);
   // Only say "not found" when the database said so; if it couldn't be reached, the page tries again itself.

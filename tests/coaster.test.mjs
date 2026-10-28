@@ -27,7 +27,7 @@ test("a Coaster: photo, name, bio, socials, the Tape, their sites, press kit and
       socials: { threads: "https://threads.net/@levfer" }, booking_contact: "Agent <book@lev.example>", tape_url: "https://www.youtube.com/watch?v=abcdefghijk", tape_title: "Live at the Cellar", look: "spooky" }],
     hosts: [{ site_id: "lev-fer", hidden: false }, { site_id: "cockfight", hidden: false }],
     sites: [{ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay" }, { id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com" }] });
-  assert.ok(asked[0].includes("id=eq.lev-fer"));
+  assert.ok(asked[0].includes("handle=eq.lev-fer"), "looks up the address first");
   assert.equal(d.title, "Lev Fer · ComicTable");
   assert.equal(d.body.className, "look-spooky");
   assert.equal(d.querySelector("h1").textContent, "Lev Fer");
@@ -140,14 +140,17 @@ test("a Custom look: their board, ink and band colors, and a full-color photo; t
   assert.equal(bad.d.body.style.getPropertyValue("--pulp"), "#F4ECDC", "only real colors get through");
 });
 
-test("comictable.com/lev-fer finds Lev Fer by name even if his address is different, and fixes the address bar", async () => {
-  const dom = new JSDOM(html, { runScripts: "dangerously", url: "https://comictable.com/lev-fer", beforeParse(w) {
-    w.fetch = async (u) => { const t = u.split("/rest/v1/")[1];
-      const body = t.startsWith("comics?") ? (t.includes("id=eq.") ? [] : t.includes("name=ilike.lev%20fer") ? [{ id: "lev", name: "Lev Fer" }] : []) : [];
-      return { ok: true, status: 200, json: async () => body }; };
+test("comictable.com/<address> finds the comic; an old link with their id still works and shows the real address", async () => {
+  const mk = (path, rows) => new JSDOM(html, { runScripts: "dangerously", url: "https://comictable.com" + path, beforeParse(w) {
+    w.fetch = async (u) => { const t = u.split("/rest/v1/")[1]; const body = t.startsWith("comics?") ? rows(t) : []; return { ok: true, status: 200, json: async () => body }; };
   } });
-  opened.push(dom.window);
+  const lev = { id: "lev", handle: "lev-fer", name: "Lev Fer" };
+  const a = mk("/lev-fer", (t) => t.includes("handle=eq.lev-fer") ? [lev] : []);
+  const b = mk("/lev", (t) => t.includes("id=eq.lev") ? [lev] : []);
+  opened.push(a.window, b.window);
   await new Promise((r) => setTimeout(r, 100));
-  assert.equal(dom.window.document.querySelector("h1").textContent, "Lev Fer");
-  assert.equal(dom.window.location.pathname, "/lev");
+  assert.equal(a.window.document.querySelector("h1").textContent, "Lev Fer");
+  assert.equal(a.window.document.querySelector(".band span").textContent, "comictable.com/lev-fer");
+  assert.equal(b.window.document.querySelector("h1").textContent, "Lev Fer");
+  assert.equal(b.window.location.pathname, "/lev-fer");
 });

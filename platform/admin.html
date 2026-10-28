@@ -1780,11 +1780,11 @@ td select.status.st-few_left { color: var(--warn); }
   // The same editor shows on a comic's page (super admins) and on Me (the comic themselves).
   const LOOKS = [["classic", "Classic", "#F7F0DF", "#C4452E", "#1F1F1F"], ["night", "Night", "#232120", "#D9583F", "#F3EAD7"], ["redwood", "Redwood", "#F3EAD7", "#1F1F1F", "#A93A26"],
     ["mustard", "Mustard", "#1F1F1F", "#E0A21A", "#E0A21A"], ["spooky", "Spooky", "#1E1726", "#F07C1F", "#F07C1F", "Seasonal"], ["holiday", "Holiday", "#FBF3E4", "#D9443A", "#17321F", "Seasonal"]];
-  const coasterUrl = (id) => PRESS_HOST + "/" + encodeURIComponent(id);
+  const coasterUrl = (c) => PRESS_HOST + "/" + encodeURIComponent(c.handle || c.id);
   function coasterCard(c, opts = {}) {
     const ready = "look" in c;  // the database has 21_coasters.sql
     const yours = opts.me ? "your" : c.name.split(" ")[0] + "'s";
-    const url = coasterUrl(c.id);
+    const url = coasterUrl(c);
     const card = h("section", { class: "card stack coaster-card" });
     const headRow = h("div", { class: "toolbar" }, h("div", null, h("h2", { style: "margin:0", text: opts.me ? "Your Coaster" : "Coaster" }),
         h("div", { class: "hint wrap-any" }, h("a", { href: url, target: "_blank", rel: "noopener", text: url.replace(/^https?:\/\//, "") }))),

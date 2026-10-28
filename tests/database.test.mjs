@@ -439,3 +439,19 @@ test("Coasters: preset looks for everyone; a Custom look comes with a site or Pr
   assert.equal(await as(LEV, `update comics set look = 'custom', coaster = '{"style":{"pulp":"#000000"}}' where id = 'lev-fer'`), "ok", "Lev is on a site, so he gets Custom");
   assert.equal(await as(LEV, `update comics set bio = 'still fine' where id = 'lev-fer'`), "ok");
 });
+
+test("Coaster addresses: one rule for everyone (full name with dashes), made automatically, never clashing", async () => {
+  const LEV = "33333333-3333-3333-3333-333333333333", BOSS = "44444444-4444-4444-4444-444444444444";
+  assert.equal((await q("select handle from comics where id = 'lev-fer'"))[0].handle, "lev-fer", "existing comics got their address");
+  assert.equal((await q("select count(*)::int n from comics where handle is null"))[0].n, 0);
+  await q(`insert into comics (id, name) values ('lev-2-test', 'Lev Fer')`);
+  assert.equal((await q("select handle from comics where id = 'lev-2-test'"))[0].handle, "lev-fer-2", "a second Lev Fer doesn't take the first one's address");
+  await q(`insert into comics (id, name) values ('press-person', 'Press')`);
+  assert.equal((await q("select handle from comics where id = 'press-person'"))[0].handle, "press-comic", "comictable.com's own pages stay theirs");
+  assert.match(await as(LEV, `update comics set handle = 'king-lev' where id = 'lev-fer'`), /set by ComicTable/);
+  assert.equal(await as(BOSS, `update comics set handle = 'lev-f' where id = 'lev-2-test'`), "ok", "ComicTable admins can fix one by hand");
+  assert.match(await as(BOSS, `update comics set handle = 'Lev Fer!' where id = 'lev-2-test'`), /check constraint/);
+  await q(`delete from comics where id in ('lev-2-test', 'press-person')`);
+  const bill = await rows(null, "select * from also_on_bill('lev-fer')");
+  assert.ok(bill.every((b) => b.handle), "shared bills link by address");
+});

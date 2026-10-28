@@ -267,6 +267,46 @@ begin
   end if;
 end $$;
 
+/* ---------------- the address: comictable.com/<handle> ---------------- */
+-- One rule for everyone: the handle is the comic's full name, lowercase, with dashes ("Lev Fer" → lev-fer).
+-- Made automatically and never typed by hand. A second "Lev Fer" gets lev-fer-2. It stays put if the name
+-- changes later, so shared links keep working. Old links that used a comic's id still work too.
+alter table comics add column if not exists handle text;
+create or replace function public.coaster_handle(p_name text, p_id text default null) returns text
+language plpgsql stable security definer set search_path = public as $$
+declare base text := left(public.comic_slug(p_name), 60); h text; n int := 1;
+begin
+  if base in ('login', 'dashboard', 'admin', 'press', 'join', 'brand', 'fonts', 'themes', 'embed', 'sdk', 'api', 'app',
+              'about', 'pricing', 'help', 'privacy', 'terms', 'coaster', 'coasters', 'c', 'u', 'www', 'index') then base := base || '-comic'; end if;
+  h := base;
+  while exists (select 1 from comics where lower(handle) = h and id is distinct from p_id) loop n := n + 1; h := base || '-' || n; end loop;
+  return h;
+end $$;
+do $$
+declare r record;
+begin
+  for r in select id, name from comics where handle is null order by created_at, id loop
+    update comics set handle = public.coaster_handle(r.name, r.id) where id = r.id;
+  end loop;
+end $$;
+create unique index if not exists comics_handle on comics (lower(handle));
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'comics_handle_check') then
+    alter table comics add constraint comics_handle_check check (handle ~ '^[a-z0-9][a-z0-9-]{0,63}$');
+  end if;
+end $$;
+create or replace function public.comic_handle_default() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.handle is null or new.handle = '' then new.handle := public.coaster_handle(new.name, new.id); end if;
+  if tg_op = 'UPDATE' and new.handle is distinct from old.handle and auth.uid() is not null and not public.is_platform_owner() then
+    raise exception 'Coaster addresses are set by ComicTable.' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+drop trigger if exists comics_handle_default on comics;
+create trigger comics_handle_default before insert or update of handle on comics for each row execute function public.comic_handle_default();
+
 /* ---------------- a photo just for one site ---------------- */
 alter table hosts add column if not exists own_photo boolean not null default false;
 
@@ -288,10 +328,11 @@ grant select, insert, delete on coaster_requests to authenticated;
 /* ---------------- also on the bill ---------------- */
 -- For each upcoming date of one comic: the other comics at the same club on the same night.
 -- Both comics have to leave "on_bills" on. No tagging: it comes from dates they each added.
+drop function if exists public.also_on_bill(text);
 create or replace function public.also_on_bill(p_comic text)
-returns table (show_id uuid, comic_id text, name text, photo_url text)
+returns table (show_id uuid, comic_id text, name text, photo_url text, handle text)
 language sql stable security definer set search_path = public as $$
-  select distinct s1.id, c2.id, c2.name, c2.photo_url
+  select distinct s1.id, c2.id, c2.name, c2.photo_url, c2.handle
   from shows s1
   join comics c1 on c1.id = p_comic and c1.on_bills
   join shows s2 on s2.date = s1.date and s2.venue_id = s1.venue_id and s2.id <> s1.id
@@ -301,7 +342,7 @@ language sql stable security definer set search_path = public as $$
     and coalesce(s1.status, '') <> 'cancelled' and coalesce(s2.status, '') <> 'cancelled'
   union
   -- a show event with a lineup: everyone else in it
-  select s1.id, c2.id, c2.name, c2.photo_url
+  select s1.id, c2.id, c2.name, c2.photo_url, c2.handle
   from shows s1
   join comics c1 on c1.id = p_comic and c1.on_bills
   join comics c2 on c2.on_bills and c2.id <> p_comic and c2.id = any (s1.lineup)

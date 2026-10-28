@@ -198,15 +198,13 @@ footer a { font-weight: 700; text-decoration: none; }
   }
   if (!id || !CFG.SUPABASE_URL) return notFound();
 
-  // Find the comic by their address, or by name ("lev-fer" finds Lev Fer even if his address is "lev"), then load the rest.
-  api("comics?select=*&id=eq." + encodeURIComponent(id)).then(function (rows) {
-    if (rows && rows.length) return rows;
-    return api("comics?select=*&limit=2&name=ilike." + encodeURIComponent(id.replace(/-+/g, " "))).then(function (byName) {
-      if (!byName || byName.length !== 1) return [];
-      id = byName[0].id; here = location.origin + "/" + id;
-      try { if (/^\/[^/]+\/?$/.test(location.pathname)) history.replaceState(null, "", "/" + id); } catch (e) {}
-      return byName;
-    }, function () { return []; });
+  // Find the comic by their address (comictable.com/lev-fer), or by an old link that used their id.
+  var who = function (col) { return api("comics?select=*&" + col + "=eq." + encodeURIComponent(id)).catch(function () { return []; }); };
+  who("handle").then(function (rows) { return rows && rows.length ? rows : who("id"); }).then(function (rows) {
+    var c = rows && rows[0];
+    if (c) { id = c.id; var addr = c.handle || c.id; here = location.origin + "/" + addr;
+      try { if (/^\/[^/]+\/?$/.test(location.pathname) && location.pathname.replace(/\//g, "") !== addr) history.replaceState(null, "", "/" + addr); } catch (e) {} }
+    return rows || [];
   }).then(function (found) { return Promise.all([
     found,
     api("rpc/comic_shows", { p_comic: id }).catch(function () { return []; }),
@@ -269,7 +267,7 @@ footer a { font-weight: 700; text-decoration: none; }
     var qrTo = fanSite ? (fanSite.domain ? "https://" + fanSite.domain + "/join" : location.origin + "/join/" + encodeURIComponent(fanSite.id)) : here;
     var front = el("div", { class: "face front" }, el("div", { class: "print" }, [
       safe(c.photo_url) ? el("img", { src: c.photo_url, alt: "" }) : el("div", { class: "initials", text: initials(c.name) }),
-      el("div", { class: "band" }, [el("b", { text: c.name }), el("span", { text: "comictable.com/" + c.id })])]));
+      el("div", { class: "band" }, [el("b", { text: c.name }), el("span", { text: "comictable.com/" + (c.handle || c.id) })])]));
     var qr = el("div", { class: "qr" });
     var back = el("div", { class: "face back" }, el("div", { class: "print" }, [
       el("span", { class: "k", text: fanSite ? "Join " + first + "'s list" : first + "'s Coaster" }), qr,
@@ -321,7 +319,7 @@ footer a { font-weight: 700; text-decoration: none; }
             el("div", { class: "hint", text: [d.city, niceTime(d.time), d.event && d.site_name && d.venue ? d.site_name : ""].filter(Boolean).join(" · ") })]),
             d.status === "few_left" ? el("span", { class: "pill hot", text: "Few left" }) : null]),
           others.length ? el("div", { class: "bill" }, [el("span", { text: "Also on the bill" })].concat(others.map(function (o) {
-            return el("a", { class: "mini", href: "/" + encodeURIComponent(o.comic_id) }, [el("i", null, safe(o.photo_url) ? el("img", { src: o.photo_url, alt: "" }) : el("em", { text: initials(o.name) })), el("span", { text: o.name })]);
+            return el("a", { class: "mini", href: "/" + encodeURIComponent(o.handle || o.comic_id) }, [el("i", null, safe(o.photo_url) ? el("img", { src: o.photo_url, alt: "" }) : el("em", { text: initials(o.name) })), el("span", { text: o.name })]);
           }))) : null,
           act ? el("div", null, act) : null])]);
     };
