@@ -57,6 +57,8 @@ a { color: inherit; }
 .band { position: absolute; left: 0; right: 0; bottom: 0; height: 36%; background: var(--ring); color: var(--band-ink, var(--pulp)); display: grid; align-content: start; justify-items: center; padding-top: 10px; text-align: center; }
 .band b { font: 900 clamp(22px, 8vw, 34px)/.95 var(--ct-display, sans-serif); text-transform: uppercase; letter-spacing: .01em; max-width: 78%; overflow-wrap: anywhere; }
 .band span { margin-top: 5px; font: 700 9.5px/1 var(--ct-sans, sans-serif); letter-spacing: .2em; text-transform: uppercase; opacity: .85; }
+.photo-color .print img { filter: none; mix-blend-mode: normal; }
+.no-band .band { background: linear-gradient(transparent, rgba(0,0,0,.65)); color: #fff; height: 40%; align-content: end; padding: 0 0 18%; }
 .back { transform: rotateY(180deg); }
 .back .print { display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; color: var(--print); padding: 0 14%; }
 .back .k { font: 800 11px/1.25 var(--ct-sans, sans-serif); letter-spacing: .16em; text-transform: uppercase; }
@@ -211,6 +213,24 @@ footer a { font-weight: 700; text-decoration: none; }
     app.replaceChildren(el("div", { class: "empty" }, [el("h1", { text: "Couldn't load this" }), el("p", { text: "Check your connection and try again." })]));
   });
 
+  // A Custom look (comics on a site, and Pro): their own board, ink and band colors, and a one-ink or full-color photo.
+  // The page around it follows the board: light boards get a light page, dark boards a dark one.
+  function customLook(c) {
+    var st = (c.coaster && c.coaster.style) || {}, hex = function (v, d) { return /^#[0-9a-f]{6}$/i.test(v || "") ? v : d; };
+    var lum = function (h) { var n = parseInt(h.slice(1), 16), f = function (x) { x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); };
+      return .2126 * f(n >> 16 & 255) + .7152 * f(n >> 8 & 255) + .0722 * f(n & 255); };
+    var pulp = hex(st.pulp, "#F4ECDC"), dark = lum(pulp) < .25;
+    var ink = hex(st.ink, dark ? "#F3EAD7" : "#1F1F1F"), band = hex(st.band, "#C4452E");
+    document.body.className = "look-" + (dark ? "night" : "classic");
+    var b = document.body.style;
+    b.setProperty("--pulp", pulp); b.setProperty("--print", ink); b.setProperty("--ring", band);
+    b.setProperty("--band-ink", lum(band) > .4 ? "#1F1F1F" : "#FFFFFF");
+    b.setProperty("--accent", band); b.setProperty("--on-accent", lum(band) > .4 ? "#1F1F1F" : "#FFFFFF");
+    b.setProperty("--photo-blend", st.photo === "color" ? "normal" : dark ? "screen" : "multiply");
+    if (st.photo === "color") document.body.classList.add("photo-color");
+    if (st.band === "none") document.body.classList.add("no-band");
+  }
+
   // A QR code back to this Coaster (made in the browser; the maker loads only when the coaster is flipped).
   var qrLoad = null;
   function qrInto(box, text) {
@@ -229,6 +249,7 @@ footer a { font-weight: 700; text-decoration: none; }
   function draw(c, dates, bill, sites) {
     var look = LOOKS.indexOf(c.look) >= 0 ? c.look : "classic";
     document.body.className = "look-" + look;
+    if (c.look === "custom") customLook(c);
     document.title = c.name + " · ComicTable";
     var parts = [], next = dates[0];
 

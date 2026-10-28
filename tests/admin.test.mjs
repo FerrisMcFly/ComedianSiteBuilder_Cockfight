@@ -961,3 +961,32 @@ test("Coasters: a lineup card says whose Coaster it uses, and can keep a photo j
   assert.equal(host.photo_url, "https://p/lev-cockfight.jpg", "this site keeps its photo");
   assert.ok(!db.comics.find((c) => c.id === "lev-fer").photo_url, "his Coaster photo isn't touched");
 });
+
+test("Coasters: Custom colors for comics on a site; Pro is ComicTable's switch", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => {
+    db.comics.forEach((c) => Object.assign(c, { look: "classic", on_bills: true, coaster: {}, pro: false }));
+  });
+  await wait(80);
+  // Daniel isn't on a site: Custom is locked
+  [...d.querySelectorAll(".comic-card")].find((b) => /Daniel/.test(b.textContent)).click(); await wait(120);
+  let card = d.querySelector(".coaster-card");
+  assert.ok(card.querySelector('[data-look="custom"]').disabled);
+  assert.match(card.textContent, /come with a site/);
+  // ComicTable admin switches Pro on: unlocked
+  const pro = card.querySelector('input[aria-label="Pro"]'); pro.checked = true; pro.dispatchEvent(new w.Event("change")); await wait(40);
+  assert.equal(db.comics.find((c) => c.id === "daniel-bridge-gadd").pro, true);
+  assert.ok(!card.querySelector('[data-look="custom"]').disabled);
+  // Lev is on Cockfight: Custom with his own colors and a full-color photo
+  btn(d, /All Coasters/).click(); await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  card = d.querySelector(".coaster-card");
+  card.querySelector('[data-look="custom"]').click();
+  assert.ok(!card.querySelector(".custom-look").hidden);
+  set(w, card.querySelector('input[aria-label="Board color"]'), "#101010");
+  btn(d, /^Full color$/, card).click();
+  card.querySelector("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  const lev = db.comics.find((c) => c.id === "lev-fer");
+  assert.equal(lev.look, "custom");
+  assert.deepEqual(JSON.parse(JSON.stringify(lev.coaster.style)), { pulp: "#101010", ink: "#1F1F1F", band: "#C4452E", photo: "color" });
+  assert.equal(lev.coaster.next, "front", "what's-on-it choices are kept alongside");
+});

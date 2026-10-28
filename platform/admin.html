@@ -262,15 +262,22 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .vid.hidden img { opacity: .35; }
 .comic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 14px; }
 .coaster-edit { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 20px; align-items: center; }
-.mini-coaster { width: 132px; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; transform: rotate(-4deg);
-  background: repeating-conic-gradient(var(--ring) 0 5deg, var(--pulp) 5deg 10deg); padding: 12px; box-shadow: 0 8px 18px rgba(0,0,0,.22); transition: background .2s; }
-.mini-coaster img, .mini-coaster b { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: var(--pulp); border: 6px solid var(--pulp); outline: 2px solid var(--print); outline-offset: -8px; display: grid; place-items: center; color: var(--print); font-size: 30px; }
+.mini-coaster { position: relative; width: 132px; aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--pulp); border: 7px solid var(--pulp);
+  box-shadow: 0 3px 0 rgba(0,0,0,.18), 0 10px 18px -4px rgba(0,0,0,.3), inset 0 0 0 1px rgba(0,0,0,.08); transition: background .2s; }
+.mini-coaster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 25%; filter: grayscale(1) contrast(1.2); mix-blend-mode: multiply; }
+.mini-coaster b { position: absolute; inset: 0 0 34%; display: grid; place-items: center; color: var(--print); font-size: 34px; }
+.mini-coaster::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34%; background: var(--ring); }
 .looks { display: flex; flex-wrap: wrap; gap: 8px; }
 .looks button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); border-radius: 999px; padding: 5px 12px 5px 5px; font: inherit; font-weight: 650; cursor: pointer; min-height: 36px; }
 .looks button[aria-pressed="true"] { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
-.looks i { width: 26px; height: 26px; border-radius: 50%; background: repeating-conic-gradient(var(--ring) 0 20deg, var(--pulp) 20deg 40deg); box-shadow: inset 0 0 0 7px var(--pulp); }
+.looks i { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(var(--pulp) 62%, var(--ring) 62%); border: 3px solid var(--pulp); box-shadow: 0 0 0 1px var(--line-strong); }
 .looks small { font-size: 11px; color: var(--muted); font-weight: 600; }
 .plan .switch-row { gap: 12px; flex-wrap: wrap; }
+.mini-coaster.color img { filter: none; mix-blend-mode: normal; }
+.looks i.rainbow { background: conic-gradient(#C4452E, #E0A21A, #2E7D4F, #2F6FB5, #8D5BD6, #C4452E); border-color: var(--panel); }
+.looks button:disabled { opacity: .45; cursor: not-allowed; }
+.color-pick { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; }
+.color-pick input { width: 34px; height: 34px; padding: 0; border: 1px solid var(--line-strong); border-radius: 50%; background: none; cursor: pointer; overflow: hidden; }
 .attention { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 @media (max-width: 560px) { .coaster-edit { grid-template-columns: 1fr; justify-items: center; } }
 .comic-card { display: grid; grid-template-columns: 52px minmax(0, 1fr); grid-template-rows: auto auto; gap: 4px 12px; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; color: var(--text); font: inherit; box-shadow: var(--shadow); }
@@ -1788,16 +1795,49 @@ td select.status.st-few_left { color: var(--warn); }
       : c.name + "'s card on ComicTable: photo, Tape, next dates and links on one page. Every site they're on pulls from it." }));
     if (!ready) { card.append(h("p", { class: "hint", text: "Tape and looks appear once supabase/21_coasters.sql (in UPGRADE_V3_ALL.sql) is run." })); return card; }
     let look = c.look || "classic";
+    // Custom (their own colors) comes with a site on ComicTable, or Pro. The database checks this too.
+    let onSite = opts.onSite;
+    const canCustom = () => !!c.pro || onSite === true;
+    const style = { pulp: "#F4ECDC", ink: "#1F1F1F", band: "#C4452E", photo: "ink", ...((c.coaster && c.coaster.style) || {}) };
     const preview = h("div", { class: "mini-coaster", "aria-hidden": "true" });
+    const colorIn = (k, label) => { const i = h("input", { type: "color", value: /^#[0-9a-f]{6}$/i.test(style[k]) ? style[k] : "#C4452E", "aria-label": label });
+      i.addEventListener("input", () => { style[k] = i.value; if (k === "band") noBand.checked = false; paint(); }); return i; };
+    const noBand = h("input", { type: "checkbox", checked: style.band === "none" });
+    noBand.addEventListener("change", () => { style.band = noBand.checked ? "none" : bandIn.value; paint(); });
+    const pulpIn = colorIn("pulp", "Board color"), inkIn = colorIn("ink", "Ink color"), bandIn = colorIn("band", "Band color");
+    const photoSeg = h("div", { class: "seg", role: "group", "aria-label": "Photo" });
+    const drawPhoto = () => photoSeg.replaceChildren(...[["ink", "One ink"], ["color", "Full color"]].map(([v, t]) =>
+      h("button", { type: "button", "aria-pressed": String(style.photo === v), text: t, onclick: () => { style.photo = v; drawPhoto(); paint(); } })));
+    drawPhoto();
+    const customBox = h("div", { class: "custom-look stack", style: "gap:10px" },
+      h("div", { class: "btns" }, h("label", { class: "color-pick" }, pulpIn, "Board"), h("label", { class: "color-pick" }, inkIn, "Ink"), h("label", { class: "color-pick" }, bandIn, "Band"),
+        h("label", { class: "check" }, noBand, "No band")),
+      h("div", { class: "btns" }, h("span", { class: "hint", text: "Photo:" }), photoSeg));
+    const customNote = h("p", { class: "hint", style: "margin:0" });
     const paint = () => {
-      const L = LOOKS.find((x) => x[0] === look) || LOOKS[0];
-      preview.style.setProperty("--pulp", L[2]); preview.style.setProperty("--ring", L[3]); preview.style.setProperty("--print", L[4]);
+      const L = LOOKS.find((x) => x[0] === look);
+      const [pulp, ring, print] = L ? [L[2], L[3], L[4]] : [style.pulp, style.band === "none" ? style.ink : style.band, style.ink];
+      preview.style.setProperty("--pulp", pulp); preview.style.setProperty("--ring", ring); preview.style.setProperty("--print", print);
+      preview.classList.toggle("color", look === "custom" && style.photo === "color");
       preview.replaceChildren(c.photo_url ? h("img", { src: c.photo_url, alt: "" }) : h("b", { text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }));
       looks.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.look === look)));
+      const custBtn = looks.querySelector('[data-look="custom"]');
+      custBtn.disabled = !canCustom() && look !== "custom";
+      customBox.hidden = look !== "custom";
+      customNote.textContent = canCustom() ? "" : onSite === false ? "Custom looks (your own colors) come with a site on ComicTable." : "";
     };
-    const looks = h("div", { class: "looks", role: "group", "aria-label": "Look" }, LOOKS.map(([k, l, pulp, ring, print, tag]) =>
+    const looks = h("div", { class: "looks", role: "group", "aria-label": "Look" }, [...LOOKS.map(([k, l, pulp, ring, print, tag]) =>
       h("button", { type: "button", "data-look": k, "aria-pressed": "false", onclick: () => { look = k; paint(); } },
-        h("i", { style: `--pulp:${pulp};--ring:${ring};--print:${print}` }), h("span", { text: l }), tag ? h("small", { text: tag }) : null)));
+        h("i", { style: `--pulp:${pulp};--ring:${ring};--print:${print}` }), h("span", { text: l }), tag ? h("small", { text: tag }) : null)),
+      h("button", { type: "button", "data-look": "custom", "aria-pressed": "false", onclick: () => { if (!canCustom()) return; look = "custom"; paint(); } },
+        h("i", { class: "rainbow" }), h("span", { text: "Custom" }))]);
+    if (onSite === undefined) q(sb.from("hosts").select("id").eq("comic_id", c.id)).then((r) => { onSite = r.length > 0; paint(); }, () => {});
+    // Pro isn't sold yet; ComicTable admins can switch it on by hand
+    const proBox = S.isOwner && opts.admin ? h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Pro" }), h("div", { class: "hint", text: "Not for sale yet. Switching it on gives " + c.name.split(" ")[0] + " the Custom look without a site." })),
+      h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: !!c.pro, "aria-label": "Pro", onchange: async (e) => {
+        try { await q(sb.from("comics").update({ pro: e.target.checked }).eq("id", c.id)); c.pro = e.target.checked; paint(); toast(c.name + (c.pro ? " has Pro." : " is back on the free Coaster.")); }
+        catch (er) { e.target.checked = !e.target.checked; toast(errText(er), { bad: true }); }
+      } }), h("span"))) : null;
     const tapeUrl = h("input", { type: "url", value: c.tape_url || "", placeholder: "https://www.youtube.com/watch?v=…", "aria-label": "Tape link" });
     const tapeTitle = h("input", { value: c.tape_title || "", maxlength: "120", placeholder: "Live at the Comedy Cellar, 2026", "aria-label": "Tape title" });
     const bills = h("input", { type: "checkbox", role: "switch", checked: c.on_bills !== false, "aria-label": "Show who else is on the bill" });
@@ -1819,13 +1859,14 @@ td select.status.st-few_left { color: var(--warn); }
       if (t && !/^https:\/\//i.test(t)) { msg.textContent = "The Tape needs a full link that starts with https://"; tapeUrl.focus(); return; }
       save.disabled = true;
       const patch = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
-      if ("coaster" in c) patch.coaster = { ...plan };
+      if ("coaster" in c) patch.coaster = { ...plan, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
       try { await q(sb.from("comics").update(patch).eq("id", c.id)); Object.assign(c, patch); if (opts.me && S.me) Object.assign(S.me, patch); toast("Coaster saved."); }
       catch (er) { msg.textContent = errText(er); }
       save.disabled = false;
     } },
       h("div", { class: "coaster-edit" }, preview, h("div", { class: "stack", style: "gap:8px;min-width:0" }, h("b", { text: "Look" }), looks,
-        h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }))),
+        h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }), customBox, customNote)),
+      proBox,
       h("div", { class: "grid" }, field("The Tape: " + yours + " best set right now", tapeUrl, "c12"), field("What it is", tapeTitle, "c12")),
       h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
         h("div", { class: "hint", text: "When another comic on ComicTable has the same club on the same night, you show up on each other's dates. Nobody has to tag anyone." })),
@@ -2450,7 +2491,7 @@ td select.status.st-few_left { color: var(--warn); }
           : empty("No upcoming dates", sites.length ? "Add some, or point the show finder at their tour page." : "Put them on a site first."));
     } catch (e) { datesCard.replaceChildren(h("h2", { text: "Upcoming dates" }), h("p", { class: "err", text: errText(e) })); }
 
-    right.append(coasterCard(c));
+    right.append(coasterCard(c, { onSite: sites.length > 0, admin: true }));
     // sites
     const addSel = h("select", { "aria-label": "Add to a site", style: "max-width:240px" }, h("option", { value: "", text: "Put them on a site…" }),
       S.sites.filter((st) => !sites.some((x) => x.site_id === st.id)).sort((a, b) => a.name.localeCompare(b.name)).map((st) => h("option", { value: st.id, text: st.name })));

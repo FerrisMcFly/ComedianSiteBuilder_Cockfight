@@ -127,3 +127,15 @@ test("simple by default, with the rest under More; the comic chooses what goes w
   assert.ok(!d.querySelector(".bio"), "bio switched off");
   assert.ok(!d.querySelector("#more"), "nothing left under More, so no More button");
 });
+
+test("a Custom look: their board, ink and band colors, and a full-color photo; the page follows the board", async () => {
+  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", look: "custom", coaster: { style: { pulp: "#101820", ink: "#F2AA4C", band: "#F2AA4C", photo: "color" } } }] });
+  const b = d.body;
+  assert.match(b.className, /look-night/, "a dark board gets a dark page");
+  assert.match(b.className, /photo-color/);
+  assert.equal(b.style.getPropertyValue("--pulp"), "#101820");
+  assert.equal(b.style.getPropertyValue("--ring"), "#F2AA4C");
+  assert.equal(b.style.getPropertyValue("--band-ink"), "#1F1F1F", "dark text on a light band");
+  const bad = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", look: "custom", coaster: { style: { pulp: "red;background:url(x)" } } }] });
+  assert.equal(bad.d.body.style.getPropertyValue("--pulp"), "#F4ECDC", "only real colors get through");
+});

@@ -12,11 +12,17 @@ alter table comics add column if not exists look text not null default 'classic'
 alter table comics add column if not exists on_bills boolean not null default true;  -- show "also on the bill" both ways
 -- What the Coaster shows, and where: { "tape": "front" | "more" | "off", ... }. Anything not listed uses the default.
 alter table comics add column if not exists coaster jsonb not null default '{}'::jsonb;
+-- Pro (not sold yet): ComicTable admins switch it on by hand. Pro and comics on a site get the Custom look.
+alter table comics add column if not exists pro boolean not null default false;
 do $$
 begin
+  -- the list of looks grew (custom): replace the old check if it's there
+  if exists (select 1 from pg_constraint where conname = 'comics_coaster_check' and pg_get_constraintdef(oid) not like '%custom%') then
+    alter table comics drop constraint comics_coaster_check;
+  end if;
   if not exists (select 1 from pg_constraint where conname = 'comics_coaster_check') then
     alter table comics add constraint comics_coaster_check check (
-      look in ('classic', 'night', 'redwood', 'mustard', 'spooky', 'holiday')
+      look in ('classic', 'night', 'redwood', 'mustard', 'spooky', 'holiday', 'custom')
       and (tape_url is null or (tape_url ~* '^https://' and char_length(tape_url) <= 500))
       and char_length(coalesce(tape_title, '')) <= 120
       and jsonb_typeof(coaster) = 'object' and length(coaster::text) <= 2000);
@@ -70,3 +76,20 @@ language sql stable security definer set search_path = public as $$
   where p_comic = any (coalesce(s1.lineup, '{}')) and s1.date >= current_date and coalesce(s1.status, '') <> 'cancelled';
 $$;
 grant execute on function public.also_on_bill(text) to anon, authenticated;
+
+/* ---------------- who gets what ---------------- */
+-- Free Coasters pick a preset look. A Custom look (their own colors) comes with a site or Pro.
+-- Only ComicTable admins switch Pro on or off.
+create or replace function public.coaster_guard() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and new.pro is distinct from (case when tg_op = 'UPDATE' then old.pro else false end) and not public.is_platform_owner() then
+    raise exception 'Only ComicTable admins can change Pro.' using errcode = '42501';
+  end if;
+  if new.look = 'custom' and (tg_op = 'INSERT' or old.look is distinct from 'custom' or new.coaster->'style' is distinct from old.coaster->'style')
+     and not new.pro and not exists (select 1 from hosts where comic_id = new.id) then
+    raise exception 'Custom looks come with a site on ComicTable.' using errcode = 'P0001';
+  end if;
+  return new;
+end $$;
+drop trigger if exists comics_coaster_guard on comics;
+create trigger comics_coaster_guard before insert or update on comics for each row execute function public.coaster_guard();

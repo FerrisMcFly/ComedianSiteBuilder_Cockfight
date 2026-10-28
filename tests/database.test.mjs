@@ -426,3 +426,16 @@ test("Coasters: a Tape and a look, a site's own photo, asking a comic with a log
   assert.ok(!(await rows(null, "select * from also_on_bill('lev-fer')")).some((b) => b.comic_id === "colum-tyrrell"), "switched off, he doesn't");
   await q(`update comics set on_bills = true where id = 'colum-tyrrell'`);
 });
+
+test("Coasters: preset looks for everyone; a Custom look comes with a site or Pro; only ComicTable admins give Pro", async () => {
+  const LEV = "33333333-3333-3333-3333-333333333333", SOLO = "99999999-9999-9999-9999-999999999999", BOSS = "44444444-4444-4444-4444-444444444444";
+  await q(`insert into auth.users values ('${SOLO}', 'solo@x') on conflict do nothing`);
+  await q(`insert into comics (id, name, user_id) values ('solo-sam', 'Solo Sam', '${SOLO}') on conflict do nothing`);
+  assert.equal(await as(SOLO, `update comics set look = 'mustard' where id = 'solo-sam'`), "ok", "presets are for everyone");
+  assert.match(await as(SOLO, `update comics set look = 'custom', coaster = '{"style":{"pulp":"#ffffff"}}' where id = 'solo-sam'`), /come with a site/);
+  assert.match(await as(SOLO, `update comics set pro = true where id = 'solo-sam'`), /Only ComicTable admins/);
+  assert.equal(await as(BOSS, `update comics set pro = true where id = 'solo-sam'`), "ok");
+  assert.equal(await as(SOLO, `update comics set look = 'custom', coaster = '{"style":{"pulp":"#ffffff"}}' where id = 'solo-sam'`), "ok", "Pro gets Custom");
+  assert.equal(await as(LEV, `update comics set look = 'custom', coaster = '{"style":{"pulp":"#000000"}}' where id = 'lev-fer'`), "ok", "Lev is on a site, so he gets Custom");
+  assert.equal(await as(LEV, `update comics set bio = 'still fine' where id = 'lev-fer'`), "ok");
+});
