@@ -271,3 +271,10 @@ test("any platform a comic adds (Threads, Twitch, Spotify…) shows on the home 
   ({ d } = await load({ ...full, hosts }, "#/socials"));
   assert.match(d.querySelector(".net").textContent, /Instagram.*Threads.*Twitch/s);
 });
+
+test("on phones the date sits on its own line above the club (no overlapping text)", async () => {
+  const page = readFileSync(new URL("../sites/lev-fer/index.html", import.meta.url), "utf8");
+  const phone = page.slice(page.indexOf("@media (max-width: 520px)"));
+  assert.match(phone, /\.date \{ grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(page, /\.d b \{[^}]*white-space: nowrap/);
+});
