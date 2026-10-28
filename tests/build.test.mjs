@@ -38,3 +38,23 @@ test("the one-file database upgrade is up to date with its parts", () => {
   execFileSync("node", ["tools/bundle-upgrade.mjs"]);
   assert.equal(readFileSync("supabase/UPGRADE_V2_ALL.sql", "utf8"), before, "run node tools/bundle-upgrade.mjs");
 });
+
+test("a project only rebuilds when its own files change", () => {
+  const run = (site, files) => {
+    // make a throwaway repo with two commits so the check has something to compare
+    const dir = mkdtempSync(join(tmpdir(), "ct-sb-"));
+    const sh = (...a) => execFileSync("git", a, { cwd: dir, encoding: "utf8" });
+    sh("init", "-q"); sh("config", "user.email", "t@t"); sh("config", "user.name", "t");
+    execFileSync("bash", ["-c", "mkdir -p sites/cockfight platform/home && echo a > sites/cockfight/index.html && echo a > platform/home/index.html && git add -A && git commit -qm one"], { cwd: dir });
+    const from = sh("rev-parse", "HEAD").trim();
+    execFileSync("bash", ["-c", files.map((f) => `mkdir -p $(dirname ${f}) && echo b >> ${f}`).join(" && ") + " && git add -A && git commit -qm two"], { cwd: dir });
+    const to = sh("rev-parse", "HEAD").trim();
+    try { execFileSync("node", [new URL("../tools/should-build.mjs", import.meta.url).pathname], { cwd: dir, env: { ...process.env, SITE: site, CACHED_COMMIT_REF: from, COMMIT_REF: to }, stdio: "pipe" }); return "skip"; }
+    catch (e) { return "build"; }
+  };
+  assert.equal(run("cockfight", ["platform/home/index.html"]), "skip", "front page edits don't rebuild Cockfight");
+  assert.equal(run("platform", ["platform/home/index.html"]), "build");
+  assert.equal(run("cockfight", ["sites/cockfight/index.html"]), "build");
+  assert.equal(run("lev-fer", ["sites/cockfight/index.html"]), "skip", "Cockfight edits don't rebuild Lev's site");
+  assert.equal(run("lev-fer", ["platform/sdk/csb.js"]), "build", "the data kit is shared by every site");
+});

@@ -2,6 +2,8 @@
 # (sites/<id>/). Cockfight's project doesn't need to: it's the default.
 [build]
   command = "node tools/build.mjs"
+  # Only rebuild a project when files it uses changed (each published deploy costs Netlify credits)
+  ignore = "node tools/should-build.mjs"
   publish = "dist"
 
 [functions]
