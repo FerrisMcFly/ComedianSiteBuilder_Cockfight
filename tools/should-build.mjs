@@ -9,7 +9,7 @@ const watch = site === "platform"
   ? ["platform/", "netlify/", "tools/build.mjs", "package.json", "package-lock.json", "netlify.toml", "sites/"]   // the admin reads every site's theme.json
   // A comic's site is just its pages: the dashboard, the show finder and the hourly imports all run on
   // comictable.com, so server code (netlify/) changes only rebuild ComicTable.
-  : [`sites/${site}/`, "platform/sdk/", "platform/platform.json", "tools/build.mjs", "package.json", "package-lock.json", "netlify.toml"];
+  : [`sites/${site}/`, "platform/sdk/", "platform/home/join.html", "platform/platform.json", "tools/build.mjs", "package.json", "package-lock.json", "netlify.toml"];
 let changed;
 try { changed = execFileSync("git", ["diff", "--name-only", from, to], { encoding: "utf8" }).split("\n").filter(Boolean); }
 catch (e) { process.exit(1); } // can't tell: build to be safe

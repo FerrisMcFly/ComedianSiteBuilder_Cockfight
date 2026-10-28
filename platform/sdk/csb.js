@@ -293,9 +293,13 @@
       return api("places?select=id,name,state,country,population&name=ilike." + encodeURIComponent(q + "*") + "&order=population.desc&limit=" + (limit || 8))
         .then(function (rows) { return rows.map(function (p) { return { id: p.id, name: p.name, label: p.name + (p.state ? ", " + p.state : "") + (p.country !== "US" ? " (" + p.country + ")" : "") }; }); });
     },
-    // { email, placeId, radius: 25 | 50 | 100 | 250 } → "joined" or "updated"
+    // { email, placeId, radius: 25 | 50 | 100 | 250, met?: "where we met", source?: "site" | "qr" | "embed" } → "joined" or "updated"
+    // met and source need supabase/16_fan_signup.sql; they're only sent when given, so older databases keep working.
     join: function (o) {
-      return api("rpc/join_fans", { method: "POST", body: { p_site: cfg.site, p_email: o.email, p_place: o.placeId, p_radius: o.radius || 50 } });
+      var body = { p_site: cfg.site, p_email: o.email, p_place: o.placeId, p_radius: o.radius || 50 };
+      if (o.met) body.p_met = String(o.met).slice(0, 200);
+      if (o.source) body.p_source = o.source;
+      return api("rpc/join_fans", { method: "POST", body: body });
     },
     // For a "stop emailing me" link: ?leave=<token>
     leave: function (token) { return api("rpc/leave_fans", { method: "POST", body: { p_token: token } }); }

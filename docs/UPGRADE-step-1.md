@@ -73,6 +73,7 @@ Each new feature that needs the database changed comes with its own small file i
 | `13_me.sql` | A comic's own login sees all their dates across sites (the Me page) |
 | `14_blog.sql` | The blog |
 | `15_home_picks.sql` | Home screen picks: what a comic wants visitors to see first, set from the dashboard (Site extras → Home screen) |
+| `18_fan_signup.sql` | QR-code fan sign-up: fans can say where they met you, and the list shows who joined from a QR code |
 | `UPGRADE_V2_ALL.sql` | 07 to 14 in one paste. See `docs/GO-LIVE-v2.md` |
 
 ## If something goes wrong

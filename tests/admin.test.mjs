@@ -790,3 +790,19 @@ test("press kit: per comic, with bios, credits, booking contact, approved photos
   assert.ok((db.removed || []).length, "the files are deleted too");
   assert.ok(db.press_photos[0].is_primary, "there's always a primary photo left");
 });
+
+test("fan list: a sign-up QR code for the site and for each show, and where fans met you", async () => {
+  const { w, d } = await open("#fans", (db) => {
+    db.sites[0].features.fans = true;
+    db.shows.push({ id: "s9", site_id: "cockfight", host: "lev", date: fri, time: "7:30 PM", venue: "Laugh Boston", city: "Boston, MA", venue_id: "v1", status: "on_sale" });
+    db.fans = [{ id: "f1", site_id: "cockfight", email: "a@x.com", city: "Boston", state: "MA", radius_mi: 50, met_at: "Merch table, Boston", source: "qr", created_at: new Date().toISOString() }];
+  });
+  await wait(60);
+  const main = d.querySelector("main");
+  assert.match(main.textContent, /Sign-up QR code.*https:\/\/cockfightpodcast\.com\/join/s);
+  btn(d, /^QR for this show$/).click(); await wait();
+  assert.match(main.querySelector(".qr-inline").textContent, /cockfightpodcast\.com\/join\?show=s9/);
+  assert.match(main.textContent, /a@x\.com\s*QR.*Met at: Merch table, Boston/s);
+  set(w, main.querySelector("input[type=search]"), "merch");
+  assert.match(main.querySelector(".card:last-child").textContent, /a@x\.com/);
+});
