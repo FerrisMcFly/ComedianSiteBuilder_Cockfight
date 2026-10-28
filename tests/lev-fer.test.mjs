@@ -233,3 +233,10 @@ test("social buttons are on the home screen by default, right after his links", 
   assert.match(blocks[i - 1].textContent, /Merch/);
   assert.equal(blocks[i].querySelector("a").getAttribute("href"), "https://instagram.com/test");
 });
+
+test("no page ever shows the word null (a heading without a subtitle, About without a title)", async () => {
+  for (const hash of ["", "#/about", "#/shows", "#/socials"]) {
+    const { d } = await load({ ...full, hosts: [{ ...full.hosts[0], title: null }] }, hash);
+    assert.doesNotMatch(d.getElementById("app").textContent, /\bnull\b|undefined/, hash || "home");
+  }
+});
