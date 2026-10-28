@@ -373,6 +373,18 @@
     return list;
   }
 
-  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
+  // What a Coaster can show, and where it goes unless the comic moves it: "front" (on the Coaster), "more" (under More), "off".
+  var COASTER_ITEMS = [
+    ["next", "Next show", "front", "Your next date, with a ticket button"], ["links", "Your sites", "front", "Buttons to the sites you're on, and your website"],
+    ["socials", "Social links", "front", "Instagram, TikTok and the rest"], ["join", "Join my list", "front", "Fans sign up to hear when you play near them"],
+    ["tape", "The Tape", "more", "Your best set right now"], ["dates", "All dates", "more", "Every upcoming date, and who else is on the bill"],
+    ["bio", "Bio", "more", "Your short bio"], ["booking", "Booking", "more", "Your booking email"], ["press", "Press kit", "more", "Photos and bios for clubs"]];
+  function coasterPlan(c) {
+    var set = (c && c.coaster && typeof c.coaster === "object") ? c.coaster : {}, out = {};
+    COASTER_ITEMS.forEach(function (x) { var v = set[x[0]]; out[x[0]] = v === "front" || v === "more" || v === "off" ? v : x[2]; });
+    return out;
+  }
+
+  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

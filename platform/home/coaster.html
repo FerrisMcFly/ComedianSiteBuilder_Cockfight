@@ -17,17 +17,17 @@
    Under it: the Tape, links, dates as ticket stubs, and who else is on the bill (tap to visit their Coaster).
    The comic picks a look; a look is a handful of colors plus the coaster's edge print. */
 :root { --bg: #F3EAD7; --card: #FBF6EA; --ink: #1F1F1F; --muted: #5E584D; --line: #E2D6BC; --accent: #C4452E; --on-accent: #fff; --chip: #EFE4CC;
-  --pulp: #F7F0DF; --print: #1F1F1F; --ring: #C4452E; --edge: repeating-conic-gradient(from 0deg, var(--ring) 0 4deg, transparent 4deg 8deg); --stain: rgba(196, 69, 46, .16); }
+  --pulp: #F7F0DF; --print: #1F1F1F; --ring: #C4452E; --edge: repeating-conic-gradient(from 0deg, var(--ring) 0 4deg, transparent 4deg 8deg); }
 body.look-night { --bg: #141414; --card: #1E1E1E; --ink: #F3EAD7; --muted: #B5AC9A; --line: #34312C; --accent: #D9583F; --on-accent: #fff; --chip: #292725;
-  --pulp: #232120; --print: #F3EAD7; --ring: #D9583F; --stain: rgba(217, 88, 63, .2); }
+  --pulp: #232120; --print: #F3EAD7; --ring: #D9583F; }
 body.look-redwood { --bg: #A93A26; --card: #B9432E; --ink: #FFF7E8; --muted: #F7D9CC; --line: #CF6049; --accent: #1F1F1F; --on-accent: #F3EAD7; --chip: #B23D29;
-  --pulp: #F3EAD7; --print: #A93A26; --ring: #1F1F1F; --stain: rgba(0, 0, 0, .18); }
+  --pulp: #F3EAD7; --print: #A93A26; --ring: #1F1F1F; }
 body.look-mustard { --bg: #E0A21A; --card: #ECB232; --ink: #1F1F1F; --muted: #4A3A12; --line: #C98F12; --accent: #1F1F1F; --on-accent: #F3EAD7; --chip: #E7AA27;
-  --pulp: #1F1F1F; --print: #E0A21A; --ring: #E0A21A; --stain: rgba(0, 0, 0, .14); }
+  --pulp: #1F1F1F; --print: #E0A21A; --ring: #E0A21A; }
 body.look-spooky { --bg: #120E18; --card: #1C1624; --ink: #F4EBDD; --muted: #B6A9C2; --line: #352A44; --accent: #F07C1F; --on-accent: #120E18; --chip: #271F33;
-  --pulp: #1E1726; --print: #F07C1F; --ring: #8D5BD6; --edge: repeating-conic-gradient(from 0deg, #F07C1F 0 6deg, #8D5BD6 6deg 12deg); --stain: rgba(240, 124, 31, .22); }
+  --pulp: #1E1726; --print: #F07C1F; --ring: #8D5BD6; --edge: repeating-conic-gradient(from 0deg, #F07C1F 0 6deg, #8D5BD6 6deg 12deg); }
 body.look-holiday { --bg: #17321F; --card: #1E3F28; --ink: #FBF3E4; --muted: #C9D8C3; --line: #2F5A3B; --accent: #D9443A; --on-accent: #fff; --chip: #24492F;
-  --pulp: #FBF3E4; --print: #17321F; --ring: #D9443A; --edge: repeating-conic-gradient(from 0deg, #D9443A 0 5deg, #FBF3E4 5deg 10deg); --stain: rgba(217, 68, 58, .2); }
+  --pulp: #FBF3E4; --print: #17321F; --ring: #D9443A; --edge: repeating-conic-gradient(from 0deg, #D9443A 0 5deg, #FBF3E4 5deg 10deg); }
 * { box-sizing: border-box; }
 html { background: var(--bg); }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--ct-sans, Inter, system-ui, sans-serif); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
@@ -38,11 +38,8 @@ a { color: inherit; }
 
 /* ---------- the coaster ---------- */
 .table { position: relative; display: grid; place-items: center; padding: 26px 0 8px; }
-.table::before { /* a ring left by a glass, because it's a coaster */
-  content: ""; position: absolute; width: min(78vw, 330px); aspect-ratio: 1; border-radius: 50%; left: 50%; top: 50%;
-  transform: translate(-38%, -58%); border: 10px solid var(--stain); filter: blur(1.5px); pointer-events: none; }
-.coaster { position: relative; width: min(80vw, 340px); aspect-ratio: 1; perspective: 1200px; border: 0; padding: 0; background: none; cursor: pointer; color: inherit; transform: rotate(-4deg); transition: transform .3s; }
-.coaster:hover { transform: rotate(-2deg) scale(1.01); }
+.coaster { position: relative; width: min(74vw, 300px); aspect-ratio: 1; perspective: 1200px; border: 0; padding: 0; background: none; cursor: pointer; color: inherit; transition: transform .3s; }
+.coaster:hover { transform: scale(1.015); }
 .coaster .spin { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3, 1.4, .5, 1); }
 .coaster.flipped .spin { transform: rotateY(180deg); }
 .face { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
@@ -71,13 +68,17 @@ h1 { font: 900 clamp(38px, 11vw, 56px)/1 var(--ct-display, sans-serif); margin: 
 .title { margin: 6px 0 0; color: var(--muted); font-weight: 600; }
 .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; background: var(--chip); border-radius: 999px; padding: 6px 13px; font-size: 14px; font-weight: 600; }
 .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-.bio { margin: 14px auto 0; white-space: pre-wrap; max-width: 46ch; }
+.bio { margin: 0; white-space: pre-wrap; }
 .socials { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
 .socials a { text-decoration: none; background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 7px 13px; font-size: 14px; font-weight: 600; }
 .socials a:hover { border-color: var(--ink); }
 
 /* ---------- buttons ---------- */
-.links { display: grid; gap: 10px; margin-top: 20px; }
+.links { display: grid; gap: 10px; margin-top: 14px; }
+.who + .socials, .who + * { margin-top: 16px; }
+.more-btn { margin-top: 18px; background: var(--chip); border-color: var(--line); }
+.more { border-top: 1.5px dashed var(--line); margin-top: 18px; padding-top: 4px; }
+.more > h2:first-child, .more > section:first-child h2 { margin-top: 18px; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .btn { display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center; text-decoration: none; font: 700 16px/1.2 var(--ct-sans, Inter, sans-serif);
   padding: 15px 16px; border-radius: 12px; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; width: 100%; }
@@ -253,71 +254,103 @@ footer a { font-weight: 700; text-decoration: none; }
     var tap = el("div", { class: "tap", text: "Tap the coaster to flip it" });
     parts.push(el("section", { class: "table" }, [coaster, tap]));
 
-    // ---- who ----
+    // The comic decides what's on the Coaster itself ("front"), what's under More, and what's off.
+    var plan = CSB.coasterPlan ? CSB.coasterPlan(c) : {}, front = [], more = [], frontBtns = [], moreBtns = [];
+    var put = function (key, node) { if (!node) return; var w = plan[key] || "front"; if (w === "front") front.push(node); else if (w === "more") more.push(node); };
+    var putBtn = function (key, node) { if (!node) return; var w = plan[key] || "front"; if (w === "front") frontBtns.push(node); else if (w === "more") moreBtns.push(node); };
+
+    // ---- who (always) ----
+    parts.push(el("section", { class: "who" }, [el("h1", { text: c.name }), c.title ? el("p", { class: "title", text: c.title }) : null,
+      c.status ? el("div", { class: "status", text: c.status }) : null]));
+
     var so = CSB.socialsOf ? CSB.socialsOf(c) : {};
     var socials = (CSB.SOCIALS || []).filter(function (x) { return so[x[0]] && x[0] !== "website"; });
-    var bio = String(c.short_bio || c.bio || "").trim();
-    parts.push(el("section", { class: "who" }, [el("h1", { text: c.name }), c.title ? el("p", { class: "title", text: c.title }) : null,
-      c.status ? el("div", { class: "status", text: c.status }) : null, bio ? el("p", { class: "bio", text: bio }) : null,
-      socials.length ? el("nav", { class: "socials", "aria-label": "Social links" }, socials.map(function (x) { return el("a", { href: so[x[0]], target: "_blank", rel: "noopener me", text: x[1] }); })) : null]));
+    put("socials", socials.length ? el("nav", { class: "socials", "aria-label": "Social links" }, socials.map(function (x) { return el("a", { href: so[x[0]], target: "_blank", rel: "noopener me", text: x[1] }); })) : null);
 
     // ---- links ----
     var links = [];
     sites.filter(function (s) { return s.domain; }).forEach(function (s) { links.push(el("a", { class: "btn" + (links.length ? "" : " main"), href: "https://" + s.domain, text: s.name === c.name ? s.domain : s.name })); });
-    if (safe(so.website)) links.push(el("a", { class: "btn", href: so.website, target: "_blank", rel: "noopener", text: "Website" }));
+    if (safe(so.website)) links.push(el("a", { class: "btn" + (links.length ? "" : " main"), href: so.website, target: "_blank", rel: "noopener", text: "Website" }));
+    put("links", links.length ? el("nav", { class: "links", "aria-label": "Links" }, links) : null);
+
+    var fanSite = sites.filter(function (s) { return s.features && s.features.fans; }).sort(function (a, b) { return (b.name === c.name) - (a.name === c.name); })[0];
+    if (fanSite) {
+      var joinBox = joinForm(c, fanSite);
+      var joinBtn = el("button", { class: "btn", type: "button", text: "Join my list", "aria-expanded": "false", onclick: function () {
+        joinBox.hidden = !joinBox.hidden; joinBtn.setAttribute("aria-expanded", String(!joinBox.hidden)); if (!joinBox.hidden) joinBox.querySelector("input").focus();
+      } });
+      put("join", el("div", { class: "links" }, [joinBtn, joinBox]));
+    }
+
+    // ---- dates, and who else is on the bill ----
+    var byShow = {}; bill.forEach(function (b) { (byShow[b.show_id] = byShow[b.show_id] || []).push(b); });
+    var stub = function (d) {
+      var dt = dayOf(d), others = byShow[d.id] || [];
+      var act = d.status === "sold_out" ? el("span", { class: "pill", text: "Sold out" })
+        : safe(d.url) ? el("a", { class: "btn main sm", href: d.url, target: "_blank", rel: "noopener", text: d.status === "free" ? "Free · RSVP" : "Tickets" })
+        : d.status === "free" ? el("span", { class: "pill", text: "Free" }) : null;
+      return el("article", { class: "stub" }, [
+        el("div", { class: "cal" }, [el("span", { text: DAY[dt.getDay()] }), el("b", { text: dt.getDate() }), el("span", { class: "mo", text: MON[dt.getMonth()] })]),
+        el("div", { class: "body" }, [el("div", { class: "top" }, [el("div", { class: "where" }, [el("b", { text: d.venue || (d.event ? d.site_name : "") || "Show" }),
+            el("div", { class: "hint", text: [d.city, niceTime(d.time), d.event && d.site_name && d.venue ? d.site_name : ""].filter(Boolean).join(" · ") })]),
+            d.status === "few_left" ? el("span", { class: "pill hot", text: "Few left" }) : null]),
+          others.length ? el("div", { class: "bill" }, [el("span", { text: "Also on the bill" })].concat(others.map(function (o) {
+            return el("a", { class: "mini", href: "/" + encodeURIComponent(o.comic_id) }, [el("i", null, safe(o.photo_url) ? el("img", { src: o.photo_url, alt: "" }) : el("em", { text: initials(o.name) })), el("span", { text: o.name })]);
+          }))) : null,
+          act ? el("div", null, act) : null])]);
+    };
+    if (next) put("next", el("section", { "aria-label": "Next show" }, [el("h2", null, ["Next up", dates.length > 1 && plan.dates !== "off" ? el("small", { text: dates.length + " shows" }) : null]), stub(next)]));
+    if (dates.length && (plan.next === "off" || dates.length > 1)) {
+      var all = plan.next === "off" ? dates : dates.slice(1);
+      if (all.length) {
+        var list = el("div", { class: "dates" }), shown = 6;
+        var moreDates = el("button", { class: "btn", type: "button", style: "margin-top:12px", text: "All " + all.length + " dates", onclick: function () { shown = all.length; fill(); } });
+        var fill = function () { list.replaceChildren.apply(list, all.slice(0, shown).map(stub)); moreDates.hidden = all.length <= shown; };
+        fill();
+        put("dates", el("section", { "aria-label": "Dates" }, [el("h2", null, [plan.next === "off" ? "Dates" : "After that", el("small", { text: all.length + (all.length === 1 ? " show" : " shows") })]), list, moreDates]));
+      }
+    }
+
+    // ---- the Tape ----
+    var tape = safe(c.tape_url);
+    if (tape) {
+      var embed = CSB.videoEmbed ? CSB.videoEmbed(tape) : "", yt = (tape.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/) || [])[1];
+      var tapeBox = el("section", { class: "tape", "aria-label": "The Tape" }, el("h2", null, ["The Tape", el("small", { text: "Best set right now" })]));
+      if (embed) {
+        var frame = el("div", { class: "frame" }, [yt ? el("img", { src: "https://i.ytimg.com/vi/" + yt + "/hqdefault.jpg", alt: "" }) : null,
+          el("button", { class: "play", type: "button", "aria-label": "Play " + (c.tape_title || "the Tape"), onclick: function () {
+            frame.replaceChildren(el("iframe", { src: embed, title: c.tape_title || c.name + "'s Tape", allow: "autoplay; encrypted-media; picture-in-picture", allowfullscreen: true }));
+          } }, el("span", { text: "▶ Watch" }))]);
+        tapeBox.append(frame); if (c.tape_title) tapeBox.append(el("div", { class: "cap", text: c.tape_title }));
+      } else tapeBox.append(el("a", { class: "btn main", href: tape, target: "_blank", rel: "noopener", text: "▶ " + (c.tape_title || "Watch the Tape") }));
+      put("tape", tapeBox);
+    }
+
+    var bio = String(c.short_bio || c.bio || "").trim();
+    put("bio", bio ? el("section", { "aria-label": "Bio" }, [el("h2", { text: "About" }), el("p", { class: "bio", text: bio })]) : null);
+
     var booking = String(c.booking_contact || "").trim(), mail = (booking.match(/[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+/) || [])[0];
+    putBtn("booking", mail ? el("a", { class: "btn", href: "mailto:" + mail, text: "Booking" }) : null);
+    putBtn("press", el("a", { class: "btn", href: "/press/" + encodeURIComponent(c.id), text: "Press kit" }));
     var share = el("button", { class: "btn", type: "button", text: "Share", onclick: function () {
       var d = { title: c.name, text: c.name + " on ComicTable", url: here };
       if (navigator.share) navigator.share(d).catch(function () {});
       else if (navigator.clipboard) navigator.clipboard.writeText(here).then(function () { toast("Link copied"); }, function () { toast(here); });
       else toast(here);
     } });
-    var fanSite = sites.filter(function (s) { return s.features && s.features.fans; }).sort(function (a, b) { return (b.name === c.name) - (a.name === c.name); })[0];
-    var joinBox = fanSite ? joinForm(c, fanSite) : null;
-    var joinBtn = joinBox ? el("button", { class: "btn" + (links.length ? "" : " main"), type: "button", text: "Join my list", "aria-expanded": "false", onclick: function () {
-      joinBox.hidden = !joinBox.hidden; joinBtn.setAttribute("aria-expanded", String(!joinBox.hidden)); if (!joinBox.hidden) joinBox.querySelector("input").focus();
-    } }) : null;
-    parts.push(el("nav", { class: "links", "aria-label": "Links" }, links.concat([joinBtn, joinBox,
-      el("div", { class: "row2" }, [mail ? el("a", { class: "btn", href: "mailto:" + mail, text: "Booking" }) : null, el("a", { class: "btn", href: "/press/" + encodeURIComponent(c.id), text: "Press kit" }), mail ? null : share]),
-      mail ? share : null])));
+    frontBtns.push(share);
+    var row = function (btns) { return btns.length ? el("div", { class: btns.length > 1 ? "row2 links" : "links" }, btns) : null; };
 
-    // ---- the Tape ----
-    var tape = safe(c.tape_url);
-    if (tape) {
-      var embed = CSB.videoEmbed ? CSB.videoEmbed(tape) : "", yt = (tape.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/) || [])[1];
-      parts.push(el("h2", null, ["The Tape", el("small", { text: "Their best set right now" })]));
-      if (embed) {
-        var frame = el("div", { class: "frame" }, [yt ? el("img", { src: "https://i.ytimg.com/vi/" + yt + "/hqdefault.jpg", alt: "" }) : null,
-          el("button", { class: "play", type: "button", "aria-label": "Play " + (c.tape_title || "the Tape"), onclick: function () {
-            frame.replaceChildren(el("iframe", { src: embed, title: c.tape_title || c.name + "'s Tape", allow: "autoplay; encrypted-media; picture-in-picture", allowfullscreen: true }));
-          } }, el("span", { text: "▶ Watch" }))]);
-        parts.push(el("section", { class: "tape", "aria-label": "Tape" }, [frame, c.tape_title ? el("div", { class: "cap", text: c.tape_title }) : null]));
-      } else parts.push(el("section", { class: "tape" }, el("a", { class: "btn main", href: tape, target: "_blank", rel: "noopener", text: "▶ " + (c.tape_title || "Watch the Tape") })));
-    }
-
-    // ---- dates, and who else is on the bill ----
-    var byShow = {}; bill.forEach(function (b) { (byShow[b.show_id] = byShow[b.show_id] || []).push(b); });
-    if (dates.length) {
-      var list = el("div", { class: "dates" }), shown = 6;
-      var stub = function (d) {
-        var dt = dayOf(d), others = byShow[d.id] || [];
-        var act = d.status === "sold_out" ? el("span", { class: "pill", text: "Sold out" })
-          : safe(d.url) ? el("a", { class: "btn main sm", href: d.url, target: "_blank", rel: "noopener", text: d.status === "free" ? "Free · RSVP" : "Tickets" })
-          : d.status === "free" ? el("span", { class: "pill", text: "Free" }) : null;
-        return el("article", { class: "stub" }, [
-          el("div", { class: "cal" }, [el("span", { text: DAY[dt.getDay()] }), el("b", { text: dt.getDate() }), el("span", { class: "mo", text: MON[dt.getMonth()] })]),
-          el("div", { class: "body" }, [el("div", { class: "top" }, [el("div", { class: "where" }, [el("b", { text: d.venue || (d.event ? d.site_name : "") || "Show" }),
-              el("div", { class: "hint", text: [d.city, niceTime(d.time), d.event && d.site_name && d.venue ? d.site_name : ""].filter(Boolean).join(" · ") })]),
-              d.status === "few_left" ? el("span", { class: "pill hot", text: "Few left" }) : null]),
-            others.length ? el("div", { class: "bill" }, [el("span", { text: "Also on the bill" })].concat(others.map(function (o) {
-              return el("a", { class: "mini", href: "/" + encodeURIComponent(o.comic_id) }, [el("i", null, safe(o.photo_url) ? el("img", { src: o.photo_url, alt: "" }) : el("em", { text: initials(o.name) })), el("span", { text: o.name })]);
-            }))) : null,
-            act ? el("div", null, act) : null])]);
-      };
-      var more = el("button", { class: "btn", type: "button", style: "margin-top:12px", text: "All " + dates.length + " dates", onclick: function () { shown = dates.length; fill(); } });
-      var fill = function () { list.replaceChildren.apply(list, dates.slice(0, shown).map(stub)); more.hidden = dates.length <= shown; };
-      parts.push(el("h2", null, ["Next dates", el("small", { text: dates.length + (dates.length === 1 ? " show" : " shows") })]), list, more);
-      fill();
+    // ---- put it together: the Coaster, then More ----
+    parts.push.apply(parts, front.concat([row(frontBtns)]).filter(Boolean));
+    var moreAll = more.concat([row(moreBtns)]).filter(Boolean);
+    if (moreAll.length) {
+      var moreBox = el("div", { class: "more", id: "more", hidden: true }, moreAll);
+      var first = c.name.split(" ")[0];
+      var moreBtn = el("button", { class: "btn more-btn", type: "button", "aria-expanded": "false", "aria-controls": "more", text: "More from " + first + " ▾", onclick: function () {
+        moreBox.hidden = !moreBox.hidden; moreBtn.setAttribute("aria-expanded", String(!moreBox.hidden)); moreBtn.textContent = moreBox.hidden ? "More from " + first + " ▾" : "Less ▴";
+      } });
+      parts.push(moreBtn, moreBox);
     }
 
     // ---- every Coaster is an invitation ----

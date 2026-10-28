@@ -10,13 +10,16 @@ alter table comics add column if not exists tape_url text;           -- a YouTub
 alter table comics add column if not exists tape_title text;         -- "Live at the Comedy Cellar, 2026"
 alter table comics add column if not exists look text not null default 'classic';
 alter table comics add column if not exists on_bills boolean not null default true;  -- show "also on the bill" both ways
+-- What the Coaster shows, and where: { "tape": "front" | "more" | "off", ... }. Anything not listed uses the default.
+alter table comics add column if not exists coaster jsonb not null default '{}'::jsonb;
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'comics_coaster_check') then
     alter table comics add constraint comics_coaster_check check (
       look in ('classic', 'night', 'redwood', 'mustard', 'spooky', 'holiday')
       and (tape_url is null or (tape_url ~* '^https://' and char_length(tape_url) <= 500))
-      and char_length(coalesce(tape_title, '')) <= 120);
+      and char_length(coalesce(tape_title, '')) <= 120
+      and jsonb_typeof(coaster) = 'object' and length(coaster::text) <= 2000);
   end if;
   -- comictable.com/<id> is the Coaster page, so a comic's id can't be one of the site's own addresses
   if not exists (select 1 from pg_constraint where conname = 'comics_id_not_reserved') then

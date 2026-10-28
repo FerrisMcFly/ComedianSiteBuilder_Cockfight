@@ -99,11 +99,11 @@ test("fans can join the comic's list from the Coaster", async () => {
   assert.match(d.querySelector(".join").textContent, /on Lev's list/);
 });
 
-test("lots of dates: six, then all of them", async () => {
+test("lots of dates: the next one, six more under More, then all of them", async () => {
   const shows = Array.from({ length: 9 }, (_, i) => ({ id: "s" + i, date: day(i + 1), venue: "Club " + i }));
   const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer" }], "rpc/comic_shows": shows });
-  assert.equal(d.querySelectorAll(".stub").length, 6);
-  [...d.querySelectorAll("button")].find((b) => /All 9 dates/.test(b.textContent)).click();
+  assert.equal(d.querySelectorAll(".stub").length, 7, "the next one up front, then six under More");
+  [...d.querySelectorAll("button")].find((b) => /All 8 dates/.test(b.textContent)).click();
   assert.equal(d.querySelectorAll(".stub").length, 9);
 });
 
@@ -111,4 +111,19 @@ test("an unknown name says so, and an unknown look falls back to classic", async
   assert.match((await load("/nobody", {})).d.body.textContent, /No one here yet/);
   const { d } = await load("/x", { comics: [{ id: "x", name: "X", look: "neon" }] });
   assert.equal(d.body.className, "look-classic");
+});
+
+test("simple by default, with the rest under More; the comic chooses what goes where", async () => {
+  const base = { id: "lev-fer", name: "Lev Fer", short_bio: "Bio here.", booking_contact: "b@x.com", tape_url: "https://www.youtube.com/watch?v=abcdefghijk", instagram: "https://instagram.com/l" };
+  let { d } = await load("/lev-fer", { comics: [base] });
+  const more = d.querySelector("#more");
+  assert.ok(more.hidden, "More starts closed");
+  assert.ok(more.querySelector(".frame") && more.querySelector(".bio"), "the Tape and bio wait under More");
+  assert.ok(!more.querySelector(".socials"), "socials are up front");
+  const btn = d.querySelector(".more-btn"); assert.equal(btn.textContent, "More from Lev ▾");
+  btn.click(); assert.ok(!more.hidden); assert.equal(btn.getAttribute("aria-expanded"), "true");
+  ({ d } = await load("/lev-fer", { comics: [{ ...base, coaster: { tape: "front", bio: "off", booking: "off", press: "off" } }] }));
+  assert.ok(d.querySelector(".frame") && !d.querySelector("#more .frame"), "Tape moved up front");
+  assert.ok(!d.querySelector(".bio"), "bio switched off");
+  assert.ok(!d.querySelector("#more"), "nothing left under More, so no More button");
 });

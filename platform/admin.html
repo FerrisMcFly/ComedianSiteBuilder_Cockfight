@@ -261,6 +261,18 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .vid .body { padding: 10px 12px; display: grid; gap: 6px; }
 .vid.hidden img { opacity: .35; }
 .comic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 14px; }
+.coaster-edit { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 20px; align-items: center; }
+.mini-coaster { width: 132px; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; transform: rotate(-4deg);
+  background: repeating-conic-gradient(var(--ring) 0 5deg, var(--pulp) 5deg 10deg); padding: 12px; box-shadow: 0 8px 18px rgba(0,0,0,.22); transition: background .2s; }
+.mini-coaster img, .mini-coaster b { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: var(--pulp); border: 6px solid var(--pulp); outline: 2px solid var(--print); outline-offset: -8px; display: grid; place-items: center; color: var(--print); font-size: 30px; }
+.looks { display: flex; flex-wrap: wrap; gap: 8px; }
+.looks button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); border-radius: 999px; padding: 5px 12px 5px 5px; font: inherit; font-weight: 650; cursor: pointer; min-height: 36px; }
+.looks button[aria-pressed="true"] { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.looks i { width: 26px; height: 26px; border-radius: 50%; background: repeating-conic-gradient(var(--ring) 0 20deg, var(--pulp) 20deg 40deg); box-shadow: inset 0 0 0 7px var(--pulp); }
+.looks small { font-size: 11px; color: var(--muted); font-weight: 600; }
+.plan .switch-row { gap: 12px; flex-wrap: wrap; }
+.attention { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+@media (max-width: 560px) { .coaster-edit { grid-template-columns: 1fr; justify-items: center; } }
 .comic-card { display: grid; grid-template-columns: 52px minmax(0, 1fr); grid-template-rows: auto auto; gap: 4px 12px; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; color: var(--text); font: inherit; box-shadow: var(--shadow); }
 .comic-card:hover { border-color: var(--line-strong); }
 .comic-card .avatar { width: 52px; height: 52px; grid-row: span 2; }
@@ -1756,6 +1768,99 @@ td select.status.st-few_left { color: var(--warn); }
      PRESS KIT: a comic's approved photos and bios, for clubs
      (belongs to the comic, so it's the same on every site they're on)
      ====================================================== */
+  /* ---------------- Coasters ---------------- */
+  // A comic's Coaster is their card on ComicTable (the comics row): comictable.com/<id>.
+  // The same editor shows on a comic's page (super admins) and on Me (the comic themselves).
+  const LOOKS = [["classic", "Classic", "#F7F0DF", "#C4452E", "#1F1F1F"], ["night", "Night", "#232120", "#D9583F", "#F3EAD7"], ["redwood", "Redwood", "#F3EAD7", "#1F1F1F", "#A93A26"],
+    ["mustard", "Mustard", "#1F1F1F", "#E0A21A", "#E0A21A"], ["spooky", "Spooky", "#1E1726", "#F07C1F", "#F07C1F", "Seasonal"], ["holiday", "Holiday", "#FBF3E4", "#D9443A", "#17321F", "Seasonal"]];
+  const coasterUrl = (id) => PRESS_HOST + "/" + encodeURIComponent(id);
+  function coasterCard(c, opts = {}) {
+    const ready = "look" in c;  // the database has 21_coasters.sql
+    const yours = opts.me ? "your" : c.name.split(" ")[0] + "'s";
+    const url = coasterUrl(c.id);
+    const card = h("section", { class: "card stack coaster-card" });
+    const headRow = h("div", { class: "toolbar" }, h("div", null, h("h2", { style: "margin:0", text: opts.me ? "Your Coaster" : "Coaster" }),
+        h("div", { class: "hint wrap-any" }, h("a", { href: url, target: "_blank", rel: "noopener", text: url.replace(/^https?:\/\//, "") }))),
+      h("div", { class: "btns" }, h("a", { class: "btn sm", href: url, target: "_blank", rel: "noopener", text: "Open ↗" }),
+        h("button", { class: "btn sm ghost", type: "button", text: "Copy link", onclick: async () => toast((await copyText(url)) ? "Coaster link copied." : "Couldn't copy. Try again.") })));
+    card.append(headRow, h("p", { class: "sub", style: "margin:0", text: opts.me
+      ? "Your card on ComicTable: your photo, Tape, next dates and links on one page. Put it in your bio. Every site you're on pulls from it."
+      : c.name + "'s card on ComicTable: photo, Tape, next dates and links on one page. Every site they're on pulls from it." }));
+    if (!ready) { card.append(h("p", { class: "hint", text: "Tape and looks appear once supabase/21_coasters.sql (in UPGRADE_V3_ALL.sql) is run." })); return card; }
+    let look = c.look || "classic";
+    const preview = h("div", { class: "mini-coaster", "aria-hidden": "true" });
+    const paint = () => {
+      const L = LOOKS.find((x) => x[0] === look) || LOOKS[0];
+      preview.style.setProperty("--pulp", L[2]); preview.style.setProperty("--ring", L[3]); preview.style.setProperty("--print", L[4]);
+      preview.replaceChildren(c.photo_url ? h("img", { src: c.photo_url, alt: "" }) : h("b", { text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }));
+      looks.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.look === look)));
+    };
+    const looks = h("div", { class: "looks", role: "group", "aria-label": "Look" }, LOOKS.map(([k, l, pulp, ring, print, tag]) =>
+      h("button", { type: "button", "data-look": k, "aria-pressed": "false", onclick: () => { look = k; paint(); } },
+        h("i", { style: `--pulp:${pulp};--ring:${ring};--print:${print}` }), h("span", { text: l }), tag ? h("small", { text: tag }) : null)));
+    const tapeUrl = h("input", { type: "url", value: c.tape_url || "", placeholder: "https://www.youtube.com/watch?v=…", "aria-label": "Tape link" });
+    const tapeTitle = h("input", { value: c.tape_title || "", maxlength: "120", placeholder: "Live at the Comedy Cellar, 2026", "aria-label": "Tape title" });
+    const bills = h("input", { type: "checkbox", role: "switch", checked: c.on_bills !== false, "aria-label": "Show who else is on the bill" });
+    // What shows on the Coaster, what waits under More, and what's off
+    const ITEMS = (window.CSB && CSB.COASTER_ITEMS) || [];
+    const plan = (window.CSB && CSB.coasterPlan) ? CSB.coasterPlan(c) : {};
+    const planRows = h("div", { class: "plan" }, ITEMS.map(([k, l, , d]) => {
+      const seg = h("div", { class: "seg", role: "group", "aria-label": l });
+      const draw = () => seg.replaceChildren(...[["front", "Up front"], ["more", "Under More"], ["off", "Off"]].map(([v, t]) =>
+        h("button", { type: "button", "aria-pressed": String(plan[k] === v), text: t, onclick: () => { plan[k] = v; draw(); } })));
+      draw();
+      return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), seg);
+    }));
+    const msg = h("div", { class: "err" });
+    const save = h("button", { class: "btn primary", type: "submit", text: "Save Coaster" });
+    const form = h("form", { class: "stack", onsubmit: async (e) => {
+      e.preventDefault(); msg.textContent = "";
+      const t = tapeUrl.value.trim();
+      if (t && !/^https:\/\//i.test(t)) { msg.textContent = "The Tape needs a full link that starts with https://"; tapeUrl.focus(); return; }
+      save.disabled = true;
+      const patch = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
+      if ("coaster" in c) patch.coaster = { ...plan };
+      try { await q(sb.from("comics").update(patch).eq("id", c.id)); Object.assign(c, patch); if (opts.me && S.me) Object.assign(S.me, patch); toast("Coaster saved."); }
+      catch (er) { msg.textContent = errText(er); }
+      save.disabled = false;
+    } },
+      h("div", { class: "coaster-edit" }, preview, h("div", { class: "stack", style: "gap:8px;min-width:0" }, h("b", { text: "Look" }), looks,
+        h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }))),
+      h("div", { class: "grid" }, field("The Tape: " + yours + " best set right now", tapeUrl, "c12"), field("What it is", tapeTitle, "c12")),
+      h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
+        h("div", { class: "hint", text: "When another comic on ComicTable has the same club on the same night, you show up on each other's dates. Nobody has to tag anyone." })),
+        h("label", { class: "switch" }, bills, h("span"))),
+      "coaster" in c ? h("div", { class: "stack", style: "gap:4px" }, h("b", { text: "What's on it" }),
+        h("p", { class: "hint", style: "margin:0", text: "Keep it simple: a few things up front. Fans tap More for the rest." }), planRows) : null,
+      msg, h("div", { class: "btns" }, save, h("a", { class: "btn ghost", href: url, target: "_blank", rel: "noopener", text: "See it ↗" })));
+    card.append(form);
+    paint();
+    return card;
+  }
+  // A site asks before adding a comic who has their own login. They answer on Me.
+  async function askForComic(c, siteId) {
+    await q(sb.from("coaster_requests").insert({ comic_id: c.id, site_id: siteId, requested_by: S.uid }));
+    toast("Asked " + c.name.split(" ")[0] + ". They'll be added when they say yes.");
+  }
+  const needsAsk = (c) => !!c.user_id && c.user_id !== S.uid && !S.isOwner;
+  async function requestsCard(me) {
+    let reqs = [];
+    try { reqs = await q(sb.from("coaster_requests").select("*").eq("comic_id", me.id).eq("status", "pending").order("created_at", { ascending: true })); } catch (e) { return null; }
+    if (!reqs.length) return null;
+    const names = {};
+    try { (await q(sb.from("sites").select("id, name, domain").in("id", reqs.map((r) => r.site_id)))).forEach((x) => (names[x.id] = x)); } catch (e) {}
+    return h("section", { class: "card stack attention" }, h("h2", { style: "margin:0", text: reqs.length === 1 ? "A site wants to add you" : reqs.length + " sites want to add you" }),
+      h("p", { class: "sub", style: "margin:0", text: "Say yes and your Coaster (photo, bio, socials, dates and videos) shows on their site. You can ask them to take you off any time." }),
+      h("div", null, reqs.map((r) => { const st = names[r.site_id] || { name: r.site_id };
+        return h("div", { class: "switch-row" }, h("div", null, h("b", { text: st.name }), h("div", { class: "hint", text: st.domain || "No web address yet" })),
+          h("div", { class: "btns" }, ...[["Say yes", true, "btn primary sm"], ["No thanks", false, "btn ghost sm"]].map(([l, yes, cls]) => h("button", { class: cls, type: "button", text: l, onclick: async (e) => {
+            e.currentTarget.disabled = true;
+            try { await q(sb.rpc("answer_coaster_request", { p_id: r.id, p_yes: yes })); toast(yes ? "You're on " + st.name + " now." : "Said no to " + st.name + "."); route(); }
+            catch (er) { toast(errText(er), { bad: true }); e.currentTarget.disabled = false; }
+          } }))));
+      })));
+  }
+
   const PRESS_HOST = CFG.PLATFORM && /^https:/.test(location.origin) ? location.origin : "https://comictable.com";
   const pressLink = (comicId) => PRESS_HOST + "/press/" + encodeURIComponent(comicId);
   const words = (s) => (String(s || "").trim().match(/\S+/g) || []).length;
@@ -2101,8 +2206,13 @@ td select.status.st-few_left { color: var(--warn); }
         results.replaceChildren(
           ...found.map((c) => h("div", { class: "switch-row" },
             h("div", { class: "person-top", style: "margin:0" }, c.photo_url ? h("img", { class: "avatar", style: "width:44px;height:44px", src: c.photo_url, alt: "" }) : null,
-              h("div", null, h("b", { text: c.name }), h("div", { class: "hint", text: where[c.id] ? "Already on ComicTable: " + where[c.id].join(", ") : "Already on ComicTable" }))),
-            h("button", { class: "btn primary sm", type: "button", text: "Add to " + S.site.name, onclick: async (e) => {
+              h("div", null, h("b", { text: c.name }), h("div", { class: "hint", text: (where[c.id] ? "Already on ComicTable: " + where[c.id].join(", ") : "Has a Coaster") + (needsAsk(c) ? " · has their own login, so they say yes first" : "") }))),
+            needsAsk(c) ? h("button", { class: "btn primary sm", type: "button", text: "Ask to add", title: c.name + " has their own login, so they say yes first", onclick: async (e) => {
+              const b = e.currentTarget; b.disabled = true;
+              try { await askForComic(c, sid()); b.textContent = "Asked"; }
+              catch (er) { if (/duplicate|unique/i.test(errText(er))) b.textContent = "Already asked"; else { msg.textContent = errText(er); b.disabled = false; } }
+            } })
+            : h("button", { class: "btn primary sm", type: "button", text: "Add to " + S.site.name, onclick: async (e) => {
               e.currentTarget.disabled = true;
               try { await addToSite(c); route(); toast(c.name + " is on " + S.site.name + " now. Their dates, videos and profile came with them."); }
               catch (er) { msg.textContent = errText(er); e.currentTarget.disabled = false; }
@@ -2340,6 +2450,7 @@ td select.status.st-few_left { color: var(--warn); }
           : empty("No upcoming dates", sites.length ? "Add some, or point the show finder at their tour page." : "Put them on a site first."));
     } catch (e) { datesCard.replaceChildren(h("h2", { text: "Upcoming dates" }), h("p", { class: "err", text: errText(e) })); }
 
+    right.append(coasterCard(c));
     // sites
     const addSel = h("select", { "aria-label": "Add to a site", style: "max-width:240px" }, h("option", { value: "", text: "Put them on a site…" }),
       S.sites.filter((st) => !sites.some((x) => x.site_id === st.id)).sort((a, b) => a.name.localeCompare(b.name)).map((st) => h("option", { value: st.id, text: st.name })));
@@ -2350,6 +2461,7 @@ td select.status.st-few_left { color: var(--warn); }
         : h("p", { class: "hint", text: "Not on any site yet." }),
       h("div", { class: "btns" }, addSel, h("button", { class: "btn sm", type: "button", text: "Add", onclick: async () => {
         const st = S.sites.find((x) => x.id === addSel.value); if (!st) { addSel.focus(); return; }
+        if (needsAsk(c)) { try { await askForComic(c, st.id); } catch (e) { toast(/duplicate|unique/i.test(errText(e)) ? "Already asked. Waiting for " + c.name.split(" ")[0] + "." : errText(e), { bad: true }); } return; }
         let id = st.id + "-" + (slug(c.name.split(" ")[0]) || "person");
         try {
           const taken = (await q(sb.from("hosts").select("id").like("id", id + "%"))).map((r) => r.id);
@@ -2494,12 +2606,14 @@ td select.status.st-few_left { color: var(--warn); }
      ====================================================== */
   async function viewMe(main) {
     const me = S.me;
-    main.append(head("Me", "Your profile and your dates, on every site you're on. Change something here and it changes everywhere."));
+    main.append(head("Me", "Your Coaster, your profile and your dates, on every site you're on. Change something here and it changes everywhere."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     const sitesCard = h("section", { class: "card" }, h("h2", { text: "Your sites" }), h("p", { class: "hint", text: "Loading…" }));
     const datesCard = h("section", { class: "card" }, h("h2", { text: "Your upcoming dates" }), h("p", { class: "hint", text: "Loading…" }));
     const here = S.hosts.find((x) => x.comic_id === me.id);
-    wrap.append(sitesCard, datesCard, personCard({ ...me, id: here ? here.id : null, comic_id: me.id }, 0, { me: true }));
+    const asks = h("div");
+    wrap.append(asks, coasterCard(me, { me: true }), sitesCard, datesCard, personCard({ ...me, id: here ? here.id : null, comic_id: me.id }, 0, { me: true }));
+    requestsCard(me).then((c) => { if (c) asks.replaceWith(c); });
     let mySites = [];
     try {
       const rows = await q(sb.from("hosts").select("site_id, id").eq("comic_id", me.id));
@@ -2561,6 +2675,8 @@ td select.status.st-few_left { color: var(--warn); }
   function personCard(x, idx, opts = {}) {
     const shared = !!x.comic_id, lineup = !(opts.me || opts.comic);
     const own = h("input", { type: "checkbox", checked: !!(x.own_bio || x.own_title) });
+    // a photo just for this site (21_coasters.sql); otherwise the photo is the Coaster's
+    const ownPhoto = shared && lineup && "own_photo" in x ? h("input", { type: "checkbox", checked: !!x.own_photo }) : null;
     const inp = { name: h("input", { value: x.name, required: true }), title: h("input", { value: x.title || "", placeholder: "Comedian" }), status: h("input", { value: x.status || "", placeholder: "Automatic" }), bio: h("textarea", { value: x.bio || "" }) };
     const moreSoc = (x.socials && typeof x.socials === "object") ? x.socials : {};
     const hasMore = "socials" in x;  // the database has 19_more_socials.sql
@@ -2582,14 +2698,20 @@ td select.status.st-few_left { color: var(--warn); }
       if (hasMore) { const more = {}; for (const [k] of SOC) if (!COL_SOC.includes(k) && inp[k] && inp[k].value.trim()) more[k] = inp[k].value.trim(); prof.socials = more; }
       const words = { title: inp.title.value.trim() || "Comedian", bio: inp.bio.value.trim() };
       try {
-        if (file.files[0]) prof.photo_url = await uploadImage(file.files[0], x.comic_id || x.id);
+        let pic = null;
+        if (file.files[0]) pic = await uploadImage(file.files[0], x.comic_id || x.id);
+        const sitePhoto = !!(ownPhoto && ownPhoto.checked);
+        if (pic && !sitePhoto) prof.photo_url = pic;
         if (!shared) await q(sb.from("hosts").update({ ...prof, ...words }).eq("id", x.id));
-        else if (lineup && own.checked) {
-          await q(sb.from("comics").update(prof).eq("id", x.comic_id));
-          await q(sb.from("hosts").update({ ...words, own_bio: true, own_title: true }).eq("id", x.id));
-        } else {
-          await q(sb.from("comics").update({ ...prof, ...words }).eq("id", x.comic_id));
-          if (lineup && (x.own_bio || x.own_title)) await q(sb.from("hosts").update({ own_bio: false, own_title: false }).eq("id", x.id));
+        else {
+          // the Coaster first, then this site's own bits
+          await q(sb.from("comics").update(lineup && own.checked ? prof : { ...prof, ...words }).eq("id", x.comic_id));
+          const here = {};
+          if (lineup && own.checked) Object.assign(here, words, { own_bio: true, own_title: true });
+          else if (lineup && (x.own_bio || x.own_title)) Object.assign(here, { own_bio: false, own_title: false });
+          if (ownPhoto && sitePhoto) { here.own_photo = true; if (pic) here.photo_url = pic; }
+          else if (ownPhoto && x.own_photo) here.own_photo = false;
+          if (Object.keys(here).length) await q(sb.from("hosts").update(here).eq("id", x.id));
         }
         await reload.hosts(); if (opts.me) S.me = { ...S.me, ...prof, ...words }; file.value = ""; toast(prof.name + " saved."); route();
       } catch (err) { msg.textContent = errText(err); save.disabled = false; }
@@ -2601,7 +2723,14 @@ td select.status.st-few_left { color: var(--warn); }
           lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " later", text: "↓", disabled: idx === S.hosts.length - 1, onclick: () => swap(idx, idx + 1) }) : null))),
       shared && lineup ? h("div", { class: "hint", "data-also": x.comic_id, hidden: true }) : null,
       h("div", { class: "grid" }, field("Name", inp.name, "c6"), field("Title", inp.title, "c6"), field("Status", inp.status, "c12"), field("Bio", inp.bio, "c12")),
-      shared && lineup ? h("label", { class: "check" }, own, "Use a different title and bio on " + S.site.name) : null,
+      shared && lineup ? (() => {
+        const first = x.name.split(" ")[0], custom = [x.own_title && "title", x.own_bio && "bio", x.own_photo && "photo"].filter(Boolean);
+        return h("div", { class: "stack", style: "gap:6px" },
+          h("div", null, custom.length ? h("span", { class: "pill red", text: "Custom for " + S.site.name + ": " + custom.join(", ") })
+            : h("span", { class: "pill ok", text: "Using " + first + "'s Coaster" })),
+          h("label", { class: "check" }, own, "Use a different title and bio on " + S.site.name),
+          ownPhoto ? h("label", { class: "check" }, ownPhoto, "Use a different photo on " + S.site.name + " (the next photo you pick stays here)") : null);
+      })() : null,
       (() => {
         const filled = SOC.filter(([k]) => inp[k] && inp[k].value).length;
         const d = h("details", { class: "quiet", "data-socials": x.id, open: OPEN_SOCIALS === x.id || null }, h("summary", { text: "Social links" + (filled ? " (" + filled + ")" : "") }),
