@@ -2059,8 +2059,11 @@ td select.status.st-few_left { color: var(--warn); }
   let OPEN_SOCIALS = null;  // a person id whose Social links should open (from "Edit your socials")
   // Comics live on ComicTable, not on one site. A site's People are its lineup: each card edits the comic's
   // shared profile (seen on every site they're on), and a site can keep its own title and bio for them.
+  // comictable.com/<id> is the comic's Coaster, so these stay ComicTable's own addresses (same list as 21_coasters.sql)
+  const RESERVED_IDS = ["login", "dashboard", "admin", "press", "join", "brand", "fonts", "themes", "embed", "sdk", "api", "app", "about", "pricing", "help", "privacy", "terms", "coaster", "coasters", "c", "u", "www", "index"];
   async function newComicId(name) {
-    const base = slug(name) || "comic";
+    let base = slug(name) || "comic";
+    if (RESERVED_IDS.includes(base)) base += "-comic";
     const taken = new Set((await q(sb.from("comics").select("id").like("id", base + "%"))).map((r) => r.id));
     let id = base, n = 2; while (taken.has(id)) id = base + "-" + n++;
     return id;
