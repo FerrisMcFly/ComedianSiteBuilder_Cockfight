@@ -440,7 +440,7 @@ td select.status.st-few_left { color: var(--warn); }
 <script>
 (() => {
   "use strict";
-  const CFG = window.COMICTABLE_CONFIG || window.COCKFIGHT_CONFIG || {};
+  const CFG = window.COMICTABLE_CONFIG || {};
   const root = document.getElementById("root");
   const $ = (id) => document.getElementById(id);
 
@@ -572,7 +572,8 @@ td select.status.st-few_left { color: var(--warn); }
   async function q(p) { const r = await p; if (r.error) throw r.error; return r.data; }
   const sid = () => S.site.id;
   // Usernames become user@<site's domain>; anyone can also log in with a full email.
-  const LOGIN_DOMAINS = [CFG.LOGIN_DOMAIN || "comictable.com", ...(CFG.OLDER_LOGIN_DOMAINS || ["cockfightpodcast.com"])].filter((d, i, a) => d && a.indexOf(d) === i);
+  // A plain username logs in as username@comictable.com; anything with an @ is used as typed.
+  const LOGIN_DOMAINS = [CFG.LOGIN_DOMAIN || "comictable.com"];
   const loginDom = () => LOGIN_DOMAINS[0];
 
   // Every date and video of every comic on this site, wherever it was added. Falls back to this site's own rows
@@ -608,17 +609,16 @@ td select.status.st-few_left { color: var(--warn); }
 
   async function loadAll() {
     const site = sid();
-    const [hosts, shows, episodes, videos, merch, venues, sources, settings] = await Promise.all([
+    const [hosts, shows, episodes, videos, merch, venues, sources] = await Promise.all([
       q(sb.from("hosts").select("*").eq("site_id", site).order("sort", { ascending: true })),
       loadShows(site),
       q(sb.from("episodes").select("*").eq("site_id", site).order("num", { ascending: false })),
       loadVideos(site),
       q(sb.from("merch").select("*").eq("site_id", site).order("sort", { ascending: true })),
       q(sb.from("venues").select("*").order("name", { ascending: true })),
-      loadSources(site),
-      q(sb.from("settings").select("*").eq("site_id", site))
+      loadSources(site)
     ]);
-    Object.assign(S, { hosts, shows, episodes, videos, merch, venues, sources, settings: Object.fromEntries(settings.map((r) => [r.key, r.value])) });
+    Object.assign(S, { hosts, shows, episodes, videos, merch, venues, sources });
     await loadLogins();
   }
   const reload = {
@@ -2649,8 +2649,8 @@ td select.status.st-few_left { color: var(--warn); }
   async function loadTheme() {
     if (THEME !== null && THEME_FOR === sid()) return THEME;
     THEME_FOR = sid();
-    // The ComicTable admin keeps every site's theme.json in themes/; a comic's own /admin has just theirs.
-    const tries = CFG.PLATFORM ? ["themes/" + sid() + ".json"] : ["theme.json"];
+    // The dashboard (comictable.com) keeps every site's theme.json in themes/
+    const tries = ["themes/" + sid() + ".json"];
     THEME = false;
     for (const u of tries) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) { THEME = await r.json(); break; } } catch (e) {} }
     return THEME;

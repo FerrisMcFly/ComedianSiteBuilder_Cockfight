@@ -4,7 +4,7 @@
  * Any front end (theme) can load a comedian's content and run their forum and chat with this one file.
  * No build step and no dependencies. Live chat uses supabase-js if the page loads it, otherwise it polls.
  *
- *   <script src="config.js"></script>          // window.COCKFIGHT_CONFIG = { SITE_ID, SUPABASE_URL, SUPABASE_ANON_KEY }
+ *   <script src="config.js"></script>          // window.COMICTABLE_CONFIG = { SITE_ID, SUPABASE_URL, SUPABASE_ANON_KEY }
  *   <script src="sdk/csb.js"></script>
  *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards, posts, picks }
  *   Podcasts the comic switched off in Settings → "Podcasts on your site" (profile.podcasts_off, by name) are left out
@@ -27,7 +27,7 @@
   "use strict";
   var cfg = {};
   function init(o) {
-    o = o || root.CSB_CONFIG || root.COMICTABLE_CONFIG || root.COCKFIGHT_CONFIG || {};
+    o = o || root.CSB_CONFIG || root.COMICTABLE_CONFIG || {};
     cfg = { url: String(o.SUPABASE_URL || o.url || "").replace(/\/$/, ""), key: o.SUPABASE_ANON_KEY || o.key || "", site: o.SITE_ID || o.site || "" };
     return CSB;
   }
@@ -183,7 +183,7 @@
     catch (e) { return (root.__csbDevice = root.__csbDevice || String(Math.random()).slice(2) + Date.now()); }
   }
   var name = {
-    get: function () { try { return localStorage.getItem("csb_name") || localStorage.getItem("cf_handle") || ""; } catch (e) { return ""; } },
+    get: function () { try { return localStorage.getItem("csb_name") || ""; } catch (e) { return ""; } },
     set: function (v) { try { localStorage.setItem("csb_name", v); } catch (e) {} }
   };
 

@@ -4,7 +4,7 @@ import { XMLParser } from "fast-xml-parser";
 import { importShows } from "./shows.mjs";
 
 const xml = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@", textNodeName: "#text", parseTagValue: false, trimValues: true });
-const UA = { "User-Agent": "Mozilla/5.0 (compatible; ComicTable/1.0; +https://cockfightpodcast.com)" };
+const UA = { "User-Agent": "Mozilla/5.0 (compatible; ComicTable/1.0; +https://comictable.com)" };
 
 const arr = (x) => (x === undefined || x === null ? [] : Array.isArray(x) ? x : [x]);
 const text = (x) => (x === undefined || x === null ? "" : typeof x === "object" ? String(x["#text"] ?? "") : String(x));

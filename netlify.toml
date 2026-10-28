@@ -9,13 +9,3 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-
-[[headers]]
-  for = "/admin.html"
-  [headers.values]
-    X-Robots-Tag = "noindex, nofollow"
-
-[[redirects]]
-  from = "/admin"
-  to = "/admin.html"
-  status = 200

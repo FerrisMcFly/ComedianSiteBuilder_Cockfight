@@ -14,7 +14,7 @@ const sites = readdirSync(join(root, "sites")).filter((d) => existsSync(join(roo
 const writeConfig = (dir, cfg, label) => writeFileSync(join(dir, "config.js"),
   "// Made by tools/build.mjs for " + label + ". The anon key is meant to be public; the database's security rules protect the data.\n" +
   "window.COMICTABLE_CONFIG = window.COCKFIGHT_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n");
-const logins = { LOGIN_DOMAIN: platform.login_domain || "comictable.com", OLDER_LOGIN_DOMAINS: platform.older_login_domains || [] };
+const logins = { LOGIN_DOMAIN: platform.login_domain || "comictable.com" };
 const db = { SUPABASE_URL: platform.supabase_url, SUPABASE_ANON_KEY: platform.supabase_anon_key };
 
 rmSync(out, { recursive: true, force: true });
@@ -52,13 +52,9 @@ if (id === "platform") {
   cpSync(join(root, "platform", "sdk"), join(out, "sdk"), { recursive: true });
   // <their domain>/join: the QR-code fan sign-up page, unless the site brings its own
   if (!existsSync(join(out, "join.html"))) cpSync(join(root, "platform", "home", "join.html"), join(out, "join.html"));
-  if (platform.admin_url) {
-    // ComicTable's admin has its own home: send /admin there.
-    writeFileSync(join(out, "_redirects"), `/admin  ${platform.admin_url}  302\n/admin.html  ${platform.admin_url}  302\n`);
-  } else {
-    // the app is one page, served at /login and /dashboard
-  cpSync(join(root, "platform", "admin.html"), join(out, "app.html"));
-  }
+  // The dashboard lives on comictable.com: a comic's own /admin goes there.
+  const dash = platform.admin_url || "https://comictable.com/login";
+  writeFileSync(join(out, "_redirects"), `/admin  ${dash}  302\n/admin.html  ${dash}  302\n`);
   writeConfig(out, { SITE_ID: site.id, SITE_NAME: site.name, ...logins, ...db }, site.name);
   console.log(`Built ${site.name} (${id}) into ${out}`);
 }

@@ -7,7 +7,7 @@ const opened = [];
 after(() => opened.forEach((w) => w.close()));
 
 const html = readFileSync(new URL("../platform/admin.html", import.meta.url), "utf8")
-  .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "").replace('<script src="config.js"></script>', '<script>window.COCKFIGHT_CONFIG={SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
+  .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "").replace('<script src="config.js"></script>', '<script>window.COMICTABLE_CONFIG={SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
   .replace('<script src="sdk/csb.js"></script>', () => "<script>" + readFileSync(new URL("../platform/sdk/csb.js", import.meta.url), "utf8").replace(/<\/script/g, "<\\/script") + "</script>");
 
 function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
@@ -67,7 +67,7 @@ async function open(hash = "", prep, theme = THEME_JSON) {
   const { db, client } = makeDb();
   if (prep) prep(db);
   const dom = new JSDOM(html, { runScripts: "dangerously", pretendToBeVisual: true, url: "https://cockfightpodcast.com/admin.html" + hash, beforeParse(w) {
-    w.supabase = { createClient: () => client }; w.fetch = async (u) => (/theme\.json/.test(u) && theme ? { ok: true, json: async () => theme } : { ok: false, json: async () => ({}) }); w.matchMedia = () => ({ matches: true }); w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {};
+    w.supabase = { createClient: () => client }; w.fetch = async (u) => (/themes\/[^/]+\.json$/.test(u) && theme ? { ok: true, json: async () => theme } : { ok: false, json: async () => ({}) }); w.matchMedia = () => ({ matches: true }); w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {};
   } });
   opened.push(dom.window);
   await new Promise((r) => setTimeout(r, 80));
