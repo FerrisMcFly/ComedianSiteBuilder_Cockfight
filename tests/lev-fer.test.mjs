@@ -22,6 +22,9 @@ async function load(data, hash = "") {
       const t = u.split("/rest/v1/")[1].split("?")[0];
       if (o.method === "POST") { posts.push([t, JSON.parse(o.body)]); const out = t === "rpc/site_shows" ? data.shows : t === "rpc/site_videos" ? data.videos || [] : t === "rpc/join_fans" ? "joined" : t === "threads" ? [{ id: "t9" }] : null; return { ok: true, status: 200, text: async () => JSON.stringify(out) }; }
       if (t === "blog_posts" && u.includes("slug=eq.")) return { ok: true, status: 200, text: async () => JSON.stringify((data.blog_posts || []).filter((p) => u.includes("slug=eq." + p.slug))) };
+      if (t === "hosts" && u.includes("comic_id=in.")) return { ok: true, status: 200, text: async () => JSON.stringify(data.other_hosts || []) };
+      if (t === "sites" && u.includes("id=in.")) return { ok: true, status: 200, text: async () => JSON.stringify(data.other_sites || []) };
+      if (t === "episodes" && !u.includes("site_id=eq.lev-fer")) return { ok: true, status: 200, text: async () => JSON.stringify(data.other_episodes || []) };
       return { ok: true, status: 200, text: async () => JSON.stringify(data[t] || []) };
     };
   } });
@@ -72,9 +75,56 @@ test("home shows Lev's picks in order: featured first, past and ended ones dropp
   assert.deepEqual(menu(d), ["Home", "Tour Dates", "Clips", "Blog", "Forum", "Chat Room", "Mailing List", "About", "Socials"]);
 });
 
-test("with nothing pinned, home shows the next real show and latest clip", async () => {
+test("with nothing pinned, home still shows real things: photo, next shows, mailing list", async () => {
   const { d } = await load({ ...full, home_picks: [] });
-  assert.match(d.getElementById("app").textContent, /Test Club.*Test clip/s);
+  const t = d.getElementById("app").textContent;
+  assert.match(t, /Lev Fer.*Next shows.*Test Club.*Get told when Lev's in your town/s);
+  assert.doesNotMatch(t, /Latest clips/, "clips are off on the home screen unless Lev turns them on");
+});
+
+test("Lev arranges the home screen and the menu in Design settings", async () => {
+  const theme = { accent: "#123456",
+    home: [{ key: "shows", on: true }, { key: "me", on: false }, { key: "clips", on: true }],
+    menu: [{ key: "about", on: true }, { key: "shows", on: true }, { key: "forum", on: false }], home_shows: "1" };
+  const { d } = await load({ ...full, home_picks: [], sites: [{ ...full.sites[0], theme }] });
+  const blocks = [...d.querySelectorAll(".home > .block")].map((b) => b.textContent);
+  assert.match(blocks[0], /Next shows.*Test Club/s, "shows first");
+  assert.doesNotMatch(blocks[0], /Other Club/, "only one show, as set");
+  assert.ok(!d.querySelector(".me"), "the photo section is off");
+  assert.match(blocks[1], /Latest clips.*Test clip/s, "clips turned on, second");
+  assert.deepEqual(menu(d).slice(0, 3), ["Home", "About", "Tour Dates"]);
+  assert.ok(!menu(d).includes("Forum"), "forum hidden from the menu");
+  assert.ok(menu(d).includes("Chat Room"), "sections Lev didn't mention keep their place");
+});
+
+test("the podcast Lev co-hosts on ComicTable shows up, with its latest episode", async () => {
+  const data = { ...full, home_picks: [], hosts: [{ ...full.hosts[0], comic_id: "lev-fer" }],
+    other_hosts: [{ site_id: "cockfight", comic_id: "lev-fer", name: "Lev Fer" }],
+    other_sites: [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com", features: { podcast: true } }],
+    other_episodes: [{ num: 92, title: "Test episode", url: "https://pod/92" }] };
+  const { d } = await load(data); await wait(120);
+  assert.match(d.getElementById("app").textContent, /Podcast.*Cockfight.*Latest: 92\. Test episode/s);
+  assert.ok([...d.querySelectorAll(".lnk")].some((a) => a.getAttribute("href") === "https://pod/92"));
+  assert.ok(menu(d).includes("Podcast"));
+});
+
+test("the Patreon link becomes a big button, and can be a menu item", async () => {
+  const sites = [{ ...full.sites[0], profile: { ...full.sites[0].profile, support_url: "https://patreon.com/test", support_label: "Patreon" }, theme: { menu: [{ key: "support", on: true }] } }];
+  const { d } = await load({ ...full, sites });
+  const gold = d.querySelector(".lnk.gold");
+  assert.equal(gold.getAttribute("href"), "https://patreon.com/test");
+  assert.match(gold.textContent, /Patreon/);
+  assert.equal(d.querySelector('#nav a[href="https://patreon.com/test"]').firstChild.textContent, "Patreon");
+});
+
+test("the defaults in the page match the design's settings file", async () => {
+  const theme = JSON.parse(readFileSync(new URL("../sites/lev-fer/theme.json", import.meta.url), "utf8"));
+  const page = readFileSync(new URL("../sites/lev-fer/index.html", import.meta.url), "utf8");
+  for (const [key, name] of [["home", "HOME_DEFAULT"], ["menu", "MENU_DEFAULT"]]) {
+    const inPage = JSON.parse(page.match(new RegExp(name + " = (\\[.*?\\]\\]);"))[1]).map(([k, on]) => [k, !!on]);
+    const inTheme = theme.settings.find((s) => s.key === key).options.map((o) => [o[0], o[3] !== false]);
+    assert.deepEqual(inPage, inTheme, key);
+  }
 });
 
 test("tour dates, blog post, about and socials come from ComicTable", async () => {

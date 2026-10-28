@@ -359,6 +359,19 @@ td select.status.st-few_left { color: var(--warn); }
   .wrap-any { overflow-wrap: break-word; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.order-list { display: grid; gap: 6px; margin-top: 10px; }
+.order-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card, transparent); }
+.order-row.off b { opacity: .55; }
+.set-head { padding-top: 18px; } .set-head h2 { margin: 0; } .set-head .hint { margin: 4px 0 0; }
+.set-order { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.share-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 380px); gap: 18px; align-items: start; }
+@media (max-width: 760px) { .share-wrap { grid-template-columns: 1fr; } }
+.share-card { display: grid; gap: 4px; padding: 12px 14px; border-radius: 8px; background: #2b2d31; color: #dbdee1; border-left: 4px solid #1e1f22; font-size: 14px; min-width: 0; }
+.share-host { font-size: 12px; color: #b5bac1; }
+.share-title { color: #00a8fc; font-size: 15px; overflow-wrap: anywhere; }
+.share-text { line-height: 1.4; overflow-wrap: anywhere; }
+.share-img { margin-top: 8px; width: 100%; aspect-ratio: 1.91 / 1; object-fit: cover; border-radius: 6px; background: #1e1f22; }
+.share-img.none { display: grid; place-items: center; text-align: center; padding: 12px; font-size: 12px; color: #949ba4; }
 </style>
 </head>
 <body>
@@ -2360,19 +2373,52 @@ td select.status.st-few_left { color: var(--warn); }
       contact_email: h("input", { type: "email", value: p.contact_email || "", placeholder: "hello@…" }),
       booking_email: h("input", { type: "email", value: p.booking_email || "", placeholder: "booking@…" }),
       support_url: h("input", { type: "url", value: p.support_url || "", placeholder: "https://www.patreon.com/…" }),
-      support_label: h("input", { value: p.support_label || "", placeholder: "Patreon" })
+      support_label: h("input", { value: p.support_label || "", placeholder: "Patreon" }),
+      share_title: h("input", { maxlength: "70", value: p.share_title || "" }),
+      share_text: h("textarea", { maxlength: "200", value: p.share_text || "", style: "min-height:70px" })
     };
+    // ---- link preview: the card Discord, iMessage, Instagram and the rest show when someone shares the site ----
+    let shareImage = p.share_image || "";
+    const firstPhoto = () => ((S.hosts || []).find((x) => !x.hidden && x.photo_url) || {}).photo_url || "";
+    const dflt = () => {
+      const lead = f.tagline.value.trim(), line = (f.about.value.trim().split(/\n+/)[0] || "").slice(0, 160);
+      return { title: S.site.name + (lead ? " · " + lead.slice(0, 60) : ""), text: [lead && line && !line.startsWith(lead) ? lead : "", line].filter(Boolean).join(". ") || S.site.name + " on ComicTable" };
+    };
+    const card = h("div", { class: "share-card", "aria-label": "How the link looks when shared" });
+    const imgFile = h("input", { type: "file", accept: "image/*", style: "display:none" });
+    const imgBtns = h("div", { class: "btns" });
+    function drawCard() {
+      const d = dflt(), img = shareImage || firstPhoto();
+      f.share_title.placeholder = d.title; f.share_text.placeholder = d.text;
+      card.replaceChildren(h("div", { class: "share-host", text: S.site.domain || "your site" }),
+        h("b", { class: "share-title", text: f.share_title.value.trim() || d.title }),
+        h("div", { class: "share-text", text: f.share_text.value.trim() || d.text }),
+        img ? h("img", { class: "share-img", src: img, alt: "" }) : h("div", { class: "share-img none", text: "No picture yet: add one below, or a photo in People" }));
+      imgBtns.replaceChildren(h("label", { class: "btn sm" }, shareImage ? "Change picture" : "Use a different picture", imgFile),
+        shareImage ? h("button", { class: "btn ghost sm", type: "button", text: "Use my People photo instead", onclick: () => { shareImage = ""; drawCard(); } }) : null);
+    }
+    imgFile.addEventListener("change", async () => {
+      if (!imgFile.files[0]) return;
+      try { toast("Uploading…"); shareImage = await uploadImage(imgFile.files[0], "share", { square: false }); drawCard(); toast("Picture added. Save to keep it."); } catch (e) { toast(errText(e), { bad: true }); }
+    });
+    ["tagline", "about", "share_title", "share_text"].forEach((k) => f[k].addEventListener("input", drawCard));
+    drawCard();
     const save = h("button", { class: "btn primary", type: "submit", text: "Save profile" });
     main.append(head("Profile", "The basics about you or your show. Your theme decides where each piece appears."),
       h("form", { class: "card stack", onsubmit: async (e) => {
         e.preventDefault(); save.disabled = true;
         const profile = Object.assign({}, p); for (const k in f) profile[k] = f[k].value.trim();
+        profile.share_image = shareImage;
         try { await saveSite({ profile }, "Profile saved. It's live."); } catch (err) { toast(errText(err), { bad: true }); }
         save.disabled = false;
       } },
         h("div", { class: "grid" }, field("Tagline", f.tagline, "c12"), field("About", f.about, "c12"),
           field("Contact email", f.contact_email, "c6"), field("Booking email", f.booking_email, "c6"),
           field("Support link (Patreon, Ko-fi, Substack…)", f.support_url, "c8"), field("Support button says", f.support_label, "c4")),
+        h("div", { class: "stack", style: "gap:10px;border-top:1px solid var(--line);padding-top:16px" },
+          h("h2", { style: "margin:0", text: "Link preview" }),
+          h("p", { class: "hint", style: "margin:0", text: "The card people see when your site's link is shared in a text, Discord, Instagram and so on. Leave a box empty to use your tagline and About. Apps keep old previews for a while, so a change can take a day to show everywhere." }),
+          h("div", { class: "share-wrap" }, h("div", { class: "grid", style: "align-content:start" }, field("Title", f.share_title, "c12"), field("Text", f.share_text, "c12"), h("div", { class: "c12" }, imgBtns)), card)),
         h("div", { class: "btns" }, save)));
   }
 
@@ -2552,8 +2598,28 @@ td select.status.st-few_left { color: var(--warn); }
     main.append(head("Design settings", (theme.name ? theme.name + ". " : "") + "These switches come with your site's design, so a different design will have different ones."));
     const vals = Object.assign({}, S.site.theme || {});
     const inputs = {};
+    // "order": a list the comic arranges and switches on or off (menu order, Home screen sections).
+    // Saved as [{ key, on }]. Options the design adds later show up at the end, with their default.
+    function orderList(st, v) {
+      const opts = (st.options || []).map((o) => Array.isArray(o) ? { key: o[0], label: o[1], help: o[2] || "", on: o[3] !== false } : { key: o.key, label: o.label || o.key, help: o.help || "", on: o.on !== false });
+      const saved = Array.isArray(v) ? v.filter((x) => x && opts.some((o) => o.key === x.key)) : [];
+      let items = saved.map((x) => ({ ...opts.find((o) => o.key === x.key), on: !!x.on }))
+        .concat(opts.filter((o) => !saved.some((x) => x.key === o.key)));
+      const box = h("div", { class: "order-list" });
+      const draw = () => box.replaceChildren(...items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off") },
+        h("div", { style: "min-width:0;flex:1 1 220px" }, h("b", { text: it.label }), it.help ? h("div", { class: "hint", text: it.help }) : null),
+        h("div", { class: "btns" },
+          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " up", text: "↑", disabled: i === 0, onclick: () => { [items[i - 1], items[i]] = [items[i], items[i - 1]]; draw(); } }),
+          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " down", text: "↓", disabled: i === items.length - 1, onclick: () => { [items[i + 1], items[i]] = [items[i], items[i + 1]]; draw(); } }),
+          h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: it.on, "aria-label": "Show " + it.label, onchange: (e) => { it.on = e.target.checked; draw(); } }), h("span"))))));
+      draw();
+      inputs[st.key] = { get value() { return items.map((x) => ({ key: x.key, on: x.on })); } };
+      return box;
+    }
     const rows = theme.settings.map((st) => {
+      if (st.type === "heading") return h("div", { class: "set-head" }, h("h2", { text: st.label }), st.help ? h("p", { class: "hint", text: st.help }) : null);
       const v = st.key in vals ? vals[st.key] : st.default;
+      if (st.type === "order") return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), orderList(st, v));
       let input;
       if (st.type === "toggle") input = h("label", { class: "switch" }, (inputs[st.key] = h("input", { type: "checkbox", role: "switch", checked: !!v, "aria-label": st.label })), h("span"));
       else if (st.type === "select") input = (inputs[st.key] = h("select", { "aria-label": st.label, style: "width:auto" }, (st.options || []).map((o) => { const [ov, ol] = Array.isArray(o) ? o : [o, o]; return h("option", { value: ov, text: ol, selected: ov === v }); })));
@@ -2565,8 +2631,8 @@ td select.status.st-few_left { color: var(--warn); }
     main.append(h("form", { class: "card stack", onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true;
       const out = {};
-      for (const st of theme.settings) { const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; }
-      try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, out) }, "Saved. Reload your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
+      for (const st of theme.settings) { if (st.type === "heading") continue; const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; }
+      try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, out) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
       save.disabled = false;
     } }, h("div", { class: "switches" }, rows), h("div", { class: "btns" }, save)));
   }

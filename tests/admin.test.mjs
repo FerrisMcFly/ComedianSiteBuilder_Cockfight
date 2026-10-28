@@ -694,3 +694,31 @@ test("Home screen picks: add one, pin a show to the top, reorder", async () => {
   btn(d, /^↓$/).click(); await wait(60);
   assert.deepEqual(db.home_picks.slice().sort((a, b) => a.sort - b.sort).map((p) => p.headline)[0], "New special out now");
 });
+
+test("Design settings: arrange a list, switch items off, and save it", async () => {
+  const theme = { name: "Console Lobby", extras: [], settings: [
+    { type: "heading", label: "Home screen" },
+    { key: "home", label: "Home screen sections", type: "order", options: [["me", "You", "", true], ["shows", "Next shows", "", true], ["clips", "Latest clips", "", false]] },
+    { key: "accent", label: "Highlight color", type: "color", default: "#ffb238" }] };
+  const { w, d, db } = await open("#theme", null, theme);
+  assert.ok([...d.querySelectorAll(".set-head h2")].some((x) => x.textContent === "Home screen"));
+  const rows = () => [...d.querySelectorAll(".order-row")];
+  assert.deepEqual(rows().map((r) => r.querySelector("b").textContent), ["You", "Next shows", "Latest clips"]);
+  rows()[1].querySelector('[aria-label="Move Next shows up"]').click(); await wait();
+  const sw = rows()[2].querySelector("input[type=checkbox]"); sw.checked = true; sw.dispatchEvent(new w.Event("change"));
+  d.querySelector("form.card").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.home)), [{ key: "shows", on: true }, { key: "me", on: true }, { key: "clips", on: true }]);
+  assert.equal(db.sites[0].theme.accent, "#ffb238");
+});
+
+test("Profile: the link preview card updates as you type and saves", async () => {
+  const { w, d, db } = await open("#profile");
+  const card = () => d.querySelector(".share-card").textContent;
+  set(w, d.querySelectorAll("input")[0], "Stand-up comedy");
+  assert.match(card(), /Cockfight · Stand-up comedy/);
+  const title = [...d.querySelectorAll(".field")].find((x) => x.textContent.startsWith("Title")).querySelector("input");
+  set(w, title, "COCKFIGHT LIVE");
+  assert.match(card(), /COCKFIGHT LIVE/);
+  d.querySelector("form.card").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.equal(db.sites[0].profile.share_title, "COCKFIGHT LIVE");
+});

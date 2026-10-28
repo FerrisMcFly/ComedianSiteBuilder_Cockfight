@@ -7,6 +7,8 @@
  *   <script src="config.js"></script>          // window.COCKFIGHT_CONFIG = { SITE_ID, SUPABASE_URL, SUPABASE_ANON_KEY }
  *   <script src="sdk/csb.js"></script>
  *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards, posts, picks }
+ *   CSB.elsewhere(people) → the other live ComicTable sites these people are on (a podcast they co-host, say),
+ *   each with its latest episode when it's a podcast: [{ id, name, domain, url, podcast, people, episode }]
  *   picks: the comic's Home screen picks, in order (the first is the featured one). A pick made from a show carries
  *   that show's status and drops off once the show has passed.
  *   shows: each has person (a solo date) or event: true with lineup (a show by the whole site, like a live podcast).
@@ -75,7 +77,7 @@
       var s = r[0][0] || { id: cfg.site, features: {}, profile: {}, theme: {}, community: {} };
       var today = todayISO();
       var people = r[1].filter(visible).map(function (h) {
-        return { id: h.id, name: h.name, title: h.title || "", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "",
+        return { id: h.id, comic: h.comic_id || "", name: h.name, title: h.title || "", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "",
           socials: { instagram: h.instagram || "", youtube: h.youtube || "", tiktok: h.tiktok || "", twitter: h.twitter || "", website: h.website || "" } };
       });
       var shows = r[2].filter(function (x) { return x.date >= today; }).map(function (x) {
@@ -112,6 +114,29 @@
         return { id: p.id, kind: p.kind || "announcement", headline: p.headline, text: p.body || "", button: p.button_label || "", link: p.link || (s && s.tickets) || "",
           image: p.image_url || "", show: s ? { date: s.date, time: s.time, venue: s.venue, city: s.city, status: s.status } : null };
       });
+  }
+
+  // Other live ComicTable sites the same comics are on. Optional: any failure just means "none".
+  function elsewhere(people) {
+    var ids = (people || []).map(function (p) { return p.comic; }).filter(Boolean);
+    if (!ids.length) return Promise.resolve([]);
+    var inList = "(" + ids.map(function (x) { return '"' + String(x).replace(/"/g, "") + '"'; }).join(",") + ")";
+    return api("hosts?select=site_id,comic_id,name&hidden=is.false&comic_id=in." + encodeURIComponent(inList) + "&site_id=neq." + encodeURIComponent(cfg.site)).then(function (hs) {
+      var sites = {}; hs.forEach(function (h) { (sites[h.site_id] = sites[h.site_id] || []).push(h.name); });
+      var sids = Object.keys(sites); if (!sids.length) return [];
+      return api("sites?select=id,name,domain,features&id=in.(" + sids.map(encodeURIComponent).join(",") + ")").then(function (rows) {
+        rows = rows.filter(function (x) { return x.domain; }); // only sites that are live on their own address
+        return Promise.all(rows.map(function (x) {
+          var pod = !!(x.features || {}).podcast;
+          var ep = pod ? api("episodes?select=num,title,posted,url,audio_url,image_url,show_name&hidden=is.false&order=num.desc&limit=1&site_id=eq." + encodeURIComponent(x.id)).catch(function () { return []; }) : Promise.resolve([]);
+          return ep.then(function (e) {
+            e = e[0];
+            return { id: x.id, name: x.name, domain: x.domain, url: "https://" + x.domain, podcast: pod, people: sites[x.id],
+              episode: e ? { number: e.num, title: e.title, posted: e.posted, link: e.url || e.audio_url || "", image: e.image_url || "", show: e.show_name || "" } : null };
+          });
+        }));
+      });
+    }).catch(function () { return []; });
   }
 
   /* ---------------- visitor identity (anonymous) ---------------- */
@@ -239,6 +264,6 @@
     leave: function (token) { return api("rpc/leave_fans", { method: "POST", body: { p_token: token } }); }
   };
 
-  var CSB = { init: init, load: load, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, device: device, name: name, api: api, version: "1.2" };
+  var CSB = { init: init, load: load, elsewhere: elsewhere, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, device: device, name: name, api: api, version: "1.3" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);
