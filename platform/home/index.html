@@ -3,105 +3,295 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ComicTable</title>
-<meta name="description" content="ComicTable is the engine behind comedians' websites: shows and ticket links, podcast and YouTube imports, fan lists, forums and chat, run from one dashboard.">
+<title>ComicTable · The engine behind comedians' websites</title>
+<meta name="description" content="Comedians get a website that looks like them, and ComicTable keeps it full: shows and ticket links, podcast and YouTube, fan lists, forums and a blog, all run from one dashboard. Start from a template, get one designed, or plug it into the site you have.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
 <style>
-/* ComicTable: quiet on purpose. It's the engine; the comics' own sites are the show. */
-:root { --bg: #fbfbfa; --text: #161616; --muted: #6b6b6b; --line: #e4e3df; --accent: #d6302a; --font: "Hanken Grotesk", system-ui, sans-serif; }
-@media (prefers-color-scheme: dark) { :root { --bg: #121212; --text: #ededeb; --muted: #9a9a96; --line: #2a2a28; --accent: #f0554d; } }
+/* ComicTable front page. Same red and type as the dashboard, so it's one brand.
+   The memorable bit: the hero demo, where one date added in the dashboard lands on two very different sites. */
+:root {
+  --bg: #f7f5f2; --panel: #ffffff; --text: #171614; --muted: #6c6862; --line: #e6e2dc;
+  --red: #d6302a; --red-soft: #fde8e6; --ok: #1f8a4c; --ok-soft: #e3f4ea;
+  --display: "Bricolage Grotesque", system-ui, sans-serif; --font: "Hanken Grotesk", system-ui, sans-serif;
+}
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 400 18px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
 a { color: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
-header { display: flex; justify-content: space-between; align-items: center; padding: 28px 0; }
-.mark { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; }
-.mark i { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); display: inline-block; }
-header a.login { font-weight: 500; font-size: 16px; text-decoration: none; border: 1px solid var(--line); padding: 8px 16px; border-radius: 999px; }
-header a.login:hover { border-color: var(--text); }
-.hero { padding: 96px 0 72px; }
-h1 { font-weight: 700; font-size: clamp(40px, 6vw, 64px); line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 24px; max-width: 13em; }
-.lede { font-size: 21px; color: var(--muted); max-width: 34em; margin: 0; }
-section { padding: 56px 0; border-top: 1px solid var(--line); }
-h2 { font-size: 15px; font-weight: 500; color: var(--muted); margin: 0 0 24px; }
-dl { display: grid; grid-template-columns: 200px 1fr; gap: 18px 32px; margin: 0; }
-dt { font-weight: 700; }
-dd { margin: 0; color: var(--muted); }
-.sites { list-style: none; margin: 0; padding: 0; }
-.sites li { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
-.sites li:first-child { border-top: 1px solid var(--line); }
-.sites a { font-weight: 700; text-decoration: none; }
-.sites a:hover { text-decoration: underline; }
-.sites span { color: var(--muted); }
-.ask p { max-width: 34em; margin: 0 0 20px; }
-.ask button.open, form button { font: 500 16px var(--font); background: var(--text); color: var(--bg); border: 0; padding: 12px 20px; border-radius: 999px; cursor: pointer; }
-form { display: grid; gap: 12px; max-width: 520px; }
-input, textarea { font: 400 17px var(--font); color: var(--text); background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; width: 100%; }
-input:focus, textarea:focus { outline: none; border-color: var(--text); }
-textarea { min-height: 90px; resize: vertical; }
-.msg { min-height: 1.4em; color: var(--accent); font-weight: 500; }
-footer { padding: 40px 0 56px; color: var(--muted); font-size: 15px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--line); }
+:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
 [hidden] { display: none !important; }
-@media (max-width: 640px) {
-  .wrap { padding: 0 16px; }
-  .hero { padding: 56px 0 48px; }
-  dl { grid-template-columns: 1fr; gap: 4px 0; }
-  dd { margin-bottom: 14px; }
-  .sites li { flex-direction: column; gap: 2px; }
+.wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; line-height: 1.02; margin: 0; }
+
+header .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 22px; padding-bottom: 22px; }
+.mark { font: 800 22px/1 var(--display); text-decoration: none; letter-spacing: -0.02em; display: inline-flex; align-items: center; gap: 8px; }
+.mark .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--red); }
+nav { display: flex; align-items: center; gap: 22px; font-weight: 500; font-size: 16px; }
+nav a { text-decoration: none; }
+nav a:hover { color: var(--red); }
+.pill-btn { display: inline-block; font: 700 16px/1 var(--font); padding: 13px 20px; border-radius: 999px; text-decoration: none; border: 0; cursor: pointer; background: var(--text); color: #fff; }
+.pill-btn.red { background: var(--red); }
+.pill-btn.line { background: transparent; color: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
+.pill-btn:hover { filter: brightness(1.1); }
+
+.hero { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); gap: 48px; align-items: center; padding: 40px 0 88px; }
+.hero h1 { font-size: clamp(46px, 6.4vw, 84px); font-weight: 800; margin-bottom: 22px; }
+.hero h1 em { font-style: normal; color: var(--red); }
+.hero p { font-size: 21px; color: var(--muted); max-width: 30em; margin: 0 0 28px; }
+.ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.demo { position: relative; }
+.dash { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; box-shadow: 0 24px 50px -30px rgba(0,0,0,.35); width: 78%; }
+.dash .bar { display: flex; align-items: center; gap: 8px; font: 800 14px var(--display); color: var(--red); margin-bottom: 10px; }
+.dash .bar span { color: var(--muted); font: 500 12px var(--font); margin-left: auto; }
+.dash .row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; }
+.dash .cal { background: var(--red); color: #fff; border-radius: 8px; text-align: center; padding: 3px 8px; font: 800 11px/1.1 var(--display); }
+.dash .cal b { display: block; font-size: 18px; }
+.dash .add { background: var(--red); color: #fff; border-radius: 999px; padding: 7px 12px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.dash .row .t b { display: block; }
+.dash .row .t span { color: var(--muted); font-size: 12px; }
+.sites2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; margin-left: 12%; }
+.mini { border-radius: 12px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 18px 40px -28px rgba(0,0,0,.4); background: #fff; }
+.mini .url { background: #eceae6; font-size: 11px; color: var(--muted); padding: 5px 9px; display: flex; gap: 5px; align-items: center; }
+.mini .url i { width: 7px; height: 7px; border-radius: 50%; background: #cfcac3; }
+.mini .body { padding: 12px; min-height: 168px; }
+.m90 .body { background: #ffd23f radial-gradient(circle, #ff8a3d 1.6px, transparent 2.4px) 0 0 / 16px 16px; font-family: "Comic Neue", "Comic Sans MS", cursive; color: #1b1bb3; }
+.m90 h4 { margin: 0 0 6px; color: #e3122d; font: 700 20px/1 "Comic Neue", cursive; text-shadow: 2px 2px 0 #1b1bb3; text-align: center; }
+.m90 .gig { background: #fff; border: 3px ridge #1b1bb3; padding: 4px 7px; font-size: 12px; font-weight: 700; margin-top: 6px; }
+.m90 .gig a { color: #1b1bb3; text-decoration: underline; }
+.mlev .body { background: #111; color: #f2efe9; font-family: var(--font); }
+.mlev h4 { margin: 2px 0 8px; font: 800 24px/0.95 var(--display); letter-spacing: -0.03em; }
+.mlev .gig { display: flex; justify-content: space-between; gap: 6px; border-top: 1px solid #2c2c2c; padding: 6px 0; font-size: 12px; }
+.mlev .gig b { color: #fff; }
+.mlev .gig a { background: #ff3b6b; color: #fff; text-decoration: none; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+.gig.new { opacity: 0; transform: translateY(-6px); }
+.demo.play .gig.new { animation: land .5s cubic-bezier(.2,.8,.2,1.2) forwards; }
+.demo.play .m90 .gig.new { animation-delay: 1.1s; }
+.demo.play .mlev .gig.new { animation-delay: 1.35s; }
+.demo.play .dash .add { animation: press .5s ease .4s; }
+@keyframes land { to { opacity: 1; transform: none; } }
+@keyframes press { 40% { transform: scale(.9); } }
+.flow { position: absolute; left: 34%; top: 104px; width: 2px; height: 30px; background: repeating-linear-gradient(var(--red) 0 4px, transparent 4px 8px); }
+.replay { margin-top: 12px; margin-left: 12%; background: none; border: 0; color: var(--muted); font: 500 14px var(--font); cursor: pointer; padding: 0; text-decoration: underline; }
+.caption { margin-left: 12%; margin-top: 4px; font-size: 14px; color: var(--muted); }
+
+section.band { padding: 88px 0; border-top: 1px solid var(--line); }
+.kicker { color: var(--red); font-weight: 700; font-size: 15px; margin: 0 0 12px; }
+h2 { font-size: clamp(34px, 4.4vw, 54px); font-weight: 800; max-width: 16em; }
+.intro { font-size: 20px; color: var(--muted); max-width: 34em; margin: 16px 0 44px; }
+
+.pains { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.pain { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+.pain b { display: block; font: 800 22px/1.1 var(--display); margin-bottom: 8px; }
+.pain p { margin: 0; color: var(--muted); }
+
+.ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.way { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 26px; display: flex; flex-direction: column; gap: 10px; }
+.way .tag { align-self: flex-start; font-size: 13px; font-weight: 700; color: var(--red); background: var(--red-soft); border-radius: 999px; padding: 3px 10px; }
+.way h3 { font-size: 26px; }
+.way p { margin: 0; color: var(--muted); }
+.way code { display: block; margin-top: auto; background: var(--text); color: #f2efe9; border-radius: 10px; padding: 12px; font: 500 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; white-space: pre; }
+.way.featured { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+
+.tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.tool { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+.tool h3 { font-size: 23px; }
+.tool p { margin: 0; color: var(--muted); font-size: 16px; }
+.ui { margin-top: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 13px; display: grid; gap: 6px; }
+.ui .r { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; }
+.ui .chip { display: inline-block; border-radius: 999px; padding: 2px 8px; font-weight: 700; font-size: 11px; background: var(--red-soft); color: var(--red); white-space: nowrap; }
+.ui .chip.ok { background: var(--ok-soft); color: var(--ok); }
+.ui .days { display: flex; gap: 4px; }
+.ui .days span { flex: 1; text-align: center; padding: 6px 0; border-radius: 6px; background: #fff; border: 1px solid var(--line); font-weight: 600; }
+.ui .days span.on { background: var(--red); color: #fff; border-color: var(--red); }
+.ui .btnx { background: var(--red); color: #fff; border-radius: 6px; padding: 3px 8px; font-weight: 700; font-size: 11px; white-space: nowrap; }
+
+.share { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 48px; align-items: center; }
+.tree { display: grid; justify-items: center; }
+.tree .who { background: var(--text); color: #fff; border-radius: 14px; padding: 14px 20px; text-align: center; }
+.tree .who b { display: block; font: 800 22px var(--display); }
+.tree .who span { font-size: 13px; opacity: .75; }
+.tree .lines { width: 70%; height: 36px; border: 2px solid var(--red); border-bottom: 0; border-radius: 14px 14px 0 0; margin-top: 18px; position: relative; }
+.tree .lines::before { content: ""; position: absolute; left: 50%; top: -20px; height: 20px; border-left: 2px solid var(--red); }
+.tree .leaves { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+.tree .leaf { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; text-align: center; font-size: 14px; }
+.tree .leaf b { display: block; font-size: 15px; }
+.tree .leaf span { color: var(--muted); font-size: 12px; }
+
+.yours { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.yours div b { display: block; font: 800 20px/1.15 var(--display); margin-bottom: 6px; }
+.yours div p { margin: 0; color: var(--muted); font-size: 16px; }
+
+.running { display: flex; flex-wrap: wrap; gap: 14px; }
+.running a { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; text-decoration: none; min-width: 260px; max-width: 420px; }
+.running a b { display: block; font: 800 20px var(--display); }
+.running a span { color: var(--muted); font-size: 15px; }
+.running a:hover { border-color: var(--text); }
+
+.cta { background: var(--text); color: #fff; border-radius: 24px; padding: 56px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+.cta h2 { color: #fff; }
+.cta p { color: #c9c5bf; font-size: 19px; margin: 14px 0 0; }
+form { display: grid; gap: 10px; }
+input, textarea { font: 400 17px var(--font); color: var(--text); background: #fff; border: 0; border-radius: 10px; padding: 13px 14px; width: 100%; }
+textarea { min-height: 84px; resize: vertical; }
+.msg { min-height: 1.4em; color: #ffb3ae; font-weight: 500; }
+.done { font: 800 30px/1.1 var(--display); }
+
+footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 32px; padding-bottom: 44px; color: var(--muted); font-size: 15px; }
+
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .gig.new { opacity: 1; transform: none; } .demo.play .gig.new, .demo.play .dash .add { animation: none; } }
+@media (max-width: 920px) {
+  .hero, .share, .cta { grid-template-columns: 1fr; }
+  .pains, .ways, .tools { grid-template-columns: 1fr; }
+  .yours { grid-template-columns: 1fr 1fr; }
+  .dash { width: 100%; } .sites2, .replay, .caption { margin-left: 0; }
+  .flow { display: none; }
+  .cta { padding: 32px 22px; }
+  nav .hide-sm { display: none; }
 }
+@media (max-width: 520px) { .wrap { padding: 0 16px; } .sites2 { grid-template-columns: 1fr; } .yours { grid-template-columns: 1fr; } .tree .leaves { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <a class="mark" href="/"><i aria-hidden="true"></i>ComicTable</a>
-    <a class="login" href="/login">Log in</a>
-  </header>
+<header><div class="wrap">
+  <a class="mark" href="/"><span class="dot" aria-hidden="true"></span>ComicTable</a>
+  <nav aria-label="Main"><a class="hide-sm" href="#ways">Get started</a><a class="hide-sm" href="#tools">What it runs</a><a class="pill-btn line" href="/login" style="padding:9px 16px">Log in</a></nav>
+</div></header>
 
-  <main>
-    <div class="hero">
-      <h1>The engine behind comedians' websites.</h1>
-      <p class="lede">Every comic's site looks like them, on their own web address. Underneath, ComicTable runs the parts that eat your week: dates and ticket links, new episodes and uploads, fan lists and community, all managed from one dashboard.</p>
+<main>
+  <div class="wrap hero">
+    <div>
+      <h1>Your site looks like you. <em>We keep it full.</em></h1>
+      <p>ComicTable is the engine behind comedians' websites. One dashboard runs the busywork: dates and ticket links, new episodes and uploads, fans, forums and a blog. Use it with a template, a site designed for you, or the site you already have.</p>
+      <div class="ctas"><a class="pill-btn red" href="#ask">Get started</a><a class="pill-btn line" href="https://cockfightpodcast.com" target="_blank" rel="noopener">See one running</a></div>
     </div>
 
-    <section>
-      <h2>What it runs</h2>
-      <dl>
-        <dt>Shows</dt><dd>A weekend of dates at a club in under a minute. Showtimes come from the club, and pages a comic points it at get checked for new dates every hour.</dd>
-        <dt>Podcast and YouTube</dt><dd>Connected once. New episodes and uploads appear on their own.</dd>
-        <dt>Comics, not just sites</dt><dd>A comic is one profile across every site they're on. Their own site, their podcast's site: add a date once and it shows on all of them.</dd>
-        <dt>Fans</dt><dd>A fan list by city, so a comic knows who's near each show. Plus a forum and live chat when they want them.</dd>
-        <dt>Writing</dt><dd>A blog for anything that doesn't fit in a set.</dd>
-      </dl>
-    </section>
+    <div class="demo" id="demo" aria-label="Demo: one show added in the dashboard appears on two sites">
+      <div class="dash">
+        <div class="bar">● ComicTable <span>Lev Fer · Shows</span></div>
+        <div class="row"><div class="cal">NOV<b>14</b></div><div class="t"><b>Comedy Cellar · 9:30 PM</b><span>New York, NY · tickets pasted</span></div><div class="add">Add show</div></div>
+      </div>
+      <div class="flow" aria-hidden="true"></div>
+      <div class="sites2">
+        <div class="mini m90"><div class="url"><i></i>cockfightpodcast.com</div><div class="body">
+          <h4>Tour Dates!!</h4>
+          <div class="gig">Nov 7 · Laugh Boston · <a>Get Tix</a></div>
+          <div class="gig new">NEW!! Nov 14 · Comedy Cellar · Lev · <a>Get Tix</a></div>
+        </div></div>
+        <div class="mini mlev"><div class="url"><i></i>levfer.gay</div><div class="body">
+          <h4>LEV FER</h4>
+          <div class="gig"><span><b>Nov 7</b> Laugh Boston</span><a>Tickets</a></div>
+          <div class="gig new"><span><b>Nov 14</b> Comedy Cellar</span><a>Tickets</a></div>
+        </div></div>
+      </div>
+      <button class="replay" type="button" id="replay">Play it again</button>
+      <div class="caption">One date, added once. It lands on every site Lev's on, each in its own style.</div>
+    </div>
+  </div>
 
-    <section>
-      <h2>Running on ComicTable</h2>
-      <ul class="sites">
-        <li><a href="https://cockfightpodcast.com" target="_blank" rel="noopener">Cockfight</a><span>A comedy podcast with Colum Tyrrell, Lev Fer and Tristan Bowling</span></li>
-      </ul>
-    </section>
+  <section class="band"><div class="wrap">
+    <p class="kicker">The problem</p>
+    <h2>Link in bio is not a website.</h2>
+    <p class="intro">Comics are running a small business out of their notes app. Keeping fans up to date shouldn't eat a weeknight.</p>
+    <div class="pains">
+      <div class="pain"><b>Dates live in five places</b><p>Instagram, the club's site, a Linktree, a Google Doc, the group chat. Nobody's sure which is current.</p></div>
+      <div class="pain"><b>Every show has its own link</b><p>Three shows a weekend means three ticket links, and they're never named anything useful.</p></div>
+      <div class="pain"><b>The followers aren't yours</b><p>An app decides who sees your post about Thursday. Your fans should hear from you directly.</p></div>
+    </div>
+  </div></section>
 
-    <section class="ask" id="ask">
-      <h2>Your site on ComicTable</h2>
-      <p>Sites are built one at a time, with the comic. Tell us who you are and we'll be in touch.</p>
-      <button class="open" type="button" id="askOpen">Get in touch</button>
-      <form id="askForm" novalidate hidden>
-        <input id="aName" placeholder="Your name" autocomplete="name" maxlength="120" aria-label="Your name">
-        <input id="aEmail" type="email" placeholder="Email" autocomplete="email" maxlength="200" aria-label="Email">
-        <input id="aLinks" placeholder="Where can we see you? Instagram, YouTube, your podcast" maxlength="1000" aria-label="Where can we see you?">
-        <textarea id="aNote" placeholder="Anything else" maxlength="2000" aria-label="Anything else"></textarea>
-        <div class="msg" id="aMsg" role="status" aria-live="polite"></div>
-        <div><button type="submit" id="aSend">Send</button></div>
-      </form>
-    </section>
-  </main>
+  <section class="band" id="ways"><div class="wrap">
+    <p class="kicker">Get started</p>
+    <h2>Three ways onto ComicTable.</h2>
+    <p class="intro">Same engine and same dashboard, whichever you pick. You can move from one to another later without losing a thing.</p>
+    <div class="ways">
+      <div class="way"><span class="tag">Fastest</span><h3>Start from a template</h3><p>Pick a design, add your name, photo and colors, and connect your podcast. You're live the same day, on your own web address.</p></div>
+      <div class="way featured"><span class="tag">Most yours</span><h3>Get one designed for you</h3><p>We build your front end with you, from scratch. A 90s cantina with a chicken, or clean and minimal. Nobody else's site looks like it.</p></div>
+      <div class="way"><span class="tag">Keep your site</span><h3>Plug it into the site you have</h3><p>On Squarespace, Wix, WordPress or something custom? Paste a snippet, and your shows, fan sign-up and episodes stay up to date from the dashboard.</p>
+        <code>&lt;div data-comictable="shows"&gt;&lt;/div&gt;
+&lt;script src="https://comictable.com/embed.js"
+  data-site="your-name"&gt;&lt;/script&gt;</code></div>
+    </div>
+  </div></section>
 
-  <footer><span>© <span id="yr"></span> ComicTable</span><a href="/login">Log in</a></footer>
-</div>
+  <section class="band" id="tools"><div class="wrap">
+    <p class="kicker">What it runs</p>
+    <h2>The boring parts, handled.</h2>
+    <p class="intro">Every site on ComicTable gets the same engine. Turn on what you need.</p>
+    <div class="tools">
+      <div class="tool"><h3>Shows</h3><p>Pick the club, tap the dates, paste the ticket links. Showtimes fill in from that club's usual times.</p>
+        <div class="ui" aria-hidden="true"><div class="r"><b>Laugh Boston</b><span class="chip">Boston, MA</span></div><div class="days"><span>Thu</span><span class="on">Fri</span><span class="on">Sat</span><span>Sun</span></div><div class="r">4 shows · links pasted<span class="btnx">Add shows</span></div></div></div>
+      <div class="tool"><h3>Show finder</h3><p>Point it at a tour page, a club calendar or a ticket site. It checks every hour and brings back new dates.</p>
+        <div class="ui" aria-hidden="true"><div class="r"><b>🔎 Found 3 new shows</b><span class="btnx">Add all</span></div><div class="r">Zanies · Fri 8:00 PM<span class="chip ok">Add</span></div><div class="r">Zanies · Sat 7:30 PM<span class="chip ok">Add</span></div></div></div>
+      <div class="tool"><h3>Podcast and YouTube</h3><p>Connect once. New episodes and uploads land on the site with descriptions and links, every hour.</p>
+        <div class="ui" aria-hidden="true"><div class="r"><b>Podcast feed</b><span class="chip ok">Working</span></div><div class="r">Ep 92 · Big Night Out<span class="chip">New</span></div><div class="r">YouTube · 3 channels<span class="chip ok">Working</span></div></div></div>
+      <div class="tool"><h3>Fan list</h3><p>Fans sign up with their city. When you book a show, you see exactly who lives near it.</p>
+        <div class="ui" aria-hidden="true"><div class="r"><b>Laugh Boston · Fri</b><span class="chip">38 fans nearby</span></div><div class="r">Zanies · Sat<span class="chip">12 fans nearby</span></div><div class="r">Copy their emails<span class="btnx">Copy</span></div></div></div>
+      <div class="tool"><h3>Forum and chat</h3><p>An old-school message board and a live chat room on your own site. You pin, lock and ban.</p>
+        <div class="ui" aria-hidden="true"><div class="r"><b>📌 Ep 92 discussion</b><span class="chip">48 replies</span></div><div class="r">Chat room<span class="chip ok">12 here now</span></div></div></div>
+      <div class="tool"><h3>Blog</h3><p>Road stories, bits that didn't make the set, what's coming up. Drafts stay private until you publish.</p>
+        <div class="ui" aria-hidden="true"><div class="r"><b>What I learned in Key West</b><span class="chip ok">Live</span></div><div class="r">Working on a new hour<span class="chip">Draft</span></div></div></div>
+    </div>
+  </div></section>
+
+  <section class="band"><div class="wrap share">
+    <div>
+      <p class="kicker">Comics, not just sites</p>
+      <h2>One comic. Every site they're on.</h2>
+      <p class="intro" style="margin-bottom:0">Tristan co-hosts two podcasts and could have his own site. On ComicTable he's one person with one profile and one calendar. He adds a date once, and every site has it. He logs in once and sees everything he's part of.</p>
+    </div>
+    <div class="tree" aria-hidden="true">
+      <div class="who"><b>Tristan Bowling</b><span>bio · photo · dates · YouTube</span></div>
+      <div class="lines"></div>
+      <div class="leaves">
+        <div class="leaf"><b>Cockfight</b><span>podcast site</span></div>
+        <div class="leaf"><b>Modern Apes</b><span>podcast site</span></div>
+        <div class="leaf"><b>His own site</b><span>solo</span></div>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="band"><div class="wrap">
+    <p class="kicker">Yours, not ours</p>
+    <h2>Your name on the door.</h2>
+    <p class="intro">ComicTable runs in the background. Your fans see you.</p>
+    <div class="yours">
+      <div><b>Your address</b><p>yourname.com, not a profile page on someone else's app.</p></div>
+      <div><b>Your design</b><p>A template to start, your own design whenever you want it.</p></div>
+      <div><b>Any ticket link</b><p>We don't sell tickets, so we never get between you and the club.</p></div>
+      <div><b>Your fans</b><p>Your fan list, your forum, your rules. Download the list anytime.</p></div>
+    </div>
+  </div></section>
+
+  <section class="band"><div class="wrap">
+    <p class="kicker">Running on ComicTable</p>
+    <h2 style="margin-bottom:28px">See it live.</h2>
+    <div class="running">
+      <a href="https://cockfightpodcast.com" target="_blank" rel="noopener"><b>Cockfight</b><span>Comedy podcast with Colum Tyrrell, Lev Fer and Tristan Bowling. Yes, it has a chicken.</span></a>
+    </div>
+  </div></section>
+
+  <section class="band" id="ask" style="border-top:0"><div class="wrap">
+    <div class="cta">
+      <div><h2>Want your site on ComicTable?</h2><p>Tell us who you are and which way sounds right. We'll get back to you.</p></div>
+      <div id="askBox">
+        <form id="askForm" novalidate>
+          <input id="aName" placeholder="Your name" autocomplete="name" maxlength="120" aria-label="Your name">
+          <input id="aEmail" type="email" placeholder="Email" autocomplete="email" maxlength="200" aria-label="Email">
+          <input id="aAct" placeholder="What do you do? Stand-up, a podcast, both" maxlength="200" aria-label="What do you do?">
+          <input id="aLinks" placeholder="Where can we see you? Instagram, YouTube, your site" maxlength="1000" aria-label="Where can we see you?">
+          <textarea id="aNote" placeholder="Template, designed for you, or plug into your site? Anything else?" maxlength="2000" aria-label="Anything else"></textarea>
+          <div class="msg" id="aMsg" role="status" aria-live="polite"></div>
+          <div><button class="pill-btn red" type="submit" id="aSend">Send</button></div>
+        </form>
+      </div>
+    </div>
+  </div></section>
+</main>
+
+<footer><div class="wrap"><span>© <span id="yr"></span> ComicTable · The engine behind comedians' websites</span><a href="/login">Comics: log in</a></div></footer>
 
 <script src="config.js"></script>
 <script>
@@ -109,12 +299,21 @@ footer { padding: 40px 0 56px; color: var(--muted); font-size: 15px; display: fl
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   $("yr").textContent = new Date().getFullYear();
-  $("askOpen").addEventListener("click", function () { this.hidden = true; $("askForm").hidden = false; $("aName").focus(); });
+
+  // the demo plays when it comes into view, and again on request
+  var demo = $("demo");
+  function play() { demo.classList.remove("play"); void demo.offsetWidth; demo.classList.add("play"); }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { play(); io.disconnect(); } }); }, { threshold: 0.4 });
+    io.observe(demo);
+  } else play();
+  $("replay").addEventListener("click", play);
+
   var CFG = window.COMICTABLE_CONFIG || {};
   $("askForm").addEventListener("submit", async function (e) {
     e.preventDefault();
     var msg = $("aMsg"), send = $("aSend"), v = function (id) { return $(id).value.trim(); };
-    var row = { name: v("aName"), email: v("aEmail"), links: v("aLinks") || null, note: v("aNote") || null };
+    var row = { name: v("aName"), email: v("aEmail"), act: v("aAct") || null, links: v("aLinks") || null, note: v("aNote") || null };
     msg.textContent = "";
     if (!row.name) { msg.textContent = "Add your name."; $("aName").focus(); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)) { msg.textContent = "Add an email we can reply to."; $("aEmail").focus(); return; }
@@ -123,8 +322,10 @@ footer { padding: 40px 0 56px; color: var(--muted); font-size: 15px; display: fl
       var r = await fetch(CFG.SUPABASE_URL + "/rest/v1/site_requests", { method: "POST",
         headers: { "Content-Type": "application/json", apikey: CFG.SUPABASE_ANON_KEY, Authorization: "Bearer " + CFG.SUPABASE_ANON_KEY, Prefer: "return=minimal" }, body: JSON.stringify(row) });
       if (!r.ok) throw new Error(r.status);
-      var p = document.createElement("p"); p.textContent = "Thanks, " + row.name.split(" ")[0] + ". We'll email you at " + row.email + ".";
-      $("askForm").replaceWith(p);
+      var d = document.createElement("p"), p = document.createElement("p");
+      d.className = "done"; d.textContent = "Got it, " + row.name.split(" ")[0] + ".";
+      p.textContent = "We'll email you at " + row.email + ".";
+      $("askBox").replaceChildren(d, p);
     } catch (err) { send.disabled = false; msg.textContent = "That didn't send. Check your connection and try again."; }
   });
 })();

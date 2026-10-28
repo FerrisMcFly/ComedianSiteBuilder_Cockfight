@@ -209,6 +209,7 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .vid img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: var(--bg); }
 .vid .body { padding: 10px 12px; display: grid; gap: 6px; }
 .vid.hidden img { opacity: .35; }
+.snippet { background: var(--text); color: var(--bg); border-radius: 10px; padding: 12px 14px; font: 500 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; margin: 0; white-space: pre; }
 .post-preview { border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; line-height: 1.6; min-height: 200px; }
 .post-preview img { max-width: 100%; border-radius: 8px; }
 .post-preview .csb-video iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 8px; }
@@ -2552,7 +2553,14 @@ td select.status.st-few_left { color: var(--warn); }
       } });
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), h("label", { class: "switch" }, box, h("span")));
     })));
-    main.append(h("div", { class: "stack" }, siteCard, feats, teamCard()));
+    // For comics who keep their own website: the snippet that puts this site's live content on it
+    const snippet = '<div data-comictable="shows"></div>\n<div data-comictable="fans"></div>\n<script src="https://comictable.com/embed.js" data-site="' + sid() + '"><\/script>';
+    const embedCard = h("section", { class: "card stack" }, h("h2", { text: "Use on your own website" }),
+      h("p", { class: "sub", text: "Already have a site on Squarespace, Wix, WordPress or anything else? Paste this where you want your shows to appear. It stays up to date from this dashboard." }),
+      h("pre", { class: "snippet", text: snippet }),
+      h("div", { class: "hint", text: "Other pieces: data-comictable=\"episodes\", \"videos\" or \"posts\". Add data-limit=\"5\" to show fewer. Add data-accent=\"#ff3b6b\" to the script for your button color." }),
+      h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Copy snippet", onclick: async () => toast((await copyText(snippet)) ? "Copied. Paste it into your site's HTML or embed block." : "Couldn't copy. Select it and copy instead.") })));
+    main.append(h("div", { class: "stack" }, siteCard, feats, teamCard(), embedCard));
   }
   const loginEmail = (u) => { u = String(u || "").trim(); return u.includes("@") ? u.toLowerCase() : u.toLowerCase() + "@" + loginDom(); };
   async function teamCall(body) {
