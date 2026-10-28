@@ -210,3 +210,95 @@ do $$ begin
     execute 'create policy "super admins write" on platform_settings for all to authenticated using (public.is_platform_owner()) with check (public.is_platform_owner())';
   end if;
 end $$;
+
+/* ---------------- keeping every site in step with a comic's Coaster ---------------- */
+-- A site's copy of a comic (hosts) follows the comic, except a bio, title or photo the site set for itself.
+-- These lived in 11_comics and 19_more_socials; they're here so an older upgrade can't bring back an old copy.
+alter table comics add column if not exists socials jsonb not null default '{}'::jsonb;
+alter table hosts add column if not exists socials jsonb not null default '{}'::jsonb;
+alter table hosts add column if not exists own_photo boolean not null default false;
+
+create or replace function public.comic_to_hosts() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  update hosts set name = new.name, status = new.status, instagram = new.instagram, youtube = new.youtube,
+    tiktok = new.tiktok, twitter = new.twitter, website = new.website, socials = coalesce(new.socials, '{}'::jsonb),
+    photo_url = case when own_photo then photo_url else new.photo_url end,
+    bio = case when own_bio then bio else new.bio end, title = case when own_title then title else new.title end
+  where comic_id = new.id;
+  return new;
+end $$;
+drop trigger if exists comics_sync on comics;
+create trigger comics_sync after update on comics for each row execute function public.comic_to_hosts();
+
+create or replace function public.host_from_comic() returns trigger language plpgsql set search_path = public as $$
+declare c record;
+begin
+  if new.comic_id is null then return new; end if;
+  select * into c from comics where id = new.comic_id;
+  if not found then return new; end if;
+  new.name := c.name; new.status := c.status; new.instagram := c.instagram; new.youtube := c.youtube;
+  new.tiktok := c.tiktok; new.twitter := c.twitter; new.website := c.website; new.socials := coalesce(c.socials, '{}'::jsonb);
+  if not new.own_photo then new.photo_url := c.photo_url; end if;
+  if not new.own_bio then new.bio := c.bio; end if;
+  if not new.own_title then new.title := c.title; end if;
+  return new;
+end $$;
+drop trigger if exists hosts_from_comic on hosts;
+create trigger hosts_from_comic before insert or update of comic_id, own_bio, own_title, own_photo on hosts
+  for each row execute function public.host_from_comic();
+
+/* ---------------- putting a comic with their own login on a site ---------------- */
+-- A comic who has claimed their Coaster (has a login) says yes before a site can add them.
+-- No ask needed: the comic adding themselves, ComicTable admins, and the server (no login).
+do $$ begin
+  if to_regclass('public.coaster_requests') is not null then
+    execute 'drop policy if exists "see requests" on coaster_requests';
+    execute $p$create policy "see requests" on coaster_requests for select to authenticated using (
+      requested_by = auth.uid() or public.is_site_admin(site_id) or public.is_platform_admin()
+      or exists (select 1 from comics c where c.id = comic_id and c.user_id = auth.uid()))$p$;
+    execute 'drop policy if exists "ask" on coaster_requests';
+    execute $p$create policy "ask" on coaster_requests for insert to authenticated with check (
+      requested_by = auth.uid() and status = 'pending' and public.is_site_admin(site_id))$p$;
+    execute 'drop policy if exists "take back" on coaster_requests';
+    execute $p$create policy "take back" on coaster_requests for delete to authenticated using (
+      status = 'pending' and (requested_by = auth.uid() or public.is_site_admin(site_id)))$p$;
+  end if;
+end $$;
+
+create or replace function public.host_needs_ok() returns trigger language plpgsql security definer set search_path = public as $$
+declare owner uuid;
+begin
+  if new.comic_id is null or auth.uid() is null then return new; end if;
+  if tg_op = 'UPDATE' and new.comic_id is not distinct from old.comic_id then return new; end if;
+  select user_id into owner from comics where id = new.comic_id;
+  if owner is null or owner = auth.uid() or public.is_platform_owner() then return new; end if;
+  if to_regclass('public.coaster_requests') is not null and exists (
+       select 1 from coaster_requests where comic_id = new.comic_id and site_id = new.site_id and status = 'approved') then
+    return new;
+  end if;
+  raise exception 'This comic has their own login. Ask them first: they''ll get a request to say yes.' using errcode = 'P0001';
+end $$;
+drop trigger if exists hosts_needs_ok on hosts;
+create trigger hosts_needs_ok before insert or update of comic_id on hosts for each row execute function public.host_needs_ok();
+
+-- The comic (or a ComicTable admin) answers. Yes puts them on the site, at the end of its lineup.
+create or replace function public.answer_coaster_request(p_id uuid, p_yes boolean) returns void
+language plpgsql security definer set search_path = public as $$
+declare r record; c record; hid text; n int := 0;
+begin
+  select * into r from coaster_requests where id = p_id and status = 'pending';
+  if not found then raise exception 'That request was already answered.' using errcode = 'P0001'; end if;
+  select * into c from comics where id = r.comic_id;
+  if not (c.user_id = auth.uid() or public.is_platform_owner()) then
+    raise exception 'Only the comic can answer this.' using errcode = '42501';
+  end if;
+  update coaster_requests set status = case when p_yes then 'approved' else 'declined' end, answered_at = now() where id = p_id;
+  if p_yes and not exists (select 1 from hosts where site_id = r.site_id and comic_id = r.comic_id) then
+    hid := r.site_id || '-' || coalesce(nullif(public.comic_slug(split_part(c.name, ' ', 1)), 'comic'), 'person');
+    while exists (select 1 from hosts where id = hid) loop n := n + 1; hid := hid || '-' || n; end loop;
+    insert into hosts (id, site_id, comic_id, name, sort)
+      values (hid, r.site_id, r.comic_id, c.name, (select count(*) from hosts where site_id = r.site_id));
+  end if;
+end $$;
+revoke all on function public.answer_coaster_request(uuid, boolean) from public;
+grant execute on function public.answer_coaster_request(uuid, boolean) to authenticated;

@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "99_rules.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "99_rules.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -381,4 +381,48 @@ test("rules: photos only go into a site you can edit, moderators can't add comic
   await q(`insert into venues (name, city, verified, created_by_site) values ('Booker Room', 'Austin', false, 'cockfight')`);
   assert.equal(await as(BOOKER, `delete from venues where name = 'Booker Room'`), "ok");
   assert.equal((await q("select count(*)::int n from venues where name = 'Booker Room'"))[0].n, 0);
+});
+
+test("Coasters: a Tape and a look, a site's own photo, asking a comic with a login first, and who else is on the bill", async () => {
+  const LEV = "33333333-3333-3333-3333-333333333333";
+  await q(`update comics set user_id = '${LEV}' where id = 'lev-fer'`);
+  // the Coaster itself
+  assert.equal(await as(LEV, `update comics set tape_url = 'https://www.youtube.com/watch?v=abc', tape_title = 'Live at the Cellar', look = 'spooky' where id = 'lev-fer'`), "ok");
+  assert.match(await as(LEV, `update comics set look = 'neon-vomit' where id = 'lev-fer'`), /check constraint/i);
+  assert.match(await as(LEV, `update comics set tape_url = 'javascript:alert(1)' where id = 'lev-fer'`), /check constraint/i);
+  assert.match(await as(OWNER, `insert into comics (id, name) values ('login', 'Login Person')`), /reserved|check constraint/i, "comictable.com/login stays the login page");
+  // a site can't just add a comic who has their own login: it asks, and the comic says yes
+  assert.equal((await q("select count(*)::int n from hosts where site_id = 'othercomic' and comic_id = 'lev-fer'"))[0].n, 0);
+  assert.match(await as(COMIC, `insert into hosts (id, site_id, comic_id, name, sort) values ('othercomic-lev', 'othercomic', 'lev-fer', 'Lev Fer', 0)`), /Ask them first/);
+  assert.equal(await as(COMIC, `insert into hosts (id, site_id, comic_id, name, sort) values ('othercomic-colum', 'othercomic', 'colum-tyrrell', 'Colum', 0)`), "ok", "no login, no ask");
+  assert.equal(await as(COMIC, `insert into coaster_requests (comic_id, site_id, requested_by) values ('lev-fer', 'othercomic', '${COMIC}')`), "ok");
+  assert.match(await as(COMIC, `insert into coaster_requests (comic_id, site_id, requested_by) values ('lev-fer', 'cockfight', '${COMIC}')`), /row-level/i, "only for your own site");
+  const req = (await rows(LEV, "select id from coaster_requests where status = 'pending'"))[0];
+  assert.ok(req, "Lev sees the request");
+  assert.equal((await rows("88888888-8888-8888-8888-888888888888", "select id from coaster_requests")).length, 0, "strangers don't");
+  assert.match(await as(COMIC, `select answer_coaster_request('${req.id}', true)`), /Only the comic/);
+  assert.equal(await as(LEV, `select answer_coaster_request('${req.id}', true)`), "ok");
+  assert.equal((await q("select count(*)::int n from hosts where site_id = 'othercomic' and comic_id = 'lev-fer'"))[0].n, 1);
+  assert.match(await as(LEV, `select answer_coaster_request('${req.id}', false)`), /already answered/);
+  // a photo just for one site
+  const levCF = (await q("select id from hosts where comic_id = 'lev-fer' and site_id = 'cockfight'"))[0].id;
+  await q(`update hosts set own_photo = true, photo_url = 'https://cf.example/lev.jpg' where id = '${levCF}'`);
+  // an older upgrade run again can't undo the rules that keep sites in step
+  await db.exec(file("UPGRADE_V2_ALL.sql"));
+  await q(`update comics set photo_url = 'https://new.example/lev.jpg', socials = '{"threads":"https://threads.net/@lev"}' where id = 'lev-fer'`);
+  const cps = await q("select site_id, photo_url, socials from hosts where comic_id = 'lev-fer' order by site_id");
+  assert.equal(cps.find((x) => x.site_id === "cockfight").photo_url, "https://cf.example/lev.jpg", "Cockfight keeps its own photo");
+  assert.equal(cps.find((x) => x.site_id === "othercomic").photo_url, "https://new.example/lev.jpg", "other sites follow the Coaster");
+  assert.equal(cps.find((x) => x.site_id === "cockfight").socials.threads, "https://threads.net/@lev", "socials still follow after an old upgrade runs again");
+  await q(`update hosts set own_photo = false where id = '${levCF}'`);
+  assert.equal((await q(`select photo_url from hosts where id = '${levCF}'`))[0].photo_url, "https://new.example/lev.jpg", "back to the Coaster's photo");
+  // also on the bill: same club, same night, both comics leave it on
+  const v = (await q("select id from venues limit 1"))[0].id;
+  await q(`delete from shows where date = current_date + 20`);
+  await q(`insert into shows (site_id, comic_id, date, venue_id, venue) values ('cockfight', 'lev-fer', current_date + 20, '${v}', 'X'), ('cockfight', 'colum-tyrrell', current_date + 20, '${v}', 'X')`);
+  const bill = await rows(null, "select * from also_on_bill('lev-fer')");
+  assert.ok(bill.some((b) => b.comic_id === "colum-tyrrell"), "Colum shows up on Lev's bill without anyone tagging");
+  await q(`update comics set on_bills = false where id = 'colum-tyrrell'`);
+  assert.ok(!(await rows(null, "select * from also_on_bill('lev-fer')")).some((b) => b.comic_id === "colum-tyrrell"), "switched off, he doesn't");
+  await q(`update comics set on_bills = true where id = 'colum-tyrrell'`);
 });
