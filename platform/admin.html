@@ -3122,7 +3122,7 @@ td select.status.st-few_left { color: var(--warn); }
   async function viewPicks(main) {
     const theme = await loadTheme();
     main.append(head("Home screen", "What fans see first. News is what's happening now; Links stay put; Layout is the order of everything."));
-    const homeSet = theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => isHomeSetting(st) && st.type !== "heading") : [];
+    const homeSet = withoutUniversal(theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => isHomeSetting(st) && st.type !== "heading") : []);
     const linksWrap = h("div", { class: "stack" });
     const layout = homeSet.length ? [h("h2", { class: "sec-title", style: "margin-top:28px", text: "Layout" }),
       h("p", { class: "hint", style: "margin:-6px 0 10px", text: "Everything on your home screen, in order. Drag to move, switch off what you don't want." }),
@@ -3306,6 +3306,15 @@ td select.status.st-few_left { color: var(--warn); }
   }
   // Design settings that belong to the home screen live on the Home screen page; everything else on Design.
   // A design marks them with "page": "home", or by key (home, home_*) and a "Home screen" heading.
+  // Options every site has (defined once in the toolkit): a design's theme.json can't redefine these, so they're
+  // left out of its Custom settings and its home screen settings.
+  const SITE_OPTIONS = (window.CSB && CSB.SITE_OPTIONS) || [];
+  const UNIVERSAL = new Set(SITE_OPTIONS.filter((o) => o.key).map((o) => o.key));
+  // drop a design's settings that are now universal, and any heading left with nothing under it
+  const withoutUniversal = (list) => {
+    const kept = list.filter((st) => !st.key || !UNIVERSAL.has(st.key));
+    return kept.filter((st, i) => st.type !== "heading" || (kept[i + 1] && kept[i + 1].type !== "heading"));
+  };
   const isHomeSetting = (st) => st.page === "home" || (st.type === "heading" ? /home screen/i.test(st.label || "") : /^home($|_)/.test(st.key || ""));
   // One form for a set of design settings. Saves only those keys, so the two pages don't overwrite each other.
   function settingsForm(list, saveLabel) {
@@ -3325,6 +3334,18 @@ td select.status.st-few_left { color: var(--warn); }
       else if (st.type === "lines") { const ta = h("textarea", { "aria-label": st.label, style: "min-height:150px;width:100%", placeholder: st.placeholder || "One per line" }); ta.value = (Array.isArray(v) ? v : []).join("\n");
         inputs[st.key] = { get value() { return ta.value.split(/\n+/).map((x) => x.trim()).filter(Boolean).slice(0, st.max || 50); } };
         return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), ta); }
+      else if (st.type === "socials_hide") {
+        // every network: tap to hide it on this site (the Coaster and other sites keep it)
+        const hide = new Set(Array.isArray(v) ? v : []);
+        const box = h("div", { class: "soc-picks" });
+        const draw = () => box.replaceChildren(...((window.CSB && CSB.SOCIALS) || []).filter(([k]) => k !== "website").map(([k, l]) => {
+          const ic = h("span", { "aria-hidden": "true" }); ic.innerHTML = CSB.socialIcon ? CSB.socialIcon(k, { brand: true, size: 18 }) : "";
+          return h("button", { type: "button", class: "soc-pick", "aria-pressed": String(!hide.has(k)), title: (hide.has(k) ? "Hidden here: " : "Showing: ") + l, onclick: () => { hide.has(k) ? hide.delete(k) : hide.add(k); draw(); } }, ic, h("span", { text: l }));
+        }));
+        draw();
+        inputs[st.key] = { get value() { return [...hide]; } };
+        return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), box);
+      }
       else if (st.type === "color") input = (inputs[st.key] = h("input", { type: "color", value: /^#[0-9a-f]{6}$/i.test(v || "") ? v : "#000000", "aria-label": st.label, style: "width:64px;height:40px;padding:2px" }));
       else input = (inputs[st.key] = h("input", { value: v ?? "", placeholder: st.placeholder || "", "aria-label": st.label, style: "max-width:260px" }));
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), input);
@@ -3351,10 +3372,16 @@ td select.status.st-few_left { color: var(--warn); }
   }
   async function viewTheme(main) {
     const theme = await loadTheme();
-    const list = theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => !isHomeSetting(st)) : [];
+    const list = withoutUniversal(theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => !isHomeSetting(st)) : []);
     const homeToo = hasExtra("home_picks") || (theme && Array.isArray(theme.settings) && theme.settings.some(isHomeSetting));
     main.append(head("Design", (theme && theme.name ? theme.name + ". " : "") + "What's on your site and how it looks: sections, the menu, colors and the extras that come with your design." + (homeToo ? " What's on the home screen is under Home screen." : "")));
-    main.append(h("div", { class: "stack" }, sectionsCard(), F("podcast") ? podcastsCard() : null, list.some((st) => st.type !== "heading") ? settingsForm(list, "Save design") : null));
+    main.append(h("div", { class: "stack" }, sectionsCard(), F("podcast") ? podcastsCard() : null,
+      SITE_OPTIONS.length ? h("div", { class: "stack" }, h("h2", { class: "sec-title", text: "Options" }),
+        h("p", { class: "hint", style: "margin:-6px 0 0", text: "The same on every ComicTable site: how many shows, how your socials look, how big the mailing-list sign-up is." }),
+        settingsForm(SITE_OPTIONS, "Save options")) : null,
+      list.some((st) => st.type !== "heading") ? h("div", { class: "stack" }, h("h2", { class: "sec-title", text: "Custom" }),
+        h("p", { class: "hint", style: "margin:-6px 0 0", text: "Extras that come with " + (theme && theme.name ? theme.name : "your design") + ", just for this site." }),
+        settingsForm(list, "Save custom")) : null));
   }
 
   /* ======================================================

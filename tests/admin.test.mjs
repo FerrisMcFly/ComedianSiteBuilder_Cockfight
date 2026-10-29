@@ -236,7 +236,7 @@ test("profile and theme settings save to the site", async () => {
   assert.match(d.querySelector("h1").textContent, /^Design$/); assert.match(d.querySelector(".page-head .sub").textContent, /90s Cantina/);
   const splash = d.querySelector('input[aria-label="Rooster splash screen"]'); splash.checked = false;
   d.querySelector('select[aria-label="Scrolling banner speed"]').value = "fast";
-  d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  [...d.querySelectorAll("main form.card")].find((f) => /Save custom/.test(f.textContent)).dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
   assert.equal(db.sites[0].theme.splash, false); assert.equal(db.sites[0].theme.banner_speed, "fast"); assert.equal(db.sites[0].theme.music, true);
 });
 
@@ -742,7 +742,7 @@ test("Design: look settings and the site's sections; home screen settings live o
   const rows = () => [...d.querySelectorAll(".order-row")];
   assert.deepEqual(rows().map((r) => r.querySelector("b").textContent), ["Tour Dates", "Clips"]);
   press(w, rows()[1].querySelector(".drag-grip"), "ArrowUp"); await wait();
-  const form = [...d.querySelectorAll("form.card")].find((f) => /Save design/.test(f.textContent));
+  const form = [...d.querySelectorAll("form.card")].find((f) => /Save custom/.test(f.textContent));
   form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.menu)).map((x) => x.key), ["clips", "shows"]);
   assert.equal(db.sites[0].theme.accent, "#ffb238");
@@ -1081,4 +1081,23 @@ test("Coaster settings: wear (fresh, used, well loved) is saved with the Coaster
   assert.match(card.querySelector(".mini-coaster").className, /wear-loved/, "the preview shows it");
   card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
   assert.equal(db.comics.find((c) => c.id === "lev-fer").coaster.wear, "loved");
+});
+
+test("Design: Options every site has (shows, socials, sign-up), then the design's own Custom extras", async () => {
+  const theme = { name: "Console Lobby", settings: [
+    { type: "heading", label: "Home screen" }, { key: "home_shows", label: "Old per-design setting", type: "select", options: [["1", "1"], ["3", "3"]], default: "3" },
+    { type: "heading", label: "Look" }, { key: "accent", label: "Highlight color", type: "color", default: "#ffb238" }] };
+  const { w, d, db } = await open("#theme", null, theme);
+  const titles = [...d.querySelectorAll("main .sec-title")].map((x) => x.textContent);
+  assert.deepEqual(titles, ["Options", "Custom"]);
+  assert.ok(!d.querySelector('select[aria-label="Old per-design setting"]'), "a design can't redefine an option every site has");
+  const opts = [...d.querySelectorAll("main form.card")].find((f) => /Save options/.test(f.textContent));
+  opts.querySelector('select[aria-label="How many shows on the home screen"]').value = "all";
+  opts.querySelector('select[aria-label="Socials show as"]').value = "both";
+  opts.querySelector('select[aria-label="Sign-up"]').value = "bar";
+  [...opts.querySelectorAll(".soc-pick")].find((b) => /TikTok/.test(b.textContent)).click();
+  opts.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  const t = db.sites[0].theme;
+  assert.deepEqual([t.home_shows, t.socials_style, t.signup_style, JSON.parse(JSON.stringify(t.socials_hide))], ["all", "both", "bar", ["tiktok"]]);
+  assert.match(d.body.textContent, /Extras that come with Console Lobby/);
 });

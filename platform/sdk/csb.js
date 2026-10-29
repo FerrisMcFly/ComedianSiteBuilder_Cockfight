@@ -115,6 +115,7 @@
         links: r[7].filter(visible).map(function (l) { return { id: l.id, label: l.label, url: l.url, icon: l.icon || "" }; }),
         boards: r[8].filter(visible).map(function (b) { return { id: b.id, name: b.name, description: b.description || "", locked: !!b.locked }; }),
         posts: r[9].map(post),
+        options: siteOptions(s.theme),
         news: news,
         picks: news
       };
@@ -355,9 +356,10 @@
     cameo: ["#FF2E63", "M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5L7 14l-5.3-5 7.2-.9z"],
     website: ["#5E584D", "M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zm7.9 7h-3.3a18 18 0 0 0-1.5-4.4A10 10 0 0 1 19.9 7zM12 2.1c.9 1.2 1.7 2.9 2.2 4.9H9.8c.5-2 1.3-3.7 2.2-4.9zM2.4 14a9.9 9.9 0 0 1 0-4h3.8a19 19 0 0 0 0 4zm1.7 3h3.3c.4 1.6.9 3 1.5 4.4A10 10 0 0 1 4.1 17zm3.3-10H4.1a10 10 0 0 1 4.8-4.4C8.3 4 7.8 5.4 7.4 7zM12 21.9c-.9-1.2-1.7-2.9-2.2-4.9h4.4c-.5 2-1.3 3.7-2.2 4.9zm2.5-6.9h-5a17 17 0 0 1 0-6h5a17 17 0 0 1 0 6zm.6 6.4c.6-1.3 1.1-2.8 1.5-4.4h3.3a10 10 0 0 1-4.8 4.4zm2.7-6.4a19 19 0 0 0 0-4h3.8a9.9 9.9 0 0 1 0 4z"]
   };
-  // An <svg> for one network, in its brand color or the page's color ("currentColor").
+  // An <svg> for one network, in its brand color or the page's color ("currentColor"). opts: { brand, size, onDark }
   function socialIcon(key, opts) {
-    var ic = SOCIAL_ICONS[key] || SOCIAL_ICONS.website, color = opts && opts.brand ? ic[0] : "currentColor";
+    // onDark: a black logo (TikTok, X, Threads…) takes the text color instead, so it shows on a dark page
+    var ic = SOCIAL_ICONS[key] || SOCIAL_ICONS.website, color = opts && opts.brand && !(opts.onDark && ic[0] === "#000000") ? ic[0] : "currentColor";
     return '<svg viewBox="0 0 24 24" width="' + ((opts && opts.size) || 20) + '" height="' + ((opts && opts.size) || 20) + '" aria-hidden="true" focusable="false"><path fill="' + color + '" d="' + ic[1] + '"/></svg>';
   }
   var COLUMN_SOCIALS = ["instagram", "youtube", "tiktok", "twitter", "website"];
@@ -428,6 +430,40 @@
     return out;
   }
 
-  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
+  // Options every site has, defined once by ComicTable (the dashboard's Design page shows these to every site, and
+  // every design reads them the same way). Saved in the site's theme under these keys. A design's own one-off
+  // settings (its theme.json) are its Custom tab. Same shape as theme.json settings.
+  var SITE_OPTIONS = [
+    { type: "heading", label: "Shows" },
+    { key: "home_shows", label: "How many shows on the home screen", type: "select", options: [["1", "1"], ["3", "3"], ["5", "5"], ["10", "10"], ["all", "All"]], "default": "3" },
+    { key: "shows_style", label: "Show listings", type: "select", options: [["detailed", "Detailed: club, city, time and tickets"], ["compact", "Compact: one line each"]], "default": "detailed" },
+    { type: "heading", label: "Social links" },
+    { key: "socials_style", label: "Socials show as", type: "select", options: [["icons", "Logos"], ["both", "Logo + name"], ["names", "Names"]], "default": "icons" },
+    { key: "socials_size", label: "Size", type: "select", options: [["small", "Small"], ["medium", "Medium"], ["big", "Big"]], "default": "medium" },
+    { key: "socials_color", label: "Colors", type: "select", options: [["brand", "Each network's own colors"], ["site", "This site's colors"]], "default": "brand" },
+    { key: "socials_hide", label: "Hide on this site", type: "socials_hide", help: "Tap a network to hide it here. It stays on your Coaster and your other sites.", "default": [] },
+    { type: "heading", label: "Mailing list" },
+    { key: "signup_style", label: "Sign-up", type: "select", options: [["box", "A box in its spot"], ["big", "Big, first on the home screen"], ["bar", "A slim bar: \"Get told when I'm in your city\""], ["off", "Off"]], "default": "box" }];
+  // This site's values for those options, with the defaults filled in. home_shows comes back as a number, or Infinity for All.
+  function siteOptions(theme) {
+    var t = theme || {}, out = {};
+    SITE_OPTIONS.forEach(function (o) {
+      if (!o.key) return;
+      var v = t[o.key], ok = o.options ? o.options.some(function (x) { return String(x[0]) === String(v); }) : v !== undefined;
+      out[o.key] = ok ? v : o["default"];
+    });
+    out.home_shows = out.home_shows === "all" ? Infinity : (parseInt(out.home_shows, 10) || 3);
+    if (!Array.isArray(out.socials_hide)) out.socials_hide = [];
+    return out;
+  }
+  // One person's social links for this site, in order, with logos, minus the ones hidden here:
+  // [{ key, label, url, svg }] where svg is the logo in brand or site colors (options.socials_color).
+  function socialLinks(person, options) {
+    var o = options || siteOptions({}), so = (person && person.socials) || {}, brand = o.socials_color !== "site";
+    return SOCIALS.filter(function (x) { return so[x[0]] && o.socials_hide.indexOf(x[0]) < 0; })
+      .map(function (x) { return { key: x[0], label: x[1], url: so[x[0]], svg: socialIcon(x[0], { brand: brand, size: o.socials_size === "small" ? 16 : o.socials_size === "big" ? 28 : 20 }) }; });
+  }
+
+  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

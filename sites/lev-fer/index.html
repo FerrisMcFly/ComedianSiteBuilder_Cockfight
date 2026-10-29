@@ -175,6 +175,17 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .special { display: grid; gap: 10px; text-decoration: none; }
 .special .thumb { border-color: var(--amber); }
 .special strong { font: 400 clamp(18px, 2.6vw, 24px)/1.2 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--glow); }
+.logo { display: inline-grid; place-items: center; line-height: 0; }
+.logo svg { display: block; }
+.lnk .ic .logo svg { width: 22px; height: 22px; }
+.soc { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.soc-icons { padding: 12px 6px; }
+.soc-big { padding-top: 16px; padding-bottom: 16px; }
+.net a .logo { margin-right: 10px; vertical-align: middle; }
+.signup-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 16px; margin-bottom: 14px; text-decoration: none; color: var(--void, #03070f);
+  background: var(--amber, #ffb238); font: 700 16px/1.2 var(--f-body); letter-spacing: .02em; }
+.signup-bar b { font: 12px var(--f-display); letter-spacing: .14em; }
+.signup-big p { margin: 0 0 12px; font-size: 18px; }
 .socrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
 .socrow .btn { padding: 12px 6px; letter-spacing: .06em; font-size: 11px; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
@@ -456,7 +467,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   var person = function () { return D.people[0] || { name: D.site.name, bio: "", photo: "", title: "", socials: {} }; };
   function socialLinks() {
     var s = person().socials || {}, out = [];
-    (CSB.SOCIALS || []).forEach(function (x) { if (s[x[0]]) out.push([x[1], s[x[0]]]); });
+    (CSB.SOCIALS || []).forEach(function (x) { if (s[x[0]] && O().socials_hide.indexOf(x[0]) < 0) out.push([x[1], s[x[0]], x[0]]); });
     D.links.forEach(function (l) { out.push([l.label, l.url]); });
     return out;
   }
@@ -504,7 +515,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   function lnk(o) {
     var href = safeHref(o.url); if (!href) return null; var ext = /^https?:/i.test(href);
     return el("a", { class: "lnk" + (o.gold ? " gold" : ""), href: href, target: ext ? "_blank" : null, rel: ext ? "noopener" : null }, [
-      el("span", { class: "ic", "aria-hidden": "true" }, o.image ? [el("img", { src: o.image, alt: "" })] : [o.icon || "▶"]),
+      el("span", { class: "ic", "aria-hidden": "true" }, o.image ? [el("img", { src: o.image, alt: "" })] : o.logo ? [logo(o.logo)] : [o.icon || "▶"]),
       el("span", null, [el("strong", { text: o.label }), o.sub ? el("small", { text: o.sub }) : null]),
       el("span", { class: "go", "aria-hidden": "true", text: o.go || (ext ? "Open" : "Go") })]);
   }
@@ -513,6 +524,14 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   // One renderer per kind of Home screen item. "row" items are link buttons, and neighbours stack into one list;
   // "block" items are bigger cards. The order and on/off come from Lev's dashboard (CSB.homeArrange).
   var SOCIAL = {}; (CSB.SOCIALS || []).forEach(function (x) { SOCIAL[x[0]] = { name: x[1], short: x[2] }; });
+  // The options every ComicTable site has (Design → Options): shows on the home screen, how socials look, the sign-up.
+  var O = function () { return D.options || (CSB.siteOptions ? CSB.siteOptions(T()) : { home_shows: parseInt(T().home_shows, 10) || 3, socials_style: "names", socials_size: "medium", socials_color: "brand", socials_hide: [], signup_style: "box" }); };
+  // a network's logo, sized and colored the way the comic chose (or its short name if the toolkit has no logo)
+  function logo(k) {
+    var sp = el("span", { class: "logo", "aria-hidden": "true" });
+    if (CSB.socialIcon) sp.innerHTML = CSB.socialIcon(k, { brand: O().socials_color !== "site", onDark: true, size: O().socials_size === "small" ? 16 : O().socials_size === "big" ? 28 : 20 }); else sp.textContent = (SOCIAL[k] || {}).short || "↗";
+    return sp;
+  }
   function homeItem(key) {
     var me = person(), p = D.profile || {};
     if (key === "me") {
@@ -524,16 +543,17 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     }
     if (key.indexOf("link:") === 0) { var l = D.links.find(function (x) { return "link:" + x.id === key; }); return l ? { row: lnk({ label: l.label, sub: host(l.url), url: l.url, icon: l.icon || "↗" }) } : null; }
     if (key.indexOf("social:") === 0) {
-      var k = key.slice(7), u = (me.socials || {})[k]; if (!u) return null;
-      var name = (SOCIAL[k] || {}).name || k;
-      return { social: el("a", { class: "btn soc", href: safeHref(u), target: "_blank", rel: "noopener", text: name }),
-        row: lnk({ label: name, sub: host(u).replace(/^(instagram|tiktok|x|twitter)\.com\//, "@").replace(/^@@/, "@"), url: u, icon: (SOCIAL[k] || {}).short || "↗" }) };
+      var k = key.slice(7), u = (me.socials || {})[k]; if (!u || O().socials_hide.indexOf(k) >= 0) return null;
+      var name = (SOCIAL[k] || {}).name || k, st = O().socials_style;
+      return { social: el("a", { class: "btn soc soc-" + st + " soc-" + O().socials_size, href: safeHref(u), target: "_blank", rel: "noopener", "aria-label": st === "icons" ? name : null, title: name },
+          [st !== "names" ? logo(k) : null, st !== "icons" ? el("span", { text: name }) : null]),
+        row: lnk({ label: name, sub: host(u).replace(/^(instagram|tiktok|x|twitter)\.com\//, "@").replace(/^@@/, "@"), url: u, logo: k }) };
     }
     if (key === "support") { var sp = support(); return sp ? { row: lnk({ label: sp.label, sub: host(sp.url), url: sp.url, icon: "♥", gold: true, go: "Support" }) } : null; }
     if (key === "picks") return D.picks.length ? { block: el("div", { class: "picks" }, D.picks.map(pickCard)) } : null;
     if (key === "shows") {
       if (!F("shows", true) || !D.shows.length) return null;
-      var n = Math.max(1, Math.min(20, parseInt(T().home_shows, 10) || 3));
+      var n = O().home_shows === Infinity ? Infinity : Math.max(1, Math.min(50, O().home_shows || 3));
       return { block: block("Next shows", D.shows.length > n ? el("a", { href: "#/shows", text: "All " + D.shows.length + " dates" }) : null, [el("ul", { class: "dates" }, D.shows.slice(0, n).map(showRow))]) };
     }
     if (key.indexOf("podcast:") === 0) {
@@ -548,7 +568,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
       var v = D.videos.filter(function (y) { return y.featured; })[0]; if (!v || !F("videos", true)) return null;
       return { block: block("Featured", null, [el("a", { class: "special", href: v.link, target: "_blank", rel: "noopener" }, [el("div", { class: "thumb" }, [el("img", { src: v.thumbnail, alt: "", loading: "lazy" })]), el("strong", { text: v.title })])]) };
     }
-    if (key === "list") return F("fans", false) ? { row: lnk({ label: "Get told when Lev's in your town", sub: "One email when there's a show near you", url: "#/list", icon: "✉", go: "Join" }) } : null;
+    if (key === "list") return F("fans", false) && O().signup_style === "box" ? { row: lnk({ label: "Get told when Lev's in your town", sub: "One email when there's a show near you", url: "#/list", icon: "✉", go: "Join" }) } : null;
     if (key === "blog") return F("blog", false) && D.posts.length ? { block: block("From the blog", D.posts.length > 2 ? el("a", { href: "#/blog", text: "All posts" }) : null, [el("div", { class: "list" }, D.posts.slice(0, 2).map(postItem))]) } : null;
     if (key === "clips") return F("videos", true) && D.videos.length ? { block: block("Latest clips", el("a", { href: "#/clips", text: "All clips" }), [el("div", { class: "clips" }, D.videos.slice(0, 3).map(clipCard))]) } : null;
     return null;
@@ -560,6 +580,11 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   function viewHome(app) {
     app.append.apply(app, head("Home"));
     var wrap = el("div", { class: "home" }), rows = null, list = [];
+    // the mailing-list sign-up, if the comic made it big or a slim bar: first on the home screen
+    var su = F("fans", false) ? O().signup_style : "off";
+    if (su === "bar") wrap.append(el("a", { class: "signup-bar", href: "#/list" }, [el("span", { text: "✉ Get told when Lev's in your city" }), el("b", { text: "Join →" })]));
+    if (su === "big") wrap.append(el("section", { class: "block signup-big" }, [el("div", { class: "block-h" }, [el("span", { text: "Mailing list" })]),
+      el("p", { text: "One email when Lev has a show near you. Nothing else." }), el("a", { class: "btn", href: "#/list", text: "Join the list" })]));
     homeLayout().forEach(function (it) { if (!it.on) return; var out = null; try { out = homeItem(it.key); } catch (e) {} if (out) list.push(out); });
     list.forEach(function (out, i) {
       // two or more socials in a row sit side by side as small buttons; a social on its own is a big button
@@ -737,7 +762,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   }
   function viewSocials(app) {
     app.append.apply(app, head("Socials", "Follow Lev"));
-    app.append(el("div", { class: "net" }, socialLinks().map(function (x) { var h = safeHref(x[1]); return h ? el("a", { href: h, target: "_blank", rel: "noopener" }, [x[0], el("span", { text: x[1].replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "") })]) : null; })));
+    app.append(el("div", { class: "net" }, socialLinks().map(function (x) { var h = safeHref(x[1]); return h ? el("a", { href: h, target: "_blank", rel: "noopener" }, [x[2] && O().socials_style !== "names" ? logo(x[2]) : null, x[0], el("span", { text: x[1].replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "") })]) : null; })));
     if (F("fans", false)) app.append(el("p", { style: "margin-top:16px" }, [el("a", { class: "btn", href: "#/list", text: "Join the mailing list" })]));
   }
 

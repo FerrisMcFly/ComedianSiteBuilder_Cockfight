@@ -232,7 +232,7 @@ test("socials sit side by side after his links; each can be switched off, or mov
   const blocks = [...d.querySelectorAll(".home > .block")];
   const i = blocks.findIndex((b) => b.querySelector(".socrow"));
   assert.match(blocks[i - 1].textContent, /Merch/, "right after his links");
-  assert.deepEqual([...blocks[i].querySelectorAll(".soc")].map((a) => a.textContent), ["Instagram", "YouTube", "Website"]);
+  assert.deepEqual([...blocks[i].querySelectorAll(".soc")].map((a) => a.textContent || a.getAttribute("aria-label")), ["Instagram", "YouTube", "Website"]);
   const theme = { home_items: [{ key: "social:youtube", on: true }, { key: "link:1", on: true }, { key: "social:instagram", on: false }] };
   ({ d } = await load({ ...full, home_picks: [], hosts, links, sites: [{ ...full.sites[0], theme }] }));
   const big = [...d.querySelectorAll(".home .lnk strong")].map((x) => x.textContent);
@@ -266,7 +266,7 @@ test("on a phone the menu is a side panel: Menu opens it, picking a section clos
 test("any platform a comic adds (Threads, Twitch, Spotify…) shows on the home screen and the Socials page", async () => {
   const hosts = [{ ...full.hosts[0], socials: { threads: "https://www.threads.net/@test", twitch: "https://www.twitch.tv/test", junk: "https://x" } }];
   let { d } = await load({ ...full, home_picks: [], hosts });
-  const socs = [...d.querySelectorAll(".home .soc")].map((a) => a.textContent);
+  const socs = [...d.querySelectorAll(".home .soc")].map((a) => a.textContent || a.getAttribute("aria-label"));
   assert.deepEqual(socs, ["Instagram", "Threads", "Twitch"], "in the standard order; unknown keys ignored");
   ({ d } = await load({ ...full, hosts }, "#/socials"));
   assert.match(d.querySelector(".net").textContent, /Instagram.*Threads.*Twitch/s);
@@ -277,4 +277,19 @@ test("on phones the date sits on its own line above the club (no overlapping tex
   const phone = page.slice(page.indexOf("@media (max-width: 520px)"));
   assert.match(phone, /\.date \{ grid-template-columns: minmax\(0, 1fr\)/);
   assert.match(page, /\.d b \{[^}]*white-space: nowrap/);
+});
+
+test("the options every site has: logos or names, hide one here, All shows, and a big or slim sign-up", async () => {
+  const shows = Array.from({ length: 7 }, (_, i) => ({ id: "x" + i, site_id: "lev-fer", host: "lev-fer-lev", date: future(i + 2), venue: "Club " + i, city: "NYC", status: "on_sale" }));
+  const withOpts = (theme) => ({ ...full, shows, hosts: [{ ...full.hosts[0], youtube: "https://youtube.com/@lev", tiktok: "https://tiktok.com/@lev" }], sites: [{ ...full.sites[0], features: { ...full.sites[0].features, fans: true }, theme: { ...(full.sites[0].theme || {}), ...theme } }] });
+  let { d } = await load(withOpts({ socials_style: "icons", socials_hide: ["youtube"], home_shows: "all", signup_style: "bar" }));
+  const socs = [...d.querySelectorAll(".home .soc")];
+  assert.ok(socs.length && socs.every((a) => a.querySelector("svg") && a.getAttribute("aria-label")), "logos, named for screen readers");
+  assert.ok(!socs.some((a) => a.getAttribute("aria-label") === "YouTube"), "YouTube hidden on this site");
+  assert.equal(d.querySelectorAll(".home .dates .date").length, 7, "All shows");
+  assert.match(d.querySelector(".home .signup-bar").textContent, /Get told when Lev's in your city/);
+  ({ d } = await load(withOpts({ socials_style: "names", home_shows: "3", signup_style: "off" })));
+  assert.ok([...d.querySelectorAll(".home .soc")].every((a) => !a.querySelector("svg")));
+  assert.equal(d.querySelectorAll(".home .dates .date").length, 3);
+  assert.ok(!d.querySelector(".home .signup-bar, .home .signup-big"));
 });
