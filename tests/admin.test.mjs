@@ -546,6 +546,15 @@ test("people: give a comic their own login", async () => {
   assert.deepEqual([sent.action, sent.comic_id, sent.email, sent.role], ["link_comic", "lev-fer", "lev@comictable.com", "owner"]);
 });
 
+test("people: a site owner whose login was never linked can claim their own Coaster with \"This is me\"", async () => {
+  const { w, d } = await open("#people", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "owner" }]; });
+  let sent = null;
+  w.fetch = async (u, o) => { sent = JSON.parse(o.body); return { ok: true, json: async () => ({ ok: true }) }; };
+  const card = [...d.querySelectorAll(".people form")].find((f) => /Lev Fer/.test(f.querySelector("b").textContent));
+  btn(d, /^This is me$/, card).click(); await wait(60);
+  assert.deepEqual([sent.action, sent.comic_id, sent.self, sent.email], ["link_comic", "lev-fer", true, undefined]);
+});
+
 test("blog: write a draft, publish it, see it in the list", async () => {
   const { w, d, db } = await open("#blog", (db) => { db.sites[0].features.blog = true; db.blog_posts = []; });
   await wait(60);
