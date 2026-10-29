@@ -11,7 +11,7 @@ after(() => opened.forEach((w) => w.close()));
 const out = mkdtempSync(join(tmpdir(), "ct-embed-"));
 execFileSync("node", ["tools/build.mjs", "platform"], { env: { ...process.env, OUT_DIR: out } });
 const embed = readFileSync(join(out, "embed.js"), "utf8");
-const future = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const future = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };  // local date, like the sites use
 
 test("someone's own website shows their live shows, episodes and a fan sign-up from one snippet", async () => {
   const calls = [];

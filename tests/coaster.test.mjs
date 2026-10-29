@@ -19,7 +19,7 @@ async function load(path, data) {
   await new Promise((r) => setTimeout(r, 80));
   return { d: dom.window.document, asked };
 }
-const day = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const day = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };  // local date, like the sites use
 
 test("a Coaster: photo, name, bio, socials, the Tape, their sites, press kit and booking, in their look", async () => {
   const { d, asked } = await load("/lev-fer", {
@@ -179,7 +179,7 @@ test("socials: the comic picks logos, logo + name or names, brand colors or not,
 test("the dock: tickets for the next show always in reach, plus Share", async () => {
   const day1 = new Date(); day1.setDate(day1.getDate() + 2);
   const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer" }],
-    "rpc/comic_shows": [{ id: "s1", date: day1.toISOString().slice(0, 10), venue: "The Stand", url: "https://t/1", status: "on_sale" }] });
+    "rpc/comic_shows": [{ id: "s1", date: day(2), venue: "The Stand", url: "https://t/1", status: "on_sale" }] });
   const dock = d.querySelector(".dock");
   assert.match(dock.querySelector("a.btn.main").textContent, /^Tickets · /);
   assert.equal(dock.querySelector("a.btn.main").getAttribute("href"), "https://t/1");

@@ -83,7 +83,7 @@ const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", 
 test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open("#home");
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  assert.equal(d.querySelectorAll(".nav-btn").length, 15);
+  assert.equal(d.querySelectorAll(".nav-btn").length, 14);
   assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Booking", "Content", "Fans", "Website"]);
   assert.equal([...d.querySelectorAll(".nav-btn")].pop().dataset.sec, "settings", "Settings sits at the bottom");
   assert.match(d.querySelector(".crumbs").textContent, /ComicTable.*Cockfight/s);
@@ -218,10 +218,14 @@ test("episodes, videos, merch, settings all render", async () => {
   const merchSwitch = d.querySelector('input[aria-label="Merch"]'); merchSwitch.checked = false; merchSwitch.dispatchEvent(new w.Event("change")); await wait(40);
   assert.equal(db.sites[0].features.merch, false);
   assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /Merch/.test(b.textContent)));
-  w.location.hash = "announce"; await wait(60);
-  set(w, d.querySelector('main input[aria-label="Announcement"]'), "NEW EP!"); d.querySelector('main input[type=checkbox]').checked = true;
-  d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
-  assert.equal(db.announcements[0].text, "NEW EP!"); assert.equal(db.announcements[0].pinned, true); assert.equal(db.announcements[0].site_id, "cockfight");
+  // announcements are News now: a scrolling banner on the Home screen page
+  db.home_picks = [];
+  w.location.hash = "picks"; await wait(80);
+  const f = [...d.querySelectorAll("main form.card")].find((x) => /Add news/.test(x.textContent));
+  set(w, f.querySelector('input[aria-label="Headline"]'), "NEW EP!");
+  f.querySelector('select[aria-label="Style"]').value = "banner";
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.deepEqual([db.home_picks[0].headline, db.home_picks[0].style, db.home_picks[0].site_id], ["NEW EP!", "banner", "cockfight"]);
 });
 
 test("profile and theme settings save to the site", async () => {
@@ -321,16 +325,15 @@ test("team section explains when it isn't set up yet", async () => {
   assert.match(d.body.textContent, /Team management isn't set up yet/);
 });
 
-test("site extras only appear when the site's front end uses them", async () => {
+test("every site gets the same pages: Home screen (News, Links, Layout) is always there, whatever the design", async () => {
   const { d } = await open("#home", null, null);
   const labels = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
-  assert.ok(!labels.some((l) => /Announcements|Links|Home screen/.test(l)), labels.join(","));
-  assert.ok(labels.some((l) => /About & contact/.test(l)) && labels.some((l) => /Settings/.test(l)) && labels.some((l) => /Press kit/.test(l)) && labels.some((l) => /Design/.test(l)), "Design is always there: it holds the site's sections");
-  assert.doesNotMatch(d.querySelector("main").textContent, /Post an announcement/);
-  const only = await open("#home", null, { extras: ["links"] });
-  const l2 = [...only.d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
-  assert.ok(l2.some((l) => /Links/.test(l)) && !l2.some((l) => /Announcements|Home screen/.test(l)), l2.join(","));
+  assert.ok(labels.some((l) => /Home screen/.test(l)), labels.join(","));
+  assert.ok(!labels.some((l) => /Announcements|^🔗?Links/.test(l)), "Announcements and Links live on the Home screen page now");
+  assert.ok(labels.some((l) => /About & contact/.test(l)) && labels.some((l) => /Settings/.test(l)) && labels.some((l) => /Press kit/.test(l)) && labels.some((l) => /Design/.test(l)));
+  assert.match(d.querySelector("main").textContent, /Add news/);
 });
+
 
 test("videos can be removed, undone, and put back", async () => {
   const { w, d, db } = await open("#videos", (db) => {
@@ -701,7 +704,7 @@ test("Home screen picks: add one, pin a show to the top, reorder", async () => {
     db.shows.push({ id: "s9", site_id: "cockfight", host: "lev", date: fri, time: "9:00 PM", venue: "Laugh Boston", city: "Boston, MA", url: "https://t/9", status: "on_sale" });
   }, theme);
   assert.ok([...d.querySelectorAll(".nav-btn")].some((b) => /Home screen/.test(b.textContent)));
-  assert.match(d.body.textContent, /Nothing pinned yet/);
+  assert.match(d.body.textContent, /No news yet/);
   const form = d.querySelector("form.card");
   set(w, form.querySelector('input[aria-label="Headline"]'), "New special out now");
   set(w, form.querySelector('input[aria-label="Button text"]'), "Watch");

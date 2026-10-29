@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "99_rules.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "99_rules.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -302,7 +302,7 @@ test("blog: drafts are private, published posts are public and get a date", asyn
 test("home picks: public sees live ones, only the site's admins change them", async () => {
   await db.exec(`insert into home_picks (site_id, headline, sort) values ('cockfight', 'Big news', 0);
     insert into home_picks (site_id, headline, hidden, sort) values ('cockfight', 'Secret', true, 1);`);
-  const pub = await rows(null, "select headline from home_picks where site_id = 'cockfight' order by sort");
+  const pub = await rows(null, "select headline from home_picks where site_id = 'cockfight' and from_announcement is null order by sort");
   assert.deepEqual(pub.map((r) => r.headline), ["Big news"]);
   assert.match(await as(null, `insert into home_picks (site_id, headline) values ('cockfight', 'hijack')`), /permission denied|row-level security/);
   assert.match(await as(COMIC, `insert into home_picks (site_id, headline) values ('cockfight', 'hijack')`), /row-level security/);
@@ -466,4 +466,16 @@ test("a Coaster with no site: the comic adds their own dates, and they show on t
   // an older upgrade run again keeps it working
   await db.exec(file("UPGRADE_V2_ALL.sql"));
   assert.ok((await rows(null, "select r from comic_shows('solo-sam') r")).some((x) => x.r.venue === "Comedy Cellar"));
+});
+
+test("News: every announcement moved into News as a banner, once; News takes styles and start dates", async () => {
+  const ann = (await q("select count(*)::int n from announcements where coalesce(trim(text), '') <> ''"))[0].n;
+  assert.ok(ann > 0, "the seed has announcements");
+  const moved = await q("select style, kind, headline, from_announcement from home_picks where from_announcement is not null");
+  assert.equal(moved.length, ann);
+  assert.ok(moved.every((p) => p.style === "banner" && p.kind === "announcement"));
+  await db.exec(file("22_news.sql"));
+  assert.equal((await q("select count(*)::int n from home_picks where from_announcement is not null"))[0].n, ann, "running it again doesn't copy them twice");
+  assert.equal(await as(OWNER, `insert into home_picks (site_id, headline, style, starts_on) values ('cockfight', 'Strip test', 'strip', current_date + 3)`), "ok");
+  assert.match(await as(OWNER, `insert into home_picks (site_id, headline, style) values ('cockfight', 'Bad', 'popup')`), /check constraint/);
 });

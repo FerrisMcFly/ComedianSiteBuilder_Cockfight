@@ -6,14 +6,18 @@
  *
  *   <script src="config.js"></script>          // window.COMICTABLE_CONFIG = { SITE_ID, SUPABASE_URL, SUPABASE_ANON_KEY }
  *   <script src="sdk/csb.js"></script>
- *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, announcements, links, boards, posts, picks }
+ *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, news, links, boards, posts }
  *   Podcasts the comic switched off in Settings → "Podcasts on your site" (profile.podcasts_off, by name) are left out
  *   of episodes and of CSB.elsewhere, so every design follows the same choice.
  *   CSB.elsewhere(people) → the other live ComicTable sites these people are on (a podcast they co-host, say),
  *   each with its latest episode when it's a podcast: [{ id, name, domain, url, podcast, people, episode }]
- *   picks: the comic's Home screen picks, in order (the first is the featured one). A pick made from a show carries
- *   that show's status and drops off once the show has passed. image is its picture; video is a player address
- *   (YouTube or Vimeo) when the pick links to one, so a site can play it right on the home screen.
+ *   news: the comic's News for the home screen, in order (the first is the featured one). Each has a style: "card"
+ *   (a big card), "banner" (a scrolling banner) or "strip" (a small strip); a design that doesn't do a style shows it
+ *   as a card. Items show between their start and end dates. One made from a show carries that show's status and
+ *   drops off once the show has passed. image is its picture; video is a player address (YouTube or Vimeo) when it
+ *   links to one, so a site can play it right on the home screen.
+ *   picks and announcements are older names, kept so older designs keep working: picks is the same as news;
+ *   announcements is the banners in news.
  *   shows: each has person (a solo date) or event: true with lineup (a show by the whole site, like a live podcast).
  *   CSB.forum.threads("general"), CSB.forum.newTopic({...}), CSB.chat.subscribe(fn), CSB.chat.send({...})
  *   CSB.press(person.comic) → { name, short, long, credits[], booking, photos[{ url (full size), web, credit, primary }], link }
@@ -90,9 +94,15 @@
         return { id: x.id, person: x.host || "", event: !!x.event, lineup: x.lineup_hosts || [], date: x.date, time: x.time || "", venue: x.venue || "", city: x.city || "", venueId: x.venue_id || null,
           tickets: x.url || "", status: x.status || "on_sale", note: x.note || "" };
       }).sort(function (a, b) { return (a.date + timeKey(a.time)).localeCompare(b.date + timeKey(b.time)); });
-      var announcements = r[6].filter(function (a) { return (!a.starts_on || a.starts_on <= today) && (!a.ends_on || a.ends_on >= today); })
-        .sort(function (a, b) { return (b.pinned - a.pinned) || (a.sort - b.sort); })
-        .map(function (a) { return { id: a.id, text: a.text, link: a.link || "", linkLabel: a.link_label || "", pinned: !!a.pinned }; });
+      // News (home_picks) took over from announcements: banners in News are what designs used to read as
+      // announcements. Old announcements that haven't moved into News yet (database not upgraded) still show.
+      var news = homePicks(r[10], shows, today);
+      var moved = {}; r[10].forEach(function (p) { if (p.from_announcement) moved[p.from_announcement] = true; });
+      var announcements = news.filter(function (p) { return p.style === "banner"; })
+        .map(function (p, i) { return { id: p.id, text: p.headline + (p.text ? " " + p.text : ""), link: p.link, linkLabel: p.button, pinned: i === 0 }; })
+        .concat(r[6].filter(function (a) { return !moved[a.id] && (!a.starts_on || a.starts_on <= today) && (!a.ends_on || a.ends_on >= today); })
+          .sort(function (a, b) { return (b.pinned - a.pinned) || (a.sort - b.sort); })
+          .map(function (a) { return { id: a.id, text: a.text, link: a.link || "", linkLabel: a.link_label || "", pinned: !!a.pinned }; }));
       return {
         site: { id: s.id, name: s.name, domain: s.domain },
         features: s.features || {}, profile: s.profile || {}, theme: s.theme || {}, community: s.community || {},
@@ -105,7 +115,8 @@
         links: r[7].filter(visible).map(function (l) { return { id: l.id, label: l.label, url: l.url, icon: l.icon || "" }; }),
         boards: r[8].filter(visible).map(function (b) { return { id: b.id, name: b.name, description: b.description || "", locked: !!b.locked }; }),
         posts: r[9].map(post),
-        picks: homePicks(r[10], shows, today)
+        news: news,
+        picks: news
       };
     });
   }
@@ -142,10 +153,10 @@
   // Home screen picks: drop ended ones and ones whose show has passed; a show pick shows that show's status.
   function homePicks(rows, shows, today) {
     var byId = {}; shows.forEach(function (s) { byId[s.id] = s; });
-    return rows.filter(function (p) { return !p.hidden && (!p.ends_on || p.ends_on >= today) && (!p.show_id || byId[p.show_id]); })
+    return rows.filter(function (p) { return !p.hidden && (!p.starts_on || p.starts_on <= today) && (!p.ends_on || p.ends_on >= today) && (!p.show_id || byId[p.show_id]); })
       .map(function (p) {
         var s = p.show_id ? byId[p.show_id] : null;
-        return { id: p.id, kind: p.kind || "announcement", headline: p.headline, text: p.body || "", button: p.button_label || "", link: p.link || (s && s.tickets) || "",
+        return { id: p.id, kind: p.kind || "announcement", style: p.style || "card", headline: p.headline, text: p.body || "", button: p.button_label || "", link: p.link || (s && s.tickets) || "",
           image: p.image_url || "", video: videoEmbed(p.link), show: s ? { date: s.date, time: s.time, venue: s.venue, city: s.city, status: s.status } : null };
       });
   }

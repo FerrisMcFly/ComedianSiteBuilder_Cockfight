@@ -11,7 +11,7 @@ const html = readFileSync(new URL("../sites/cockfight/index.html", import.meta.u
   .replace('<script src="config.js"></script>', '<script>window.COCKFIGHT_CONFIG={SITE_ID:"cockfight",SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
   .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "")
   .replace('<script src="sdk/csb.js"></script>', () => "<script>" + sdk.replace(/<\/script/g, "<\\/script") + "</script>");
-const future = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const future = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };  // local date, like the sites use
 
 async function load(data, fail, reject) {
   const calls = [];
@@ -79,6 +79,20 @@ test("before the database upgrade runs, the site keeps its built-in content", as
   const { d } = await load(base, ["episodes", "shows", "hosts", "settings"]);
   assert.equal(d.querySelectorAll("#dishes .dish").length, 47);
   assert.match(d.getElementById("liveNote").textContent, /Showing saved dates/);
+});
+
+test("announcements are News now: banners in News feed the headline and the scroller, with no double copies", async () => {
+  const data = { ...base,
+    announcements: [{ id: "a1", text: "Moved already", sort: 1 }, { id: "a9", text: "Not moved yet", sort: 9 }],
+    home_picks: [{ id: "n1", style: "banner", headline: "Episode 93 is out!", link: "https://apple/93", sort: 0, from_announcement: "a1" },
+      { id: "n2", style: "banner", headline: "Live in Austin", sort: 1 }, { id: "n3", style: "card", headline: "A card, not a banner", sort: 2 },
+      { id: "n4", style: "banner", headline: "Starts next year", starts_on: "2099-01-01", sort: 3 }] };
+  const { d } = await load(data);
+  assert.equal(d.getElementById("headlineText").textContent, "Episode 93 is out!");
+  const m = d.getElementById("marqueeText").textContent;
+  assert.match(m, /Episode 93 is out! ••• Live in Austin/);
+  assert.match(m, /Not moved yet/, "an announcement not moved into News yet still shows");
+  assert.doesNotMatch(m, /Moved already|A card|Starts next year/);
 });
 
 test("announcements, profile, links and theme settings come through", async () => {
