@@ -1,10 +1,6 @@
 {
   "name": "90s Cantina",
   "description": "A loving tribute to a 1998 Mexican restaurant home page. Built for Cockfight.",
-  "extras": [
-    "announcements",
-    "links"
-  ],
   "settings": [
     {
       "key": "splash",
@@ -50,7 +46,7 @@
     {
       "key": "support_banner",
       "label": "Big support banner",
-      "help": "The striped \"Become a patron\" banner on every page. Uses your support link from Profile.",
+      "help": "The striped \"Become a patron\" banner on every page. Uses your support link from About & contact.",
       "type": "toggle",
       "default": true
     },

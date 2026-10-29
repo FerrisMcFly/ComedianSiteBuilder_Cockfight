@@ -3,9 +3,6 @@
   "site_url": "https://comictable.com",
   "admin_url": "https://comictable.com/login",
   "login_domain": "comictable.com",
-  "older_login_domains": [
-    "cockfightpodcast.com"
-  ],
   "supabase_url": "https://hzslcnroupkunufbmclw.supabase.co",
   "supabase_anon_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6c2xjbnJvdXBrdW51ZmJtY2x3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNzUwMTYsImV4cCI6MjEwODY1MTAxNn0.YuhUQLFJyn5Amhod9oijrhLykEFwFV_CC1XaY_y0SVE"
 }

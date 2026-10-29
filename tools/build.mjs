@@ -13,8 +13,13 @@ const out = resolve(root, process.env.OUT_DIR || "dist");
 const sites = readdirSync(join(root, "sites")).filter((d) => existsSync(join(root, "sites", d, "site.json")));
 const writeConfig = (dir, cfg, label) => writeFileSync(join(dir, "config.js"),
   "// Made by tools/build.mjs for " + label + ". The anon key is meant to be public; the database's security rules protect the data.\n" +
-  "window.COMICTABLE_CONFIG = window.COCKFIGHT_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n");
-const logins = { LOGIN_DOMAIN: platform.login_domain || "comictable.com", OLDER_LOGIN_DOMAINS: platform.older_login_domains || [] };
+  "window.COMICTABLE_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n");
+// The Coaster function serves platform/home/coaster.html with a link preview filled in. It carries its own copy of the
+// page (netlify/lib/coaster-page.mjs) so it never has to fetch the site it's running on. Kept in step here and by a test.
+export const coasterPageModule = () => "// Made by tools/build.mjs from platform/home/coaster.html. Don't edit; edit that file and run the build or the tests.\n" +
+  "export default " + JSON.stringify(readFileSync(join(root, "platform", "home", "coaster.html"), "utf8")) + ";\n";
+if (!process.env.VITEST && !process.env.NO_COASTER_SYNC) writeFileSync(join(root, "netlify", "lib", "coaster-page.mjs"), coasterPageModule());
+const logins = { LOGIN_DOMAIN: platform.login_domain || "comictable.com" };
 const db = { SUPABASE_URL: platform.supabase_url, SUPABASE_ANON_KEY: platform.supabase_anon_key };
 
 rmSync(out, { recursive: true, force: true });
@@ -39,7 +44,9 @@ if (id === "platform") {
   writeFileSync(join(out, "_headers"), ["/app.html", "/login", "/dashboard"].map((p) => p + "\n  X-Robots-Tag: noindex, nofollow\n").join("") +
     "/embed.js\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=300\n");
   // comictable.com/join/<site>: the QR-code fan sign-up, for any comic (their own domain has /join too)
-  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/press/*  /press.html  200", "/admin  /login  301", "/admin.html  /login  301", "/join/*  /join.html  200"].join("\n") + "\n");
+  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/press/*  /press.html  200", "/admin  /login  301", "/admin.html  /login  301", "/join/*  /join.html  200",
+    // comictable.com/<comic>: their Coaster. Last, so every real page and rule above wins.
+    "/:comic  /.netlify/functions/coaster  200"].join("\n") + "\n");
   console.log(`Built the ComicTable admin into ${out} (${sites.length} site${sites.length === 1 ? "" : "s"} known)`);
 } else {
   const siteDir = join(root, "sites", id);
@@ -52,13 +59,9 @@ if (id === "platform") {
   cpSync(join(root, "platform", "sdk"), join(out, "sdk"), { recursive: true });
   // <their domain>/join: the QR-code fan sign-up page, unless the site brings its own
   if (!existsSync(join(out, "join.html"))) cpSync(join(root, "platform", "home", "join.html"), join(out, "join.html"));
-  if (platform.admin_url) {
-    // ComicTable's admin has its own home: send /admin there.
-    writeFileSync(join(out, "_redirects"), `/admin  ${platform.admin_url}  302\n/admin.html  ${platform.admin_url}  302\n`);
-  } else {
-    // the app is one page, served at /login and /dashboard
-  cpSync(join(root, "platform", "admin.html"), join(out, "app.html"));
-  }
+  // The dashboard lives on comictable.com: a comic's own /admin goes there.
+  const dash = platform.admin_url || "https://comictable.com/login";
+  writeFileSync(join(out, "_redirects"), `/admin  ${dash}  302\n/admin.html  ${dash}  302\n`);
   writeConfig(out, { SITE_ID: site.id, SITE_NAME: site.name, ...logins, ...db }, site.name);
   console.log(`Built ${site.name} (${id}) into ${out}`);
 }

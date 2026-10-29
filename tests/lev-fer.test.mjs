@@ -10,7 +10,7 @@ const sdk = readFileSync(new URL("../platform/sdk/csb.js", import.meta.url), "ut
 const html = readFileSync(new URL("../sites/lev-fer/index.html", import.meta.url), "utf8")
   .replace('<script src="config.js"></script>', '<script>window.COMICTABLE_CONFIG={SITE_ID:"lev-fer",SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
   .replace('<script src="sdk/csb.js"></script>', () => "<script>" + sdk.replace(/<\/script/g, "<\\/script") + "</script>");
-const future = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const future = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };  // local date, like the sites use
 const past = (n) => future(-n);
 
 async function load(data, hash = "") {
@@ -21,6 +21,7 @@ async function load(data, hash = "") {
     w.fetch = async (u, o = {}) => {
       const t = u.split("/rest/v1/")[1].split("?")[0];
       if (o.method === "POST") { posts.push([t, JSON.parse(o.body)]); const out = t === "rpc/site_shows" ? data.shows : t === "rpc/site_videos" ? data.videos || [] : t === "rpc/join_fans" ? "joined" : t === "threads" ? [{ id: "t9" }] : null; return { ok: true, status: 200, text: async () => JSON.stringify(out) }; }
+      if (u.includes("?select=id&id=eq.")) return { ok: true, status: 200, text: async () => JSON.stringify(data.held ? [] : [{ id: "x" }]) };  // can a just-sent post be read back? (no = held)
       if (t === "blog_posts" && u.includes("slug=eq.")) return { ok: true, status: 200, text: async () => JSON.stringify((data.blog_posts || []).filter((p) => u.includes("slug=eq." + p.slug))) };
       if (t === "hosts" && u.includes("comic_id=in.")) return { ok: true, status: 200, text: async () => JSON.stringify(data.other_hosts || []) };
       if (t === "sites" && u.includes("id=in.")) return { ok: true, status: 200, text: async () => JSON.stringify(data.other_sites || []) };
@@ -232,7 +233,7 @@ test("socials sit side by side after his links; each can be switched off, or mov
   const blocks = [...d.querySelectorAll(".home > .block")];
   const i = blocks.findIndex((b) => b.querySelector(".socrow"));
   assert.match(blocks[i - 1].textContent, /Merch/, "right after his links");
-  assert.deepEqual([...blocks[i].querySelectorAll(".soc")].map((a) => a.textContent), ["Instagram", "YouTube", "Website"]);
+  assert.deepEqual([...blocks[i].querySelectorAll(".soc")].map((a) => a.textContent || a.getAttribute("aria-label")), ["Instagram", "YouTube", "Website"]);
   const theme = { home_items: [{ key: "social:youtube", on: true }, { key: "link:1", on: true }, { key: "social:instagram", on: false }] };
   ({ d } = await load({ ...full, home_picks: [], hosts, links, sites: [{ ...full.sites[0], theme }] }));
   const big = [...d.querySelectorAll(".home .lnk strong")].map((x) => x.textContent);
@@ -266,7 +267,7 @@ test("on a phone the menu is a side panel: Menu opens it, picking a section clos
 test("any platform a comic adds (Threads, Twitch, Spotify…) shows on the home screen and the Socials page", async () => {
   const hosts = [{ ...full.hosts[0], socials: { threads: "https://www.threads.net/@test", twitch: "https://www.twitch.tv/test", junk: "https://x" } }];
   let { d } = await load({ ...full, home_picks: [], hosts });
-  const socs = [...d.querySelectorAll(".home .soc")].map((a) => a.textContent);
+  const socs = [...d.querySelectorAll(".home .soc")].map((a) => a.textContent || a.getAttribute("aria-label"));
   assert.deepEqual(socs, ["Instagram", "Threads", "Twitch"], "in the standard order; unknown keys ignored");
   ({ d } = await load({ ...full, hosts }, "#/socials"));
   assert.match(d.querySelector(".net").textContent, /Instagram.*Threads.*Twitch/s);
@@ -277,4 +278,65 @@ test("on phones the date sits on its own line above the club (no overlapping tex
   const phone = page.slice(page.indexOf("@media (max-width: 520px)"));
   assert.match(phone, /\.date \{ grid-template-columns: minmax\(0, 1fr\)/);
   assert.match(page, /\.d b \{[^}]*white-space: nowrap/);
+});
+
+test("the options every site has: logos or names, hide one here, All shows, and a big or slim sign-up", async () => {
+  const shows = Array.from({ length: 7 }, (_, i) => ({ id: "x" + i, site_id: "lev-fer", host: "lev-fer-lev", date: future(i + 2), venue: "Club " + i, city: "NYC", status: "on_sale" }));
+  const withOpts = (theme) => ({ ...full, shows, hosts: [{ ...full.hosts[0], youtube: "https://youtube.com/@lev", tiktok: "https://tiktok.com/@lev" }], sites: [{ ...full.sites[0], features: { ...full.sites[0].features, fans: true }, theme: { ...(full.sites[0].theme || {}), ...theme } }] });
+  let { d } = await load(withOpts({ socials_style: "icons", socials_hide: ["youtube"], home_shows: "all", signup_style: "bar" }));
+  const socs = [...d.querySelectorAll(".home .soc")];
+  assert.ok(socs.length && socs.every((a) => a.querySelector("svg") && a.getAttribute("aria-label")), "logos, named for screen readers");
+  assert.ok(!socs.some((a) => a.getAttribute("aria-label") === "YouTube"), "YouTube hidden on this site");
+  assert.equal(d.querySelectorAll(".home .dates .date").length, 7, "All shows");
+  assert.match(d.querySelector(".home .signup-bar").textContent, /Get told when Lev's in your city/);
+  ({ d } = await load(withOpts({ socials_style: "names", home_shows: "3", signup_style: "off" })));
+  assert.ok([...d.querySelectorAll(".home .soc")].every((a) => !a.querySelector("svg")));
+  assert.equal(d.querySelectorAll(".home .dates .date").length, 3);
+  assert.ok(!d.querySelector(".home .signup-bar, .home .signup-big"));
+});
+
+test("live: a LIVE banner on every page, the stream on the Live page; schedule and Follow when he's not live", async () => {
+  const site = (extra) => ({ ...full, sites: [{ ...full.sites[0], ...extra }] });
+  let { d } = await load(site({ live: { url: "https://twitch.tv/levfer", title: "Crowd work night", started_at: new Date().toISOString() } }));
+  assert.match(d.querySelector(".live-banner").textContent, /LIVE.*Crowd work night/s);
+  ({ d } = await load(site({ live: { url: "https://twitch.tv/levfer", started_at: new Date().toISOString() } }), "#/live"));
+  assert.match(d.querySelector(".stream iframe").getAttribute("src"), /player\.twitch\.tv\/\?channel=levfer/);
+  assert.ok(!d.querySelector(".live-banner"), "no banner on the Live page itself");
+  ({ d } = await load(site({ live: { url: "https://twitch.tv/levfer", started_at: new Date(Date.now() - 13 * 3600e3).toISOString() } })));
+  assert.ok(!d.querySelector(".live-banner"), "a stream left on for 13 hours stops showing");
+  ({ d } = await load(site({ live: null, profile: { ...full.sites[0].profile, stream_url: "https://twitch.tv/levfer", stream_schedule: "Tuesdays, 10pm" } }), "#/live"));
+  assert.match(d.getElementById("app").textContent, /Not live right now.*Tuesdays, 10pm.*Follow on twitch\.tv/s);
+});
+
+test("Shorts get their own strip (home and Clips) and stay out of the clips grid; listen buttons follow the site's choice", async () => {
+  const vids = [{ youtube_id: "abcdefghijk", title: "Long one", published: "2026-10-01" }, { youtube_id: "shortshort1", title: "Short one", published: "2026-10-02", is_short: true }];
+  const data = { ...full, videos: vids, episodes: [{ id: "e1", num: 1, title: "Ep one", url: "https://podcasts.apple.com/us/podcast/x/id1?i=1", show_name: "Lev Pod" }],
+    sites: [{ ...full.sites[0], features: { ...full.sites[0].features, podcast: true }, profile: { ...full.sites[0].profile, spotify_url: "https://open.spotify.com/show/1234567890abcdefghijkl" },
+      theme: { ...(full.sites[0].theme || {}), home_items: [{ key: "shorts", on: true }, { key: "clips", on: true }] } }] };
+  let { d } = await load(data);
+  assert.equal(d.querySelectorAll(".home .shorts .short").length, 1);
+  assert.deepEqual([...d.querySelectorAll(".home .clips .clip strong")].map((x) => x.textContent), ["Long one"]);
+  d.querySelector(".short").click();
+  assert.match(d.querySelector(".short.playing iframe").getAttribute("src"), /embed\/shortshort1/);
+  ({ d } = await load(data, "#/podcast"));
+  assert.deepEqual([...d.querySelectorAll(".listen-row a")].map((a) => a.textContent), ["Listen on Apple Podcasts", "Listen on Spotify"]);
+  const menu = { ...data, sites: [{ ...data.sites[0], theme: { ...data.sites[0].theme, listen_style: "menu" } }] };
+  ({ d } = await load(menu, "#/podcast"));
+  assert.match(d.querySelector(".listen-menu summary").textContent, /Listen on…/);
+});
+
+test("safety: every fan post and chat message has a Report button (tap twice); a held reply says it's waiting", async () => {
+  const data = { ...full, held: true, posts: [{ id: "p1", author: "Fan", body: "first!", created_at: 1 }, { id: "p2", author: "Rude", body: "mean", created_at: 2 }] };
+  const { w, d, posts } = await load(data, "#/forum/general/t1"); await wait();
+  const btns = [...d.querySelectorAll(".post .report")];
+  assert.equal(btns.length, 2);
+  btns[1].click(); assert.equal(btns[1].textContent, "Report this?");
+  btns[1].click(); await wait();
+  assert.deepEqual(posts.find((p) => p[0] === "reports")[1].kind, "post");
+  assert.equal(posts.find((p) => p[0] === "reports")[1].item_id, "p2");
+  assert.equal(btns[1].textContent, "Reported. Thanks");
+  // the reply can't be read back: it's waiting for a host
+  d.getElementById("f-name").value = "Newbie"; d.getElementById("f-reply").value = "hello";
+  d.querySelector("form.compose").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.match(d.querySelector("form.compose .msg").textContent, /once a host approves it/);
 });

@@ -84,6 +84,7 @@ h1, h2, h3, .brand { font-family: var(--display); letter-spacing: -.02em; font-w
 .acct-pop a, .acct-pop button { text-align: left; padding: 8px 10px; border-radius: 6px; border: 0; background: none; color: var(--text); text-decoration: none; font: inherit; cursor: pointer; }
 .acct-pop a:hover, .acct-pop button:hover { background: var(--bg); }
 .nav-spacer { flex: 1; min-height: 16px; }
+.sec-title { font-size: 18px; margin: 0 0 10px; }
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: -4px 0 18px; overflow-x: auto; }
 .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 12px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; margin-bottom: -1px; }
 .tabs button:hover { color: var(--text); }
@@ -259,13 +260,60 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .vid img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: var(--bg); }
 .vid .body { padding: 10px 12px; display: grid; gap: 6px; }
 .vid.hidden img { opacity: .35; }
-.comic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 14px; }
-.comic-card { display: grid; grid-template-columns: 52px minmax(0, 1fr); grid-template-rows: auto auto; gap: 4px 12px; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; color: var(--text); font: inherit; box-shadow: var(--shadow); }
-.comic-card:hover { border-color: var(--line-strong); }
-.comic-card .avatar { width: 52px; height: 52px; grid-row: span 2; }
-.comic-card .cc-body { display: grid; gap: 2px; min-width: 0; }
-.comic-card .cc-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-.comic-card .cc-meta { grid-column: 2; display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.comic-grid { display: flex; flex-direction: column; margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
+.coaster-edit { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 20px; align-items: center; }
+.mini-coaster { position: relative; width: 132px; aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--pulp); border: 7px solid var(--pulp);
+  box-shadow: 0 3px 0 rgba(0,0,0,.18), 0 10px 18px -4px rgba(0,0,0,.3), inset 0 0 0 1px rgba(0,0,0,.08); transition: background .2s; }
+.mini-coaster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 25%; filter: grayscale(1) contrast(1.2); mix-blend-mode: multiply; }
+.mini-coaster b { position: absolute; inset: 0 0 34%; display: grid; place-items: center; color: var(--print); font-size: 34px; }
+.mini-coaster::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34%; background: var(--ring); }
+.looks { display: flex; flex-wrap: wrap; gap: 8px; }
+.looks button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); border-radius: 999px; padding: 5px 12px 5px 5px; font: inherit; font-weight: 650; cursor: pointer; min-height: 36px; }
+.looks button[aria-pressed="true"] { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.looks i { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(var(--pulp) 62%, var(--ring) 62%); border: 3px solid var(--pulp); box-shadow: 0 0 0 1px var(--line-strong); }
+.looks small { font-size: 11px; color: var(--muted); font-weight: 600; }
+.plan .switch-row { gap: 12px; flex-wrap: wrap; }
+.plan-row { cursor: grab; }
+.plan-row.dragging { opacity: .45; }
+.order-btns { display: flex; flex-direction: column; gap: 2px; }
+.order-btns .btn { padding: 2px 8px; min-height: 0; line-height: 1.2; }
+.mini-coaster.color img { filter: none; mix-blend-mode: normal; }
+.looks i.rainbow { background: conic-gradient(#C4452E, #E0A21A, #2E7D4F, #2F6FB5, #8D5BD6, #C4452E); border-color: var(--panel); }
+.looks button:disabled { opacity: .45; cursor: not-allowed; }
+.color-pick { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; }
+.color-pick input { width: 34px; height: 34px; padding: 0; border: 1px solid var(--line-strong); border-radius: 50%; background: none; cursor: pointer; overflow: hidden; }
+.coaster-link { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
+.coaster-link a { font-weight: 650; color: var(--text); }
+.linkish { border: 0; background: none; padding: 0; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; }
+.fine-tune { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+.site-only { border-top: 1px solid var(--line); padding-top: 12px; }
+.drag-grip { flex: none; display: inline-grid; place-items: center; width: 30px; height: 36px; margin: 0 2px 0 -6px; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: grab; touch-action: none; padding: 0; }
+.drag-grip svg { width: 16px; height: 16px; }
+.drag-grip:hover, .drag-grip:focus-visible { background: var(--bg); color: var(--text); }
+.drag-grip:active { cursor: grabbing; }
+[data-drag] { transition: transform .16s ease; }
+[data-drag].dragging { transition: none; position: relative; z-index: 5; box-shadow: 0 12px 28px rgba(0,0,0,.28); background: var(--panel); border-radius: 12px; opacity: .97; }
+.is-sorting { user-select: none; -webkit-user-select: none; }
+.soc-box { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 4px; }
+.soc-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.soc-pick { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); border-radius: 999px; padding: 5px 12px 5px 8px; font: inherit; font-weight: 650; cursor: pointer; }
+.soc-pick svg { display: block; }
+.soc-pick[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
+.mini-coaster::before { content: ""; position: absolute; z-index: 2; inset: 18% -14% -6% 30%; border-radius: 50%; opacity: 0; pointer-events: none;
+  background: radial-gradient(circle, transparent 58%, rgba(118,74,28,.4) 61%, rgba(118,74,28,.15) 64%, transparent 67%); mix-blend-mode: multiply; }
+.mini-coaster.wear-used::before { opacity: .8; }
+.mini-coaster.wear-loved::before { opacity: 1; box-shadow: -40px -30px 0 -26px rgba(118,74,28,.35); }
+.mini-coaster.wear-loved img { opacity: .82; }
+.attention { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+@media (max-width: 560px) { .coaster-edit { grid-template-columns: 1fr; justify-items: center; } }
+.comic-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; align-items: center; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px 16px; cursor: pointer; color: var(--text); font: inherit; width: 100%; }
+.comic-card:last-child { border-bottom: 0; }
+.comic-card:hover { background: var(--bg); }
+.comic-card .avatar { width: 44px; height: 44px; }
+.comic-card .cc-body { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.comic-card .cc-body > b { font-size: 15px; }
+.comic-card .cc-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.comic-card .cc-meta { justify-self: end; white-space: nowrap; display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); }
 .avatar.initials { display: grid; place-items: center; font-weight: 600; font-size: 15px; color: var(--muted); background: var(--bg); }
 .detail-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
@@ -273,7 +321,8 @@ td select.status { min-height: 32px; padding: 4px 8px; width: auto; font-size: 1
 .post-preview { border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; line-height: 1.6; min-height: 200px; }
 .post-preview img { max-width: 100%; border-radius: 8px; }
 .post-preview .csb-video iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 8px; }
-.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 620px), 1fr)); gap: 18px; align-items: start; }
+.people > .card { max-width: 820px; }
 .person-top { display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
 .avatar { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; background: var(--bg); border: 1px solid var(--line); flex: none; display: grid; place-items: center; color: var(--muted); font-size: 11px; text-align: center; }
 form.card.is-hidden { opacity: .7; }
@@ -439,7 +488,7 @@ td select.status.st-few_left { color: var(--warn); }
 <script>
 (() => {
   "use strict";
-  const CFG = window.COMICTABLE_CONFIG || window.COCKFIGHT_CONFIG || {};
+  const CFG = window.COMICTABLE_CONFIG || {};
   const root = document.getElementById("root");
   const $ = (id) => document.getElementById(id);
 
@@ -569,9 +618,10 @@ td select.status.st-few_left { color: var(--warn); }
   const venueById = (id) => S.venues.find((v) => v.id === id);
   const venueCity = (v) => (v.state ? v.city + ", " + v.state : v.city);
   async function q(p) { const r = await p; if (r.error) throw r.error; return r.data; }
-  const sid = () => S.site.id;
+  const sid = () => (S.site ? S.site.id : null);
   // Usernames become user@<site's domain>; anyone can also log in with a full email.
-  const LOGIN_DOMAINS = [CFG.LOGIN_DOMAIN || "comictable.com", ...(CFG.OLDER_LOGIN_DOMAINS || ["cockfightpodcast.com"])].filter((d, i, a) => d && a.indexOf(d) === i);
+  // A plain username logs in as username@comictable.com; anything with an @ is used as typed.
+  const LOGIN_DOMAINS = [CFG.LOGIN_DOMAIN || "comictable.com"];
   const loginDom = () => LOGIN_DOMAINS[0];
 
   // Every date and video of every comic on this site, wherever it was added. Falls back to this site's own rows
@@ -599,25 +649,25 @@ td select.status.st-few_left { color: var(--warn); }
 
   // Which people on this site have their own login (comics.user_id)
   async function loadLogins() {
-    S.logins = {};
+    S.logins = {}; S.coasters = {};
     const ids = S.hosts.map((x) => x.comic_id).filter(Boolean);
     if (!ids.length) return;
-    try { (await q(sb.from("comics").select("id, user_id").in("id", ids))).forEach((c) => { S.logins[c.id] = c.user_id || null; }); } catch (e) {}
+    S.coasters = {};  // each person's Coaster (comics row), for their card on Lineup
+    try { (await q(sb.from("comics").select("*").in("id", ids))).forEach((c) => { S.logins[c.id] = c.user_id || null; S.coasters[c.id] = c; }); } catch (e) {}
   }
 
   async function loadAll() {
     const site = sid();
-    const [hosts, shows, episodes, videos, merch, venues, sources, settings] = await Promise.all([
+    const [hosts, shows, episodes, videos, merch, venues, sources] = await Promise.all([
       q(sb.from("hosts").select("*").eq("site_id", site).order("sort", { ascending: true })),
       loadShows(site),
       q(sb.from("episodes").select("*").eq("site_id", site).order("num", { ascending: false })),
       loadVideos(site),
       q(sb.from("merch").select("*").eq("site_id", site).order("sort", { ascending: true })),
       q(sb.from("venues").select("*").order("name", { ascending: true })),
-      loadSources(site),
-      q(sb.from("settings").select("*").eq("site_id", site))
+      loadSources(site)
     ]);
-    Object.assign(S, { hosts, shows, episodes, videos, merch, venues, sources, settings: Object.fromEntries(settings.map((r) => [r.key, r.value])) });
+    Object.assign(S, { hosts, shows, episodes, videos, merch, venues, sources });
     await loadLogins();
   }
   const reload = {
@@ -733,20 +783,26 @@ td select.status.st-few_left { color: var(--warn); }
     S.user = (session.user.user_metadata && session.user.user_metadata.name) || session.user.email.split("@")[0];
     try {
       const [mine, plat] = await Promise.all([
-        q(sb.from("admins").select("site_id").eq("user_id", session.user.id)),
-        q(sb.from("platform_admins").select("user_id").eq("user_id", session.user.id))]);
+        q(sb.from("admins").select("*").eq("user_id", session.user.id)),
+        q(sb.from("platform_admins").select("*").eq("user_id", session.user.id))]);
       S.isPlatform = plat.length > 0;
+      // ComicTable role: admin (everything) or staff (every site, not ComicTable itself). A site's team role per site.
+      S.platformRole = S.isPlatform ? (plat[0].role || "admin") : null;
+      S.isOwner = S.platformRole === "admin";
+      S.roles = Object.fromEntries(mine.map((m) => [m.site_id, m.role || "owner"]));
       // Is this login a comic? Then they get a "Me" page with their profile and dates on every site.
       try { S.me = (await q(sb.from("comics").select("*").eq("user_id", session.user.id)))[0] || null; } catch (e) { S.me = null; }
       S.uid = session.user.id;
-      if (!mine.length && !S.isPlatform) { await sb.auth.signOut(); return showLogin("This login isn't an admin of any site yet."); }
+      // A comic with a Coaster but no site still gets in: they land on Me and edit their Coaster.
+      if (!mine.length && !S.isPlatform && !S.me) { await sb.auth.signOut(); return showLogin("This login isn't an admin of any site yet."); }
       // Super admins get every site; everyone else gets only the sites they're on the team of.
       S.sites = S.isPlatform ? await q(sb.from("sites").select("*").order("name", { ascending: true }))
         : await q(sb.from("sites").select("*").in("id", mine.map((m) => m.site_id)));
       const pick = store.get("csb_site");
       // On a comic's own /admin, open that comic's site; on the ComicTable admin, the last one used.
-      S.site = (CFG.SITE_ID && S.sites.find((s) => s.id === CFG.SITE_ID)) || S.sites.find((s) => s.id === pick) || S.sites[0];
-      await loadAll();
+      S.site = (CFG.SITE_ID && S.sites.find((s) => s.id === CFG.SITE_ID)) || S.sites.find((s) => s.id === pick) || S.sites[0] || null;
+      if (S.site) await loadAll();
+      else Object.assign(S, { hosts: [], shows: [], episodes: [], videos: [], merch: [], venues: [], sources: [], logins: {}, coasters: {} });
     } catch (e) {
       root.replaceChildren(h("div", { class: "login-wrap" }, h("div", { class: "card login stack" }, h("h1", { text: "Couldn't load your site" }), h("p", { class: "err", text: errText(e) }),
         h("p", { class: "hint", text: "If you just set up the database, make sure 04_platform.sql has been run in Supabase." }),
@@ -789,6 +845,8 @@ td select.status.st-few_left { color: var(--warn); }
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 1.8 14H1.7a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 3.3 7.5a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H7.6A1.6 1.6 0 0 0 9 1.9V1.7a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V7.6A1.6 1.6 0 0 0 20.1 9h.2a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" transform="scale(.9) translate(1.3 1.3)"/>'
   };
   ICONS.picks = '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>';
+  ICONS.me = '<circle cx="12" cy="12" r="8.5"/><path d="M6.5 15.5h11"/><circle cx="12" cy="10" r="2.6"/>';
+  ICONS.dates = '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>';
   ICONS.press = '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6l1.5-2.5h5L16 6"/><circle cx="12" cy="13" r="3.5"/>';
   function navIcon(s) {
     const span = h("span", { class: "ico", "aria-hidden": "true" });
@@ -806,38 +864,44 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "podcast", group: "Content", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
     { id: "videos", group: "Content", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
     { id: "blog", group: "Content", label: "Blog", ico: "✍️", feat: "blog", count: () => (S.posts || []).filter((p) => p.published).length, render: viewBlog },
+    { id: "live", group: "Content", label: "Live", ico: "🔴", render: viewLive },
     { id: "merch", group: "Content", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
-    // Extras only show up when this site's own front end says it uses them (in its theme.json)
-    { id: "announce", group: "Content", label: "Announcements", ico: "📣", extra: "announcements", render: viewAnnounce },
     { id: "fans", group: "Fans", label: "Fan list", ico: "💌", feat: "fans", render: viewFans },
     { id: "forum", group: "Fans", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
     { id: "chat", group: "Fans", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
     { id: "moderation", group: "Fans", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
-    { id: "picks", group: "Website", label: "Home screen", ico: "⭐", extra: "home_picks", render: viewPicks },
-    { id: "theme", group: "Website", label: "Design", ico: "🎨", extra: "design", render: viewTheme },
+    { id: "picks", group: "Website", label: "Home screen", ico: "⭐", render: viewPicks },
+    { id: "theme", group: "Website", label: "Design", ico: "🎨", render: viewTheme },
     { id: "profile", group: "Website", label: "About & contact", ico: "🪪", render: viewProfile },
-    { id: "links", group: "Website", label: "Links", ico: "🔗", extra: "links", render: viewLinks },
     { id: "people", label: "Lineup", ico: "🎤", bottom: true, render: viewPeople },
     { id: "settings", label: "Settings", ico: "⚙️", bottom: true, render: viewSettings },
   ];
   // The ComicTable level: above any one site. Super admins get the whole platform; comics get their own home.
   const CT_SECTIONS = [
     { id: "overview", label: "Overview", ico: "🏠", platform: true, render: viewOverview },
-    { id: "me", label: "Me", ico: "👤", meOnly: true, render: viewMe },
+    // Every comic gets a dashboard. What's in the sidebar grows with them: a Coaster, then (with a site) their sites.
+    { id: "me", label: "Coaster", ico: "🎤", meOnly: true, render: viewMe },
+    { id: "dates", label: "Dates", ico: "📅", meOnly: true, render: viewMyDates },
     { id: "press", label: "Press kit", ico: "📷", meOnly: true, render: (main) => { main.append(head("Your press kit", "Approved photos and bios for clubs. It's the same on every site you're on.")); main.append(pressKitEditor(S.me.id)); } },
-    { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, render: viewMySites },
+    { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, needsSite: true, render: viewMySites },
     { id: "sites", group: "Platform", label: "Sites", ico: "🧩", platform: true, count: () => S.sites.length, render: viewSites },
-    { id: "comics", group: "Platform", label: "Comics", ico: "🎤", platform: true, render: viewComics },
+    { id: "comics", group: "Platform", label: "Coasters", ico: "🎤", platform: true, render: viewComics },
     { id: "clubs", group: "Platform", label: "Club database", ico: "🏛️", platform: true, render: viewClubs },
     { id: "account", label: "Your account", ico: "🔐", bottom: true, render: viewAccount }
   ];
-  const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me));
+  const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me) && (!x.needsSite || S.sites.length));
   const atCT = () => location.hash.startsWith("#ct/");
   const goCT = (id) => { const h0 = "#ct/" + id; if (location.hash === h0) route(); else location.hash = h0; };
-  const hasExtra = (x) => !!(THEME && (x === "design" ? Array.isArray(THEME.settings) && THEME.settings.length : Array.isArray(THEME.extras) && THEME.extras.includes(x)));
-  const visible = () => SECTIONS.filter((s) => (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
+  // A site's team roles. "shows" and "moderator" see only their part of the dashboard.
+  const SITE_ROLES = [["owner", "Owner", "Everything, including the team"], ["editor", "Editor", "Everything but the team"],
+    ["shows", "Shows only", "Dates, ticket links, clubs and the show finder"], ["moderator", "Moderator", "Forum, chat and bans"]];
+  const roleName = (r) => (SITE_ROLES.find((x) => x[0] === r) || [r, "Editor"])[1];
+  const myRole = () => (S.isPlatform ? "owner" : (S.roles && S.roles[sid()]) || "owner");
+  const ROLE_SECTIONS = { shows: ["shows"], moderator: ["forum", "chat", "moderation"] };
+  const roleAllows = (id) => { const only = ROLE_SECTIONS[myRole()]; return !only || only.includes(id); };
+  const visible = () => SECTIONS.filter((s) => roleAllows(s.id) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))));
   const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
-  window.addEventListener("hashchange", () => { if (S.site) route(); });
+  window.addEventListener("hashchange", () => { if (S.site || S.me) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
 
   function navList(list, cur, onGo) {
@@ -898,6 +962,7 @@ td select.status.st-few_left { color: var(--warn); }
   }
 
   function route() {
+    if (!S.site) { if (!atCT() && history.replaceState) history.replaceState(null, "", location.pathname + "#ct/me"); return routeCT(); }  // a Coaster with no site
     if (atCT() && hasCT()) return routeCT();
     if (atCT()) { history.replaceState && history.replaceState(null, "", location.pathname + "#home"); }
     S.level = "site";
@@ -1005,7 +1070,7 @@ td select.status.st-few_left { color: var(--warn); }
         h("div", { class: "btns" },
           F("shows") ? h("button", { class: "btn primary big", type: "button", text: "+ Add shows", onclick: () => go("shows") }) : null,
           F("podcast") ? h("button", { class: "btn big", type: "button", text: "+ Add an episode", onclick: () => { go("podcast"); } }) : null,
-          hasExtra("announcements") ? h("button", { class: "btn big", type: "button", text: "Post an announcement", onclick: () => go("announce") }) : null),
+          h("button", { class: "btn big", type: "button", text: "+ Add news", onclick: () => go("picks") })),
         stats.length ? h("div", { class: "stats" }, stats.map(([l, n, sec]) => h("button", { class: "stat", type: "button", style: "text-align:left;cursor:pointer", onclick: () => go(sec) }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l })))) : null,
         next ? h("section", { class: "card" }, h("h2", { text: "Next show" }),
           h("div", { class: "next" }, h("div", { class: "date-badge" }, h("div", null, h("small", { text: MON[parseISO(next.date).getMonth()] }), h("b", { text: parseISO(next.date).getDate() }))),
@@ -1443,7 +1508,7 @@ td select.status.st-few_left { color: var(--warn); }
             await reload.shows(); redraw(); refreshNav(); toast(s.hidden_here ? "It's back on this site." : "Hidden here. It still shows on " + first(s.host) + "'s other sites.");
           } catch (e) { toast(errText(e), { bad: true }); }
         } }),
-        hasExtra("home_picks") && s.date >= t0 ? h("button", { type: "button", text: "Pin to Home screen", onclick: () => pinToHome(showPick(s)) }) : null,
+        s.date >= t0 ? h("button", { type: "button", text: "Pin to Home screen", onclick: () => pinToHome(showPick(s)) }) : null,
         h("button", { type: "button", class: "danger", text: "Delete", onclick: async () => {
           try { await q(sb.from("shows").delete().eq("id", s.id)); await reload.shows(); redraw(); refreshNav();
             toast("Deleted " + shortDate(s.date) + " in " + (s.city || s.venue) + ".", { action: { label: "Undo", run: () => restore([s], redraw) } }); }
@@ -1724,7 +1789,7 @@ td select.status.st-few_left { color: var(--warn); }
           VIDREMOVED
             ? h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Put back", onclick: async () => { try { await setHidden(v, false); toast("Back on your site."); } catch (e) { toast(errText(e), { bad: true }); } } }))
             : h("div", { class: "btns" },
-                hasExtra("home_picks") ? h("button", { class: "btn sm ghost", type: "button", text: "Pin to Home", onclick: () => pinToHome({ kind: "video", headline: String(v.title || "New video").slice(0, 90), button_label: "Watch", link: v.url || null, image_url: v.thumbnail_url || null }) }) : null,
+                h("button", { class: "btn sm ghost", type: "button", text: "Pin to Home", onclick: () => pinToHome({ kind: "video", headline: String(v.title || "New video").slice(0, 90), button_label: "Watch", link: v.url || null, image_url: v.thumbnail_url || null }) }),
                 h("button", { class: "btn sm", type: "button", text: v.featured ? "Unstar" : "Star", onclick: async () => { try { await q(sb.from("videos").update({ featured: !v.featured }).eq("id", v.id)); v.featured = !v.featured; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
                 h("button", { class: "btn sm ghost danger", type: "button", text: "Remove", onclick: async () => {
                   try { await setHidden(v, true); toast("Removed “" + v.title + "” from your site.", { action: { label: "Undo", run: async () => { try { await setHidden(v, false); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
@@ -1744,6 +1809,229 @@ td select.status.st-few_left { color: var(--warn); }
      PRESS KIT: a comic's approved photos and bios, for clubs
      (belongs to the comic, so it's the same on every site they're on)
      ====================================================== */
+  /* ---------------- drag to reorder: mouse, finger or keyboard ---------------- */
+  // Every list you can reorder on ComicTable works the same way: each row has data-drag="<key>" and a grip.
+  // Hold the grip and slide (mouse or finger; the page scrolls near the edges), or focus it and press ↑/↓.
+  // onMove(from, to) saves the new order and redraws.
+  const GRIP_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><circle cx="5.5" cy="3.5" r="1.4"/><circle cx="10.5" cy="3.5" r="1.4"/><circle cx="5.5" cy="8" r="1.4"/><circle cx="10.5" cy="8" r="1.4"/><circle cx="5.5" cy="12.5" r="1.4"/><circle cx="10.5" cy="12.5" r="1.4"/></g></svg>';
+  function grip(label) {
+    const b = h("button", { class: "drag-grip", type: "button", "aria-label": "Reorder " + label + ": drag, or press the arrow keys", title: "Drag to reorder" });
+    b.innerHTML = GRIP_SVG;
+    return b;
+  }
+  let dragFocus = null;  // after a keyboard move, put focus back on the grip of the row that moved
+  function sortable(list, onMove) {
+    const rows = () => [...list.children].filter((el) => el.hasAttribute("data-drag"));
+    const done = async (from, to, key) => {
+      if (from === to) return;
+      dragFocus = key;
+      try { await onMove(from, to); } catch (e) { toast(errText(e), { bad: true }); }
+      setTimeout(() => { const g = dragFocus && document.querySelector('[data-drag="' + CSS.escape(dragFocus) + '"] .drag-grip'); if (g) g.focus(); dragFocus = null; }, 0);
+    };
+    list.addEventListener("keydown", (e) => {
+      const g = e.target.closest && e.target.closest(".drag-grip"); if (!g) return;
+      const row = g.closest("[data-drag]"); if (!row || row.parentElement !== list) return;
+      const all = rows(), i = all.indexOf(row);
+      const to = e.key === "ArrowUp" ? i - 1 : e.key === "ArrowDown" ? i + 1 : e.key === "Home" ? 0 : e.key === "End" ? all.length - 1 : null;
+      if (to === null) return;
+      e.preventDefault();
+      if (to >= 0 && to < all.length) done(i, to, row.dataset.drag);
+    });
+    list.addEventListener("pointerdown", (e) => {
+      const g = e.target.closest && e.target.closest(".drag-grip"); if (!g || (e.button !== undefined && e.button !== 0)) return;
+      const row = g.closest("[data-drag]"); if (!row || row.parentElement !== list) return;
+      e.preventDefault();
+      const all = rows(), from = all.indexOf(row);
+      if (all.length < 2) return;
+      const boxes = all.map((el) => el.getBoundingClientRect());
+      // the others slide by exactly the space the dragged row takes up (its height plus the gap between rows)
+      const gap = Math.max(0, boxes[1].top - boxes[0].bottom);
+      const step = boxes[from].height + gap;
+      let startY = e.clientY, scrolled = 0, lastY = e.clientY, to = from, raf = null;
+      try { g.setPointerCapture(e.pointerId); } catch (er) {}
+      row.classList.add("dragging"); list.classList.add("is-sorting");
+      const place = () => {
+        const dy = lastY - startY + scrolled;
+        row.style.transform = "translateY(" + dy + "px)";
+        const mid = boxes[from].top + boxes[from].height / 2 + dy;
+        to = 0; boxes.forEach((b, i) => { if (i !== from && b.top + b.height / 2 < mid) to++; });
+        all.forEach((el, i) => {
+          if (el === row) return;
+          const shift = from < to && i > from && i <= to ? -step : from > to && i >= to && i < from ? step : 0;
+          el.style.transform = shift ? "translateY(" + shift + "px)" : "";
+        });
+      };
+      const edge = () => {  // scroll the page when dragging near the top or bottom of the screen
+        const vh = window.innerHeight || 800, zone = 70;
+        const by = lastY < zone ? -Math.ceil((zone - lastY) / 6) : lastY > vh - zone ? Math.ceil((lastY - (vh - zone)) / 6) : 0;
+        if (by && window.scrollBy) { const y0 = window.scrollY; window.scrollBy(0, by); scrolled += window.scrollY - y0; place(); }
+        raf = by ? requestAnimationFrame(edge) : null;
+      };
+      const move = (ev) => { lastY = ev.clientY; place(); if (!raf && window.requestAnimationFrame) raf = requestAnimationFrame(edge); };
+      const up = () => {
+        g.removeEventListener("pointermove", move); g.removeEventListener("pointerup", up); g.removeEventListener("pointercancel", up);
+        if (raf && window.cancelAnimationFrame) cancelAnimationFrame(raf);
+        all.forEach((el) => { el.style.transform = ""; }); row.classList.remove("dragging"); list.classList.remove("is-sorting");
+        done(from, to, row.dataset.drag);
+      };
+      g.addEventListener("pointermove", move); g.addEventListener("pointerup", up); g.addEventListener("pointercancel", up);
+    });
+    return list;
+  }
+  // Save a new order for rows that have a "sort" column, renumbering only the ones that changed.
+  async function resort(table, rows, from, to, match = (q0, r) => q0.eq("id", r.id)) {
+    const next = rows.slice(); const [m] = next.splice(from, 1); next.splice(to, 0, m);
+    for (let i = 0; i < next.length; i++) if (next[i].sort !== i) await q(match(sb.from(table).update({ sort: i }), next[i]));
+  }
+  const arrMove = (arr, from, to) => { const [m] = arr.splice(from, 1); arr.splice(to, 0, m); };
+
+  /* ---------------- Coasters ---------------- */
+  // A comic's Coaster is their card on ComicTable (the comics row): comictable.com/<id>.
+  // The same editor shows on a comic's page (super admins) and on Me (the comic themselves).
+  const LOOKS = [["classic", "Classic", "#F7F0DF", "#C4452E", "#1F1F1F"], ["night", "Night", "#232120", "#D9583F", "#F3EAD7"], ["redwood", "Redwood", "#F3EAD7", "#1F1F1F", "#A93A26"],
+    ["mustard", "Mustard", "#1F1F1F", "#E0A21A", "#E0A21A"], ["spooky", "Spooky", "#1E1726", "#F07C1F", "#F07C1F", "Seasonal"], ["holiday", "Holiday", "#FBF3E4", "#D9443A", "#17321F", "Seasonal"]];
+  const coasterUrl = (c) => PRESS_HOST + "/" + encodeURIComponent(c.handle || c.id);
+  // The Coaster's own settings (Tape, look, what's on it, also on the bill), as pieces for a person's card to place in
+  // its form. The card saves them with everything else in one go: one card, one Save, wherever a comic is edited.
+  function coasterFields(c, opts = {}) {
+    if (!c || !("look" in c)) return null;  // the database doesn't have 21_coasters.sql yet
+    const yours = opts.me ? "your" : c.name.split(" ")[0] + "'s";
+    const url = coasterUrl(c);
+    let look = c.look || "classic";
+    // Custom (their own colors) comes with a site on ComicTable, or Pro. The database checks this too.
+    let onSite = opts.onSite;
+    const canCustom = () => !!c.pro || onSite === true;
+    const style = { pulp: "#F4ECDC", ink: "#1F1F1F", band: "#C4452E", photo: "ink", ...((c.coaster && c.coaster.style) || {}) };
+    const preview = h("div", { class: "mini-coaster", "aria-hidden": "true" });
+    const colorIn = (k, label) => { const i = h("input", { type: "color", value: /^#[0-9a-f]{6}$/i.test(style[k]) ? style[k] : "#C4452E", "aria-label": label });
+      i.addEventListener("input", () => { style[k] = i.value; if (k === "band") noBand.checked = false; paint(); }); return i; };
+    const noBand = h("input", { type: "checkbox", checked: style.band === "none" });
+    noBand.addEventListener("change", () => { style.band = noBand.checked ? "none" : bandIn.value; paint(); });
+    const pulpIn = colorIn("pulp", "Board color"), inkIn = colorIn("ink", "Ink color"), bandIn = colorIn("band", "Band color");
+    const photoSeg = h("div", { class: "seg", role: "group", "aria-label": "Photo" });
+    const drawPhoto = () => photoSeg.replaceChildren(...[["ink", "One ink"], ["color", "Full color"]].map(([v, t]) =>
+      h("button", { type: "button", "aria-pressed": String(style.photo === v), text: t, onclick: () => { style.photo = v; drawPhoto(); paint(); } })));
+    drawPhoto();
+    const customBox = h("div", { class: "custom-look stack", style: "gap:10px" },
+      h("div", { class: "btns" }, h("label", { class: "color-pick" }, pulpIn, "Board"), h("label", { class: "color-pick" }, inkIn, "Ink"), h("label", { class: "color-pick" }, bandIn, "Band"),
+        h("label", { class: "check" }, noBand, "No band")),
+      h("div", { class: "btns" }, h("span", { class: "hint", text: "Photo:" }), photoSeg));
+    const customNote = h("p", { class: "hint", style: "margin:0" });
+    // How worn it looks: fresh, used (a glass ring or two), or well loved (rings, drips, scuffs, a nicked edge)
+    let wear = (c.coaster && ["used", "loved"].includes(c.coaster.wear)) ? c.coaster.wear : "fresh";
+    const wearSeg = h("div", { class: "seg", role: "group", "aria-label": "Wear" });
+    const drawWear = () => wearSeg.replaceChildren(...[["fresh", "Fresh"], ["used", "Used"], ["loved", "Well loved"]].map(([v, t]) =>
+      h("button", { type: "button", "aria-pressed": String(wear === v), text: t, onclick: () => { wear = v; drawWear(); paint(); } })));
+    drawWear();
+    const looks = h("div", { class: "looks", role: "group", "aria-label": "Look" }, [...LOOKS.map(([k, l, pulp, ring, print, tag]) =>
+      h("button", { type: "button", "data-look": k, "aria-pressed": "false", onclick: () => { look = k; paint(); } },
+        h("i", { style: `--pulp:${pulp};--ring:${ring};--print:${print}` }), h("span", { text: l }), tag ? h("small", { text: tag }) : null)),
+      h("button", { type: "button", "data-look": "custom", "aria-pressed": "false", onclick: () => { if (!canCustom()) return; look = "custom"; paint(); } },
+        h("i", { class: "rainbow" }), h("span", { text: "Custom" }))]);
+    const paint = () => {
+      const L = LOOKS.find((x) => x[0] === look);
+      const [pulp, ring, print] = L ? [L[2], L[3], L[4]] : [style.pulp, style.band === "none" ? style.ink : style.band, style.ink];
+      preview.style.setProperty("--pulp", pulp); preview.style.setProperty("--ring", ring); preview.style.setProperty("--print", print);
+      preview.classList.toggle("color", look === "custom" && style.photo === "color");
+      preview.classList.toggle("wear-used", wear === "used"); preview.classList.toggle("wear-loved", wear === "loved");
+      preview.replaceChildren(c.photo_url ? h("img", { src: c.photo_url, alt: "" }) : h("b", { text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }));
+      looks.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.look === look)));
+      looks.querySelector('[data-look="custom"]').disabled = !canCustom() && look !== "custom";
+      customBox.hidden = look !== "custom";
+      customNote.textContent = canCustom() ? "" : onSite === false ? "Custom looks (your own colors) come with a site on ComicTable." : "";
+    };
+    if (onSite === undefined) q(sb.from("hosts").select("id").eq("comic_id", c.id)).then((r) => { onSite = r.length > 0; paint(); }, () => {});
+    // Pro isn't sold yet; ComicTable admins can switch it on by hand (saves right away)
+    const proBox = S.isOwner && opts.admin ? h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Pro" }), h("div", { class: "hint", text: "Not for sale yet. Switching it on gives " + c.name.split(" ")[0] + " the Custom look without a site." })),
+      h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: !!c.pro, "aria-label": "Pro", onchange: async (e) => {
+        try { await q(sb.from("comics").update({ pro: e.target.checked }).eq("id", c.id)); c.pro = e.target.checked; paint(); toast(c.name + (c.pro ? " has Pro." : " is back on the free Coaster.")); }
+        catch (er) { e.target.checked = !e.target.checked; toast(errText(er), { bad: true }); }
+      } }), h("span"))) : null;
+    const tapeUrl = h("input", { type: "url", value: c.tape_url || "", placeholder: "https://www.youtube.com/watch?v=…", "aria-label": "Tape link" });
+    const tapeTitle = h("input", { value: c.tape_title || "", maxlength: "120", placeholder: "Live at the Comedy Cellar, 2026", "aria-label": "Tape title" });
+    const bills = h("input", { type: "checkbox", role: "switch", checked: c.on_bills !== false, "aria-label": "Show who else is on the bill" });
+    const ITEMS = (window.CSB && CSB.COASTER_ITEMS) || [];
+    const plan = (window.CSB && CSB.coasterPlan) ? CSB.coasterPlan(c) : {};
+    // ...and in what order: arrows everywhere, drag on a computer
+    const order = (window.CSB && CSB.coasterOrder) ? CSB.coasterOrder(c) : ITEMS.map((x) => x[0]);
+    const planRows = h("div", { class: "plan" });
+    const drawPlan = () => planRows.replaceChildren(...order.map((k, i) => {
+      const it = ITEMS.find((x) => x[0] === k); if (!it) return null;
+      const [, l, , d] = it;
+      const seg = h("div", { class: "seg", role: "group", "aria-label": l });
+      const drawSeg = () => seg.replaceChildren(...[["front", "Up front"], ["more", "Under More"], ["off", "Off"]].map(([v, t]) =>
+        h("button", { type: "button", "aria-pressed": String(plan[k] === v), text: t, onclick: () => { plan[k] = v; drawSeg(); } })));
+      drawSeg();
+      return h("div", { class: "switch-row plan-row", "data-drag": k }, grip(l),
+        h("div", { style: "flex:1;min-width:0" }, h("b", { text: l }), h("div", { class: "hint", text: d })), seg);
+    }).filter(Boolean));
+    sortable(planRows, (from, to) => { arrMove(order, from, to); drawPlan(); });
+    // How socials show on the Coaster: logos / logo + name / names, brand colors or the Coaster's, and which ones
+    const soc = { style: "icons", color: "brand", hide: [], ...((c.coaster && c.coaster.social_style) || {}) };
+    const has = (window.CSB && CSB.socialsOf) ? CSB.socialsOf(c) : {};
+    const socBox = h("div", { class: "stack soc-box", style: "gap:10px" });
+    const drawSoc = () => {
+      const seg = (label, key, opts) => h("div", { class: "seg", role: "group", "aria-label": label }, opts.map(([v, t]) =>
+        h("button", { type: "button", "aria-pressed": String(soc[key] === v), text: t, onclick: () => { soc[key] = v; drawSoc(); } })));
+      const nets = ((window.CSB && CSB.SOCIALS) || []).filter(([k]) => has[k] && k !== "website");
+      socBox.replaceChildren(h("b", { text: "Social links on the Coaster" }),
+        h("div", { class: "btns" }, seg("Socials show as", "style", [["icons", "Logos"], ["both", "Logo + name"], ["names", "Names"]]),
+          soc.style !== "names" ? seg("Logo colors", "color", [["brand", "Brand colors"], ["look", "Coaster colors"]]) : null),
+        nets.length ? h("div", { class: "soc-picks" }, nets.map(([k, l]) => {
+          const on = !soc.hide.includes(k), ic = h("span", { "aria-hidden": "true" }); ic.innerHTML = CSB.socialIcon ? CSB.socialIcon(k, { brand: true, size: 18 }) : "";
+          return h("button", { type: "button", class: "soc-pick", "aria-pressed": String(on), title: (on ? "Showing " : "Hidden: ") + l, onclick: () => { soc.hide = on ? [...soc.hide, k] : soc.hide.filter((x) => x !== k); drawSoc(); } }, ic, h("span", { text: l }));
+        })) : h("p", { class: "hint", style: "margin:0", text: "Add your social links above and pick which ones show here." }));
+    };
+    drawSoc();
+    drawPlan();
+    paint();
+    return {
+      url,
+      // a line under the name: the Coaster's address, with Open
+      link: h("div", { class: "hint coaster-link" }, h("a", { href: url, target: "_blank", rel: "noopener", text: url.replace(/^https?:\/\//, "") + " ↗" }),
+        h("button", { class: "linkish", type: "button", text: "Copy", onclick: async () => toast((await copyText(url)) ? "Coaster link copied." : "Couldn't copy. Try again.") })),
+      tape: h("div", { class: "grid" }, field("The Tape: " + yours + " best set right now", tapeUrl, "c8"), field("What it is", tapeTitle, "c4")),
+      look: h("div", { class: "coaster-edit" }, preview, h("div", { class: "stack", style: "gap:8px;min-width:0" }, h("b", { text: "Coaster look" }), looks,
+        h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }), customBox, customNote,
+        h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear:" }), wearSeg))),
+      more: h("details", { class: "quiet coaster-more" }, h("summary", { text: "What's on " + yours + " Coaster" }),
+        h("p", { class: "hint", style: "margin:8px 0 0", text: "Keep it simple: a few things up front. Fans tap More for the rest. Drag the grips to change the order." }), planRows, socBox,
+        h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
+          h("div", { class: "hint", text: "When another comic on ComicTable has the same club on the same night, you show up on each other's dates. Nobody has to tag anyone." })),
+          h("label", { class: "switch" }, bills, h("span"))), proBox),
+      check() { const t = tapeUrl.value.trim(); if (t && !/^https:\/\//i.test(t)) { tapeUrl.focus(); return "The Tape needs a full link that starts with https://"; } return ""; },
+      patch() {
+        const t = tapeUrl.value.trim();
+        const out = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
+        if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, wear, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
+        return out;
+      }
+    };
+  }
+  // A site asks before adding a comic who has their own login. They answer on Me.
+  async function askForComic(c, siteId) {
+    await q(sb.from("coaster_requests").insert({ comic_id: c.id, site_id: siteId, requested_by: S.uid }));
+    toast("Asked " + c.name.split(" ")[0] + ". They'll be added when they say yes.");
+  }
+  const needsAsk = (c) => !!c.user_id && c.user_id !== S.uid && !S.isOwner;
+  async function requestsCard(me) {
+    let reqs = [];
+    try { reqs = await q(sb.from("coaster_requests").select("*").eq("comic_id", me.id).eq("status", "pending").order("created_at", { ascending: true })); } catch (e) { return null; }
+    if (!reqs.length) return null;
+    const names = {};
+    try { (await q(sb.from("sites").select("id, name, domain").in("id", reqs.map((r) => r.site_id)))).forEach((x) => (names[x.id] = x)); } catch (e) {}
+    return h("section", { class: "card stack attention" }, h("h2", { style: "margin:0", text: reqs.length === 1 ? "A site wants to add you" : reqs.length + " sites want to add you" }),
+      h("p", { class: "sub", style: "margin:0", text: "Say yes and your Coaster (photo, bio, socials, dates and videos) shows on their site. You can ask them to take you off any time." }),
+      h("div", null, reqs.map((r) => { const st = names[r.site_id] || { name: r.site_id };
+        return h("div", { class: "switch-row" }, h("div", null, h("b", { text: st.name }), h("div", { class: "hint", text: st.domain || "No web address yet" })),
+          h("div", { class: "btns" }, ...[["Say yes", true, "btn primary sm"], ["No thanks", false, "btn ghost sm"]].map(([l, yes, cls]) => h("button", { class: cls, type: "button", text: l, onclick: async (e) => {
+            e.currentTarget.disabled = true;
+            try { await q(sb.rpc("answer_coaster_request", { p_id: r.id, p_yes: yes })); toast(yes ? "You're on " + st.name + " now." : "Said no to " + st.name + "."); route(); }
+            catch (er) { toast(errText(er), { bad: true }); e.currentTarget.disabled = false; }
+          } }))));
+      })));
+  }
+
   const PRESS_HOST = CFG.PLATFORM && /^https:/.test(location.origin) ? location.origin : "https://comictable.com";
   const pressLink = (comicId) => PRESS_HOST + "/press/" + encodeURIComponent(comicId);
   const words = (s) => (String(s || "").trim().match(/\S+/g) || []).length;
@@ -1877,7 +2165,7 @@ td select.status.st-few_left { color: var(--warn); }
   function viewPress(main) {
     const people = S.hosts.filter((x) => x.comic_id);
     main.append(head("Press kit", "Approved photos and bios for clubs, per comic. A comic's press kit is the same on every site they're on."));
-    if (!people.length) { main.append(h("section", { class: "card" }, empty("No comics on this site yet", "Add someone in People first."))); return; }
+    if (!people.length) { main.append(h("section", { class: "card" }, empty("No comics on this site yet", "Add someone in Lineup first."))); return; }
     if (!people.some((x) => x.id === PRESSFOR)) PRESSFOR = (people.find((x) => S.me && x.comic_id === S.me.id) || people[0]).id;
     const cur = people.find((x) => x.id === PRESSFOR);
     if (people.length > 1) main.append(h("div", { class: "seg", role: "group", "aria-label": "Comic", style: "margin-bottom:16px" },
@@ -1996,19 +2284,13 @@ td select.status.st-few_left { color: var(--warn); }
               await reload.merch(); toast("Added " + name.value.trim() + "."); redraw();
             } catch (err) { msg.textContent = errText(err); b.disabled = false; }
           } }))));
-      const listCard = h("section", { class: "card" }, h("h2", { text: "Your merch" }), S.merch.length ? h("div", null, S.merch.map((m, i) => h("div", { class: "merch-row" },
+      const listCard = h("section", { class: "card" }, h("h2", { text: "Your merch" }), S.merch.length ? sortable(h("div", null, S.merch.map((m, i) => h("div", { class: "merch-row", "data-drag": m.id }, grip(m.name),
         m.image_url ? h("img", { src: m.image_url, alt: "" }) : h("div", { class: "ph" }),
         h("div", { style: "min-width:0" }, h("b", { text: m.name }), h("div", { class: "hint wrap-any", text: [m.price, m.hidden ? "Hidden" : "", m.url ? "" : "No buy link"].filter(Boolean).join(" · ") })),
         h("div", { class: "btns" },
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => swap(i, i - 1) }),
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === S.merch.length - 1, onclick: () => swap(i, i + 1) }),
           h("button", { class: "btn ghost sm", type: "button", text: m.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("merch").update({ hidden: !m.hidden }).eq("id", m.id)); m.hidden = !m.hidden; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
-          h("button", { class: "btn ghost sm danger", type: "button", text: "Delete", onclick: async () => { try { await q(sb.from("merch").delete().eq("id", m.id)); await reload.merch(); redraw(); toast("Deleted " + m.name + "."); } catch (e) { toast(errText(e), { bad: true }); } } })))))
+          h("button", { class: "btn ghost sm danger", type: "button", text: "Delete", onclick: async () => { try { await q(sb.from("merch").delete().eq("id", m.id)); await reload.merch(); redraw(); toast("Deleted " + m.name + "."); } catch (e) { toast(errText(e), { bad: true }); } } }))))), async (from, to) => { await resort("merch", S.merch, from, to); await reload.merch(); redraw(); })
         : empty("Nothing for sale yet", "Add your first item above."));
-      async function swap(a, b) {
-        const A = S.merch[a], B = S.merch[b];
-        try { await q(sb.from("merch").update({ sort: b }).eq("id", A.id)); await q(sb.from("merch").update({ sort: a }).eq("id", B.id)); await reload.merch(); redraw(); } catch (e) { toast(errText(e), { bad: true }); }
-      }
       wrap.replaceChildren(add, listCard); refreshNav();
     };
     redraw();
@@ -2047,8 +2329,11 @@ td select.status.st-few_left { color: var(--warn); }
   let OPEN_SOCIALS = null;  // a person id whose Social links should open (from "Edit your socials")
   // Comics live on ComicTable, not on one site. A site's People are its lineup: each card edits the comic's
   // shared profile (seen on every site they're on), and a site can keep its own title and bio for them.
+  // comictable.com/<id> is the comic's Coaster, so these stay ComicTable's own addresses (same list as 21_coasters.sql)
+  const RESERVED_IDS = ["login", "dashboard", "admin", "press", "join", "brand", "fonts", "themes", "embed", "sdk", "api", "app", "about", "pricing", "help", "privacy", "terms", "coaster", "coasters", "c", "u", "www", "index"];
   async function newComicId(name) {
-    const base = slug(name) || "comic";
+    let base = slug(name) || "comic";
+    if (RESERVED_IDS.includes(base)) base += "-comic";
     const taken = new Set((await q(sb.from("comics").select("id").like("id", base + "%"))).map((r) => r.id));
     let id = base, n = 2; while (taken.has(id)) id = base + "-" + n++;
     return id;
@@ -2086,8 +2371,13 @@ td select.status.st-few_left { color: var(--warn); }
         results.replaceChildren(
           ...found.map((c) => h("div", { class: "switch-row" },
             h("div", { class: "person-top", style: "margin:0" }, c.photo_url ? h("img", { class: "avatar", style: "width:44px;height:44px", src: c.photo_url, alt: "" }) : null,
-              h("div", null, h("b", { text: c.name }), h("div", { class: "hint", text: where[c.id] ? "Already on ComicTable: " + where[c.id].join(", ") : "Already on ComicTable" }))),
-            h("button", { class: "btn primary sm", type: "button", text: "Add to " + S.site.name, onclick: async (e) => {
+              h("div", null, h("b", { text: c.name }), h("div", { class: "hint", text: (where[c.id] ? "Already on ComicTable: " + where[c.id].join(", ") : "Has a Coaster") + (needsAsk(c) ? " · has their own login, so they say yes first" : "") }))),
+            needsAsk(c) ? h("button", { class: "btn primary sm", type: "button", text: "Ask to add", title: c.name + " has their own login, so they say yes first", onclick: async (e) => {
+              const b = e.currentTarget; b.disabled = true;
+              try { await askForComic(c, sid()); b.textContent = "Asked"; }
+              catch (er) { if (/duplicate|unique/i.test(errText(er))) b.textContent = "Already asked"; else { msg.textContent = errText(er); b.disabled = false; } }
+            } })
+            : h("button", { class: "btn primary sm", type: "button", text: "Add to " + S.site.name, onclick: async (e) => {
               e.currentTarget.disabled = true;
               try { await addToSite(c); route(); toast(c.name + " is on " + S.site.name + " now. Their dates, videos and profile came with them."); }
               catch (er) { msg.textContent = errText(er); e.currentTarget.disabled = false; }
@@ -2108,7 +2398,7 @@ td select.status.st-few_left { color: var(--warn); }
       name.focus();
     } });
     main.append(head("Lineup", "Everyone on " + S.site.name + ". Each person gets their own page, bio, photo, socials and show dates.", addBtn), addBox);
-    const grid = h("div", { class: "people" }); main.append(grid);
+    const grid = sortable(h("div", { class: "people" }), async (from, to) => { await resort("hosts", S.hosts, from, to); await reload.hosts(); route(); }); main.append(grid);
     if (!S.hosts.length) grid.append(h("section", { class: "card" }, empty("No one here yet", "Add the first person above.")));
     // which other sites each person is on, so it's clear what a shared change affects
     const elsewhere = {};
@@ -2153,7 +2443,7 @@ td select.status.st-few_left { color: var(--warn); }
           st.domain ? h("a", { class: "btn sm ghost", href: "https://" + st.domain, target: "_blank", rel: "noopener", text: "Visit ↗" }) : null));
     }));
     wrap.replaceChildren(
-      h("div", { class: "stats" }, [["Sites", S.sites.length, () => goCT("sites")], ["Comics", comics, () => goCT("comics")], ["Upcoming shows", shows], ["Fans on lists", fans]]
+      h("div", { class: "stats" }, [["Sites", S.sites.length, () => goCT("sites")], ["Coasters", comics, () => goCT("comics")], ["Upcoming shows", shows], ["Fans on lists", fans]]
         .map(([l, n, fn]) => h(fn ? "button" : "div", { class: "stat", type: fn ? "button" : null, style: fn ? "text-align:left;cursor:pointer" : null, onclick: fn || null }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l })))),
       todo.length ? h("section", { class: "card" }, h("h2", { text: "Worth a look" }), h("div", { class: "todo" }, todo.map(([t, fn]) => h("div", { class: "todo-item" }, h("span", { text: t }), h("button", { class: "btn sm", type: "button", text: "Go", onclick: fn })))))
         : h("section", { class: "card" }, empty("All caught up ✨", "Every site looks good.")),
@@ -2246,31 +2536,31 @@ td select.status.st-few_left { color: var(--warn); }
         q(sb.from("hosts").select("id, site_id, comic_id, hidden")),
         q(sb.from("shows").select("id, comic_id, lineup, date").gte("date", today()))]);
     };
-    try { await load(); } catch (e) { main.append(head("Comics", ""), h("p", { class: "err", text: errText(e) })); return; }
+    try { await load(); } catch (e) { main.append(head("Coasters", ""), h("p", { class: "err", text: errText(e) })); return; }
     const onSites = (c) => lineups.filter((l) => l.comic_id === c.id).map((l) => ({ ...l, site: S.sites.find((x) => x.id === l.site_id) })).filter((x) => x.site);
     const upcoming = (c) => shows.filter((x) => x.comic_id === c.id || (x.lineup || []).includes(c.id)).length;
     const open = comicOpen && comics.find((c) => c.id === comicOpen);
     if (open) { await comicDetail(main, open, onSites, async () => { await load(); }); return; }
 
     const addBox = h("div");
-    main.append(head("Comics", "Every comic on ComicTable. A comic's profile, dates and YouTube follow them to every site they're on.",
-      h("button", { class: "btn primary", type: "button", id: "addComic", text: "+ Add a comic", onclick: () => {
+    main.append(head("Coasters", "Every comic on ComicTable has a Coaster: their card at comictable.com/<name>. Their profile, dates and YouTube follow them to every site they're on.",
+      h("button", { class: "btn primary", type: "button", id: "addComic", text: "+ Add a Coaster", onclick: () => {
         const name = h("input", { id: "newComicName", placeholder: "Full name", maxlength: "60" });
         const msg = h("div", { class: "err" });
         addBox.replaceChildren(h("form", { class: "card stack", onsubmit: async (e) => {
           e.preventDefault(); const n = name.value.trim(); if (!n) { name.focus(); return; }
-          if (comics.some((c) => c.name.toLowerCase() === n.toLowerCase()) && !msg.dataset.ok) { msg.dataset.ok = "1"; msg.textContent = "There's already a comic called " + n + ". Click Add comic again if this is someone else."; return; }
+          if (comics.some((c) => c.name.toLowerCase() === n.toLowerCase()) && !msg.dataset.ok) { msg.dataset.ok = "1"; msg.textContent = "There's already a comic called " + n + ". Click Add Coaster again if this is someone else."; return; }
           try { const id = await newComicId(n); await q(sb.from("comics").insert({ id, name: n, title: "Comedian", bio: "" })); comicOpen = id; toast(n + " added. Fill in their profile, then put them on a site."); route(); }
           catch (er) { msg.textContent = errText(er); }
-        } }, h("h2", { text: "Add a comic" }), h("p", { class: "sub", text: "They don't need a site yet. Put them on one, or several, after." }), field("Name", name), msg,
-          h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add comic" }), h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => addBox.replaceChildren() }))));
+        } }, h("h2", { text: "Add a Coaster" }), h("p", { class: "sub", text: "Any comic can have one. They don't need a site: put them on one, or several, any time." }), field("Name", name), msg,
+          h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add Coaster" }), h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => addBox.replaceChildren() }))));
         name.focus();
       } })), addBox, wrap);
 
     const withLogin = comics.filter((c) => c.user_id).length, noSite = comics.filter((c) => !onSites(c).length).length;
-    const stats = h("div", { class: "stats" }, [["Comics", comics.length, "all"], ["With their own login", withLogin, "login"], ["Not on a site yet", noSite, "nosite"], ["Upcoming dates", shows.length, null]]
+    const stats = h("div", { class: "stats" }, [["Coasters", comics.length, "all"], ["With their own login", withLogin, "login"], ["Not on a site yet", noSite, "nosite"], ["Upcoming dates", shows.length, null]]
       .map(([l, n, f]) => h(f ? "button" : "div", { class: "stat", type: f ? "button" : null, style: f ? "text-align:left;cursor:pointer" : null, onclick: f ? () => { comicQ.only = f; draw(); } : null }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l }))));
-    const search = h("input", { type: "search", placeholder: "Find a comic", value: comicQ.t, "aria-label": "Find a comic", style: "max-width:260px" });
+    const search = h("input", { type: "search", placeholder: "Find a Coaster", value: comicQ.t, "aria-label": "Find a comic", style: "max-width:260px" });
     const filt = h("div", { class: "seg", role: "group", "aria-label": "Show" });
     const sortSel = h("select", { "aria-label": "Sort", style: "width:auto" }, [["name", "A to Z"], ["shows", "Most upcoming dates"], ["new", "Newest"]].map(([v, l]) => h("option", { value: v, text: l, selected: comicQ.sort === v })));
     const grid = h("div", { class: "comic-grid" });
@@ -2282,15 +2572,16 @@ td select.status.st-few_left { color: var(--warn); }
       const t = comicQ.t.trim().toLowerCase();
       let rows = comics.filter((c) => (!t || c.name.toLowerCase().includes(t)) &&
         (comicQ.only === "all" || (comicQ.only === "login" && c.user_id) || (comicQ.only === "nologin" && !c.user_id) || (comicQ.only === "nosite" && !onSites(c).length)));
+      rows = rows.slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
       if (comicQ.sort === "shows") rows = rows.slice().sort((a, b) => upcoming(b) - upcoming(a));
       if (comicQ.sort === "new") rows = rows.slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
       grid.replaceChildren(...(rows.length ? rows.map((c) => {
         const st = onSites(c), n = upcoming(c);
         return h("button", { class: "comic-card", type: "button", onclick: () => { comicOpen = c.id; route(); } },
           c.photo_url ? h("img", { class: "avatar", src: c.photo_url, alt: "" }) : h("div", { class: "avatar initials", text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }),
-          h("div", { class: "cc-body" }, h("b", { text: c.name }), h("span", { class: "hint", text: c.title || "Comedian" }),
+          h("div", { class: "cc-body" }, h("b", { text: c.name }), h("span", { class: "hint", text: (c.title || "Comedian") + (c.handle ? " · comictable.com/" + c.handle : "") }),
             h("div", { class: "cc-chips" }, st.length ? st.map((x) => h("span", { class: "pill", text: x.site.name })) : h("span", { class: "pill warn", text: "No site" }))),
-          h("div", { class: "cc-meta" }, h("span", { text: n + (n === 1 ? " date" : " dates") }), c.user_id ? h("span", { class: "pill ok", text: "Login" }) : null));
+          h("div", { class: "cc-meta" }, c.user_id ? h("span", { class: "pill ok", text: "Login" }) : null, h("span", { text: n + (n === 1 ? " date" : " dates") }), h("span", { "aria-hidden": "true", text: "›" })));
       }) : [empty("No comics match", "Try another search or filter.")]));
     }
     draw();
@@ -2299,7 +2590,7 @@ td select.status.st-few_left { color: var(--warn); }
 
   async function comicDetail(main, c, onSites, reloadData) {
     const sites = onSites(c);
-    const back = h("button", { class: "btn ghost sm", type: "button", text: "← All comics", onclick: () => { comicOpen = null; route(); } });
+    const back = h("button", { class: "btn ghost sm", type: "button", text: "← All Coasters", onclick: () => { comicOpen = null; route(); } });
     main.append(h("div", { style: "margin-bottom:8px" }, back),
       h("div", { class: "page-head" }, h("div", { class: "person-top", style: "margin:0" },
         c.photo_url ? h("img", { class: "avatar", src: c.photo_url, alt: "" }) : h("div", { class: "avatar initials", text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }),
@@ -2314,7 +2605,7 @@ td select.status.st-few_left { color: var(--warn); }
 
     // dates everywhere
     const datesCard = h("section", { class: "card" }, h("h2", { text: "Upcoming dates" }), h("p", { class: "hint", text: "Loading…" }));
-    left.append(datesCard, personCard({ ...c, id: null, comic_id: c.id }, 0, { comic: true }));
+    left.append(personCard({ ...c, id: null, comic_id: c.id }, 0, { comic: true, onSite: sites.length > 0 }), datesCard);
     try {
       const dates = await q(sb.rpc("comic_shows", { p_comic: c.id }));
       datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Upcoming dates (" + dates.length + ")" }),
@@ -2335,6 +2626,7 @@ td select.status.st-few_left { color: var(--warn); }
         : h("p", { class: "hint", text: "Not on any site yet." }),
       h("div", { class: "btns" }, addSel, h("button", { class: "btn sm", type: "button", text: "Add", onclick: async () => {
         const st = S.sites.find((x) => x.id === addSel.value); if (!st) { addSel.focus(); return; }
+        if (needsAsk(c)) { try { await askForComic(c, st.id); } catch (e) { toast(/duplicate|unique/i.test(errText(e)) ? "Already asked. Waiting for " + c.name.split(" ")[0] + "." : errText(e), { bad: true }); } return; }
         let id = st.id + "-" + (slug(c.name.split(" ")[0]) || "person");
         try {
           const taken = (await q(sb.from("hosts").select("id").like("id", id + "%"))).map((r) => r.id);
@@ -2349,12 +2641,24 @@ td select.status.st-few_left { color: var(--warn); }
     const loginCard = h("section", { class: "card stack" }, h("h2", { text: "Login" }));
     if (c.user_id) {
       loginCard.append(h("p", { class: "sub", text: "They have their own login. They see their Me page, edit their profile and dates on every site, and manage the sites they're on the team of." }),
-        sites[0] ? h("div", { class: "btns" }, sure("Unlink login", async () => {
-          try { await teamCall({ action: "unlink_comic", comic_id: c.id, site_id: sites[0].site_id }); toast("Unlinked. The login still exists, but it's no longer " + c.name + "."); await reloadData(); route(); }
+        h("div", { class: "btns" }, sure("Unlink login", async () => {
+          try { await teamCall(sites[0] ? { action: "unlink_comic", comic_id: c.id, site_id: sites[0].site_id } : { action: "coaster_unlink", comic_id: c.id }); toast("Unlinked. The login still exists, but it's no longer " + c.name + "."); await reloadData(); route(); }
           catch (e) { toast(e.message, { bad: true }); }
-        })) : null);
+        })));
     } else if (!sites.length) {
-      loginCard.append(h("p", { class: "hint", text: "Put them on a site first, then you can give them a login." }));
+      // No site yet: a login just for their Coaster (they land on Me)
+      const user = h("input", { placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
+      const pass = h("input", { type: "text", placeholder: "starting password (8+)", "aria-label": "Starting password" });
+      const msg = h("div", { class: "err" });
+      loginCard.append(h("p", { class: "sub", text: "Gives them their own login to edit their Coaster. No site needed: they land on their Me page." }),
+        h("div", { class: "grid" }, field("Username or email", user, "c6"), field("Starting password", pass, "c6")), msg,
+        h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Create login", onclick: async (e) => {
+          msg.textContent = ""; if (!user.value.trim()) { user.focus(); return; }
+          const b = e.currentTarget; b.disabled = true;
+          try { await teamCall({ action: "coaster_login", comic_id: c.id, email: loginEmail(user.value), password: pass.value });
+            toast(c.name + " can log in now as " + loginEmail(user.value) + "."); await reloadData(); route(); }
+          catch (er) { msg.textContent = er.message; b.disabled = false; }
+        } })));
     } else {
       const user = h("input", { placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
       const pass = h("input", { type: "text", placeholder: "starting password (8+)", "aria-label": "Starting password" });
@@ -2387,11 +2691,48 @@ td select.status.st-few_left { color: var(--warn); }
     } catch (e) { srcCard.replaceChildren(h("h2", { text: "Channels and pages" }), h("p", { class: "err", text: errText(e) })); }
 
     right.append(h("section", { class: "card stack" }, h("h2", { text: "Delete" }), h("p", { class: "hint", text: "Removes " + c.name + " from every site, along with their dates and channels. This can't be undone." }),
-      h("div", { class: "btns" }, sure("Delete comic", async () => {
+      S.isOwner === false ? null : h("div", { class: "btns" }, sure("Delete comic", async () => {
         try { await q(sb.from("comics").delete().eq("id", c.id)); comicOpen = null; toast(c.name + " deleted."); route(); } catch (e) { toast(errText(e), { bad: true }); }
       }))));
   }
 
+  // Adding a date without a site (a Coaster on its own). Pick the club from ComicTable's club list so shared bills
+  // can match it; anything not on the list can be typed in.
+  function coasterDateForm(me) {
+    const club = h("input", { placeholder: "Start typing the club", autocomplete: "off", "aria-label": "Club" });
+    const city = h("input", { placeholder: "City", "aria-label": "City" });
+    const date = h("input", { type: "date", min: today(), "aria-label": "Date", required: true });
+    const time = h("input", { type: "time", "aria-label": "Time" });
+    const url = h("input", { type: "url", placeholder: "https://… (tickets)", "aria-label": "Ticket link" });
+    const list = h("div", { class: "stack", style: "gap:4px" });
+    const msg = h("div", { class: "err" });
+    let venue = null, seq = 0;
+    club.addEventListener("input", async () => {
+      venue = null; const t = club.value.trim(), my = ++seq;
+      if (t.length < 2) { list.replaceChildren(); return; }
+      let rows = [];
+      try { rows = await q(sb.from("venues").select("id, name, city, state").ilike("name", "%" + t.replace(/[%_,()]/g, "") + "%").limit(5)); } catch (e) {}
+      if (my !== seq) return;
+      list.replaceChildren(...rows.map((v) => h("button", { class: "btn ghost sm", type: "button", style: "justify-content:flex-start", text: v.name + (v.city ? " · " + v.city + (v.state ? ", " + v.state : "") : ""),
+        onclick: () => { venue = v; club.value = v.name; city.value = [v.city, v.state].filter(Boolean).join(", "); list.replaceChildren(); } })));
+    });
+    const to12 = (t) => { const m = String(t || "").match(/^(\d{1,2}):(\d{2})/); if (!m) return null; const hh = +m[1]; return ((hh % 12) || 12) + ":" + m[2] + (hh >= 12 ? " PM" : " AM"); };
+    return h("form", { class: "newclub stack", style: "gap:10px;margin:12px 0", onsubmit: async (e) => {
+      e.preventDefault(); msg.textContent = "";
+      if (!date.value) { date.focus(); return; }
+      if (!club.value.trim()) { club.focus(); return; }
+      const u = url.value.trim();
+      if (u && !/^https?:\/\//i.test(u)) { msg.textContent = "The ticket link needs to start with https://"; url.focus(); return; }
+      try {
+        await q(sb.from("shows").insert({ comic_id: me.id, site_id: null, date: date.value, time: to12(time.value), venue: club.value.trim(), city: city.value.trim() || null,
+          venue_id: venue && venue.name === club.value.trim() ? venue.id : null, url: u || null, status: "on_sale" }));
+        toast("Date added. It's on your Coaster now."); route();
+      } catch (er) { msg.textContent = /site_id|not-null|null value/i.test(errText(er)) ? "This needs the latest database upgrade." : errText(er); }
+    } }, h("b", { text: "Add a date" }),
+      h("div", { class: "grid" }, field("Club", club, "c6"), field("City", city, "c6")), list,
+      h("div", { class: "grid" }, field("Date", date, "c4"), field("Time", time, "c4"), field("Tickets", url, "c4")), msg,
+      h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add date" })));
+  }
   function viewMySites(main) {
     main.append(head("Your sites", "The sites you can manage."));
     main.append(h("section", { class: "card" }, h("div", null, S.sites.map((st) => h("div", { class: "switch-row" },
@@ -2463,11 +2804,11 @@ td select.status.st-few_left { color: var(--warn); }
     wrap.append(access);
     try {
       const mine = await q(sb.from("admins").select("site_id, role").eq("user_id", S.uid));
-      access.replaceChildren(h("h2", { text: "Where you have access" }),
-        S.isPlatform ? h("p", { class: "sub" }, h("b", { text: "Super admin. " }), "You can see and manage every site on ComicTable (" + S.sites.length + ").") : null,
+      access.replaceChildren(...[h("h2", { text: "Where you have access" }),
+        S.isPlatform ? h("p", { class: "sub" }, h("b", { text: S.isOwner ? "ComicTable admin. " : "ComicTable staff. " }), S.isOwner ? "You can see and manage every site on ComicTable (" + S.sites.length + "), and ComicTable itself." : "You can work on every site on ComicTable (" + S.sites.length + "). Adding staff, new sites and the front page are for admins.") : null,
         S.me ? h("p", { class: "sub" }, "Your login is linked to ", h("b", { text: S.me.name }), ". You can edit your profile and dates on every site you're on. See ", h("a", { href: "#me", text: "Me" }), ".") : null,
-        mine.length ? h("div", null, mine.map((m) => h("div", { class: "switch-row" }, h("b", { text: (S.sites.find((x) => x.id === m.site_id) || {}).name || m.site_id }), h("span", { class: "pill", text: m.role === "owner" ? "Owner" : "Editor" }))))
-          : S.isPlatform ? null : empty("Not on any team", "Ask a site's owner to add you."));
+        mine.length ? h("div", null, mine.map((m) => h("div", { class: "switch-row" }, h("b", { text: (S.sites.find((x) => x.id === m.site_id) || {}).name || m.site_id }), h("span", { class: "pill", text: roleName(m.role || "owner") }))))
+          : S.isPlatform ? null : empty("Not on any team", "Ask a site's owner to add you.")].filter(Boolean));
     } catch (e) { access.replaceChildren(h("h2", { text: "Where you have access" }), h("p", { class: "err", text: errText(e) })); }
 
     wrap.append(h("section", { class: "card" }, h("h2", { text: "Log out" }), h("p", { class: "sub", text: "Logs you out on this device." }),
@@ -2477,41 +2818,48 @@ td select.status.st-few_left { color: var(--warn); }
   /* ======================================================
      ME (a comic's own login)
      ====================================================== */
+  // A comic's own Coaster page: requests from sites, then their Coaster (everything, including the fine-tuning).
   async function viewMe(main) {
     const me = S.me;
-    main.append(head("Me", "Your profile and your dates, on every site you're on. Change something here and it changes everywhere."));
+    const url = coasterUrl(me);
+    main.append(head("Coaster", "Your card on ComicTable. Put the link in your bio. Every site you're on pulls from it.",
+      h("a", { class: "btn", href: url, target: "_blank", rel: "noopener", text: "See your Coaster ↗" })));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
-    const sitesCard = h("section", { class: "card" }, h("h2", { text: "Your sites" }), h("p", { class: "hint", text: "Loading…" }));
-    const datesCard = h("section", { class: "card" }, h("h2", { text: "Your upcoming dates" }), h("p", { class: "hint", text: "Loading…" }));
     const here = S.hosts.find((x) => x.comic_id === me.id);
-    wrap.append(sitesCard, datesCard, personCard({ ...me, id: here ? here.id : null, comic_id: me.id }, 0, { me: true }));
+    const asks = h("div");
+    wrap.append(asks, personCard({ ...me, id: here ? here.id : null, comic_id: me.id }, 0, { me: true }));
+    requestsCard(me).then((c) => { if (c) asks.replaceWith(c); });
+  }
+  // A comic's dates, on their Coaster and every site they're on.
+  async function viewMyDates(main) {
+    const me = S.me;
+    const here = S.hosts.find((x) => x.comic_id === me.id);
+    main.append(head("Dates", "Every date you add shows on your Coaster and every site you're on."));
+    const datesCard = h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" }));
+    main.append(datesCard);
     let mySites = [];
     try {
       const rows = await q(sb.from("hosts").select("site_id, id").eq("comic_id", me.id));
-      const sites = await q(sb.from("sites").select("id, name, domain").in("id", rows.map((r) => r.site_id)));
-      mySites = sites.map((st) => ({ ...st, host: rows.find((r) => r.site_id === st.id).id, team: S.sites.some((x) => x.id === st.id) }));
-      sitesCard.replaceChildren(h("h2", { text: "Your sites" }), h("p", { class: "sub", text: "You're on these. Your name, photo, socials, bio and dates show on all of them." }),
-        h("div", null, mySites.map((st) => h("div", { class: "switch-row" },
-          h("div", null, h("b", { text: st.name }), st.id === sid() ? h("span", { class: "pill", style: "margin-left:6px", text: "Open now" }) : null, h("div", { class: "hint", text: st.domain || "No web address yet" })),
-          h("div", { class: "btns" },
-            st.team && st.id !== sid() ? h("button", { class: "btn sm", type: "button", text: "Open", onclick: () => switchSite(st.id, "home") }) : null,
-            st.domain ? h("a", { class: "btn sm ghost", href: "https://" + st.domain, target: "_blank", rel: "noopener", text: "Visit ↗" }) : null)))));
-    } catch (e) { sitesCard.replaceChildren(h("h2", { text: "Your sites" }), h("p", { class: "err", text: errText(e) })); }
+      mySites = rows.map((r) => ({ id: r.site_id, team: S.sites.some((x) => x.id === r.site_id) }));
+    } catch (e) {}
     try {
       const dates = await q(sb.rpc("comic_shows", { p_comic: me.id }));
-      // adding dates happens on a site you're on: this one if you're on it, otherwise the first one you can open
+      // with a site: the site's date tools (club search, runs, show finder); without one: a simple form right here
       const addHere = here ? () => { go("shows"); setTimeout(() => openRun({ host: here.id })); }
         : (() => { const st = mySites.find((x) => x.team); return st ? async () => { await switchSite(st.id, "shows"); const hh = S.hosts.find((x) => x.comic_id === me.id); setTimeout(() => openRun({ host: hh && hh.id })); } : null; })();
-      datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Your upcoming dates (" + dates.length + ")" }),
-          addHere ? h("button", { class: "btn primary", type: "button", text: "+ Add dates", onclick: addHere }) : null),
-        h("p", { class: "sub", text: "Every date you add shows on all your sites. Live shows with a whole crew are marked with the show's name." }),
+      const addBox = h("div");
+      datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Upcoming (" + dates.length + ")" }),
+          h("button", { class: "btn primary", type: "button", text: "+ Add a date", onclick: addHere || (() => addBox.replaceChildren(coasterDateForm(me))) })),
+        addBox,
         dates.length ? h("div", null, dates.map((d) => h("div", { class: "switch-row" },
           h("div", { style: "min-width:0" }, h("b", { text: shortDate(d.date) + (d.time ? " at " + d.time : "") + " · " + (d.venue || d.city || "Show") }),
             h("div", { class: "hint", text: [d.city, d.event ? d.site_name + " live show" : "", d.status === "sold_out" ? "Sold out" : d.status === "cancelled" ? "Cancelled" : ""].filter(Boolean).join(" · ") })),
-          d.url ? h("a", { class: "btn sm ghost", href: d.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : h("span", { class: "pill warn", text: "No ticket link" }))))
-          : empty("No upcoming dates", "Add some and they'll show on every site you're on."));
-    } catch (e) { datesCard.replaceChildren(h("h2", { text: "Your upcoming dates" }), h("p", { class: "err", text: /comic_shows|function/i.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) })); }
+          h("div", { class: "btns" }, d.url ? h("a", { class: "btn sm ghost", href: d.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : h("span", { class: "pill warn", text: "No ticket link" }),
+            !d.site_id && d.comic_id === me.id ? sure("Delete", async () => { try { await q(sb.from("shows").delete().eq("id", d.id)); toast("Date deleted."); route(); } catch (e) { toast(errText(e), { bad: true }); } }) : null))))
+          : empty("No upcoming dates", "Add some and they'll show on your Coaster and every site you're on."));
+    } catch (e) { datesCard.replaceChildren(h("h2", { text: "Dates" }), h("p", { class: "err", text: /comic_shows|function/i.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) })); }
   }
+
 
   // On a site's People page: give a comic their own login (or see that they have one).
   function loginBox(x) {
@@ -2546,6 +2894,11 @@ td select.status.st-few_left { color: var(--warn); }
   function personCard(x, idx, opts = {}) {
     const shared = !!x.comic_id, lineup = !(opts.me || opts.comic);
     const own = h("input", { type: "checkbox", checked: !!(x.own_bio || x.own_title) });
+    // This card is the person's Coaster: the Tape, look and what's on it are saved with everything else.
+    const coasterRow = !shared ? null : (opts.me || opts.comic) ? { ...x, id: x.comic_id } : (S.coasters || {})[x.comic_id];
+    const cf = coasterRow ? coasterFields(coasterRow, { me: opts.me, admin: opts.comic, onSite: lineup ? true : opts.onSite }) : null;
+    // a photo just for this site (21_coasters.sql); otherwise the photo is the Coaster's
+    const ownPhoto = shared && lineup && "own_photo" in x ? h("input", { type: "checkbox", checked: !!x.own_photo }) : null;
     const inp = { name: h("input", { value: x.name, required: true }), title: h("input", { value: x.title || "", placeholder: "Comedian" }), status: h("input", { value: x.status || "", placeholder: "Automatic" }), bio: h("textarea", { value: x.bio || "" }) };
     const moreSoc = (x.socials && typeof x.socials === "object") ? x.socials : {};
     const hasMore = "socials" in x;  // the database has 19_more_socials.sql
@@ -2554,39 +2907,54 @@ td select.status.st-few_left { color: var(--warn); }
     const file = h("input", { type: "file", accept: "image/*", style: "display:none" });
     file.addEventListener("change", () => { if (file.files[0]) { const im = h("img", { class: "avatar", src: URL.createObjectURL(file.files[0]), alt: "" }); pic.replaceWith(im); pic = im; } });
     const msg = h("div", { class: "err" });
-    const save = h("button", { class: "btn primary", type: "submit", text: "Save changes" });
+    const save = h("button", { class: "btn primary", type: "submit", text: shared ? "Save Coaster" : "Save changes" });
     const showCount = S.shows.filter((s) => s.host === x.id).length;
-    const swap = async (a, b) => {
-      const A = S.hosts[a], B = S.hosts[b];
-      try { await q(sb.from("hosts").update({ sort: b }).eq("id", A.id)); await q(sb.from("hosts").update({ sort: a }).eq("id", B.id)); await reload.hosts(); route(); } catch (e) { toast(errText(e), { bad: true }); }
-    };
-    const card = h("form", { class: "card stack" + (x.hidden ? " is-hidden" : ""), onsubmit: async (e) => {
-      e.preventDefault(); save.disabled = true; msg.textContent = "";
-      const prof = { name: inp.name.value.trim(), status: inp.status.value.trim() || null };
+    const card = h("form", { class: "card stack" + (x.hidden ? " is-hidden" : ""), "data-drag": lineup ? x.id : null, onsubmit: async (e) => {
+      e.preventDefault(); msg.textContent = "";
+      const bad = cf ? cf.check() : ""; if (bad) { msg.textContent = bad; return; }
+      save.disabled = true;
+      const prof = { name: inp.name.value.trim(), status: inp.status.value.trim() || null, ...(cf ? cf.patch() : {}) };
       for (const k of COL_SOC) prof[k] = inp[k].value.trim() || null;
       if (hasMore) { const more = {}; for (const [k] of SOC) if (!COL_SOC.includes(k) && inp[k] && inp[k].value.trim()) more[k] = inp[k].value.trim(); prof.socials = more; }
       const words = { title: inp.title.value.trim() || "Comedian", bio: inp.bio.value.trim() };
       try {
-        if (file.files[0]) prof.photo_url = await uploadImage(file.files[0], x.comic_id || x.id);
+        let pic = null;
+        if (file.files[0]) pic = await uploadImage(file.files[0], x.comic_id || x.id);
+        const sitePhoto = !!(ownPhoto && ownPhoto.checked);
+        if (pic && !sitePhoto) prof.photo_url = pic;
+        if (cf && coasterRow) Object.assign(coasterRow, cf.patch());
         if (!shared) await q(sb.from("hosts").update({ ...prof, ...words }).eq("id", x.id));
-        else if (lineup && own.checked) {
-          await q(sb.from("comics").update(prof).eq("id", x.comic_id));
-          await q(sb.from("hosts").update({ ...words, own_bio: true, own_title: true }).eq("id", x.id));
-        } else {
-          await q(sb.from("comics").update({ ...prof, ...words }).eq("id", x.comic_id));
-          if (lineup && (x.own_bio || x.own_title)) await q(sb.from("hosts").update({ own_bio: false, own_title: false }).eq("id", x.id));
+        else {
+          // the Coaster first, then this site's own bits
+          await q(sb.from("comics").update(lineup && own.checked ? prof : { ...prof, ...words }).eq("id", x.comic_id));
+          const here = {};
+          if (lineup && own.checked) Object.assign(here, words, { own_bio: true, own_title: true });
+          else if (lineup && (x.own_bio || x.own_title)) Object.assign(here, { own_bio: false, own_title: false });
+          if (ownPhoto && sitePhoto) { here.own_photo = true; if (pic) here.photo_url = pic; }
+          else if (ownPhoto && x.own_photo) here.own_photo = false;
+          if (Object.keys(here).length) await q(sb.from("hosts").update(here).eq("id", x.id));
         }
         await reload.hosts(); if (opts.me) S.me = { ...S.me, ...prof, ...words }; file.value = ""; toast(prof.name + " saved."); route();
       } catch (err) { msg.textContent = errText(err); save.disabled = false; }
     } },
-      h("div", { class: "person-top" }, pic, h("div", { style: "min-width:0;flex:1" }, h("b", { text: x.name }), x.hidden ? h("span", { class: "pill", style: "margin-left:6px", text: "Hidden" }) : null,
-        lineup ? h("div", { class: "hint", text: showCount ? showCount + " show" + (showCount > 1 ? "s" : "") : "No shows yet" }) : h("div", { class: "hint", text: opts.comic ? "Their profile on every site they're on" : "Your profile on every site you're on" }),
-        h("div", { class: "btns", style: "margin-top:6px;gap:4px" }, h("label", { class: "btn sm" }, "Change photo", file),
-          lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " earlier", text: "↑", disabled: idx === 0, onclick: () => swap(idx, idx - 1) }) : null,
-          lineup ? h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + x.name + " later", text: "↓", disabled: idx === S.hosts.length - 1, onclick: () => swap(idx, idx + 1) }) : null))),
+      h("div", { class: "person-top" }, lineup ? grip(x.name) : null, pic, h("div", { style: "min-width:0;flex:1" }, h("b", { text: x.name }), x.hidden ? h("span", { class: "pill", style: "margin-left:6px", text: "Hidden" }) : null,
+        lineup ? h("div", { class: "hint", text: showCount ? showCount + " show" + (showCount > 1 ? "s" : "") : "No shows yet" }) : h("div", { class: "hint", text: opts.comic ? "Their Coaster: on every site they're on" : "Your Coaster: on every site you're on" }),
+        cf ? cf.link : null,
+        h("div", { class: "btns", style: "margin-top:6px;gap:4px" }, h("label", { class: "btn sm" }, "Change photo", file)))),
       shared && lineup ? h("div", { class: "hint", "data-also": x.comic_id, hidden: true }) : null,
       h("div", { class: "grid" }, field("Name", inp.name, "c6"), field("Title", inp.title, "c6"), field("Status", inp.status, "c12"), field("Bio", inp.bio, "c12")),
-      shared && lineup ? h("label", { class: "check" }, own, "Use a different title and bio on " + S.site.name) : null,
+      // The fine-tuning (Tape, look, what's on it) lives on the Coaster page. On Lineup the card links there; a comic
+      // nobody has claimed yet is fine-tuned right here by the site's team.
+      cf && !lineup ? cf.tape : null,
+      cf && !lineup ? cf.look : null,
+      cf && lineup ? (() => {
+        const first = x.name.split(" ")[0];
+        if (S.me && x.comic_id === S.me.id) return h("div", { class: "fine-tune" }, h("span", { class: "hint", text: "Your look, Tape and what's on your Coaster:" }), h("a", { class: "btn sm", href: "#ct/me", text: "Coaster settings →" }));
+        if (S.isPlatform) return h("div", { class: "fine-tune" }, h("span", { class: "hint", text: first + "'s look, Tape and what's on their Coaster:" }),
+          h("button", { class: "btn sm", type: "button", text: "Coaster settings →", onclick: () => { comicOpen = x.comic_id; goCT("comics"); } }));
+        if (S.logins && S.logins[x.comic_id]) return h("p", { class: "hint", style: "margin:0", text: first + " has their own login and sets their own Coaster look, Tape and what's on it." });
+        return h("details", { class: "quiet" }, h("summary", { text: "Coaster settings: look, Tape, what's on it" }), cf.tape, cf.look, cf.more);
+      })() : null,
       (() => {
         const filled = SOC.filter(([k]) => inp[k] && inp[k].value).length;
         const d = h("details", { class: "quiet", "data-socials": x.id, open: OPEN_SOCIALS === x.id || null }, h("summary", { text: "Social links" + (filled ? " (" + filled + ")" : "") }),
@@ -2596,6 +2964,15 @@ td select.status.st-few_left { color: var(--warn); }
         if (OPEN_SOCIALS === x.id) { OPEN_SOCIALS = null; setTimeout(() => { try { d.scrollIntoView({ block: "center", behavior: "smooth" }); const f = d.querySelector("input"); f && f.focus({ preventScroll: true }); } catch (e) {} }, 60); }
         return d;
       })(),
+      cf && !lineup ? cf.more : null,
+      shared && lineup ? (() => {
+        const first = x.name.split(" ")[0], custom = [x.own_title && "title", x.own_bio && "bio", x.own_photo && "photo"].filter(Boolean);
+        return h("div", { class: "stack site-only", style: "gap:6px" }, h("b", { text: "Only on " + S.site.name }),
+          h("div", null, custom.length ? h("span", { class: "pill red", text: "Custom for " + S.site.name + ": " + custom.join(", ") })
+            : h("span", { class: "pill ok", text: "Using " + first + "'s Coaster" })),
+          h("label", { class: "check" }, own, "Use a different title and bio on " + S.site.name),
+          ownPhoto ? h("label", { class: "check" }, ownPhoto, "Use a different photo on " + S.site.name + " (the next photo you pick stays here)") : null);
+      })() : null,
       msg,
       lineup && shared ? loginBox(x) : null,
       h("div", { class: "btns" }, save, !lineup ? null :
@@ -2637,8 +3014,8 @@ td select.status.st-few_left { color: var(--warn); }
   async function loadTheme() {
     if (THEME !== null && THEME_FOR === sid()) return THEME;
     THEME_FOR = sid();
-    // The ComicTable admin keeps every site's theme.json in themes/; a comic's own /admin has just theirs.
-    const tries = CFG.PLATFORM ? ["themes/" + sid() + ".json"] : ["theme.json"];
+    // The dashboard (comictable.com) keeps every site's theme.json in themes/
+    const tries = ["themes/" + sid() + ".json"];
     THEME = false;
     for (const u of tries) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) { THEME = await r.json(); break; } } catch (e) {} }
     return THEME;
@@ -2667,6 +3044,40 @@ td select.status.st-few_left { color: var(--warn); }
   /* ======================================================
      PROFILE
      ====================================================== */
+  // Going live: one button puts a LIVE banner on the site and the stream on its Live page (and a LIVE badge on the
+  // Coasters of everyone on the site). End takes it all down; it also stops by itself after 12 hours.
+  function viewLive(main) {
+    const p = S.site.profile || {}, live = S.site.live;
+    const ready = "live" in S.site;  // the database has 23_media.sql
+    main.append(head("Live", "Streaming on Twitch or YouTube? Go live here and your site shows a LIVE banner and the stream on its Live page."));
+    if (!ready) { main.append(h("section", { class: "card" }, h("p", { class: "hint", text: "Going live needs the latest database upgrade (supabase/23_media.sql, in UPGRADE_V3_ALL.sql)." }))); return; }
+    const isLive = live && live.url && (!live.started_at || Date.now() - Date.parse(live.started_at) < 12 * 3600 * 1000);
+    if (isLive) {
+      main.append(h("section", { class: "card stack attention" }, h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "🔴 You're live" }),
+          h("span", { class: "hint", text: live.started_at ? "Since " + new Date(live.started_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "" })),
+        live.title ? h("b", { text: live.title }) : null, h("a", { class: "hint wrap-any", href: live.url, target: "_blank", rel: "noopener", text: live.url }),
+        h("div", { class: "btns" }, h("button", { class: "btn primary", type: "button", text: "End stream", onclick: async () => {
+          try { await saveSite({ live: null }, "Stream ended. The LIVE banner is gone."); route(); } catch (e) { toast(errText(e), { bad: true }); } } }),
+          S.site.domain ? h("a", { class: "btn ghost", href: "https://" + S.site.domain, target: "_blank", rel: "noopener", text: "See your site ↗" }) : null)));
+    }
+    const url = h("input", { type: "url", value: p.stream_url || "", placeholder: "https://twitch.tv/yourname or a YouTube live link", "aria-label": "Stream link" });
+    const title = h("input", { maxlength: "100", placeholder: "Late-night crowd work, no rules", "aria-label": "What's on" });
+    const sched = h("textarea", { maxlength: "300", placeholder: "Tuesdays and Thursdays, 10pm ET", "aria-label": "Schedule", style: "min-height:60px" }); sched.value = p.stream_schedule || "";
+    const msg = h("div", { class: "err" });
+    main.append(h("form", { class: "card stack", onsubmit: async (e) => {
+      e.preventDefault(); msg.textContent = "";
+      const u = url.value.trim();
+      if (!/^https:\/\/(www\.)?(twitch\.tv|youtube\.com|youtu\.be|kick\.com)\//i.test(u)) { msg.textContent = "Paste your Twitch, YouTube or Kick link (it starts with https://)."; url.focus(); return; }
+      try {
+        await saveSite({ live: { url: u, title: title.value.trim() || null, started_at: new Date().toISOString() }, profile: { ...(S.site.profile || {}), stream_url: u, stream_schedule: sched.value.trim() } }, "You're live. Your site shows it now.");
+        route();
+      } catch (er) { msg.textContent = errText(er); }
+    } }, h("h2", { text: isLive ? "Switch streams" : "Go live" }),
+      h("div", { class: "grid" }, field("Stream link", url, "c7"), field("What's on (optional)", title, "c5"), field("When you usually stream (shows on the Live page when you're not live)", sched, "c12")), msg,
+      h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: isLive ? "Switch" : "🔴 Go live" }),
+        h("span", { class: "hint", text: "Twitch and YouTube play right on your site. Others get a Watch button." }))));
+  }
+
   function viewProfile(main) {
     const p = S.site.profile || {};
     const f = {
@@ -2676,6 +3087,8 @@ td select.status.st-few_left { color: var(--warn); }
       booking_email: h("input", { type: "email", value: p.booking_email || "", placeholder: "booking@…" }),
       support_url: h("input", { type: "url", value: p.support_url || "", placeholder: "https://www.patreon.com/…" }),
       support_label: h("input", { value: p.support_label || "", placeholder: "Patreon" }),
+      apple_url: h("input", { type: "url", value: p.apple_url || "", placeholder: "https://podcasts.apple.com/…" }),
+      spotify_url: h("input", { type: "url", value: p.spotify_url || "", placeholder: "https://open.spotify.com/show/…" }),
       share_title: h("input", { maxlength: "70", value: p.share_title || "" }),
       share_text: h("textarea", { maxlength: "200", value: p.share_text || "", style: "min-height:70px" })
     };
@@ -2695,7 +3108,7 @@ td select.status.st-few_left { color: var(--warn); }
       card.replaceChildren(h("div", { class: "share-host", text: S.site.domain || "your site" }),
         h("b", { class: "share-title", text: f.share_title.value.trim() || d.title }),
         h("div", { class: "share-text", text: f.share_text.value.trim() || d.text }),
-        img ? h("img", { class: "share-img", src: img, alt: "" }) : h("div", { class: "share-img none", text: "No picture yet: add one below, or a photo in People" }));
+        img ? h("img", { class: "share-img", src: img, alt: "" }) : h("div", { class: "share-img none", text: "No picture yet: add one below, or a photo in Lineup" }));
       imgBtns.replaceChildren(h("label", { class: "btn sm" }, shareImage ? "Change picture" : "Use a different picture", imgFile),
         shareImage ? h("button", { class: "btn ghost sm", type: "button", text: "Use my People photo instead", onclick: () => { shareImage = ""; drawCard(); } }) : null);
     }
@@ -2716,7 +3129,8 @@ td select.status.st-few_left { color: var(--warn); }
       } },
         h("div", { class: "grid" }, field("Tagline", f.tagline, "c12"), field("About", f.about, "c12"),
           field("Contact email", f.contact_email, "c6"), field("Booking email", f.booking_email, "c6"),
-          field("Support link (Patreon, Ko-fi, Substack…)", f.support_url, "c8"), field("Support button says", f.support_label, "c4")),
+          field("Support link (Patreon, Ko-fi, Substack…)", f.support_url, "c8"), field("Support button says", f.support_label, "c4"),
+          F("podcast") ? field("Podcast on Apple", f.apple_url, "c6") : null, F("podcast") ? field("Podcast on Spotify (the show's link)", f.spotify_url, "c6") : null),
         h("div", { class: "stack", style: "gap:10px;border-top:1px solid var(--line);padding-top:16px" },
           h("h2", { style: "margin:0", text: "Link preview" }),
           h("p", { class: "hint", style: "margin:0", text: "The card people see when your site's link is shared in a text, Discord, Instagram and so on. Leave a box empty to use your tagline and About. Apps keep old previews for a while, so a change can take a day to show everywhere." }),
@@ -2727,6 +3141,8 @@ td select.status.st-few_left { color: var(--warn); }
   /* ======================================================
      HOME SCREEN PICKS
      ====================================================== */
+  const NEWS_STYLES = [["card", "Big card"], ["banner", "Scrolling banner"], ["strip", "Small strip"]];
+  let NEWS_READY = true;  // the database has 22_news.sql (styles and start dates)
   const PICK_KINDS = [["show", "Show"], ["video", "Video"], ["announcement", "Announcement"], ["merch", "Merch"], ["podcast", "Podcast"], ["post", "Blog post"], ["link", "Link"]];
   const showPick = (s) => ({ kind: "show", headline: ((s.venue || s.city || "Live") + " · " + shortDate(s.date)).slice(0, 90), body: [s.time, s.city].filter(Boolean).join(" · ").slice(0, 300) || null,
     button_label: "Get tickets", link: s.url || null, show_id: s.id, ends_on: s.date });
@@ -2739,29 +3155,23 @@ td select.status.st-few_left { color: var(--warn); }
       toast("Pinned to the top of your Home screen.", { action: { label: "See it", run: () => go("picks") } });
     } catch (e) { toast(errText(e), { bad: true }); }
   }
+  // The Home screen page: News (pinned for now), Links (stay put), and the layout of the home screen.
   async function viewPicks(main) {
-    await loadTheme();
-    main.append(head("Home screen", "What visitors see first on your site: the sections, in your order, and the picks you pin."));
-    // The design's Home screen sections (a theme setting with key "home"), right here as well as in Design
     const theme = await loadTheme();
-    const layoutSt = theme && Array.isArray(theme.settings) && theme.settings.find((x) => x.type === "home_items");
-    if (layoutSt) {
-      const pick = homeItemsEditor();
-      const save = h("button", { class: "btn primary", type: "submit", text: "Save layout" });
-      main.append(h("form", { class: "card stack", style: "margin-bottom:16px", onsubmit: async (e) => {
-        e.preventDefault(); save.disabled = true;
-        try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, { home_items: pick.value }) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
-        save.disabled = false;
-      } }, h("h2", { style: "margin:0", text: "Layout" }),
-        h("p", { class: "hint", style: "margin:0", text: "Everything on your home screen, one row each. Put it in any order and switch off anything you don't want there. Nothing is deleted." }),
-        pick.el, h("div", { class: "btns" }, save,
-          h("button", { class: "btn ghost", type: "button", text: "Edit your socials →", onclick: () => { const me = (S.hosts || []).filter((x) => !x.hidden)[0]; OPEN_SOCIALS = me ? me.id : null; go("people"); } }),
-          hasExtra("links") ? h("button", { class: "btn ghost", type: "button", text: "Add a link →", onclick: () => go("links") }) : null)));
-    }
+    main.append(head("Home screen", "What fans see first. News is what's happening now; Links stay put; Layout is the order of everything."));
+    const homeSet = withoutUniversal(theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => isHomeSetting(st) && st.type !== "heading") : []);
+    const linksWrap = h("div", { class: "stack" });
+    const layout = homeSet.length ? [h("h2", { class: "sec-title", style: "margin-top:28px", text: "Layout" }),
+      h("p", { class: "hint", style: "margin:-6px 0 10px", text: "Everything on your home screen, in order. Drag to move, switch off what you don't want." }),
+      settingsForm(homeSet, "Save layout"),
+      h("div", { class: "btns", style: "margin:10px 0 0" },
+        h("button", { class: "btn ghost", type: "button", text: "Edit your socials →", onclick: () => { const me = (S.hosts || []).filter((x) => !x.hidden)[0]; OPEN_SOCIALS = me ? me.id : null; go("people"); } }))] : [];
+    main.append(h("h2", { class: "sec-title", text: "News" }),
+      h("p", { class: "hint", style: "margin:-6px 0 10px", text: "Pin what's happening: a show, a video, a special, an announcement. Each can be a big card, a scrolling banner or a small strip, and can come and go on dates you set. The first one is the biggest." }));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     let P = [], editing = null;
     const reloadP = async () => { P = (await q(sb.from("home_picks").select("*").eq("site_id", sid()).order("sort", { ascending: true }))).sort((a, b) => (a.sort - b.sort) || String(a.created_at || "").localeCompare(String(b.created_at || ""))); };
-    try { await reloadP(); } catch (e) { wrap.append(h("p", { class: "err", text: /home_picks/.test(errText(e)) ? "Run supabase/15_home_picks.sql in Supabase first." : errText(e) })); return; }
+    try { await reloadP(); NEWS_READY = !P.length || "style" in P[0]; if (!P.length) { try { await q(sb.from("home_picks").select("style").limit(1)); NEWS_READY = true; } catch (e) { NEWS_READY = false; } } } catch (e) { wrap.append(h("p", { class: "err", text: /home_picks/.test(errText(e)) ? "Run supabase/15_home_picks.sql in Supabase first." : errText(e) })); return; }
     const t0 = today();
     const ended = (p) => p.ends_on && p.ends_on < t0;
     function form(p) {
@@ -2771,6 +3181,8 @@ td select.status.st-few_left { color: var(--warn); }
       const label = h("input", { maxlength: "30", placeholder: "Watch now", value: p ? p.button_label || "" : "", "aria-label": "Button text" });
       const link = h("input", { type: "url", maxlength: "500", placeholder: "https://…", value: p ? p.link || "" : "", "aria-label": "Button link" });
       const ends = h("input", { type: "date", value: p ? p.ends_on || "" : "", "aria-label": "Show until" });
+      const starts = h("input", { type: "date", value: p ? p.starts_on || "" : "", "aria-label": "Show from" });
+      const style = h("select", { "aria-label": "Style" }, NEWS_STYLES.map(([v, l]) => h("option", { value: v, text: l, selected: (p ? p.style || "card" : "card") === v })));
       // Picture: shown on the pick. A YouTube or Vimeo link plays right on the home screen, using the picture as its cover.
       let image = p ? p.image_url || null : null;
       const file = h("input", { type: "file", accept: "image/*", "aria-label": "Picture" });
@@ -2789,25 +3201,30 @@ td select.status.st-few_left { color: var(--warn); }
       return h("form", { class: "card stack", onsubmit: async (e) => {
         e.preventDefault(); if (!headline.value.trim()) { headline.classList.add("bad"); headline.focus(); return; }
         const row = { kind: kind.value, headline: headline.value.trim(), body: body.value.trim() || null, button_label: label.value.trim() || null, link: link.value.trim() || null, image_url: image, ends_on: ends.value || null };
+        if (p ? "style" in p : NEWS_READY) { row.style = style.value; row.starts_on = starts.value || null; }  // 22_news.sql
         try {
           if (p) await q(sb.from("home_picks").update(row).eq("id", p.id));
           else await q(sb.from("home_picks").insert({ site_id: sid(), sort: P.reduce((m, x) => Math.max(m, x.sort), -1) + 1, ...row }));
           editing = null; await reloadP(); draw(); toast(p ? "Saved. It's live." : "Added. It's live.");
         } catch (err) { toast(errText(err), { bad: true }); }
-      } }, h("h2", { text: p ? "Edit pick" : "Add a pick" }),
+      } }, h("h2", { text: p ? "Edit news" : "Add news" }),
         h("div", { class: "grid" }, field("Type", kind, "c3"), field("Headline", headline, "c9"), field("Text", body, "c12"),
-          field("Button text", label, "c4"), field("Button link", link, "c5"), field("Show until", ends, "c3"), field("Picture", pic, "c12")), vidHint,
+          field("Button text", label, "c4"), field("Button link", link, "c8"),
+          NEWS_READY ? field("Style", style, "c4") : null, NEWS_READY ? field("Show from", starts, "c4") : null, field("Show until", ends, NEWS_READY ? "c4" : "c3"),
+          field("Picture", pic, "c12")), vidHint,
         p && p.show_id ? h("p", { class: "hint", text: "Made from a show: sold out or cancelled shows on it automatically, and it comes off after the show." }) : null,
-        h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: p ? "Save" : "Add to Home screen" }),
+        h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: p ? "Save" : "Add to News" }),
           p ? h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => { editing = null; draw(); } }) : h("span", { class: "hint", text: "Tip: pin a show from Shows (⋯ → Pin to Home screen) and it fills itself in." })));
     }
     function draw() {
-      const list = h("section", { class: "card" }, h("h2", { text: "Your picks" }), P.length ? h("div", null, P.map((p, i) => {
+      const list = h("section", { class: "card" }, P.length ? sortable(h("div", null, P.map((p, i) => {
         if (editing === p.id) return form(p);
         const kindName = (PICK_KINDS.find((k) => k[0] === p.kind) || [0, "Pick"])[1];
-        return h("div", { class: "switch-row", style: "flex-wrap:wrap" },
+        return h("div", { class: "switch-row", style: "flex-wrap:wrap", "data-drag": p.id }, grip(p.headline),
           h("div", { style: "min-width:0;flex:1 1 300px" },
-            h("div", { class: "btns" }, i === 0 ? h("span", { class: "pill red", text: "Featured" }) : null, h("span", { class: "pill", text: kindName }),
+            h("div", { class: "btns" }, i === 0 && (p.style || "card") === "card" ? h("span", { class: "pill red", text: "Featured" }) : null, h("span", { class: "pill", text: kindName }),
+              p.style && p.style !== "card" ? h("span", { class: "pill", text: (NEWS_STYLES.find((x) => x[0] === p.style) || [0, p.style])[1] }) : null,
+              p.starts_on && p.starts_on > t0 ? h("span", { class: "pill", text: "From " + shortDate(p.starts_on) }) : null,
               p.hidden ? h("span", { class: "pill warn", text: "Hidden" }) : ended(p) ? h("span", { class: "pill", text: "Ended" }) : h("span", { class: "pill ok", text: "Live" })),
             h("div", { class: "wrap-any", style: "margin-top:4px;font-weight:600", text: p.headline }),
             p.body ? h("div", { class: "hint wrap-any", text: p.body }) : null,
@@ -2815,8 +3232,6 @@ td select.status.st-few_left { color: var(--warn); }
             p.image_url ? h("img", { class: "pick-thumb", src: p.image_url, alt: "" }) : null,
             p.ends_on ? h("div", { class: "hint", text: "Until " + shortDate(p.ends_on) }) : null),
           h("div", { class: "btns" },
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => reorder(i, i - 1) }),
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === P.length - 1, onclick: () => reorder(i, i + 1) }),
             h("button", { class: "btn ghost sm", type: "button", text: "Edit", onclick: () => { editing = p.id; draw(); } }),
             h("button", { class: "btn ghost sm", type: "button", text: p.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("home_picks").update({ hidden: !p.hidden }).eq("id", p.id)); await reloadP(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
             h("button", { class: "btn ghost sm danger", type: "button", text: "Remove", onclick: async () => {
@@ -2824,8 +3239,8 @@ td select.status.st-few_left { color: var(--warn); }
                 toast("Removed.", { action: { label: "Undo", run: async () => { const { id, ...row } = p; try { await q(sb.from("home_picks").insert(row)); await reloadP(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
               catch (e) { toast(errText(e), { bad: true }); }
             } })));
-      })) : empty("Nothing pinned yet", "Add a pick above, or pin a show from Shows."));
-      wrap.replaceChildren(editing ? h("div") : form(null), list);
+      })), (from, to) => reorder(from, to)) : empty("No news yet", "Add something below, or pin a show from Shows (⋯ → Pin to Home screen)."));
+      wrap.replaceChildren(list, editing ? h("div") : form(null));
     }
     async function reorder(a, b) {
       // renumber everything so the order is exact even after pins went to the top
@@ -2834,67 +3249,13 @@ td select.status.st-few_left { color: var(--warn); }
       catch (e) { toast(errText(e), { bad: true }); }
     }
     draw();
+    main.append(h("h2", { class: "sec-title", style: "margin-top:28px", text: "Links" }),
+      h("p", { class: "hint", style: "margin:-6px 0 10px", text: "Buttons that stay on your home screen: booking, merch, Patreon, anything." }), linksWrap, ...layout);
+    linksEditor(linksWrap);
   }
 
-  /* ======================================================
-     ANNOUNCEMENTS
-     ====================================================== */
-  let ANN = null;
-  async function viewAnnounce(main) {
-    const theme = await loadTheme();
-    main.append(head("Announcements", "Short news for your fans, like a new episode, a show added or a sale. Your site decides where they appear."));
-    const wrap = h("div", { class: "stack" }); main.append(wrap);
-    const reloadAnn = async () => { ANN = await q(sb.from("announcements").select("*").eq("site_id", sid()).order("sort", { ascending: true })); };
-    try { await reloadAnn(); } catch (e) { wrap.append(h("p", { class: "err", text: errText(e) })); return; }
-    const t0 = today();
-    const state = (a) => a.ends_on && a.ends_on < t0 ? ["Ended", "pill"] : a.starts_on && a.starts_on > t0 ? ["Starts " + shortDate(a.starts_on), "pill warn"] : ["Live", "pill ok"];
-    function draw() {
-      const text = h("input", { maxlength: "280", placeholder: "Episode 92 is out now!", "aria-label": "Announcement" });
-      const link = h("input", { type: "url", placeholder: "https://… (optional)", "aria-label": "Link" });
-      const label = h("input", { placeholder: "Listen now", "aria-label": "Link text" });
-      const starts = h("input", { type: "date", "aria-label": "Starts" }), ends = h("input", { type: "date", "aria-label": "Ends" });
-      const pin = h("input", { type: "checkbox" });
-      const add = h("form", { class: "card stack", onsubmit: async (e) => {
-        e.preventDefault(); if (!text.value.trim()) { text.classList.add("bad"); text.focus(); return; }
-        try { await q(sb.from("announcements").insert({ site_id: sid(), text: text.value.trim(), link: link.value.trim() || null, link_label: label.value.trim() || null, starts_on: starts.value || null, ends_on: ends.value || null, pinned: pin.checked, sort: ANN.length }));
-          await reloadAnn(); draw(); toast("Posted. It's live."); }
-        catch (err) { toast(errText(err), { bad: true }); }
-      } }, h("h2", { text: "New announcement" }),
-        h("div", { class: "grid" }, field("Text", text, "c12"), field("Link", link, "c6"), field("Link text", label, "c6"), field("Show from", starts, "c3"), field("Until", ends, "c3"),
-          h("label", { class: "check c6", style: "align-self:end;padding-bottom:10px" }, pin, "Pin it (the big one)")),
-        h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Post announcement" }), h("span", { class: "hint", text: "Leave the dates empty to show it until you remove it." })));
-      const list = h("section", { class: "card" }, h("h2", { text: "Your announcements" }), ANN.length ? h("div", null, ANN.map((a, i) => {
-        const [st, cls] = state(a);
-        return h("div", { class: "switch-row", style: "flex-wrap:wrap" },
-          h("div", { style: "min-width:0;flex:1 1 300px" }, h("div", { class: "btns" }, a.pinned ? h("span", { class: "pill red", text: "Pinned" }) : null, h("span", { class: cls, text: st })),
-            h("div", { class: "wrap-any", style: "margin-top:4px;font-weight:600", text: a.text }), a.link ? h("div", { class: "hint wrap-any", text: (a.link_label || "Link") + " → " + a.link }) : null,
-            a.starts_on || a.ends_on ? h("div", { class: "hint", text: (a.starts_on ? "From " + shortDate(a.starts_on) : "") + (a.ends_on ? " until " + shortDate(a.ends_on) : "") }) : null),
-          h("div", { class: "btns" },
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => reorder(i, i - 1) }),
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === ANN.length - 1, onclick: () => reorder(i, i + 1) }),
-            h("button", { class: "btn ghost sm", type: "button", text: a.pinned ? "Unpin" : "Pin", onclick: async () => { try { await q(sb.from("announcements").update({ pinned: !a.pinned }).eq("id", a.id)); await reloadAnn(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
-            h("button", { class: "btn ghost sm danger", type: "button", text: "Remove", onclick: async () => {
-              try { await q(sb.from("announcements").delete().eq("id", a.id)); await reloadAnn(); draw();
-                toast("Removed.", { action: { label: "Undo", run: async () => { const { id, ...r } = a; try { await q(sb.from("announcements").insert(r)); await reloadAnn(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
-              catch (e) { toast(errText(e), { bad: true }); }
-            } })));
-      })) : empty("No announcements", "Post one above."));
-      wrap.replaceChildren(add, list);
-    }
-    async function reorder(a, b) {
-      const A = ANN[a], B = ANN[b];
-      try { await q(sb.from("announcements").update({ sort: b }).eq("id", A.id)); await q(sb.from("announcements").update({ sort: a }).eq("id", B.id)); await reloadAnn(); draw(); } catch (e) { toast(errText(e), { bad: true }); }
-    }
-    draw();
-  }
-
-  /* ======================================================
-     LINKS
-     ====================================================== */
-  async function viewLinks(main) {
-    const theme = await loadTheme();
-    main.append(head("Links", "A list of links for your site: socials, booking, anything you want fans to find."));
-    const wrap = h("div", { class: "stack" }); main.append(wrap);
+  // Links: permanent buttons on the home screen (booking, merch, Patreon…). Part of the Home screen page.
+  async function linksEditor(wrap) {
     let L = [];
     const reloadL = async () => { L = await q(sb.from("links").select("*").eq("site_id", sid()).order("sort", { ascending: true })); };
     try { await reloadL(); } catch (e) { wrap.append(h("p", { class: "err", text: errText(e) })); return; }
@@ -2905,18 +3266,16 @@ td select.status.st-few_left { color: var(--warn); }
         if (!label.value.trim()) { label.classList.add("bad"); label.focus(); return; }
         if (!/^https?:\/\//i.test(url.value.trim())) { url.classList.add("bad"); url.focus(); return; }
         try { await q(sb.from("links").insert({ site_id: sid(), label: label.value.trim(), url: url.value.trim(), sort: L.length })); await reloadL(); draw(); toast("Link added."); } catch (err) { toast(errText(err), { bad: true }); }
-      } }, h("h2", { text: "Add a link" }), h("div", { class: "grid" }, field("Text", label, "c5"), field("Address", url, "c7")), h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add link" })));
-      const list = h("section", { class: "card" }, h("h2", { text: "Your links" }), L.length ? h("div", null, L.map((l, i) => h("div", { class: "switch-row" },
+      } }, h("h3", { text: "Add a link" }), h("div", { class: "grid" }, field("Text", label, "c5"), field("Address", url, "c7")), h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add link" })));
+      const list = h("section", { class: "card" }, L.length ? sortable(h("div", null, L.map((l, i) => h("div", { class: "switch-row", "data-drag": l.id }, grip(l.label),
         h("div", { style: "min-width:0" }, h("b", { text: l.label }), h("div", { class: "hint wrap-any", text: l.url + (l.hidden ? " · Hidden" : "") })),
         h("div", { class: "btns" },
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => swap(i, i - 1) }),
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === L.length - 1, onclick: () => swap(i, i + 1) }),
           h("button", { class: "btn ghost sm", type: "button", text: l.hidden ? "Show" : "Hide", onclick: async () => { try { await q(sb.from("links").update({ hidden: !l.hidden }).eq("id", l.id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
-          sure("Delete", async () => { try { await q(sb.from("links").delete().eq("id", l.id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } })))))
-        : empty("No links yet", "Add your first one above."));
-      wrap.replaceChildren(add, list);
+          sure("Delete", async () => { try { await q(sb.from("links").delete().eq("id", l.id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } }))))),
+          async (from, to) => { await resort("links", L, from, to); await reloadL(); draw(); })
+        : empty("No links yet", "Booking, merch, Patreon: anything that stays. Add one below."));
+      wrap.replaceChildren(list, add);
     }
-    async function swap(a, b) { try { await q(sb.from("links").update({ sort: b }).eq("id", L[a].id)); await q(sb.from("links").update({ sort: a }).eq("id", L[b].id)); await reloadL(); draw(); } catch (e) { toast(errText(e), { bad: true }); } }
     draw();
   }
 
@@ -2930,12 +3289,11 @@ td select.status.st-few_left { color: var(--warn); }
     const saved = Array.isArray(v) ? v.filter((x) => x && opts.some((o) => o.key === x.key)) : [];
     let items = saved.map((x) => ({ ...opts.find((o) => o.key === x.key), on: !!x.on })).concat(opts.filter((o) => !saved.some((x) => x.key === o.key)));
     const box = h("div", { class: "order-list" });
-    const draw = () => box.replaceChildren(...items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off") },
+    const draw = () => box.replaceChildren(...items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off"), "data-drag": it.key }, grip(it.label),
       h("div", { style: "min-width:0;flex:1 1 220px" }, h("b", { text: it.label }), it.help ? h("div", { class: "hint", text: it.help }) : null),
       h("div", { class: "btns" },
-        h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " up", text: "↑", disabled: i === 0, onclick: () => { [items[i - 1], items[i]] = [items[i], items[i - 1]]; draw(); } }),
-        h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " down", text: "↓", disabled: i === items.length - 1, onclick: () => { [items[i + 1], items[i]] = [items[i], items[i + 1]]; draw(); } }),
         h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: it.on, "aria-label": "Show " + it.label, onchange: (e) => { it.on = e.target.checked; draw(); } }), h("span"))))));
+    sortable(box, (from, to) => { arrMove(items, from, to); draw(); });
     draw();
     return { el: box, get value() { return items.map((x) => ({ key: x.key, on: x.on })); } };
   }
@@ -2968,15 +3326,14 @@ td select.status.st-few_left { color: var(--warn); }
     const box = h("div", { class: "order-list" }, h("p", { class: "hint", text: "Loading your home screen…" }));
     const move = (i, j) => { if (j < 0 || j >= items.length) return; const [m] = items.splice(i, 1); items.splice(j, 0, m); draw(); };
     function draw() {
-      box.replaceChildren(...(items.length ? items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off") },
+      box.replaceChildren(...(items.length ? items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off"), "data-drag": it.key }, grip(it.label),
         h("div", { style: "min-width:0;flex:1 1 220px" }, h("div", { class: "btns", style: "gap:6px" }, h("span", { class: "pill", text: GROUP_NAME[it.group] || it.group }), h("b", { class: "wrap-any", text: it.label })), it.sub ? h("div", { class: "hint wrap-any", text: it.sub }) : null),
         h("div", { class: "btns" },
           h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " to the top", text: "⤒", disabled: i === 0, onclick: () => move(i, 0) }),
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " up", text: "↑", disabled: i === 0, onclick: () => move(i, i - 1) }),
-          h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move " + it.label + " down", text: "↓", disabled: i === items.length - 1, onclick: () => move(i, i + 1) }),
           h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: it.on, "aria-label": "Show " + it.label, onchange: (e) => { it.on = e.target.checked; draw(); } }), h("span")))))
         : [empty("Nothing to arrange yet", "Add links, socials, shows or a podcast and they'll show up here.")]));
     }
+    sortable(box, (from, to) => move(from, to));
     if (!window.CSB || !CSB.homeArrange) { box.replaceChildren(h("p", { class: "err", text: "Couldn't load the layout tools. Refresh the page." })); return { el: box, ready: Promise.resolve(), get value() { return (S.site.theme || {}).home_items; } }; }
     const ready = homeData().then((d) => {
       const cat = CSB.homeCatalog(d), t = S.site.theme || {};
@@ -2984,41 +3341,83 @@ td select.status.st-few_left { color: var(--warn); }
     }, (e) => box.replaceChildren(h("p", { class: "err", text: errText(e) })));
     return { el: box, ready, get value() { return items ? items.map((x) => ({ key: x.key, on: x.on })) : (S.site.theme || {}).home_items; } };
   }
-  async function viewTheme(main) {
-    const theme = await loadTheme();
-    if (!theme || !Array.isArray(theme.settings)) {
-      main.append(head("Design settings", "Switches that belong to your site's design."), h("section", { class: "card" }, empty("Nothing to set", "Your site's design doesn't have any extra settings.")));
-      return;
-    }
-    main.append(head("Design settings", (theme.name ? theme.name + ". " : "") + "These switches come with your site's design, so a different design will have different ones."));
+  // Design settings that belong to the home screen live on the Home screen page; everything else on Design.
+  // A design marks them with "page": "home", or by key (home, home_*) and a "Home screen" heading.
+  // Options every site has (defined once in the toolkit): a design's theme.json can't redefine these, so they're
+  // left out of its Custom settings and its home screen settings.
+  const SITE_OPTIONS = (window.CSB && CSB.SITE_OPTIONS) || [];
+  const UNIVERSAL = new Set(SITE_OPTIONS.filter((o) => o.key).map((o) => o.key));
+  // drop a design's settings that are now universal, and any heading left with nothing under it
+  const withoutUniversal = (list) => {
+    const kept = list.filter((st) => !st.key || !UNIVERSAL.has(st.key));
+    return kept.filter((st, i) => st.type !== "heading" || (kept[i + 1] && kept[i + 1].type !== "heading"));
+  };
+  const isHomeSetting = (st) => st.page === "home" || (st.type === "heading" ? /home screen/i.test(st.label || "") : /^home($|_)/.test(st.key || ""));
+  // One form for a set of design settings. Saves only those keys, so the two pages don't overwrite each other.
+  function settingsForm(list, saveLabel) {
     const vals = Object.assign({}, S.site.theme || {});
     const inputs = {};
     // "order": a list the comic arranges and switches on or off (menu order, Home screen sections).
     // Saved as [{ key, on }]. Options the design adds later show up at the end, with their default.
     const orderList = (st, v) => { const o = orderPicker(st, v); inputs[st.key] = o; return o.el; };
-    const rows = theme.settings.map((st) => {
+    const rows = list.map((st) => {
       if (st.type === "heading") return h("div", { class: "set-head" }, h("h2", { text: st.label }), st.help ? h("p", { class: "hint", text: st.help }) : null);
       const v = st.key in vals ? vals[st.key] : st.default;
       if (st.type === "home_items") { const ed = homeItemsEditor(); inputs[st.key] = ed; return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), ed.el); }
       if (st.type === "order") return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), orderList(st, v));
       let input;
       if (st.type === "toggle") input = h("label", { class: "switch" }, (inputs[st.key] = h("input", { type: "checkbox", role: "switch", checked: !!v, "aria-label": st.label })), h("span"));
-      else if (st.type === "select") input = (inputs[st.key] = h("select", { "aria-label": st.label, style: "width:auto" }, (st.options || []).map((o) => { const [ov, ol] = Array.isArray(o) ? o : [o, o]; return h("option", { value: ov, text: ol, selected: ov === v }); })));
+      else if (st.type === "select") input = (inputs[st.key] = h("select", { "aria-label": st.label, style: "width:auto" }, (st.options || []).map((o) => { const [ov, ol] = Array.isArray(o) ? o : [o, o]; return h("option", { value: ov, text: ol, selected: String(v) === String(ov) }); })));
       else if (st.type === "lines") { const ta = h("textarea", { "aria-label": st.label, style: "min-height:150px;width:100%", placeholder: st.placeholder || "One per line" }); ta.value = (Array.isArray(v) ? v : []).join("\n");
         inputs[st.key] = { get value() { return ta.value.split(/\n+/).map((x) => x.trim()).filter(Boolean).slice(0, st.max || 50); } };
         return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), ta); }
+      else if (st.type === "socials_hide") {
+        // every network: tap to hide it on this site (the Coaster and other sites keep it)
+        const hide = new Set(Array.isArray(v) ? v : []);
+        const box = h("div", { class: "soc-picks" });
+        const draw = () => box.replaceChildren(...((window.CSB && CSB.SOCIALS) || []).filter(([k]) => k !== "website").map(([k, l]) => {
+          const ic = h("span", { "aria-hidden": "true" }); ic.innerHTML = CSB.socialIcon ? CSB.socialIcon(k, { brand: true, size: 18 }) : "";
+          return h("button", { type: "button", class: "soc-pick", "aria-pressed": String(!hide.has(k)), title: (hide.has(k) ? "Hidden here: " : "Showing: ") + l, onclick: () => { hide.has(k) ? hide.delete(k) : hide.add(k); draw(); } }, ic, h("span", { text: l }));
+        }));
+        draw();
+        inputs[st.key] = { get value() { return [...hide]; } };
+        return h("div", { class: "set-order" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), box);
+      }
       else if (st.type === "color") input = (inputs[st.key] = h("input", { type: "color", value: /^#[0-9a-f]{6}$/i.test(v || "") ? v : "#000000", "aria-label": st.label, style: "width:64px;height:40px;padding:2px" }));
       else input = (inputs[st.key] = h("input", { value: v ?? "", placeholder: st.placeholder || "", "aria-label": st.label, style: "max-width:260px" }));
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), input);
     });
-    const save = h("button", { class: "btn primary", type: "submit", text: "Save design settings" });
-    main.append(h("form", { class: "card stack", onsubmit: async (e) => {
+    const save = h("button", { class: "btn primary", type: "submit", text: saveLabel });
+    return h("form", { class: "card stack", onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true;
       const out = {};
-      for (const st of theme.settings) { if (st.type === "heading") continue; const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; }
+      for (const st of list) { if (st.type === "heading") continue; const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; }
       try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, out) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
       save.disabled = false;
-    } }, h("div", { class: "switches" }, rows), h("div", { class: "btns" }, save)));
+    } }, h("div", { class: "switches" }, rows), h("div", { class: "btns" }, save));
+  }
+  // Which parts of the site are on (Shows, Podcast, Forum…). Off hides it from the site and the menu; nothing is deleted.
+  function sectionsCard() {
+    return h("section", { class: "card" }, h("h2", { text: "Sections" }), h("p", { class: "sub", text: "Turning one off hides it from your site and from the menu. Nothing is deleted." }), h("div", { class: "switches" }, FEATURES.map(([k, l, d]) => {
+      const box = h("input", { type: "checkbox", role: "switch", checked: F(k), "aria-label": l, onchange: async (e) => {
+        const features = { ...(S.site.features || {}), [k]: e.target.checked };
+        try { await q(sb.from("sites").update({ features }).eq("id", sid())); S.site.features = features; route(); toast(l + (e.target.checked ? " is on." : " is off.")); }
+        catch (err) { e.target.checked = !e.target.checked; toast(errText(err), { bad: true }); }
+      } });
+      return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), h("label", { class: "switch" }, box, h("span")));
+    })));
+  }
+  async function viewTheme(main) {
+    const theme = await loadTheme();
+    const list = withoutUniversal(theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => !isHomeSetting(st)) : []);
+    main.append(head("Design", (theme && theme.name ? theme.name + ". " : "") + "What's on your site and how it looks: its sections, the options every site has, and the extras that come with your design. What's on the home screen is under Home screen."));
+    main.append(h("div", { class: "stack" }, sectionsCard(), F("podcast") ? podcastsCard() : null,
+      SITE_OPTIONS.length ? h("div", { class: "stack" }, h("h2", { class: "sec-title", text: "Options" }),
+        h("p", { class: "hint", style: "margin:-6px 0 0", text: "The same on every ComicTable site: how many shows, how your socials look, how big the mailing-list sign-up is." }),
+        settingsForm(SITE_OPTIONS, "Save options")) : null,
+      list.some((st) => st.type !== "heading") ? h("div", { class: "stack" }, h("h2", { class: "sec-title", text: "Custom" }),
+        h("p", { class: "hint", style: "margin:-6px 0 0", text: "Extras that come with " + (theme && theme.name ? theme.name : "your design") + ", just for this site." }),
+        settingsForm(list, "Save custom")) : null));
   }
 
   /* ======================================================
@@ -3145,18 +3544,17 @@ td select.status.st-few_left { color: var(--warn); }
       const B = FORUM.boards;
       const rows = B.map((b, i) => {
         const nm = h("input", { value: b.name, "aria-label": "Board name" }), ds = h("input", { value: b.description || "", placeholder: "What goes here", "aria-label": "Board description" });
-        return h("div", { class: "switch-row", style: "flex-wrap:wrap;align-items:start" },
+        return h("div", { class: "switch-row", style: "flex-wrap:wrap;align-items:start", "data-drag": b.id }, grip(b.name),
           h("div", { class: "grid", style: "flex:1 1 360px" }, field("Name", nm, "c5"), field("Description", ds, "c7")),
           h("div", { class: "btns", style: "padding-top:22px" },
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move up", text: "↑", disabled: i === 0, onclick: () => swapB(i, i - 1) }),
-            h("button", { class: "btn ghost sm", type: "button", "aria-label": "Move down", text: "↓", disabled: i === B.length - 1, onclick: () => swapB(i, i + 1) }),
             h("button", { class: "btn ghost sm", type: "button", text: b.locked ? "Locked" : "Lock", title: "Locked boards: only hosts can start topics", onclick: () => upd(b, { locked: !b.locked }, b.locked ? "Unlocked " + b.name + "." : "Locked " + b.name + ". Only hosts can start topics there.") }),
             h("button", { class: "btn ghost sm", type: "button", text: b.hidden ? "Hidden" : "Hide", onclick: () => upd(b, { hidden: !b.hidden }, b.hidden ? b.name + " is visible again." : b.name + " is hidden from fans.") }),
             h("button", { class: "btn sm", type: "button", text: "Save", onclick: () => { if (!nm.value.trim()) { nm.classList.add("bad"); return; } upd(b, { name: nm.value.trim(), description: ds.value.trim() || null }, "Saved."); } }),
             B.length > 1 ? h("button", { class: "btn ghost sm danger", type: "button", text: "Delete", onclick: (e) => deleteBoard(b, e.currentTarget.closest(".switch-row")) }) : null));
       });
       const nm = h("input", { placeholder: "Merch Talk", "aria-label": "New board name" }), ds = h("input", { placeholder: "Show off your gear", "aria-label": "New board description" });
-      body.replaceChildren(h("section", { class: "card" }, h("h2", { text: "Boards" }), h("p", { class: "sub", text: "Boards appear on your forum in this order." }), h("div", null, rows)),
+      body.replaceChildren(h("section", { class: "card" }, h("h2", { text: "Boards" }), h("p", { class: "sub", text: "Boards appear on your forum in this order. Drag to change it." }),
+          sortable(h("div", null, rows), async (from, to) => { await resort("boards", FORUM.boards, from, to, (q0, r) => q0.eq("site_id", sid()).eq("id", r.id)); await loadBoards(); drawBoards(); })),
         h("section", { class: "card stack" }, h("h2", { text: "Add a board" }), h("div", { class: "grid" }, field("Name", nm, "c5"), field("Description", ds, "c7")),
           h("div", { class: "btns" }, h("button", { class: "btn primary", type: "button", text: "Add board", onclick: async () => {
             if (!nm.value.trim()) { nm.classList.add("bad"); nm.focus(); return; }
@@ -3166,7 +3564,6 @@ td select.status.st-few_left { color: var(--warn); }
           } }))));
     }
     async function upd(b, patch, msg) { try { await q(sb.from("boards").update(patch).eq("site_id", sid()).eq("id", b.id)); logMod("edit board", b.name); await loadBoards(); drawBoards(); toast(msg); } catch (e) { toast(errText(e), { bad: true }); } }
-    async function swapB(a, b) { const A = FORUM.boards[a], Bb = FORUM.boards[b]; try { await q(sb.from("boards").update({ sort: b }).eq("site_id", sid()).eq("id", A.id)); await q(sb.from("boards").update({ sort: a }).eq("site_id", sid()).eq("id", Bb.id)); await loadBoards(); drawBoards(); } catch (e) { toast(errText(e), { bad: true }); } }
     async function deleteBoard(b, rowEl) {
       let count = 0;
       try { count = (await q(sb.from("threads").select("id").eq("site_id", sid()).eq("board", b.id))).length; } catch (e) {}
@@ -3246,20 +3643,65 @@ td select.status.st-few_left { color: var(--warn); }
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     const forumOpen = h("input", { type: "checkbox", role: "switch", checked: c.forum_open, "aria-label": "Forum open" });
     const reserve = h("input", { type: "checkbox", role: "switch", checked: c.reserve_names, "aria-label": "Reserve host names" });
-    const slow = h("select", { "aria-label": "Forum slow mode", style: "width:auto" }, [[0, "Off"], [10, "10 seconds"], [20, "20 seconds"], [60, "1 minute"], [300, "5 minutes"]].map(([v, l]) => h("option", { value: v, text: l, selected: Number(c.slow_mode_seconds) === v })));
+    const linksFrom = h("select", { "aria-label": "Links from", style: "width:auto" }, [["nobody", "Nobody (safest)"], ["approved", "Approved fans only"], ["everyone", "Everyone"]].map(([v, l]) => h("option", { value: v, text: l, selected: (c.links_from || "nobody") === v })));
+    const holdFirst = h("input", { type: "checkbox", role: "switch", checked: !!c.hold_first_posts, "aria-label": "Hold first posts" });
+    const slow = h("select", { "aria-label": "Forum slow mode", style: "width:auto" }, [[0, "Off"], [10, "10 seconds"], [20, "20 seconds"], [30, "30 seconds"], [60, "1 minute"], [300, "5 minutes"]].map(([v, l]) => h("option", { value: v, text: l, selected: Number(c.slow_mode_seconds) === v })));
     const words = h("textarea", { value: (c.banned_words || []).join("\n"), placeholder: "One word or phrase per line", "aria-label": "Banned words", style: "min-height:110px" });
     const save = h("button", { class: "btn primary", type: "submit", text: "Save house rules" });
     wrap.append(h("form", { class: "card", onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true;
       const list = [...new Set(words.value.split(/\n+/).map((w) => w.trim()).filter(Boolean))];
-      try { await saveSite({ community: Object.assign(C(), { forum_open: forumOpen.checked, reserve_names: reserve.checked, slow_mode_seconds: Number(slow.value), banned_words: list }) }, "House rules saved."); logMod("update house rules"); }
+      try { await saveSite({ community: Object.assign(C(), { forum_open: forumOpen.checked, reserve_names: reserve.checked, slow_mode_seconds: Number(slow.value), banned_words: list, links_from: linksFrom.value, hold_first_posts: holdFirst.checked }) }, "House rules saved."); logMod("update house rules"); }
       catch (err) { toast(errText(err), { bad: true }); }
       save.disabled = false;
     } }, h("h2", { text: "House rules" }), h("div", { class: "switches" },
       h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Forum open for posting" }), h("div", { class: "hint", text: "Turn off to freeze the forum. Fans can still read." })), h("label", { class: "switch" }, forumOpen, h("span"))),
       h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Protect host names" }), h("div", { class: "hint", text: "Fans can't post as " + (S.hosts.map((x) => x.name.split(" ")[0]).join(", ") || "your hosts") + ", “admin” or “mod”." })), h("label", { class: "switch" }, reserve, h("span"))),
-      h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Forum slow mode" }), h("div", { class: "hint", text: "How long a fan waits between forum posts." })), slow)),
+      h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Forum slow mode" }), h("div", { class: "hint", text: "How long a fan waits between forum posts. Fans also get at most 20 posts and 60 chat messages an hour." })), slow),
+      h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Links from" }), h("div", { class: "hint", text: "Who can post links in the forum and chat. Spam is mostly links, so Nobody is the default. Approved fans are the ones whose posts you approved." })), linksFrom),
+      h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Hold first posts" }), h("div", { class: "hint", text: "A fan's first post waits for you to approve it below. Approve once and they post freely after that." })), h("label", { class: "switch" }, holdFirst, h("span")))),
       field("Banned words (posts containing these are blocked, in the forum and the chat)", words), h("div", { class: "btns", style: "margin-top:10px" }, save)));
+
+    // Waiting for a moderator: first posts being held, and anything fans reported (hidden until you decide)
+    const queueCard = h("section", { class: "card" }); wrap.prepend(queueCard);
+    async function drawQueue() {
+      let items = [], reports = [];
+      try {
+        const [t, p, m] = await Promise.all([
+          q(sb.from("threads").select("*").eq("site_id", sid()).eq("held", true)),
+          q(sb.from("posts").select("*").eq("site_id", sid()).eq("held", true)),
+          q(sb.from("chat_messages").select("*").eq("site_id", sid()).eq("held", true).eq("deleted", false))]);
+        items = [...t.map((x) => ({ kind: "thread", table: "threads", row: x, text: x.title, where: "New topic" })),
+          ...p.map((x) => ({ kind: "post", table: "posts", row: x, text: x.body, where: "Forum reply" })),
+          ...m.map((x) => ({ kind: "chat", table: "chat_messages", row: x, text: x.body, where: "Chat" }))];
+        try { reports = await q(sb.from("reports").select("*").eq("site_id", sid()).eq("status", "open")); } catch (e) {}
+      } catch (e) { queueCard.replaceChildren(h("h2", { text: "Waiting for you" }), h("p", { class: "hint", text: /held|column/.test(errText(e)) ? "Reports and held posts need the latest database upgrade (supabase/24_safety.sql)." : errText(e) })); return; }
+      const why = (it) => reports.filter((r) => r.kind === it.kind && r.item_id === String(it.row.id));
+      const decide = async (it, keep) => {
+        const rep = why(it);
+        try {
+          if (keep) {
+            await q(sb.from(it.table).update({ held: false, reviewed: rep.length > 0 }).eq("id", it.row.id));
+            if (it.kind === "thread") await q(sb.from("posts").update({ held: false }).eq("thread_id", it.row.id));
+            if (!rep.length) await q(sb.from("trusted").insert({ site_id: sid(), author: it.row.author, device: it.row.device || null }));  // approving a first post approves the fan
+          } else if (it.kind === "chat") await q(sb.from("chat_messages").update({ deleted: true }).eq("id", it.row.id));
+          else await q(sb.from(it.table).delete().eq("id", it.row.id));
+          if (rep.length) await q(sb.from("reports").update({ status: keep ? "kept" : "removed" }).in("id", rep.map((r) => r.id)));
+          logMod(keep ? (rep.length ? "keep reported" : "approve") : "remove", it.row.author + ": " + String(it.text).slice(0, 60));
+          toast(keep ? (rep.length ? "Kept. It's back up." : "Approved. " + it.row.author + " posts freely now.") : "Removed."); drawQueue();
+        } catch (e) { toast(errText(e), { bad: true }); }
+      };
+      queueCard.replaceChildren(h("h2", { text: "Waiting for you (" + items.length + ")" }),
+        items.length ? h("div", null, items.map((it) => { const r = why(it);
+          return h("div", { class: "switch-row", style: "flex-wrap:wrap" },
+            h("div", { style: "min-width:0;flex:1 1 300px" }, h("div", { class: "btns" }, h("span", { class: r.length ? "pill red" : "pill", text: r.length ? "Reported" + (r.length > 1 ? " ×" + r.length : "") : "First post" }), h("span", { class: "pill", text: it.where })),
+              h("div", { style: "margin-top:4px" }, h("b", { text: it.row.author }), " · ", h("span", { class: "wrap-any", text: String(it.text).slice(0, 300) })),
+              r.some((x) => x.reason) ? h("div", { class: "hint", text: "Why: " + r.map((x) => x.reason).filter(Boolean).join(" · ") }) : null),
+            h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: r.length ? "Keep it" : "Approve", onclick: () => decide(it, true) }),
+              h("button", { class: "btn ghost sm danger", type: "button", text: "Remove", onclick: () => decide(it, false) })));
+        })) : empty("All clear", "Reported posts and held first posts show up here."));
+    }
+    drawQueue();
 
     const bansCard = h("section", { class: "card" }); wrap.append(bansCard);
     async function drawBans() {
@@ -3416,7 +3858,7 @@ td select.status.st-few_left { color: var(--warn); }
   const FEATURES = [["shows", "Shows & tour dates", "Your upcoming shows with ticket links."], ["podcast", "Podcast", "Episode archive that updates itself from your feed."], ["videos", "Videos", "Your latest YouTube uploads."],
     ["merch", "Merch", "Items you sell, linked to your store."], ["blog", "Blog", "Write posts for your fans. Drafts stay private until you publish."], ["fans", "Fan list", "Fans sign up with their email and city, so you can tell them when you're playing nearby."], ["forum", "Forum", "Message boards for your fans."], ["chat", "Chat room", "A live chat room that's always open for fans."]];
   async function viewSettings(main) {
-    main.append(head("Settings", "Your site's name and address, which sections are on, who can log in, and the code for using it on your own website."));
+    main.append(head("Settings", "Your site's name and address, who can log in, and the code for using it on your own website. Which sections are on is under Design."));
     const name = h("input", { value: S.site.name });
     const domainIn = h("input", { value: S.site.domain || "", disabled: !S.isPlatform, placeholder: "yourname.com", autocapitalize: "none" });
     const siteCard = h("form", { class: "card stack", onsubmit: async (e) => {
@@ -3425,14 +3867,6 @@ td select.status.st-few_left { color: var(--warn); }
       if (S.isPlatform) patch.domain = cleanDomain(domainIn.value) || null;
       try { await q(sb.from("sites").update(patch).eq("id", sid())); Object.assign(S.site, patch); route(); toast("Saved."); } catch (err) { toast(errText(err), { bad: true }); }
     } }, h("h2", { text: "Your site" }), h("div", { class: "grid" }, field("Site name", name, "c8"), field("Address", domainIn, "c4")), h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Save" })));
-    const feats = h("section", { class: "card" }, h("h2", { text: "Sections" }), h("p", { class: "sub", text: "Turning one off hides it from your site and from the menu. Nothing is deleted." }), h("div", { class: "switches" }, FEATURES.map(([k, l, d]) => {
-      const box = h("input", { type: "checkbox", role: "switch", checked: F(k), "aria-label": l, onchange: async (e) => {
-        const features = { ...(S.site.features || {}), [k]: e.target.checked };
-        try { await q(sb.from("sites").update({ features }).eq("id", sid())); S.site.features = features; route(); toast(l + (e.target.checked ? " is on." : " is off.")); }
-        catch (err) { e.target.checked = !e.target.checked; toast(errText(err), { bad: true }); }
-      } });
-      return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), h("label", { class: "switch" }, box, h("span")));
-    })));
     // For comics who keep their own website: the snippet that puts this site's live content on it
     const snippet = '<div data-comictable="shows"></div>\n<div data-comictable="fans"></div>\n<script src="https://comictable.com/embed.js" data-site="' + sid() + '"><\/script>';
     const embedCard = h("section", { class: "card stack" }, h("h2", { text: "Use on your own website" }),
@@ -3441,7 +3875,7 @@ td select.status.st-few_left { color: var(--warn); }
       h("div", { class: "hint", text: "Other pieces: data-comictable=\"episodes\", \"videos\" or \"posts\". Add data-limit=\"5\" to show fewer. Add data-accent=\"#ff3b6b\" to the script for your button color." }),
       h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Copy snippet", onclick: async () => toast((await copyText(snippet)) ? "Copied. Paste it into your site's HTML or embed block." : "Couldn't copy. Select it and copy instead.") })));
     // One page, four tabs, so nothing is buried at the bottom.
-    const panes = [["general", "General", siteCard], ["sections", "Sections", feats], ["podcasts", "Podcasts", podcastsCard()], ["team", "Team", teamCard()], ["embed", "Your own website", embedCard]];
+    const panes = [["general", "General", siteCard], ["team", "Team", teamCard()], ["embed", "Your own website", embedCard]];
     if (!panes.some((x) => x[0] === SETTAB)) SETTAB = "general";
     const tabs = h("div", { class: "tabs", role: "tablist", "aria-label": "Settings" });
     const show = () => { panes.forEach(([k, , el]) => { el.hidden = k !== SETTAB; }); tabs.querySelectorAll("button").forEach((b) => { const on = b.dataset.tab === SETTAB; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }); };
@@ -3498,13 +3932,16 @@ td select.status.st-few_left { color: var(--warn); }
       const owner = res.you_are === "owner";
       const user = h("input", { id: "teamUser", placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
       const pass = h("input", { id: "teamPass", type: "text", placeholder: "at least 8 characters", "aria-label": "Starting password" });
-      const role = h("select", { "aria-label": "Role", style: "width:auto" }, h("option", { value: "editor", text: "Editor: can edit everything" }), h("option", { value: "owner", text: "Owner: can also manage the team" }));
+      const role = h("select", { "aria-label": "Role", style: "width:auto" }, ["editor", "owner", "shows", "moderator"].map((k) => { const r = SITE_ROLES.find((x) => x[0] === k); return h("option", { value: k, text: r[1] + ": " + r[2].toLowerCase() }); }));
+      const roleSel = (m) => { const sel = h("select", { "aria-label": "Access for " + m.email, style: "width:auto" }, SITE_ROLES.map(([k, l]) => h("option", { value: k, text: l, selected: m.role === k })));
+        sel.addEventListener("change", async () => { try { await teamCall({ action: "set_role", user_id: m.user_id, role: sel.value }); toast("Changed to " + roleName(sel.value) + "."); draw(); } catch (e) { toast(e.message, { bad: true }); sel.value = m.role; } });
+        return sel; };
       const msg = h("div", { class: "err" });
       card.replaceChildren(h("h2", { text: "Team" }), h("p", { class: "sub", text: "Who can log in to this admin." }),
         h("div", null, res.team.map((m) => h("div", { class: "switch-row" },
           h("div", null, h("b", { text: LOGIN_DOMAINS.reduce((e, d) => e.replace("@" + d, ""), m.email) }), m.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null,
-            h("div", { class: "hint", text: (m.role === "owner" ? "Owner" : "Editor") + (m.last_sign_in ? " · last in " + ago(m.last_sign_in) : " · hasn't logged in yet") })),
-          owner && !m.you ? sure("Remove", async () => { try { await teamCall({ action: "remove", user_id: m.user_id }); toast("Removed from the team."); draw(); } catch (e) { toast(e.message, { bad: true }); } }) : null))),
+            h("div", { class: "hint", text: roleName(m.role) + (m.last_sign_in ? " · last in " + ago(m.last_sign_in) : " · hasn't logged in yet") })),
+          owner && !m.you ? h("div", { class: "btns" }, roleSel(m), sure("Remove", async () => { try { await teamCall({ action: "remove", user_id: m.user_id }); toast("Removed from the team."); draw(); } catch (e) { toast(e.message, { bad: true }); } })) : null))),
         owner ? h("div", { class: "newclub stack", style: "gap:10px;margin-top:12px" }, h("b", { text: "Add someone" }),
           h("div", { class: "grid" }, field("Username or email", user, "c6"), field("Starting password", pass, "c6"), h("div", { class: "field c12" }, h("span", { text: "Access" }), role)),
           h("div", { class: "hint", text: "Send them their username and password yourself. If they already have a login, the password is ignored." }), msg,
@@ -3514,7 +3951,7 @@ td select.status.st-few_left { color: var(--warn); }
             const b = e.currentTarget; b.disabled = true;
             try { await teamCall({ action: "add", email: loginEmail(user.value), password: pass.value, role: role.value }); const em = loginEmail(user.value); toast("Added. They log in with " + em + "."); draw(); }
             catch (er) { msg.textContent = er.message; b.disabled = false; }
-          } }))) : h("p", { class: "hint", text: "Only owners can add or remove people." }));
+          } }))) : h("p", { class: "hint", text: "Only owners can add, change or remove people." }));
     }
     draw(); return card;
   }
@@ -3523,6 +3960,42 @@ td select.status.st-few_left { color: var(--warn); }
      ====================================================== */
   const cleanDomain = (d) => String(d || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
   const siteSlug = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+  // comictable.com's own front page: which site "See a site running on it" opens, and which sites it lists
+  function showcaseCard() {
+    const card = h("section", { class: "card stack" }, h("h2", { text: "On comictable.com" }), h("p", { class: "hint", text: "Loading…" }));
+    (async () => {
+      let st;
+      try { st = (await q(sb.from("platform_settings").select("*").eq("id", 1)))[0] || { featured_site: null, showcase: [] }; }
+      catch (e) { card.replaceChildren(h("h2", { text: "On comictable.com" }), h("p", { class: "err", text: /platform_settings/i.test(errText(e)) ? "This needs a database upgrade: run supabase/UPGRADE_V3_ALL.sql in Supabase." : errText(e) })); return; }
+      const live = S.sites.filter((x) => x.domain);
+      const list = Array.isArray(st.showcase) ? st.showcase.filter((x) => x && x.site) : [];
+      const featured = h("select", { id: "scFeatured", "aria-label": "See a site running on it" },
+        h("option", { value: "", text: "Pick a site…" }), live.map((x) => h("option", { value: x.id, text: x.name + " · " + x.domain, selected: st.featured_site === x.id })));
+      const rows = live.map((x) => {
+        const on = list.find((y) => y.site === x.id);
+        const box = h("input", { type: "checkbox", checked: !!on, "aria-label": "List " + x.name });
+        const blurb = h("input", { maxlength: "80", placeholder: "One line, e.g. A comedy podcast.", value: on ? on.blurb || "" : "", "aria-label": "Line about " + x.name });
+        return { id: x.id, box, blurb, el: h("div", { class: "switch-row" }, h("label", { class: "check", style: "min-width:200px" }, box, h("span", null, h("b", { text: x.name }), h("span", { class: "hint", text: " " + x.domain }))), blurb) };
+      });
+      // listed ones first, in their saved order
+      rows.sort((a, b) => { const i = list.findIndex((y) => y.site === a.id), j = list.findIndex((y) => y.site === b.id); return (i < 0 ? 999 : i) - (j < 0 ? 999 : j); });
+      const save = h("button", { class: "btn primary", type: "button", text: "Save", onclick: async () => {
+        const showcase = rows.filter((r) => r.box.checked).map((r) => ({ site: r.id, blurb: r.blurb.value.trim() }));
+        try { await q(sb.from("platform_settings").upsert({ id: 1, featured_site: featured.value || null, showcase, updated_at: new Date().toISOString() }));
+          toast("Saved. comictable.com shows it now."); }
+        catch (e) { toast(errText(e), { bad: true }); }
+      } });
+      card.replaceChildren(h("h2", { text: "On comictable.com" }),
+        h("p", { class: "sub", text: "What ComicTable's front page shows off. Only sites with a web address can be picked." }),
+        live.length ? h("div", { class: "stack" },
+          field("“See a site running on it” opens", featured),
+          h("div", null, h("b", { text: "Listed under “Running on ComicTable”" }), h("div", { class: "hint", text: "Tick the ones to list, in this order. The line shows next to the name." })),
+          h("div", null, rows.map((r) => r.el)),
+          h("div", { class: "btns" }, save, h("a", { class: "btn ghost", href: "/", target: "_blank", rel: "noopener", text: "View comictable.com ↗" })))
+          : empty("No sites with a web address yet", "Add one to a site first."));
+    })();
+    return card;
+  }
   async function viewSites(main) {
     main.append(head("All sites", "Every comic running on ComicTable. Start a new one here, then build their front end and launch it."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
@@ -3558,7 +4031,7 @@ td select.status.st-few_left { color: var(--warn); }
       }
     } },
       h("h2", { text: "Start a new site" }),
-      h("p", { class: "sub", text: "Makes the comic's space on ComicTable: their shows, podcast, videos and fans, kept separate from everyone else's. Then add the comic in that site's Settings → Team. As a super admin you can manage every site without being on its team." }),
+      h("p", { class: "sub", text: "Makes the comic's space on ComicTable: their shows, podcast, videos and fans, kept separate from everyone else's. Then add the comic in that site's Lineup, and give them a login there. As a super admin you can manage every site without being on its team." }),
       h("div", { class: "grid" }, field("Comic or show name", name, "c6"), field("Site id (used in the launch settings)", id, "c6"), field("Their web address", dom, "c12")),
       h("div", null, h("b", { text: "What's on their site" }), h("div", { class: "btns", style: "margin-top:8px" }, kinds.map(([k, l]) => h("label", { class: "pill", style: "cursor:pointer;gap:6px;display:inline-flex;align-items:center" }, boxes[k], l)))),
       h("div", { class: "hint", text: "You can change any of this later in that site's Settings." }), msg, h("div", { class: "btns" }, btn));
@@ -3587,11 +4060,32 @@ td select.status.st-few_left { color: var(--warn); }
     (async () => {
       let list;
       try { list = await q(sb.rpc("platform_admin_list")); } catch (e) { return; }
-      supCard.replaceChildren(h("h2", { text: "Super admins" }), h("p", { class: "sub", text: "People who can see and manage every site on ComicTable. Keep this to just you, and anyone you'd trust with every comic's account." }),
-        h("div", null, list.map((u) => h("div", { class: "switch-row" }, h("div", null, h("b", { text: u.email }), u.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null),
-          u.you ? null : sure("Remove", async () => { try { await q(sb.rpc("remove_platform_admin", { p_user: u.user_id })); toast(u.email + " is no longer a super admin."); route(); } catch (e) { toast(errText(e), { bad: true }); } })))));
+      const staffRole = (r) => (r || "admin") === "admin" ? "Admin" : "Staff";
+      const email = h("input", { id: "stEmail", type: "email", placeholder: "their email", autocapitalize: "none", "aria-label": "Email" });
+      const pass = h("input", { id: "stPass", type: "text", placeholder: "only if they're new: 8+ characters", "aria-label": "Starting password" });
+      const role = h("select", { id: "stRole", "aria-label": "Role", style: "width:auto" }, h("option", { value: "staff", text: "Staff: works on every site and comic" }), h("option", { value: "admin", text: "Admin: everything, like you" }));
+      const msg = h("div", { class: "err" });
+      supCard.replaceChildren(h("h2", { text: "ComicTable staff" }),
+        h("p", { class: "sub", text: "People who work on every site. Admins can do everything. Staff can't add staff, create sites, delete comics or change the front page." }),
+        h("div", null, list.map((u) => h("div", { class: "switch-row" },
+          h("div", null, h("b", { text: u.email }), u.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null, h("div", { class: "hint", text: staffRole(u.role) })),
+          S.isOwner && !u.you ? h("div", { class: "btns" },
+            (() => { const sel = h("select", { "aria-label": "Role for " + u.email, style: "width:auto" }, h("option", { value: "staff", text: "Staff", selected: (u.role || "admin") === "staff" }), h("option", { value: "admin", text: "Admin", selected: (u.role || "admin") === "admin" }));
+              sel.addEventListener("change", async () => { try { await q(sb.rpc("set_platform_role", { p_user: u.user_id, p_role: sel.value })); toast(u.email + " is " + (sel.value === "admin" ? "an admin" : "staff") + " now."); route(); } catch (e) { toast(errText(e), { bad: true }); } });
+              return sel; })(),
+            sure("Remove", async () => { try { await q(sb.rpc("remove_platform_admin", { p_user: u.user_id })); toast(u.email + " is off ComicTable staff."); route(); } catch (e) { toast(errText(e), { bad: true }); } })) : null))),
+        S.isOwner ? h("div", { class: "newclub stack", style: "gap:10px;margin-top:12px" }, h("b", { text: "Add someone" }),
+          h("div", { class: "grid" }, field("Email", email, "c6"), field("Starting password", pass, "c6"), h("div", { class: "field c12" }, h("span", { text: "Role" }), role)),
+          h("div", { class: "hint", text: "If they already have a ComicTable login, the password is ignored. Otherwise send them their email and password yourself." }), msg,
+          h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Add to staff", onclick: async (e) => {
+            msg.textContent = "";
+            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) { email.classList.add("bad"); email.focus(); return; }
+            const b = e.currentTarget; b.disabled = true;
+            try { await teamCall({ action: "staff_add", email: email.value.trim(), password: pass.value, role: role.value }); toast("Added. They log in with " + email.value.trim() + "."); route(); }
+            catch (er) { msg.textContent = er.message; b.disabled = false; }
+          } }))) : null);
     })();
-    wrap.append(reqCard, listCard, form, supCard);
+    wrap.append(...[reqCard, listCard, S.isOwner ? showcaseCard() : null, S.isOwner ? form : null, supCard].filter(Boolean));
     try {
       const sites = await q(sb.from("sites").select("*").order("created_at", { ascending: true }));
       const counts = async (t, sidv, extra) => { let qq = sb.from(t).select("id", { count: "exact", head: true }).eq("site_id", sidv); if (extra) qq = extra(qq); const r = await qq; return r.error ? 0 : r.count || 0; };

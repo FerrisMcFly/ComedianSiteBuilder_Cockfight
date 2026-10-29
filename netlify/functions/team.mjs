@@ -1,7 +1,13 @@
-// POST /.netlify/functions/team  { site_id, action: "list" | "add" | "remove", email?, password?, user_id? }
-// Manages who can log in to a site's admin. Any admin can see the team; only owners can add or remove people.
+// POST /.netlify/functions/team  { site_id, action: "list" | "add" | "set_role" | "remove" | "link_comic" | "unlink_comic", email?, password?, user_id?, role? }
+//                                { action: "coaster_login" | "coaster_unlink", comic_id, email?, password? }   (ComicTable staff: a Coaster with no site)
+//                                { action: "staff_add", email, password?, role: "admin" | "staff" }   (ComicTable admins only)
+// Manages who can log in to a site's admin. Any admin can see the team; only owners can add, change or remove people.
+// Site roles: owner (everything, including the team), editor (everything but the team), shows (dates and clubs), moderator (forum and chat).
 import { createClient } from "@supabase/supabase-js";
+import { accessFor } from "../lib/access.mjs";
 
+const SITE_ROLES = ["owner", "editor", "shows", "moderator"];
+const siteRole = (r) => (SITE_ROLES.includes(r) ? r : "editor");
 const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 async function findUserByEmail(db, email) {
@@ -27,10 +33,56 @@ export default async (req) => {
   const db = createClient(url, key, { auth: { persistSession: false } });
   const { data: who, error: authErr } = await db.auth.getUser(token);
   if (authErr || !who?.user) return json(401, { error: "Your login expired. Log in again." });
-  let { data: me } = await db.from("admins").select("role").eq("user_id", who.user.id).eq("site_id", site).maybeSingle();
-  // ComicTable super admins can manage every site's team without being on it
-  if (!me) { const { data: sup } = await db.from("platform_admins").select("user_id").eq("user_id", who.user.id).maybeSingle(); if (sup) me = { role: "owner" }; }
-  if (!me) return json(403, { error: "You're not an admin of this site." });
+
+  // ComicTable staff: only ComicTable admins add people (an existing login, or a new one with a starting password)
+  if (body.action === "staff_add") {
+    const { data: boss } = await db.from("platform_admins").select("role").eq("user_id", who.user.id).maybeSingle();
+    if (!boss || (boss.role || "admin") !== "admin") return json(403, { error: "Only ComicTable admins can add staff." });
+    const email = String(body.email || "").trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(400, { error: "That doesn't look like a valid email." });
+    let user = await findUserByEmail(db, email);
+    if (!user) {
+      const password = String(body.password || "");
+      if (password.length < 8) return json(400, { error: "They don't have a login yet. Give them a starting password of at least 8 characters." });
+      const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+      if (error) return json(400, { error: error.message });
+      user = data.user;
+    }
+    const role = body.role === "admin" ? "admin" : "staff";
+    const { error } = await db.from("platform_admins").upsert({ user_id: user.id, role }, { onConflict: "user_id" });
+    if (error) return json(500, { error: error.message });
+    return json(200, { ok: true, existed: !!user.last_sign_in_at });
+  }
+  // A login for a Coaster with no site yet (ComicTable staff only). The comic logs in to their Me page and edits their Coaster.
+  if (body.action === "coaster_login" || body.action === "coaster_unlink") {
+    const { data: boss } = await db.from("platform_admins").select("role").eq("user_id", who.user.id).maybeSingle();
+    if (!boss) return json(403, { error: "Only ComicTable staff can do this." });
+    const { data: comic } = await db.from("comics").select("id, name, user_id").eq("id", body.comic_id || "").maybeSingle();
+    if (!comic) return json(400, { error: "No such Coaster." });
+    if (body.action === "coaster_unlink") {
+      const up = await db.from("comics").update({ user_id: null }).eq("id", comic.id);
+      return up.error ? json(500, { error: up.error.message }) : json(200, { ok: true });
+    }
+    const email = String(body.email || "").trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(400, { error: "That doesn't look like a valid login." });
+    let user = await findUserByEmail(db, email);
+    if (!user) {
+      const password = String(body.password || "");
+      if (password.length < 8) return json(400, { error: "Give them a password of at least 8 characters." });
+      const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+      if (error) return json(400, { error: error.message });
+      user = data.user;
+    }
+    if (comic.user_id && comic.user_id !== user.id) return json(400, { error: comic.name + " already has a login. Unlink it first." });
+    const { data: other } = await db.from("comics").select("name").eq("user_id", user.id).neq("id", comic.id).maybeSingle();
+    if (other) return json(400, { error: "That login already belongs to " + other.name + "." });
+    const up = await db.from("comics").update({ user_id: user.id }).eq("id", comic.id);
+    return up.error ? json(500, { error: up.error.message }) : json(200, { ok: true, existed: !!user.last_sign_in_at });
+  }
+
+  // ComicTable admins manage every site's team; staff and editors can see it; only owners change it
+  const me = await accessFor(db, who.user.id, site);
+  if (!me.role) return json(403, { error: "You're not on this site's team." });
 
   if (body.action === "list") {
     const { data: rows, error } = await db.from("admins").select("user_id, role").eq("site_id", site);
@@ -46,7 +98,14 @@ export default async (req) => {
     return json(200, { team, you_are: me.role });
   }
 
-  if (me.role !== "owner") return json(403, { error: "Only owners can add or remove people from the team." });
+  if (me.role !== "owner") return json(403, { error: "Only owners can add, change or remove people on the team." });
+
+  if (body.action === "set_role") {
+    if (body.user_id === who.user.id) return json(400, { error: "You can't change your own access." });
+    const { error } = await db.from("admins").update({ role: siteRole(body.role) }).eq("user_id", body.user_id).eq("site_id", site);
+    if (error) return json(500, { error: error.message });
+    return json(200, { ok: true });
+  }
 
   if (body.action === "add") {
     const email = String(body.email || "").trim().toLowerCase();
@@ -59,7 +118,7 @@ export default async (req) => {
       if (error) return json(400, { error: error.message });
       user = data.user;
     }
-    const role = body.role === "owner" ? "owner" : "editor";
+    const role = siteRole(body.role);
     const { error } = await db.from("admins").upsert({ user_id: user.id, site_id: site, role }, { onConflict: "user_id,site_id" });
     if (error) return json(500, { error: error.message });
     return json(200, { ok: true, existed: !!user.last_sign_in_at });
@@ -86,7 +145,7 @@ export default async (req) => {
     if (other) return json(400, { error: "That login already belongs to " + other.name + "." });
     const up = await db.from("comics").update({ user_id: user.id }).eq("id", comic.id);
     if (up.error) return json(500, { error: up.error.message });
-    const role = body.role === "owner" ? "owner" : "editor";
+    const role = siteRole(body.role);
     const { error } = await db.from("admins").upsert({ user_id: user.id, site_id: site, role }, { onConflict: "user_id,site_id" });
     if (error) return json(500, { error: error.message });
     return json(200, { ok: true, existed: !!user.last_sign_in_at });

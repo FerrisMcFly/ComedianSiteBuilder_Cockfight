@@ -7,7 +7,7 @@ const opened = [];
 after(() => opened.forEach((w) => w.close()));
 
 const html = readFileSync(new URL("../platform/admin.html", import.meta.url), "utf8")
-  .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "").replace('<script src="config.js"></script>', '<script>window.COCKFIGHT_CONFIG={SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
+  .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "").replace('<script src="config.js"></script>', '<script>window.COMICTABLE_CONFIG={SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
   .replace('<script src="sdk/csb.js"></script>', () => "<script>" + readFileSync(new URL("../platform/sdk/csb.js", import.meta.url), "utf8").replace(/<\/script/g, "<\\/script") + "</script>");
 
 function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
@@ -52,7 +52,7 @@ function makeDb() {
   };
   const client = { auth: { getSession: async () => ({ data: { session: { access_token: "tok", user: { id: "u1", email: "ferris@x.com" } } } }), signOut: async () => {}, onAuthStateChange() {},
       updateUser: async (u) => { (db.authUpdates = db.authUpdates || []).push(u); return { data: {}, error: null }; } },
-    rpc: async (name, args) => name === "site_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.site_id === args.p_site))), error: null }
+    rpc: async (name, args) => ((db.rpcCalls = db.rpcCalls || []).push([name, args]), 0) || name === "site_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.site_id === args.p_site))), error: null }
       : name === "site_videos" ? { data: JSON.parse(JSON.stringify(db.videos.filter((x) => x.site_id === args.p_site))), error: null }
       : name === "comic_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.date >= fri.slice(0, 4) + "-01-03").filter((x) => x.comic_id === args.p_comic || (x.host && (db.hosts.find((h) => h.id === x.host) || {}).comic_id === args.p_comic)).map((x) => ({ ...x, site_name: "Cockfight", event: false })))), error: null }
       : name === "fans_near_shows" ? { data: db.shows.filter((x) => x.date >= fri).map((x) => ({ show_id: x.id, fans: (db.fans || []).length })), error: null }
@@ -67,7 +67,7 @@ async function open(hash = "", prep, theme = THEME_JSON) {
   const { db, client } = makeDb();
   if (prep) prep(db);
   const dom = new JSDOM(html, { runScripts: "dangerously", pretendToBeVisual: true, url: "https://cockfightpodcast.com/admin.html" + hash, beforeParse(w) {
-    w.supabase = { createClient: () => client }; w.fetch = async (u) => (/theme\.json/.test(u) && theme ? { ok: true, json: async () => theme } : { ok: false, json: async () => ({}) }); w.matchMedia = () => ({ matches: true }); w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {};
+    w.supabase = { createClient: () => client }; w.fetch = async (u) => (/themes\/[^/]+\.json$/.test(u) && theme ? { ok: true, json: async () => theme } : { ok: false, json: async () => ({}) }); w.matchMedia = () => ({ matches: true }); w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {};
   } });
   opened.push(dom.window);
   await new Promise((r) => setTimeout(r, 80));
@@ -76,6 +76,8 @@ async function open(hash = "", prep, theme = THEME_JSON) {
 const THEME_JSON = JSON.parse(readFileSync(new URL("../sites/cockfight/theme.json", import.meta.url), "utf8"));
 const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
 const btn = (d, re, scope = d) => [...scope.querySelectorAll("button")].find((b) => re.test(b.textContent));
+// Reordering: every list drags by its grip; the keyboard (arrow keys on the grip) does the same thing
+const press = (w, el, key) => el.dispatchEvent(new w.KeyboardEvent("keydown", { key, bubbles: true }));
 const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", { bubbles: true })); };
 
 test("home shows a greeting, stats and to-dos", async () => {
@@ -212,14 +214,18 @@ test("episodes, videos, merch, settings all render", async () => {
   assert.equal(d.querySelector("details form input[type=number]").value, "92");
   w.location.hash = "videos"; await wait(); assert.match(d.body.textContent, /Connect your YouTube channel/);
   w.location.hash = "merch"; await wait(); assert.match(d.body.textContent, /Nothing for sale yet/);
-  w.location.hash = "settings"; await wait();
+  w.location.hash = "theme"; await wait();
   const merchSwitch = d.querySelector('input[aria-label="Merch"]'); merchSwitch.checked = false; merchSwitch.dispatchEvent(new w.Event("change")); await wait(40);
   assert.equal(db.sites[0].features.merch, false);
   assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /Merch/.test(b.textContent)));
-  w.location.hash = "announce"; await wait(60);
-  set(w, d.querySelector('main input[aria-label="Announcement"]'), "NEW EP!"); d.querySelector('main input[type=checkbox]').checked = true;
-  d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
-  assert.equal(db.announcements[0].text, "NEW EP!"); assert.equal(db.announcements[0].pinned, true); assert.equal(db.announcements[0].site_id, "cockfight");
+  // announcements are News now: a scrolling banner on the Home screen page
+  db.home_picks = [];
+  w.location.hash = "picks"; await wait(80);
+  const f = [...d.querySelectorAll("main form.card")].find((x) => /Add news/.test(x.textContent));
+  set(w, f.querySelector('input[aria-label="Headline"]'), "NEW EP!");
+  f.querySelector('select[aria-label="Style"]').value = "banner";
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.deepEqual([db.home_picks[0].headline, db.home_picks[0].style, db.home_picks[0].site_id], ["NEW EP!", "banner", "cockfight"]);
 });
 
 test("profile and theme settings save to the site", async () => {
@@ -227,10 +233,10 @@ test("profile and theme settings save to the site", async () => {
   set(w, d.querySelector("main input"), "The funniest podcast"); d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
   assert.equal(db.sites[0].profile.tagline, "The funniest podcast");
   w.location.hash = "theme"; await wait(80);
-  assert.match(d.querySelector("h1").textContent, /Design settings/); assert.match(d.querySelector(".page-head .sub").textContent, /90s Cantina/);
+  assert.match(d.querySelector("h1").textContent, /^Design$/); assert.match(d.querySelector(".page-head .sub").textContent, /90s Cantina/);
   const splash = d.querySelector('input[aria-label="Rooster splash screen"]'); splash.checked = false;
   d.querySelector('select[aria-label="Scrolling banner speed"]').value = "fast";
-  d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  [...d.querySelectorAll("main form.card")].find((f) => /Save custom/.test(f.textContent)).dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
   assert.equal(db.sites[0].theme.splash, false); assert.equal(db.sites[0].theme.banner_speed, "fast"); assert.equal(db.sites[0].theme.music, true);
 });
 
@@ -272,10 +278,10 @@ test("moderation saves house rules; chat can be closed", async () => {
   assert.equal(db.chat_messages[0].is_mod, true); assert.equal(db.chat_messages[0].author, "Colum Tyrrell");
 });
 
-test("people cards say Save changes, not the person's name", async () => {
+test("each person's card is their Coaster: it says Save Coaster, not the person's name", async () => {
   const { d } = await open("#people");
   const labels = [...d.querySelectorAll(".people form button[type=submit]")].map((b) => b.textContent);
-  assert.deepEqual([...new Set(labels)], ["Save changes"]);
+  assert.deepEqual([...new Set(labels)], ["Save Coaster"]);
 });
 
 test("several YouTube channels, each with an owner", async () => {
@@ -319,16 +325,15 @@ test("team section explains when it isn't set up yet", async () => {
   assert.match(d.body.textContent, /Team management isn't set up yet/);
 });
 
-test("site extras only appear when the site's front end uses them", async () => {
+test("every site gets the same pages: Home screen (News, Links, Layout) is always there, whatever the design", async () => {
   const { d } = await open("#home", null, null);
   const labels = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
-  assert.ok(!labels.some((l) => /Announcements|Links|Design settings/.test(l)), labels.join(","));
-  assert.ok(labels.some((l) => /About & contact/.test(l)) && labels.some((l) => /Settings/.test(l)) && labels.some((l) => /Press kit/.test(l)));
-  assert.doesNotMatch(d.querySelector("main").textContent, /Post an announcement/);
-  const only = await open("#home", null, { extras: ["links"] });
-  const l2 = [...only.d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
-  assert.ok(l2.some((l) => /Links/.test(l)) && !l2.some((l) => /Announcements|Design settings/.test(l)), l2.join(","));
+  assert.ok(labels.some((l) => /Home screen/.test(l)), labels.join(","));
+  assert.ok(!labels.some((l) => /Announcements|^🔗?Links/.test(l)), "Announcements and Links live on the Home screen page now");
+  assert.ok(labels.some((l) => /About & contact/.test(l)) && labels.some((l) => /Settings/.test(l)) && labels.some((l) => /Press kit/.test(l)) && labels.some((l) => /Design/.test(l)));
+  assert.match(d.querySelector("main").textContent, /Add news/);
 });
+
 
 test("videos can be removed, undone, and put back", async () => {
   const { w, d, db } = await open("#videos", (db) => {
@@ -484,7 +489,7 @@ test("show finder: watch a page for someone, then add or ignore what it found", 
 });
 function shortDay(iso) { const d = new Date(iso + "T12:00:00"); return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()] + " " + d.getDate(); }
 
-test("a comic with their own login gets a Me page: their sites, all their dates, one profile", async () => {
+test("a comic with their own login gets Coaster and Dates in the sidebar: one Coaster, all their dates", async () => {
   const { w, d, db } = await open("#ct/me", (db) => {
     db.comics.find((c) => c.id === "lev-fer").user_id = "u1";
     db.sites.push({ id: "lev-fer", name: "Lev Fer", domain: "levfer.com", features: { shows: true } });
@@ -492,18 +497,41 @@ test("a comic with their own login gets a Me page: their sites, all their dates,
     db.shows.push({ id: "s5", site_id: "lev-fer", host: "lev-fer-lev", comic_id: "lev-fer", date: fri, time: "9:00 PM", venue: "Comedy Cellar", city: "New York, NY", url: "https://t/cc" });
   });
   await wait(80);
-  const main = d.querySelector("main");
-  assert.ok([...d.querySelectorAll(".nav-btn")].some((b) => /Me/.test(b.textContent)));
-  assert.match(main.textContent, /Your sites.*Cockfight.*Lev Fer.*levfer\.com/s);
-  assert.match(main.textContent, /Your upcoming dates \(1\).*Comedy Cellar/s);
+  const nav = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent.trim());
+  assert.ok(nav.some((t) => /Coaster$/.test(t)) && nav.some((t) => /Dates$/.test(t)), nav.join(" | "));
+  let main = d.querySelector("main");
+  assert.match(main.querySelector("h1").textContent, /Coaster/);
   // editing here edits the comic, not one site's copy
   const card = main.querySelector("form.card");
   card.querySelector("textarea").value = "Lev's own words";
   card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
   assert.equal(db.comics.find((c) => c.id === "lev-fer").bio, "Lev's own words");
-  // nobody without a comic login sees Me
+  w.location.hash = "#ct/dates"; await wait(100);
+  main = d.querySelector("main");
+  assert.match(main.textContent, /Upcoming \(1\).*Comedy Cellar/s);
+  // nobody without a comic login sees Coaster or Dates
   const other = await open("");
-  assert.ok(![...other.d.querySelectorAll(".nav-btn")].some((b) => /^👤/.test(b.textContent.trim())));
+  assert.ok(![...other.d.querySelectorAll(".nav-btn")].some((b) => /Dates$/.test(b.textContent.trim())));
+});
+
+test("a Coaster with no site: the comic logs in, lands on their Coaster, and adds a date right there", async () => {
+  const { w, d, db } = await open("", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+  });
+  await wait(100);
+  assert.equal(w.location.hash, "#ct/me");
+  assert.ok(d.querySelector("main form.card .looks"), "their Coaster, ready to edit");
+  assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /Your sites/.test(b.textContent)), "no sites, no Your sites");
+  w.location.hash = "#ct/dates"; await wait(100);
+  btn(d, /Add a date/).click(); await wait();
+  const f = d.querySelector("main form.newclub");
+  set(w, f.querySelector('input[aria-label="Club"]'), "Comedy Cellar");
+  set(w, f.querySelector('input[aria-label="Date"]'), fri);
+  set(w, f.querySelector('input[aria-label="Time"]'), "21:30");
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const added = db.shows.find((x) => x.comic_id === "solo-sam");
+  assert.deepEqual([added.site_id, added.venue, added.time, added.date], [null, "Comedy Cellar", "9:30 PM", fri]);
 });
 
 test("people: give a comic their own login", async () => {
@@ -577,7 +605,8 @@ test("your account: name, password, email, and where you have access", async () 
   p2.value = "newpassword1";
   p1.form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(30);
   assert.equal(JSON.stringify(db.authUpdates.at(-1)), JSON.stringify({ password: "newpassword1" }));
-  assert.match(d.querySelector("main").textContent, /Super admin.*Cockfight.*Owner|Super admin/s);
+  assert.match(d.querySelector("main").textContent, /ComicTable admin\..*Cockfight/s);
+  assert.doesNotMatch(d.querySelector("main").textContent, /null/);
 });
 
 test("super admins land on the ComicTable overview, then open a site and come back", async () => {
@@ -656,7 +685,7 @@ test("comics: a card grid with filters; open one to add them to a site, edit, an
   d.getElementById("newComicName").form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(150);
   const c = db.comics.find((x) => x.name === "Sam Newcomic");
   assert.ok(c);
-  assert.match(main().textContent, /← All comics.*Sam Newcomic/s);
+  assert.match(main().textContent, /← All Coasters.*Sam Newcomic/s);
   assert.match(main().textContent, /Put them on a site first/);
   const sel = main().querySelector('select[aria-label="Add to a site"]'); sel.value = "apes";
   btn(d, /^Add$/, main()).click(); await wait(150);
@@ -675,7 +704,7 @@ test("Home screen picks: add one, pin a show to the top, reorder", async () => {
     db.shows.push({ id: "s9", site_id: "cockfight", host: "lev", date: fri, time: "9:00 PM", venue: "Laugh Boston", city: "Boston, MA", url: "https://t/9", status: "on_sale" });
   }, theme);
   assert.ok([...d.querySelectorAll(".nav-btn")].some((b) => /Home screen/.test(b.textContent)));
-  assert.match(d.body.textContent, /Nothing pinned yet/);
+  assert.match(d.body.textContent, /No news yet/);
   const form = d.querySelector("form.card");
   set(w, form.querySelector('input[aria-label="Headline"]'), "New special out now");
   set(w, form.querySelector('input[aria-label="Button text"]'), "Watch");
@@ -694,27 +723,38 @@ test("Home screen picks: add one, pin a show to the top, reorder", async () => {
   assert.match(shown[0].headline, /Laugh Boston/);
 
   w.location.hash = "#picks"; await wait(80);
-  btn(d, /^↓$/).click(); await wait(60);
+  press(w, d.querySelector("main [data-drag] .drag-grip"), "ArrowDown"); await wait(60);
   assert.deepEqual(db.home_picks.slice().sort((a, b) => a.sort - b.sort).map((p) => p.headline)[0], "New special out now");
 });
 
-test("Design settings: arrange a list, switch items off, and save it", async () => {
-  const theme = { name: "Console Lobby", extras: [], settings: [
+test("Design: look settings and the site's sections; home screen settings live on Home screen, not here", async () => {
+  const theme = { name: "Console Lobby", extras: ["home_picks"], settings: [
     { type: "heading", label: "Home screen" },
     { key: "home", label: "Home screen sections", type: "order", options: [["me", "You", "", true], ["shows", "Next shows", "", true], ["clips", "Latest clips", "", false]] },
+    { type: "heading", label: "Look" },
+    { key: "menu", label: "Menu order", type: "order", options: [["shows", "Tour Dates", "", true], ["clips", "Clips", "", true]] },
     { key: "accent", label: "Highlight color", type: "color", default: "#ffb238" },
     { key: "tip_lines", label: "Your loading-screen jokes", type: "lines", default: [] }] };
-  const { w, d, db } = await open("#theme", null, theme);
+  const { w, d, db } = await open("#theme", (db) => { db.home_picks = []; }, theme);
+  assert.ok(![...d.querySelectorAll(".set-head h2")].some((x) => x.textContent === "Home screen"), "no home screen settings on Design");
+  assert.ok(d.querySelector('input[role="switch"][aria-label="Podcast"]'), "the site's sections are switched on and off here");
   set(w, d.querySelector('textarea[aria-label="Your loading-screen jokes"]'), "One\n\n  Two  \n");
-  assert.ok([...d.querySelectorAll(".set-head h2")].some((x) => x.textContent === "Home screen"));
   const rows = () => [...d.querySelectorAll(".order-row")];
-  assert.deepEqual(rows().map((r) => r.querySelector("b").textContent), ["You", "Next shows", "Latest clips"]);
-  rows()[1].querySelector('[aria-label="Move Next shows up"]').click(); await wait();
-  const sw = rows()[2].querySelector("input[type=checkbox]"); sw.checked = true; sw.dispatchEvent(new w.Event("change"));
-  d.querySelector("form.card").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
-  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.home)), [{ key: "shows", on: true }, { key: "me", on: true }, { key: "clips", on: true }]);
+  assert.deepEqual(rows().map((r) => r.querySelector("b").textContent), ["Tour Dates", "Clips"]);
+  press(w, rows()[1].querySelector(".drag-grip"), "ArrowUp"); await wait();
+  const form = [...d.querySelectorAll("form.card")].find((f) => /Save custom/.test(f.textContent));
+  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.menu)).map((x) => x.key), ["clips", "shows"]);
   assert.equal(db.sites[0].theme.accent, "#ffb238");
   assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.tip_lines)), ["One", "Two"]);
+  assert.equal(db.sites[0].theme.home, undefined, "saving Design leaves the home screen alone");
+
+  w.location.hash = "#picks"; await wait(80);
+  const hrows = [...d.querySelectorAll(".order-row")];
+  assert.deepEqual(hrows.map((r) => r.querySelector("b").textContent), ["You", "Next shows", "Latest clips"]);
+  const sw = hrows[2].querySelector("input[type=checkbox]"); sw.checked = true; sw.dispatchEvent(new w.Event("change"));
+  [...d.querySelectorAll("form.card")].find((f) => /Save layout/.test(f.textContent)).dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.home)), [{ key: "me", on: true }, { key: "shows", on: true }, { key: "clips", on: true }]);
 });
 
 test("Profile: the link preview card updates as you type and saves", async () => {
@@ -729,8 +769,8 @@ test("Profile: the link preview card updates as you type and saves", async () =>
   assert.equal(db.sites[0].profile.share_title, "COCKFIGHT LIVE");
 });
 
-test("Settings: every podcast the site's comics are on, each with its own switch", async () => {
-  const { w, d, db } = await open("#settings", (db) => {
+test("Design: every podcast the site's comics are on, each with its own switch", async () => {
+  const { w, d, db } = await open("#theme", (db) => {
     db.episodes[0].show_name = "Cockfight";
     db.sites.push({ id: "modern-apes", name: "The Modern Apes Podcast", domain: "modernapes.com", features: { podcast: true } });
     db.hosts.push({ id: "ma-tristan", site_id: "modern-apes", comic_id: "tristan-bowling", name: "Tristan Bowling", sort: 0 });
@@ -819,7 +859,7 @@ test("Home screen page: every item on its own row (each link, each social, each 
     db.sites[0].features.podcast = true;
   }, theme);
   await wait(120);
-  const form = [...d.querySelectorAll("form.card")].find((f) => /Layout/.test(f.textContent));
+  const form = [...d.querySelectorAll("form.card")].find((f) => /Save layout/.test(f.textContent));
   const labels = () => [...form.querySelectorAll(".order-row b")].map((b) => b.textContent);
   assert.deepEqual(labels(), ["You", "Merch", "Instagram", "YouTube", "Cockfight", "Mailing list"]);
   form.querySelector('[aria-label="Move YouTube to the top"]').click(); await wait();
@@ -845,4 +885,260 @@ test("profile: more social platforms, saved to the comic so every site gets them
   det.closest("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
   const c = db.comics.find((x) => x.id === "colum-tyrrell");
   assert.deepEqual(JSON.parse(JSON.stringify(c.socials)), { threads: "https://www.threads.net/@colum" });
+});
+
+test("All sites: super admins choose what comictable.com shows off", async () => {
+  const { w, d, db } = await open("#ct/sites", (db) => {
+    db.sites.find((x) => x.id === "cockfight").domain = "cockfightpodcast.com";
+    db.sites.push({ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay", features: {}, created_at: "2026-10-28" });
+    db.platform_settings = [{ id: 1, featured_site: "cockfight", showcase: [{ site: "cockfight", blurb: "A comedy podcast." }] }];
+  });
+  await wait(80);
+  assert.match(d.body.textContent, /On comictable\.com/);
+  const sel = d.getElementById("scFeatured");
+  assert.equal(sel.value, "cockfight");
+  sel.value = "lev-fer";
+  d.querySelector('input[aria-label="List Lev Fer"]').checked = true;
+  set(w, d.querySelector('input[aria-label="Line about Lev Fer"]'), "Stand-up from New York.");
+  btn(d, /^Save$/).click(); await wait(60);
+  assert.equal(db.platform_settings[0].featured_site, "lev-fer");
+  assert.equal(JSON.stringify(db.platform_settings[0].showcase), JSON.stringify([{ site: "cockfight", blurb: "A comedy podcast." }, { site: "lev-fer", blurb: "Stand-up from New York." }]));
+});
+
+test("roles: a shows-only login sees just Shows, a moderator just the forum and chat", async () => {
+  const booker = await open("#home", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "shows" }]; db.sites.find((x) => x.id === "cockfight").features = { ...db.sites.find((x) => x.id === "cockfight").features, forum: true, chat: true }; });
+  assert.deepEqual([...booker.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["shows"]);
+  assert.match(booker.d.querySelector("h1").textContent, /Shows/, "they land on Shows");
+  const mod = await open("#home", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "moderator" }]; db.sites.find((x) => x.id === "cockfight").features = { ...db.sites.find((x) => x.id === "cockfight").features, forum: true, chat: true }; });
+  assert.deepEqual([...mod.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["forum", "chat", "moderation"]);
+});
+
+test("roles: ComicTable staff work on every site but can't create sites, change the front page or manage staff", async () => {
+  const { d } = await open("#ct/sites", (db) => { db.platform_admins = [{ user_id: "u1", role: "staff" }]; });
+  await wait(80);
+  assert.doesNotMatch(d.querySelector("main").textContent, /Start a new site|On comictable\.com/);
+  assert.match(d.querySelector("main").textContent, /ComicTable staff/);
+  assert.equal(d.getElementById("stEmail"), null, "no Add to staff form");
+});
+
+test("Coasters: pick a look, set the Tape, choose what's up front and what's under More", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => {
+    Object.assign(db.comics.find((c) => c.id === "lev-fer"), { look: "classic", tape_url: null, tape_title: null, on_bills: true, coaster: {} });
+  });
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  const card = d.querySelector("main form.card");
+  assert.ok(card.querySelector(".looks"), "the comic's card is their Coaster");
+  assert.match(card.textContent, /comictable\.com\/lev-fer/);
+  btn(d, /Spooky/, card).click();
+  assert.equal(card.querySelector('.looks [aria-pressed="true"]').dataset.look, "spooky");
+  set(w, card.querySelector('input[aria-label="Tape link"]'), "https://youtu.be/abcdefghijk");
+  set(w, card.querySelector('input[aria-label="Tape title"]'), "Live at the Cellar");
+  btn(d, /^Up front$/, card.querySelector('[aria-label="The Tape"]')).click();
+  btn(d, /^Off$/, card.querySelector('[aria-label="Booking"]')).click();
+  card.querySelector('input[aria-label="Show who else is on the bill"]').checked = false;
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  const lev = db.comics.find((c) => c.id === "lev-fer");
+  assert.deepEqual([lev.look, lev.tape_url, lev.tape_title, lev.on_bills, lev.coaster.tape, lev.coaster.booking, lev.coaster.socials], ["spooky", "https://youtu.be/abcdefghijk", "Live at the Cellar", false, "front", "off", "front"]);
+  // a bad Tape link doesn't save
+  set(w, card.querySelector('input[aria-label="Tape link"]'), "youtube.com/whatever");
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  assert.match(card.textContent, /starts with https/);
+  assert.equal(db.comics.find((c) => c.id === "lev-fer").tape_url, "https://youtu.be/abcdefghijk");
+});
+
+test("Coasters: a site asks before adding a comic with their own login, and the comic says yes on Me", async () => {
+  // a site owner (not ComicTable) finds Daniel, who has his own login: Ask to add, not Add
+  const site = await open("#people", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "owner" }];
+    db.comics.find((c) => c.id === "daniel-bridge-gadd").user_id = "u9"; db.coaster_requests = []; });
+  await wait(60);
+  btn(site.d, /Add a person/).click(); await wait();
+  set(site.w, site.d.getElementById("newPersonName"), "Daniel"); await wait(80);
+  const ask = btn(site.d, /^Ask to add$/);
+  assert.ok(ask, "Ask to add, because he has a login");
+  assert.match(site.d.body.textContent, /say yes first/);
+  ask.click(); await wait(60);
+  assert.deepEqual(site.db.coaster_requests.map((r) => [r.comic_id, r.site_id, r.requested_by]), [["daniel-bridge-gadd", "cockfight", "u1"]]);
+  assert.ok(!site.db.hosts.some((h) => h.comic_id === "daniel-bridge-gadd"), "not added until he says yes");
+  // Daniel sees it on Me
+  const me = await open("#ct/me", (db) => { Object.assign(db.comics.find((c) => c.id === "daniel-bridge-gadd"), { user_id: "u1", look: "classic", coaster: {} }); db.platform_admins = [];
+    db.coaster_requests = [{ id: "r1", comic_id: "daniel-bridge-gadd", site_id: "cockfight", status: "pending", created_at: "2026-10-28" }]; });
+  await wait(120);
+  assert.match(me.d.querySelector("main").textContent, /A site wants to add you.*Cockfight/s);
+  assert.ok(me.d.querySelector("main form.card .looks"), "and his own Coaster to edit");
+  btn(me.d, /^Say yes$/).click(); await wait(60);
+  assert.deepEqual(JSON.parse(JSON.stringify(me.db.rpcCalls.find((c) => c[0] === "answer_coaster_request"))), ["answer_coaster_request", { p_id: "r1", p_yes: true }]);
+});
+
+test("Coasters: a lineup card says whose Coaster it uses, and can keep a photo just for this site", async () => {
+  const { w, d, db } = await open("#people", (db) => {
+    db.hosts.forEach((h) => Object.assign(h, { own_bio: false, own_title: false, own_photo: false }));
+    db.hosts.find((h) => h.id === "colum").own_bio = true;
+  });
+  await wait(60);
+  const cards = [...d.querySelectorAll(".people form.card")];
+  const colum = cards.find((c) => /Colum/.test(c.textContent)), lev = cards.find((c) => /Lev Fer/.test(c.textContent));
+  assert.match(colum.textContent, /Custom for Cockfight: bio/);
+  assert.match(lev.textContent, /Using Lev's Coaster/);
+  const photoBox = [...lev.querySelectorAll("label.check")].find((l) => /different photo/.test(l.textContent)).querySelector("input");
+  photoBox.checked = true;
+  db.hosts.find((h) => h.id === "lev").photo_url = "https://p/lev-cockfight.jpg";
+  lev.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(120);
+  const host = db.hosts.find((h) => h.id === "lev");
+  assert.equal(host.own_photo, true, lev.querySelector(".err") && lev.querySelector(".err").textContent);
+  assert.equal(host.photo_url, "https://p/lev-cockfight.jpg", "this site keeps its photo");
+  assert.ok(!db.comics.find((c) => c.id === "lev-fer").photo_url, "his Coaster photo isn't touched");
+});
+
+test("Coasters: Custom colors for comics on a site; Pro is ComicTable's switch", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => {
+    db.comics.forEach((c) => Object.assign(c, { look: "classic", on_bills: true, coaster: {}, pro: false }));
+  });
+  await wait(80);
+  // Daniel isn't on a site: Custom is locked
+  [...d.querySelectorAll(".comic-card")].find((b) => /Daniel/.test(b.textContent)).click(); await wait(120);
+  let card = d.querySelector("main form.card");
+  assert.ok(card.querySelector('[data-look="custom"]').disabled);
+  assert.match(card.textContent, /come with a site/);
+  // ComicTable admin switches Pro on: unlocked
+  const pro = card.querySelector('input[aria-label="Pro"]'); pro.checked = true; pro.dispatchEvent(new w.Event("change")); await wait(40);
+  assert.equal(db.comics.find((c) => c.id === "daniel-bridge-gadd").pro, true);
+  assert.ok(!card.querySelector('[data-look="custom"]').disabled);
+  // Lev is on Cockfight: Custom with his own colors and a full-color photo
+  btn(d, /All Coasters/).click(); await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  card = d.querySelector("main form.card");
+  card.querySelector('[data-look="custom"]').click();
+  assert.ok(!card.querySelector(".custom-look").hidden);
+  set(w, card.querySelector('input[aria-label="Board color"]'), "#101010");
+  btn(d, /^Full color$/, card).click();
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  const lev = db.comics.find((c) => c.id === "lev-fer");
+  assert.equal(lev.look, "custom");
+  assert.deepEqual(JSON.parse(JSON.stringify(lev.coaster.style)), { pulp: "#101010", ink: "#1F1F1F", band: "#C4452E", photo: "color" });
+  assert.equal(lev.coaster.next, "front", "what's-on-it choices are kept alongside");
+});
+
+test("Lineup: each person's card is their Coaster, with the fine-tuning on the Coaster page", async () => {
+  // ComicTable staff: a link to the comic's Coaster page
+  let { w, d, db } = await open("#people", (db) => { db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id })); });
+  await wait(80);
+  let lev = [...d.querySelectorAll(".people form.card")].find((c) => /Lev Fer/.test(c.textContent));
+  assert.match(lev.querySelector(".coaster-link").textContent, /comictable\.com\/lev-fer/);
+  assert.match(lev.textContent, /Only on Cockfight/);
+  assert.ok(!lev.querySelector('input[aria-label="Tape link"]'), "no fine-tuning on Lineup");
+  btn(d, /Coaster settings/, lev).click(); await wait(120);
+  assert.equal(w.location.hash, "#ct/comics");
+  assert.ok(d.querySelector('main input[aria-label="Tape link"]'), "the Coaster page has it");
+  // a site's own owner, with a comic nobody has claimed: the fine-tuning is right there, folded away
+  ({ w, d, db } = await open("#people", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "owner" }];
+    db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id })); }));
+  await wait(80);
+  lev = [...d.querySelectorAll(".people form.card")].find((c) => /Lev Fer/.test(c.textContent));
+  set(w, lev.querySelector('input[aria-label="Tape link"]'), "https://youtu.be/abcdefghijk");
+  btn(d, /^Night$/, lev).click();
+  lev.querySelector("textarea").value = "New bio";
+  lev.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(100);
+  const c = db.comics.find((x) => x.id === "lev-fer");
+  assert.deepEqual([c.tape_url, c.look, c.bio], ["https://youtu.be/abcdefghijk", "night", "New bio"]);
+});
+
+
+test("Coaster settings: reorder what's on it (drag, or arrow keys on the grip); the order is saved", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => { db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id })); });
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  const card = d.querySelector("main form.card");
+  card.querySelector("details.coaster-more").open = true;
+  press(w, card.querySelector('[data-drag="tape"] .drag-grip'), "ArrowUp"); await wait();
+  press(w, card.querySelector('[data-drag="tape"] .drag-grip'), "ArrowUp"); await wait();
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const order = db.comics.find((c) => c.id === "lev-fer").coaster.order;
+  assert.deepEqual(JSON.parse(JSON.stringify(order)).slice(0, 5), ["socials", "links", "tape", "join", "next"]);
+});
+
+test("Coaster settings: socials show as logos, logo + name or names; pick which networks show", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => {
+    db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id }));
+    Object.assign(db.comics.find((c) => c.id === "lev-fer"), { instagram: "https://instagram.com/l", tiktok: "https://tiktok.com/@l", socials: {} });
+  });
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  const card = d.querySelector("main form.card");
+  btn(d, /^Logo \+ name$/, card).click();
+  btn(d, /^Coaster colors$/, card).click();
+  [...card.querySelectorAll(".soc-pick")].find((b) => /TikTok/.test(b.textContent)).click();
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.comics.find((c) => c.id === "lev-fer").coaster.social_style)), { style: "both", color: "look", hide: ["tiktok"] });
+});
+
+test("Coaster settings: wear (fresh, used, well loved) is saved with the Coaster", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => { db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, on_bills: true, handle: c.id })); });
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  const card = d.querySelector("main form.card");
+  btn(d, /^Well loved$/, card).click();
+  assert.match(card.querySelector(".mini-coaster").className, /wear-loved/, "the preview shows it");
+  card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.equal(db.comics.find((c) => c.id === "lev-fer").coaster.wear, "loved");
+});
+
+test("Design: Options every site has (shows, socials, sign-up), then the design's own Custom extras", async () => {
+  const theme = { name: "Console Lobby", settings: [
+    { type: "heading", label: "Home screen" }, { key: "home_shows", label: "Old per-design setting", type: "select", options: [["1", "1"], ["3", "3"]], default: "3" },
+    { type: "heading", label: "Look" }, { key: "accent", label: "Highlight color", type: "color", default: "#ffb238" }] };
+  const { w, d, db } = await open("#theme", null, theme);
+  const titles = [...d.querySelectorAll("main .sec-title")].map((x) => x.textContent);
+  assert.deepEqual(titles, ["Options", "Custom"]);
+  assert.ok(!d.querySelector('select[aria-label="Old per-design setting"]'), "a design can't redefine an option every site has");
+  const opts = [...d.querySelectorAll("main form.card")].find((f) => /Save options/.test(f.textContent));
+  opts.querySelector('select[aria-label="How many shows on the home screen"]').value = "all";
+  opts.querySelector('select[aria-label="Socials show as"]').value = "both";
+  opts.querySelector('select[aria-label="Sign-up"]').value = "bar";
+  [...opts.querySelectorAll(".soc-pick")].find((b) => /TikTok/.test(b.textContent)).click();
+  opts.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  const t = db.sites[0].theme;
+  assert.deepEqual([t.home_shows, t.socials_style, t.signup_style, JSON.parse(JSON.stringify(t.socials_hide))], ["all", "both", "bar", ["tiktok"]]);
+  assert.match(d.body.textContent, /Extras that come with Console Lobby/);
+});
+
+test("Live: go live with a Twitch or YouTube link (saved for next time), then end it", async () => {
+  const { w, d, db } = await open("#live", (db) => { db.sites[0].live = null; });
+  await wait(60);
+  const f = d.querySelector("main form.card");
+  set(w, f.querySelector('input[aria-label="Stream link"]'), "twitch.tv/nope");
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  assert.match(f.textContent, /Paste your Twitch, YouTube or Kick link/);
+  set(w, f.querySelector('input[aria-label="Stream link"]'), "https://twitch.tv/cockfight");
+  set(w, f.querySelector('input[aria-label="What\'s on"]'), "Crowd work night");
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const site = db.sites[0];
+  assert.deepEqual([site.live.url, site.live.title, site.profile.stream_url], ["https://twitch.tv/cockfight", "Crowd work night", "https://twitch.tv/cockfight"]);
+  assert.match(d.querySelector("main").textContent, /You're live/);
+  btn(d, /End stream/).click(); await wait(80);
+  assert.equal(db.sites[0].live, null);
+});
+
+test("Moderation: links rule and hold first posts; reported and held posts wait for you to keep, approve or remove", async () => {
+  const { w, d, db } = await open("#moderation", (db) => {
+    db.posts = [{ id: "p1", site_id: "cockfight", thread_id: "t1", author: "Rude", body: "you all stink", device: "d1", held: true },
+      { id: "p2", site_id: "cockfight", thread_id: "t1", author: "Newbie", body: "hi everyone", device: "d2", held: true }];
+    db.reports = [{ id: "r1", site_id: "cockfight", kind: "post", item_id: "p1", reason: "rude", status: "open" }];
+    db.trusted = [];
+  });
+  await wait(100);
+  const main = d.querySelector("main");
+  assert.match(main.textContent, /Waiting for you \(2\)/);
+  assert.match(main.textContent, /Reported.*Rude.*you all stink.*Why: rude/s);
+  btn(d, /^Approve$/, main).click(); await wait(80);
+  assert.equal(db.posts.find((p) => p.id === "p2").held, false);
+  assert.deepEqual([db.trusted[0].author, db.trusted[0].device], ["Newbie", "d2"], "approving a first post approves the fan");
+  btn(d, /^Remove$/, d.querySelector("main")).click(); await wait(80);
+  assert.ok(!db.posts.some((p) => p.id === "p1"));
+  assert.equal(db.reports[0].status, "removed");
+  const f = [...d.querySelectorAll("main form.card")].find((x) => /House rules/.test(x.textContent));
+  f.querySelector('select[aria-label="Links from"]').value = "approved";
+  f.querySelector('input[aria-label="Hold first posts"]').checked = true;
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.deepEqual([db.sites[0].community.links_from, db.sites[0].community.hold_first_posts], ["approved", true]);
 });

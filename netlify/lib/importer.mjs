@@ -4,7 +4,7 @@ import { XMLParser } from "fast-xml-parser";
 import { importShows } from "./shows.mjs";
 
 const xml = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@", textNodeName: "#text", parseTagValue: false, trimValues: true });
-const UA = { "User-Agent": "Mozilla/5.0 (compatible; ComicTable/1.0; +https://cockfightpodcast.com)" };
+const UA = { "User-Agent": "Mozilla/5.0 (compatible; ComicTable/1.0; +https://comictable.com)" };
 
 const arr = (x) => (x === undefined || x === null ? [] : Array.isArray(x) ? x : [x]);
 const text = (x) => (x === undefined || x === null ? "" : typeof x === "object" ? String(x["#text"] ?? "") : String(x));
@@ -151,6 +151,28 @@ async function nameSource(db, src, name) {
   if (name && !src.label) { await db.from("sources").update({ label: name }).eq("id", src.id); src.label = name; }
 }
 
+// Spotify: with keys in Netlify (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET) and the site's Spotify show link
+// (About & contact → Spotify show), each episode gets its own Spotify link, matched by title.
+export const normTitle = (t) => String(t || "").toLowerCase().replace(/^(ep(isode)?\.?\s*)?#?\d+\s*[:.\-–—|]\s*/, "").replace(/[^a-z0-9]+/g, " ").trim();
+export function spotifyShowId(url) { const m = String(url || "").match(/open\.spotify\.com\/show\/([A-Za-z0-9]{22})/); return m ? m[1] : null; }
+async function spotifyEpisodes(showUrl) {
+  const id = spotifyShowId(showUrl), cid = process.env.SPOTIFY_CLIENT_ID, secret = process.env.SPOTIFY_CLIENT_SECRET;
+  if (!id || !cid || !secret) return null;
+  const tok = await fetch("https://accounts.spotify.com/api/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: "Basic " + Buffer.from(cid + ":" + secret).toString("base64") }, body: "grant_type=client_credentials" });
+  if (!tok.ok) throw new Error("the Spotify keys didn't work (" + tok.status + ")");
+  const { access_token } = await tok.json();
+  const out = new Map();
+  let next = `https://api.spotify.com/v1/shows/${id}/episodes?limit=50&market=US`;
+  for (let page = 0; next && page < 10; page++) {
+    const r = await fetch(next, { headers: { Authorization: "Bearer " + access_token } });
+    if (!r.ok) throw new Error("Spotify answered " + r.status);
+    const j = await r.json();
+    for (const e of j.items || []) if (e && e.external_urls && e.external_urls.spotify) out.set(normTitle(e.name), e.external_urls.spotify);
+    next = j.next;
+  }
+  return out;
+}
+
 async function importPodcast(db, src) {
   const { feedUrl, appleLinks } = await resolvePodcast(src.url);
   const body = await get(feedUrl);
@@ -200,7 +222,19 @@ async function importPodcast(db, src) {
     byNum.set(num, row); byGuid.set(it.guid, row);
     added++;
   }
-  return `${added} new, ${updated} filled in (${items.length} in feed)`;
+  // Spotify links, when the keys and the show link are there (never overwrites one typed in)
+  let spot = "";
+  try {
+    const { data: rows } = await db.from("sites").select("profile").eq("id", src.site_id);
+    const links = rows && rows[0] ? await spotifyEpisodes((rows[0].profile || {}).spotify_url) : null;
+    if (links && links.size) {
+      const { data: eps } = await db.from("episodes").select("*").eq("site_id", src.site_id);
+      let n = 0;
+      for (const e of eps || []) { const u = !e.spotify_url && links.get(normTitle(e.title)); if (u) { await db.from("episodes").update({ spotify_url: u }).eq("id", e.id); n++; } }
+      if (n) spot = `, ${n} Spotify links`;
+    }
+  } catch (e) { spot = ", Spotify: " + (e.message || e); }
+  return `${added} new, ${updated} filled in (${items.length} in feed)` + spot;
 }
 
 async function importYouTube(db, src) {
@@ -210,14 +244,30 @@ async function importYouTube(db, src) {
   const channel = feedTitle(body);
   await nameSource(db, src, channel);
   // A comic's own channel shows on every site they're on, so skip videos they already have anywhere.
-  const mine = src.comic_id ? db.from("videos").select("youtube_id").or(`site_id.eq.${src.site_id},comic_id.eq.${src.comic_id}`) : db.from("videos").select("youtube_id").eq("site_id", src.site_id);
+  const mine = src.comic_id ? db.from("videos").select("*").or(`site_id.eq.${src.site_id},comic_id.eq.${src.comic_id}`) : db.from("videos").select("*").eq("site_id", src.site_id);
   const { data: existing, error } = await mine;
   if (error) throw error;
   const have = new Set(existing.map((v) => v.youtube_id));
-  const fresh = vids.filter((v) => !have.has(v.youtube_id))
-    .map((v) => ({ ...v, site_id: src.site_id, source_id: src.id, channel: channel || src.label || null, host: src.host || null, comic_id: src.comic_id || null, imported_at: new Date().toISOString() }));
-  if (fresh.length) { const r = await db.from("videos").insert(fresh); if (r.error) throw r.error; }
-  return `${fresh.length} new (${vids.length} latest checked)`;
+  // YouTube keeps a Shorts-only list for every channel (UC… → UUSH…). Its videos are marked as Shorts, so sites can
+  // show them in their own strip. Free, no keys. If it can't be read, everything still imports as before.
+  let shortVids = [];
+  try { shortVids = parseYouTubeFeed(await get(`https://www.youtube.com/feeds/videos.xml?playlist_id=UUSH${channelId.slice(2)}`)); } catch (e) {}
+  const shorts = new Set(shortVids.map((v) => v.youtube_id));
+  // Shorts that aren't in the latest uploads list still come in
+  const all = vids.concat(shortVids.filter((v) => !vids.some((x) => x.youtube_id === v.youtube_id)));
+  const fresh = all.filter((v) => !have.has(v.youtube_id))
+    .map((v) => ({ ...v, is_short: shorts.has(v.youtube_id), site_id: src.site_id, source_id: src.id, channel: channel || src.label || null, host: src.host || null, comic_id: src.comic_id || null, imported_at: new Date().toISOString() }));
+  if (fresh.length) {
+    let r = await db.from("videos").insert(fresh);
+    // a database without 23_media.sql has no is_short column yet: import them as plain videos
+    if (r.error && /is_short/.test(r.error.message || "")) r = await db.from("videos").insert(fresh.map(({ is_short, ...v }) => v));
+    if (r.error) throw r.error;
+  }
+  // older videos that turn out to be Shorts get marked too
+  let marked = 0;
+  for (const v of existing) if (shorts.has(v.youtube_id) && v.is_short === false) { await db.from("videos").update({ is_short: true }).eq("id", v.id); marked++; }
+  const nShorts = fresh.filter((v) => v.is_short).length + marked;
+  return `${fresh.length} new (${vids.length} latest checked)` + (nShorts ? `, ${nShorts} Shorts` : "");
 }
 
 export async function runSources(db, sources) {

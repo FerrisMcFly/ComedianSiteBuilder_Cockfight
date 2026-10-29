@@ -77,7 +77,7 @@ button.go:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  var cfg = window.COMICTABLE_CONFIG || window.COCKFIGHT_CONFIG || {};
+  var cfg = window.COMICTABLE_CONFIG || {};
   // On a comic's own domain the site comes from config.js; on comictable.com it's /join/<site>.
   var site = cfg.SITE_ID || decodeURIComponent((location.pathname.match(/\/join\/([a-z0-9-]+)/) || [])[1] || "");
   var qs = new URLSearchParams(location.search), showId = qs.get("show"), at = qs.get("at");

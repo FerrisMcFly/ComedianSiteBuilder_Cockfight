@@ -34,7 +34,7 @@ Upload `index.html`, `admin.html` and `config.js` to the same folder on your hos
 Open `config.js` in any text editor and paste in your two values:
 
 ```js
-window.COCKFIGHT_CONFIG = {
+window.COMICTABLE_CONFIG = {
   SUPABASE_URL: "https://abcd1234.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOi...your anon key..."
 };
@@ -65,10 +65,10 @@ In Supabase, open **Authentication → Sign In / Providers** and turn off **Allo
 - **Tour Dates:** add a show with the comedian, date, time, city, venue and ticket link. Past shows disappear from the public site automatically, and a button clears them out of the list.
 - **Episodes:** add each new episode with its number, title, date, listen link, and whether Part 2 is on Patreon. The newest one gets the NEW! badge. Descriptions are optional.
 - **Hosts:** edit bios, social links (Instagram, YouTube, TikTok, X, Linktree) and upload new photos from your phone or computer. Leave Status blank and the site fills it in from their tour dates.
-- **Announcements:** the scrolling text at the top and the NEW!! line on the home page.
+- **Home screen → News:** banners scroll across the top and the first one is the NEW!! line on the home page. Cards show under "What's New"; one that links to a YouTube or Vimeo video plays right there.
 - **Forum:** delete spam topics or individual posts.
 
 ## Good to know
-- If the database is ever unreachable, the site shows the built-in content from the day it was made, so it never goes blank.
-- Host photos uploaded in the admin replace the built-in ones.
+- Everything on the site comes from the dashboard. Nothing is baked into the page, so there's nothing stale to clean up. If the database can't be reached, the site says so instead of showing old content.
+- A host with no photo shows their initials, never someone else's picture.
 - The hidden mute is the © in the footer, and there's a speaker button in the header. Alt+M works too.

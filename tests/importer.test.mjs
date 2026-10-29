@@ -128,3 +128,38 @@ test("a comic's own channel isn't imported twice when they're on two sites", asy
   assert.deepEqual(tables.videos.map((v) => v.youtube_id), ["AAAAAAAAAAA", "BBBBBBBBBBB"]);
   assert.equal(tables.videos[1].comic_id, "tristan-bowling");
 });
+
+test("YouTube Shorts: the channel's Shorts-only list marks them, new and old, and brings in Shorts not in the latest uploads", async () => {
+  const feed = readFileSync(new URL("./fixtures/youtube.xml", import.meta.url), "utf8");
+  const shortsFeed = `<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"><entry><yt:videoId>BBBBBBBBBBB</yt:videoId><title>Short one</title><published>2026-10-23T15:00:00+00:00</published></entry>
+    <entry><yt:videoId>AAAAAAAAAAA</yt:videoId><title>Old short</title><published>2026-10-20T15:00:00+00:00</published></entry>
+    <entry><yt:videoId>CCCCCCCCCCC</yt:videoId><title>Older short</title><published>2026-09-01T15:00:00+00:00</published></entry></feed>`;
+  const asked = [];
+  globalThis.fetch = async (url) => { asked.push(String(url)); return { ok: true, status: 200, text: async () => (String(url).includes("playlist_id=UUSH") ? shortsFeed : feed) }; };
+  const tables = { videos: [{ id: "v", site_id: "cockfight", youtube_id: "AAAAAAAAAAA", is_short: false }], sources: [{ id: "y", site_id: "cockfight", kind: "youtube", url: "https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv", enabled: true }] };
+  const res = await runSources(fakeDb(tables), tables.sources);
+  assert.ok(asked.some((u) => u.includes("playlist_id=UUSHabcdefghijklmnopqrstuv")), "the Shorts list is UUSH + the channel id");
+  assert.match(res[0].status, /3 Shorts/);
+  const by = Object.fromEntries(tables.videos.map((v) => [v.youtube_id, v]));
+  assert.deepEqual([by.AAAAAAAAAAA.is_short, by.BBBBBBBBBBB.is_short, by.CCCCCCCCCCC.is_short], [true, true, true]);
+});
+
+test("Spotify: with the keys and the site's Spotify show link, episodes get their Spotify links by title", async () => {
+  const { normTitle, spotifyShowId } = await import("../netlify/lib/importer.mjs");
+  assert.equal(normTitle("92. Marathon Chainsaw!"), normTitle("Marathon Chainsaw"));
+  assert.equal(spotifyShowId("https://open.spotify.com/show/1234567890abcdefghijkl?si=x"), "1234567890abcdefghijkl");
+  const feed = readFileSync(new URL("./fixtures/podcast.xml", import.meta.url), "utf8");
+  process.env.SPOTIFY_CLIENT_ID = "id"; process.env.SPOTIFY_CLIENT_SECRET = "secret";
+  const firstTitle = parsePodcastFeed(feed)[0].title;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes("accounts.spotify.com")) return { ok: true, status: 200, json: async () => ({ access_token: "t" }) };
+    if (u.includes("api.spotify.com")) return { ok: true, status: 200, json: async () => ({ items: [{ name: "1. " + firstTitle, external_urls: { spotify: "https://open.spotify.com/episode/abc" } }], next: null }) };
+    return { ok: true, status: 200, text: async () => feed, json: async () => ({}) };
+  };
+  const tables = { sites: [{ id: "cockfight", profile: { spotify_url: "https://open.spotify.com/show/1234567890abcdefghijkl" } }], episodes: [], sources: [{ id: "p", site_id: "cockfight", kind: "podcast", url: "https://feeds.example/pod.xml", enabled: true }] };
+  const res = await runSources(fakeDb(tables), tables.sources);
+  delete process.env.SPOTIFY_CLIENT_ID; delete process.env.SPOTIFY_CLIENT_SECRET;
+  assert.match(res[0].status, /1 Spotify links/, res[0].status);
+  assert.equal(tables.episodes.find((e) => e.title === firstTitle).spotify_url, "https://open.spotify.com/episode/abc");
+});

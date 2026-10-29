@@ -9,7 +9,7 @@ const sdk = readFileSync(new URL("../platform/sdk/csb.js", import.meta.url), "ut
 const html = readFileSync(new URL("../sites/_starter/index.html", import.meta.url), "utf8")
   .replace('<script src="config.js"></script>', '<script>window.COMICTABLE_CONFIG={SITE_ID:"lev-fer",SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
   .replace('<script src="sdk/csb.js"></script>', () => "<script>" + sdk.replace(/<\/script/g, "<\\/script") + "</script>");
-const future = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const future = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };  // local date, like the sites use
 
 async function load(data, hash = "") {
   const posts = [];
@@ -71,5 +71,24 @@ test("fans sign up with their city", async () => {
 
 test("about page has the bio, socials and booking", async () => {
   const { d } = await load(base, "#/about");
-  assert.match(d.getElementById("app").textContent, /Lev is a comic\..*Instagram.*Booking/s);
+  assert.match(d.getElementById("app").textContent, /Lev is a comic\..*Booking/s);
+  assert.equal(d.querySelector(".socials .social").title, "Instagram");
+});
+
+test("follows Design → Options: show count, compact listings, logo socials with hidden ones, sign-up spot, News", async () => {
+  const data = { ...base,
+    sites: [{ ...base.sites[0], theme: { home_shows: "1", shows_style: "compact", socials_style: "icons", socials_hide: ["youtube"], signup_style: "bar" } }],
+    hosts: [{ ...base.hosts[0], youtube: "https://youtube.com/@lev" }],
+    home_picks: [{ id: "n1", style: "card", headline: "My special is out", link: "https://youtu.be/dQw4w9WgXcQ", sort: 0 }] };
+  const { d } = await load(data);
+  assert.equal(d.querySelectorAll(".show").length, 1);
+  assert.ok(d.querySelector(".shows.compact"));
+  assert.match(d.querySelector(".block-head a").textContent, /All 2 shows/);
+  assert.ok(d.querySelector("a.bar"), "the slim sign-up bar");
+  assert.equal(d.querySelector(".fans"), null, "no box when the sign-up is a bar");
+  assert.match(d.querySelector(".news iframe").src, /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+  const about = await load(data, "#/about");
+  const s = [...about.d.querySelectorAll(".socials .social")];
+  assert.deepEqual(s.map((a) => a.title), ["Instagram"]);
+  assert.ok(s[0].querySelector("svg"));
 });

@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coaster · ComicTable</title>
+<meta name="description" content="A comedian's Coaster on ComicTable: their Tape, next dates, links and press kit.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand/tokens.css">
+<style>
+/* A comic's Coaster: their card on ComicTable, built like the real thing on a bar table.
+   Round, printed, flips over (front: them; back: their next show and a QR code back to this page).
+   Under it: the Tape, links, dates as ticket stubs, and who else is on the bill (tap to visit their Coaster).
+   The comic picks a look; a look is a handful of colors plus the coaster's edge print. */
+:root { --bg: #F3EAD7; --card: #FBF6EA; --ink: #1F1F1F; --muted: #5E584D; --line: #E2D6BC; --accent: #C4452E; --on-accent: #fff; --chip: #EFE4CC;
+  --pulp: #F4ECDC; --print: #1F1F1F; --ring: #C4452E; }
+body.look-night { --bg: #141414; --card: #1E1E1E; --ink: #F3EAD7; --muted: #B5AC9A; --line: #34312C; --accent: #D9583F; --on-accent: #fff; --chip: #292725;
+  --pulp: #24221F; --print: #F3EAD7; --ring: #D9583F; --photo-blend: screen; }
+body.look-redwood { --bg: #A93A26; --card: #B9432E; --ink: #FFF7E8; --muted: #F7D9CC; --line: #CF6049; --accent: #1F1F1F; --on-accent: #F3EAD7; --chip: #B23D29;
+  --pulp: #F3EAD7; --print: #1F1F1F; --ring: #A93A26; }
+body.look-mustard { --bg: #E0A21A; --card: #ECB232; --ink: #1F1F1F; --muted: #4A3A12; --line: #C98F12; --accent: #1F1F1F; --on-accent: #F3EAD7; --chip: #E7AA27;
+  --pulp: #F6E7BF; --print: #1F1F1F; --ring: #E0A21A; --band-ink: #1F1F1F; }
+body.look-spooky { --bg: #120E18; --card: #1C1624; --ink: #F4EBDD; --muted: #B6A9C2; --line: #352A44; --accent: #F07C1F; --on-accent: #120E18; --chip: #271F33;
+  --pulp: #1B1622; --print: #F4EBDD; --ring: #F07C1F; --band-ink: #120E18; --photo-blend: screen; }
+body.look-holiday { --bg: #17321F; --card: #1E3F28; --ink: #FBF3E4; --muted: #C9D8C3; --line: #2F5A3B; --accent: #D9443A; --on-accent: #fff; --chip: #24492F;
+  --pulp: #FBF3E4; --print: #17321F; --ring: #1F5A35; }
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--ct-sans, Inter, system-ui, sans-serif); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+[hidden] { display: none !important; }
+.wrap { max-width: 520px; margin: 0 auto; padding: 0 16px 120px; position: relative; }
+/* a stage light on the coaster */
+body::before { content: ""; position: fixed; inset: -20vh -30vw auto; height: 95vh; pointer-events: none; z-index: 0;
+  background: radial-gradient(48% 62% at 50% 0%, color-mix(in srgb, var(--ring) 22%, transparent), transparent 70%),
+              radial-gradient(34% 46% at 50% 6%, rgba(255,255,255,.16), transparent 72%); }
+.wrap > * { position: relative; z-index: 1; }
+
+/* ---------- the coaster ---------- */
+/* Built like a real bar coaster: thick pulpboard with a pressed rim, printed in one ink plus a band of color.
+   --pulp is the board, --print the ink, --ring the band. */
+.table { display: grid; place-items: center; padding: 26px 0 0; }
+/* the coaster drops onto the table when the page opens */
+@keyframes drop { 0% { transform: translateY(-46px) rotate(-14deg) scale(1.06); opacity: 0; } 60% { transform: translateY(5px) rotate(2deg) scale(1); opacity: 1; } 80% { transform: translateY(-2px) rotate(-1deg); } 100% { transform: none; } }
+.coaster { animation: drop .8s cubic-bezier(.2, .9, .3, 1) both; }
+/* a light sweeps across when it flips */
+.print::before { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: 50%;
+  background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.38) 48%, transparent 60%); transform: translateX(-120%); }
+.coaster.shine .print::before { transition: transform .9s ease; transform: translateX(120%); }
+.coaster { position: relative; width: min(68vw, 280px); aspect-ratio: 1; perspective: 1400px; border: 0; padding: 0; background: none; cursor: pointer; color: inherit; transition: transform .25s; -webkit-tap-highlight-color: transparent; }
+.coaster:hover { transform: translateY(-2px); }
+.coaster .spin { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.25, 1.3, .45, 1); }
+.coaster.flipped .spin { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: var(--pulp);
+  /* board thickness, then the shadow on the table */
+  box-shadow: 0 3px 0 0 color-mix(in srgb, var(--pulp) 78%, #000), 0 4px 0 0 rgba(0,0,0,.12), 0 16px 26px -6px rgba(0,0,0,.35); }
+.face::after { /* pulp grain over everything, like pressed paper */ content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: .5; mix-blend-mode: multiply;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .38 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.print { position: absolute; inset: 11px; border-radius: 50%; overflow: hidden; background: var(--pulp);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--print) 70%, transparent), 0 0 0 1px rgba(255,255,255,.18); } /* the pressed rim */
+.print img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 25%;
+  filter: grayscale(1) contrast(1.25) brightness(1.08); mix-blend-mode: var(--photo-blend, multiply); }
+.print .initials { position: absolute; inset: 0 0 36%; display: grid; place-items: center; color: var(--print); font: 900 clamp(54px, 19vw, 92px)/1 var(--ct-display, sans-serif); }
+.band { position: absolute; left: 0; right: 0; bottom: 0; height: 36%; background: var(--ring); color: var(--band-ink, var(--pulp)); display: grid; align-content: start; justify-items: center; padding-top: 10px; text-align: center; }
+.band b { font: 900 clamp(22px, 8vw, 34px)/.95 var(--ct-display, sans-serif); text-transform: uppercase; letter-spacing: .01em; max-width: 78%; overflow-wrap: anywhere; }
+.band span { margin-top: 5px; font: 700 9.5px/1 var(--ct-sans, sans-serif); letter-spacing: .2em; text-transform: uppercase; opacity: .85; }
+.photo-color .print img { filter: none; mix-blend-mode: normal; }
+.no-band .band { background: linear-gradient(transparent, rgba(0,0,0,.65)); color: #fff; height: 40%; align-content: end; padding: 0 0 18%; }
+/* ---------- wear: Fresh, Used, Well loved ---------- */
+/* Glass rings and drips, faded ink, scuffs and a nicked edge. Where they land comes from the comic's name, so every
+   worn coaster is different but stays the same on every visit. The QR side keeps its rings near the edge so it scans. */
+.stain { position: absolute; border-radius: 50%; pointer-events: none; z-index: 2; mix-blend-mode: var(--stain-blend, multiply); }
+.stain.ring { width: var(--w, 64%); aspect-ratio: 1; left: var(--x); top: var(--y); transform: rotate(var(--r, 0deg)) scaleX(var(--sx, 1));
+  background: radial-gradient(circle, transparent 59%, var(--stain) 61.5%, color-mix(in srgb, var(--stain) 45%, transparent) 64%, transparent 67.5%),
+              radial-gradient(circle at 46% 54%, transparent 60%, color-mix(in srgb, var(--stain) 55%, transparent) 62.5%, transparent 65.5%); }
+.stain.drop { width: var(--w, 5%); aspect-ratio: 1; left: var(--x); top: var(--y); background: radial-gradient(circle, color-mix(in srgb, var(--stain) 35%, transparent) 40%, var(--stain) 62%, transparent 70%); }
+.stain.scuff { inset: 0; border-radius: 50%; opacity: .7; mix-blend-mode: normal;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .97 0 0 0 0 .94 0 0 0 0 .86 4.2 0 0 0 -2.75'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23s)'/%3E%3C/svg%3E") center / 240px; }
+/* a stain catches a little light on its outer edge, so it still shows over a dark photo */
+.stain.ring::after { content: ""; position: absolute; inset: 0; border-radius: 50%; mix-blend-mode: screen;
+  background: radial-gradient(circle, transparent 64%, rgba(255, 238, 205, .2) 65.5%, transparent 68%); }
+.coaster { --stain: rgba(118, 74, 28, .42); }
+.look-night .coaster, .look-spooky .coaster, .look-holiday .coaster { --stain: rgba(255, 236, 200, .16); --stain-blend: screen; }
+.coaster.wear-used .print img { opacity: .9; filter: grayscale(1) contrast(1.12) brightness(1.12); }
+.coaster.wear-loved .print img { opacity: .88; filter: grayscale(1) contrast(1.05) brightness(1.15); }
+.coaster.wear-loved .band { filter: saturate(.75) brightness(1.04); }
+.coaster.wear-loved .face { -webkit-mask: radial-gradient(circle at var(--nx, 88%) var(--ny, 24%), transparent 4.2%, #000 4.6%); mask: radial-gradient(circle at var(--nx, 88%) var(--ny, 24%), transparent 4.2%, #000 4.6%); }
+.coaster.wear-used .face::after, .coaster.wear-loved .face::after { opacity: .8; }
+.back { transform: rotateY(180deg); }
+.back .print { display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; color: var(--print); padding: 0 14%; }
+.back .k { font: 800 11px/1.25 var(--ct-sans, sans-serif); letter-spacing: .16em; text-transform: uppercase; }
+.back .qr { width: min(46vw, 150px); aspect-ratio: 1; color: var(--print); }
+.back .qr svg { width: 100%; height: 100%; display: block; }
+.back .url { font: 700 8.5px/1.3 var(--ct-sans, sans-serif); letter-spacing: .04em; white-space: nowrap; text-transform: uppercase; opacity: .8; }
+.tap { margin-top: 10px; font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.tap::before { content: "↻"; font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .coaster, .coaster .spin { transition: none; animation: none; } .coaster.shine .print::before { transition: none; } }
+
+/* ---------- who ---------- */
+.who { text-align: center; margin-top: 14px; }
+h1 { font: 900 clamp(32px, 9vw, 48px)/1 var(--ct-display, sans-serif); margin: 0; letter-spacing: -.005em; }
+.title { margin: 6px 0 0; color: var(--muted); font-weight: 600; }
+.status { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; background: var(--chip); border-radius: 999px; padding: 6px 13px; font-size: 14px; font-weight: 600; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.bio { margin: 0; white-space: pre-wrap; }
+.socials { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 18px; }
+.socials a { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px 8px 10px; font-size: 14px; font-weight: 700; color: var(--ink); transition: transform .15s, border-color .15s; }
+.socials a:hover { border-color: var(--ink); transform: translateY(-1px); }
+.socials a svg { width: 20px; height: 20px; flex: none; }
+.socials.icons a { width: 50px; height: 50px; padding: 0; justify-content: center; }
+.socials.icons a svg { width: 24px; height: 24px; }
+.socials.names a { padding: 8px 14px; }
+.socials.brand a { background: var(--card); }
+/* black logos (TikTok, X, Threads…) would vanish on a dark Coaster: print them in the page's ink there */
+.look-night .socials.brand svg path[fill="#000000"], .look-spooky .socials.brand svg path[fill="#000000"], .look-holiday .socials.brand svg path[fill="#000000"] { fill: currentColor; }
+
+/* ---------- buttons ---------- */
+.links { display: grid; gap: 10px; margin-top: 14px; }
+/* link cards: big, easy to hit with a thumb */
+.lcard { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; text-decoration: none; color: var(--ink);
+  background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 12px 14px; transition: transform .15s, border-color .15s; }
+.lcard:hover { border-color: var(--ink); transform: translateY(-1px); }
+.lcard .ico { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--chip); font-size: 20px; }
+.lcard .ico svg { width: 22px; height: 22px; }
+.lcard b { display: block; font-size: 16px; overflow-wrap: anywhere; }
+.lcard small { display: block; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.lcard .go { color: var(--muted); font-size: 22px; line-height: 1; }
+.lcard.main { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.lcard.main small, .lcard.main .go { color: inherit; opacity: .85; }
+.lcard.main .ico { background: rgba(255,255,255,.18); }
+/* live and Shorts */
+.table { position: relative; }
+.live-badge { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 3; display: inline-flex; align-items: center; gap: 8px; max-width: 90%;
+  background: #d62a2a; color: #fff; text-decoration: none; font: 800 13px/1 var(--ct-sans, sans-serif); letter-spacing: .06em; padding: 7px 12px; border-radius: 999px; box-shadow: 0 6px 16px rgba(0,0,0,.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; flex: none; animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.shorts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(120px, 36%); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+.short { position: relative; aspect-ratio: 9 / 16; border-radius: 14px; overflow: hidden; border: 1.5px solid var(--line); background: #000; padding: 0; cursor: pointer; scroll-snap-align: start; color: #fff; text-align: left; }
+.short img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.short small { position: absolute; left: 8px; right: 8px; bottom: 8px; font: 700 12px/1.25 var(--ct-sans, sans-serif); text-shadow: 0 1px 3px #000; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.short.playing iframe { width: 100%; height: 100%; border: 0; display: block; }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+/* the one thing to do, always in reach at the bottom of the phone */
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, var(--bg) 35%); display: flex; justify-content: center; pointer-events: none; transition: transform .25s; }
+.dock .in { width: 100%; max-width: 488px; display: flex; gap: 8px; pointer-events: auto; }
+.dock .in { filter: drop-shadow(0 8px 14px rgba(0,0,0,.22)); }
+.dock .btn.icon { width: 54px; flex: none; padding: 0; background: var(--card); }
+.dock.away { transform: translateY(120%); }
+.who + .socials, .who + * { margin-top: 16px; }
+.more-btn { margin-top: 18px; background: var(--chip); border-color: var(--line); }
+.more { border-top: 1.5px dashed var(--line); margin-top: 18px; padding-top: 4px; }
+.more > h2:first-child, .more > section:first-child h2 { margin-top: 18px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center; text-decoration: none; font: 700 16px/1.2 var(--ct-sans, Inter, sans-serif);
+  padding: 15px 16px; border-radius: 12px; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; width: 100%; }
+.btn:hover { background: var(--chip); }
+.btn.main { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.main:hover { filter: brightness(1.07); background: var(--accent); }
+.btn.sm { width: auto; padding: 9px 13px; font-size: 14px; border-radius: 9px; }
+h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font: 800 26px/1.1 var(--ct-display, sans-serif); margin: 32px 0 12px; }
+h2 small { font: 700 12px/1 var(--ct-sans, sans-serif); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- the Tape ---------- */
+.frame { position: relative; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: #000; border: 1.5px solid var(--ink); }
+.frame img, .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border: 0; display: block; }
+.frame .play { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(transparent 35%, rgba(0,0,0,.6)); border: 0; cursor: pointer; color: #fff; padding: 0; width: 100%; }
+.frame .play span { background: var(--accent); color: var(--on-accent); border-radius: 999px; padding: 13px 22px; font: 700 16px/1 var(--ct-sans, sans-serif); box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.frame .play:hover span { transform: scale(1.04); }
+.cap { margin-top: 8px; font-size: 14px; color: var(--muted); }
+
+/* ---------- dates as ticket stubs ---------- */
+.dates { display: grid; gap: 12px; }
+.stub { position: relative; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; display: grid; grid-template-columns: 74px minmax(0, 1fr); }
+.stub::before, .stub::after { /* the notches where it tears */ content: ""; position: absolute; left: 66px; width: 16px; height: 16px; border-radius: 50%; background: var(--bg); border: 1.5px solid var(--line); }
+.stub::before { top: -9px; } .stub::after { bottom: -9px; }
+.cal { display: grid; place-content: center; text-align: center; border-right: 2px dashed var(--line); padding: 14px 6px; }
+.cal b { display: block; font: 900 30px/1 var(--ct-display, sans-serif); }
+.cal span { font: 800 11px/1.3 var(--ct-sans, sans-serif); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.cal .mo { color: var(--accent); }
+.body { padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.where { min-width: 0; }
+.where b { display: block; font-size: 17px; overflow-wrap: anywhere; }
+.where .hint { color: var(--muted); font-size: 14px; }
+.pill { font-size: 12px; font-weight: 800; padding: 5px 9px; border-radius: 6px; background: var(--chip); white-space: nowrap; letter-spacing: .02em; }
+.pill.hot { background: var(--accent); color: var(--on-accent); }
+.bill { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.bill > span { font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 11px; }
+.mini { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--ink); font-weight: 600; font-size: 14px; }
+.mini i { width: 30px; height: 30px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--edge); padding: 3px; flex: none; }
+.mini img, .mini em { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: var(--pulp); color: var(--print); display: grid; place-items: center; font: normal 800 10px/1 var(--ct-sans, sans-serif); }
+.mini:hover span { text-decoration: underline; }
+
+/* ---------- fan list ---------- */
+.join { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 10px; }
+.join p { margin: 0; color: var(--muted); }
+.join input, .join select { width: 100%; font: 16px/1.3 var(--ct-sans, sans-serif); padding: 12px 13px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); }
+.join .city { position: relative; }
+.join ul { list-style: none; margin: 4px 0 0; padding: 4px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); position: absolute; left: 0; right: 0; z-index: 5; }
+.join li button { width: 100%; text-align: left; background: none; border: 0; padding: 9px 10px; border-radius: 7px; font: inherit; color: var(--ink); cursor: pointer; }
+.join li button:hover { background: var(--chip); }
+.join .msg { font-weight: 600; }
+
+/* ---------- foot ---------- */
+.own { margin-top: 40px; text-align: center; border-top: 1.5px dashed var(--line); padding-top: 26px; }
+.own b { display: block; font: 900 24px/1.1 var(--ct-display, sans-serif); }
+.own p { margin: 6px 0 14px; color: var(--muted); }
+.own .btn { display: inline-flex; width: auto; }
+footer { text-align: center; margin-top: 24px; font-size: 13px; color: var(--muted); }
+footer a { font-weight: 700; text-decoration: none; }
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; z-index: 9; }
+.empty { text-align: center; padding: 80px 0; }
+.empty p { color: var(--muted); }
+@media (max-width: 380px) { .row2 { grid-template-columns: 1fr; } .stub { grid-template-columns: 62px minmax(0, 1fr); } .stub::before, .stub::after { left: 54px; } }
+</style>
+</head>
+<body>
+<main class="wrap" id="app" aria-live="polite"><div class="empty"><p>Loading…</p></div></main>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="/config.js"></script>
+<script src="/sdk/csb.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CFG = window.COMICTABLE_CONFIG || {};
+  var CSB = window.CSB || {};
+  var app = document.getElementById("app");
+  var LOOKS = ["classic", "night", "redwood", "mustard", "spooky", "holiday"];
+  // comictable.com/<id> (or ?c=<id> for testing)
+  var id = decodeURIComponent((location.pathname.match(/^\/([a-z0-9][a-z0-9-]*)\/?$/i) || [])[1] || new URLSearchParams(location.search).get("c") || "").toLowerCase();
+  var here = location.origin + "/" + id;
+
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    for (var k in (attrs || {})) { var v = attrs[k]; if (v === null || v === undefined || v === false) continue;
+      if (k === "text") e.textContent = v; else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? "" : v); }
+    [].concat(kids || []).forEach(function (c) { if (c !== null && c !== undefined && c !== false) e.append(c.nodeType ? c : String(c)); });
+    return e;
+  }
+  var SVG = "http://www.w3.org/2000/svg";
+  function svg(tag, attrs, kids) { var e = document.createElementNS(SVG, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); [].concat(kids || []).forEach(function (c) { e.append(c); }); return e; }
+  function api(path, body) {
+    return fetch(CFG.SUPABASE_URL + "/rest/v1/" + path, { method: body ? "POST" : "GET",
+      headers: { apikey: CFG.SUPABASE_ANON_KEY, Authorization: "Bearer " + CFG.SUPABASE_ANON_KEY, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().catch(function () { return null; }).then(function (b) { if (!r.ok) throw new Error((b && b.message) || r.status); return b; }); });
+  }
+  var t0;
+  function toast(msg) { var t = document.getElementById("toast"); t.textContent = msg; t.hidden = false; clearTimeout(t0); t0 = setTimeout(function () { t.hidden = true; }, 2400); }
+  var safe = function (u) { return /^https:\/\//i.test(String(u || "").trim()) ? String(u).trim() : null; };
+  var initials = function (n) { return String(n || "?").split(/\s+/).map(function (w) { return w[0] || ""; }).join("").slice(0, 2).toUpperCase(); };
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  function niceTime(t) {
+    if (/[ap]\.?m/i.test(String(t || ""))) return String(t).replace(/\s*([ap])\.?m\.?/i, function (_, x) { return x.toLowerCase() + "m"; }).replace(":00", "");  // "9:30 PM" → "9:30pm"
+    var m = String(t || "").match(/^(\d{1,2}):(\d{2})/); if (!m) return t || "";
+    var hh = +m[1], ap = hh >= 12 ? "pm" : "am"; hh = hh % 12 || 12; return hh + (m[2] === "00" ? "" : ":" + m[2]) + ap;
+  }
+  var dayOf = function (d) { return new Date(d.date + "T12:00:00"); };
+
+  function notFound() {
+    document.title = "Coaster not found · ComicTable";
+    app.replaceChildren(el("div", { class: "empty" }, [el("h1", { text: "No one here yet" }), el("p", { text: "Check the link, or ask the comic to send it again." }),
+      el("p", null, el("a", { class: "btn sm", href: "/#coaster", text: "Get your own Coaster" }))]));
+  }
+  if (!id || !CFG.SUPABASE_URL) return notFound();
+
+  // Find the comic by their address (comictable.com/lev-fer), or by an old link that used their id.
+  var who = function (col) { return api("comics?select=*&" + col + "=eq." + encodeURIComponent(id)).catch(function () { return []; }); };
+  who("handle").then(function (rows) { return rows && rows.length ? rows : who("id"); }).then(function (rows) {
+    var c = rows && rows[0];
+    if (c) { id = c.id; var addr = c.handle || c.id; here = location.origin + "/" + addr;
+      try { if (/^\/[^/]+\/?$/.test(location.pathname) && location.pathname.replace(/\//g, "") !== addr) history.replaceState(null, "", "/" + addr); } catch (e) {} }
+    return rows || [];
+  }).then(function (found) { return Promise.all([
+    found,
+    api("rpc/comic_shows", { p_comic: id }).catch(function () { return []; }),
+    api("rpc/also_on_bill", { p_comic: id }).catch(function () { return []; }),
+    api("hosts?select=site_id,hidden&comic_id=eq." + encodeURIComponent(id)).catch(function () { return []; })
+  ]); }).then(function (r) {
+    var c = (r[0] || [])[0]; if (!c) return notFound();
+    var dates = (r[1] || []).filter(function (d) { return d.status !== "cancelled"; });
+    var onSites = (r[3] || []).filter(function (x) { return !x.hidden; }).map(function (x) { return x.site_id; });
+    var ids = "id=in.(" + onSites.map(encodeURIComponent).join(",") + ")";
+    // with live (23_media.sql) when the database has it; without when it doesn't
+    var sitesP = onSites.length ? api("sites?select=id,name,domain,features,live&" + ids).catch(function () { return api("sites?select=id,name,domain,features&" + ids); }).catch(function () { return []; }) : Promise.resolve([]);
+    var shortsP = api("videos?select=youtube_id,title,published&is_short=is.true&hidden=is.false&order=published.desc&limit=12&comic_id=eq." + encodeURIComponent(id)).catch(function () { return []; });
+    return Promise.all([sitesP, shortsP]).then(function (x) { draw(c, dates, r[2] || [], x[0] || [], x[1] || []); });
+  }).catch(function () {
+    app.replaceChildren(el("div", { class: "empty" }, [el("h1", { text: "Couldn't load this" }), el("p", { text: "Check your connection and try again." })]));
+  });
+
+  // A Custom look (comics on a site, and Pro): their own board, ink and band colors, and a one-ink or full-color photo.
+  // The page around it follows the board: light boards get a light page, dark boards a dark one.
+  function customLook(c) {
+    var st = (c.coaster && c.coaster.style) || {}, hex = function (v, d) { return /^#[0-9a-f]{6}$/i.test(v || "") ? v : d; };
+    var lum = function (h) { var n = parseInt(h.slice(1), 16), f = function (x) { x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); };
+      return .2126 * f(n >> 16 & 255) + .7152 * f(n >> 8 & 255) + .0722 * f(n & 255); };
+    var pulp = hex(st.pulp, "#F4ECDC"), dark = lum(pulp) < .25;
+    var ink = hex(st.ink, dark ? "#F3EAD7" : "#1F1F1F"), band = hex(st.band, "#C4452E");
+    document.body.className = "look-" + (dark ? "night" : "classic");
+    var b = document.body.style;
+    b.setProperty("--pulp", pulp); b.setProperty("--print", ink); b.setProperty("--ring", band);
+    b.setProperty("--band-ink", lum(band) > .4 ? "#1F1F1F" : "#FFFFFF");
+    b.setProperty("--accent", band); b.setProperty("--on-accent", lum(band) > .4 ? "#1F1F1F" : "#FFFFFF");
+    b.setProperty("--photo-blend", st.photo === "color" ? "normal" : dark ? "screen" : "multiply");
+    if (st.photo === "color") document.body.classList.add("photo-color");
+    if (st.band === "none") document.body.classList.add("no-band");
+  }
+
+  // A QR code back to this Coaster (made in the browser; the maker loads only when the coaster is flipped).
+  var qrLoad = null;
+  function qrInto(box, text) {
+    qrLoad = qrLoad || new Promise(function (ok, no) {
+      if (window.qrcode) return ok(window.qrcode);
+      var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";
+      s.onload = function () { window.qrcode ? ok(window.qrcode) : no(); }; s.onerror = function () { qrLoad = null; no(); }; document.head.append(s);
+    });
+    qrLoad.then(function (make) {
+      var q = make(0, "M"); q.addData(text); q.make(); var n = q.getModuleCount(), d = "";
+      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) d += "M" + c + " " + r + "h1v1h-1z";
+      box.replaceChildren(svg("svg", { viewBox: "-2 -2 " + (n + 4) + " " + (n + 4), role: "img", "aria-label": "QR code to this page", "shape-rendering": "crispEdges" }, svg("path", { d: d, fill: "currentColor" })));
+    }, function () { box.replaceChildren(); });
+  }
+
+  // a site this comic is on that's live right now (Dashboard → Live), started in the last 12 hours
+  function liveOf(sites) {
+    return sites.map(function (s) { return s.live; }).filter(function (L) {
+      return L && safe(L.url) && (!L.started_at || Date.now() - Date.parse(L.started_at) < 12 * 3600 * 1000);
+    })[0] || null;
+  }
+  function draw(c, dates, bill, sites, shorts) {
+    var look = LOOKS.indexOf(c.look) >= 0 ? c.look : "classic";
+    document.body.className = "look-" + look;
+    if (c.look === "custom") customLook(c);
+    document.title = c.name + " · ComicTable";
+    var parts = [], next = dates[0];
+
+    // ---- the coaster ----
+    // Front: their photo printed in one ink, their name on the band. Back: a QR code to their fan list (or this page).
+    var fanSite = sites.filter(function (s) { return s.features && s.features.fans; }).sort(function (a, b) { return (b.name === c.name) - (a.name === c.name); })[0];
+    var first = c.name.split(" ")[0];
+    var qrTo = fanSite ? (fanSite.domain ? "https://" + fanSite.domain + "/join" : location.origin + "/join/" + encodeURIComponent(fanSite.id)) : here;
+    var wear = ["used", "loved"].indexOf(c.coaster && c.coaster.wear) >= 0 ? c.coaster.wear : "fresh";
+    var seed = 0; String(c.id).split("").forEach(function (ch) { seed = (seed * 31 + ch.charCodeAt(0)) >>> 0; });
+    var rnd = function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    var stain = function (kind, x, y, w, extra) {
+      var d = el("span", { class: "stain " + kind, "aria-hidden": "true" });
+      d.style.setProperty("--x", x + "%"); d.style.setProperty("--y", y + "%"); if (w) d.style.setProperty("--w", w + "%");
+      if (extra) for (var k in extra) d.style.setProperty(k, extra[k]);
+      return d;
+    };
+    // rings partly off the edge, like a glass set down off-center; a few drips; scuffed print when well loved
+    var wearOn = function (back) {
+      if (wear === "fresh") return [];
+      var out = [], rings = wear === "loved" ? 2 : 1;
+      for (var i = 0; i < rings; i++) {
+        var a = rnd() * Math.PI * 2, r = back ? 46 : 22 + rnd() * 20, w = 56 + rnd() * 14;
+        out.push(stain("ring", 50 + Math.cos(a) * r - w / 2, 50 + Math.sin(a) * r - w / 2, w, { "--r": (rnd() * 180) + "deg", "--sx": (0.94 + rnd() * 0.1).toFixed(2) }));
+      }
+      if (wear === "loved") {
+        for (var j = 0; j < 4; j++) { var b = rnd() * Math.PI * 2, rr = back ? 40 + rnd() * 6 : 10 + rnd() * 34, ww = 2.5 + rnd() * 4; out.push(stain("drop", 50 + Math.cos(b) * rr - ww / 2, 50 + Math.sin(b) * rr - ww / 2, ww)); }
+        if (!back) out.push(el("span", { class: "stain scuff", "aria-hidden": "true" }));
+      }
+      return out;
+    };
+    var nick = rnd() * Math.PI * 2;
+    var front = el("div", { class: "face front" }, el("div", { class: "print" }, wearOn(false).concat([
+      safe(c.photo_url) ? el("img", { src: c.photo_url, alt: "" }) : el("div", { class: "initials", text: initials(c.name) }),
+      el("div", { class: "band" }, [el("b", { text: c.name }), el("span", { text: "comictable.com/" + (c.handle || c.id) })])])));
+    var qr = el("div", { class: "qr" });
+    var back = el("div", { class: "face back" }, el("div", { class: "print" }, wearOn(true).concat([
+      el("span", { class: "k", text: fanSite ? "Join " + first + "'s list" : first + "'s Coaster" }), qr,
+      el("span", { class: "url", text: qrTo.replace(/^https?:\/\//, "") })])));
+    var coaster = el("button", { class: "coaster wear-" + wear, style: "--nx:" + (50 + Math.cos(nick) * 48).toFixed(1) + "%;--ny:" + (50 + Math.sin(nick) * 48).toFixed(1) + "%", type: "button", "aria-label": c.name + "'s Coaster. Flip it for a QR code", "aria-pressed": "false", onclick: function () {
+      var f = coaster.classList.toggle("flipped"); coaster.setAttribute("aria-pressed", String(f)); tap.textContent = f ? "Tap to flip back" : "Tap the coaster for a QR code";
+      coaster.classList.remove("shine"); void coaster.offsetWidth; coaster.classList.add("shine");
+      if (f && !qr.firstChild) qrInto(qr, qrTo);
+    } }, el("div", { class: "spin" }, [front, back]));
+    var tap = el("div", { class: "tap", text: "Tap the coaster for a QR code" });
+    var live = liveOf(sites);
+    parts.push(el("section", { class: "table" }, [live ? el("a", { class: "live-badge", href: live.url, target: "_blank", rel: "noopener" }, [el("span", { class: "dot", "aria-hidden": "true" }), "LIVE" + (live.title ? " · " + live.title : "")]) : null, coaster, tap]));
+
+    // The comic decides what's on the Coaster itself ("front"), what's under More, and what's off.
+    var plan = CSB.coasterPlan ? CSB.coasterPlan(c) : {}, front = [], more = [], frontBtns = [], moreBtns = [];
+    // Each item is made once, then placed in the comic's order. Buttons next to each other share a row.
+    var items = {};
+    var put = function (key, node) { if (node) items[key] = { node: node }; };
+    var putBtn = function (key, node) { if (node) items[key] = { node: node, btn: true }; };
+
+    // ---- who (always) ----
+    parts.push(el("section", { class: "who" }, [el("h1", { text: c.name }), c.title ? el("p", { class: "title", text: c.title }) : null,
+      c.status ? el("div", { class: "status", text: c.status }) : null]));
+
+    var so = CSB.socialsOf ? CSB.socialsOf(c) : {};
+    // The comic picks how their socials look (logos, logo + name, or names; brand colors or the Coaster's) and which show.
+    var sset = (c.coaster && c.coaster.social_style) || {}, sstyle = ["icons", "both", "names"].indexOf(sset.style) >= 0 ? sset.style : "icons";
+    var hidden = Array.isArray(sset.hide) ? sset.hide : [], brand = sset.color !== "look";
+    var socials = (CSB.SOCIALS || []).filter(function (x) { return so[x[0]] && x[0] !== "website" && hidden.indexOf(x[0]) < 0; });
+    var logo = function (k) { var sp = el("span", { "aria-hidden": "true" }); sp.innerHTML = CSB.socialIcon ? CSB.socialIcon(k, { brand: brand }) : ""; return sp.firstChild || sp; };
+    put("socials", socials.length ? el("nav", { class: "socials " + sstyle + (brand ? " brand" : ""), "aria-label": "Social links" }, socials.map(function (x) {
+      return el("a", { href: so[x[0]], target: "_blank", rel: "noopener me", "aria-label": sstyle === "icons" ? x[1] : null, title: x[1] }, [sstyle !== "names" ? logo(x[0]) : null, sstyle !== "icons" ? x[1] : null]);
+    })) : null);
+
+    // ---- links ----
+    var links = [];
+    var card = function (href, title, sub, ico, ext) {
+      var i = el("span", { class: "ico", "aria-hidden": "true" }); i.innerHTML = ico;
+      return el("a", { class: "lcard" + (links.length ? "" : " main"), href: href, target: ext ? "_blank" : null, rel: ext ? "noopener" : null }, [i, el("span", null, [el("b", { text: title }), sub ? el("small", { text: sub }) : null]), el("span", { class: "go", "aria-hidden": "true", text: "›" })]);
+    };
+    var globe = CSB.socialIcon ? CSB.socialIcon("website") : "↗";
+    sites.filter(function (s) { return s.domain; }).forEach(function (s) { links.push(card("https://" + s.domain, s.name === c.name ? "My website" : s.name, s.domain, globe)); });
+    if (safe(so.website)) links.push(card(so.website, "Website", so.website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""), globe, true));
+    put("links", links.length ? el("nav", { class: "links", "aria-label": "Links" }, links) : null);
+
+    if (fanSite) {
+      var joinBox = joinForm(c, fanSite);
+      var joinBtn = el("button", { class: "btn", type: "button", text: "Join my list", "aria-expanded": "false", onclick: function () {
+        joinBox.hidden = !joinBox.hidden; joinBtn.setAttribute("aria-expanded", String(!joinBox.hidden)); if (!joinBox.hidden) joinBox.querySelector("input").focus();
+      } });
+      put("join", el("div", { class: "links" }, [joinBtn, joinBox]));
+    }
+
+    // ---- dates, and who else is on the bill ----
+    var byShow = {}; bill.forEach(function (b) { (byShow[b.show_id] = byShow[b.show_id] || []).push(b); });
+    var stub = function (d) {
+      var dt = dayOf(d), others = byShow[d.id] || [];
+      var act = d.status === "sold_out" ? el("span", { class: "pill", text: "Sold out" })
+        : safe(d.url) ? el("a", { class: "btn main sm", href: d.url, target: "_blank", rel: "noopener", text: d.status === "free" ? "Free · RSVP" : "Tickets" })
+        : d.status === "free" ? el("span", { class: "pill", text: "Free" }) : null;
+      return el("article", { class: "stub" }, [
+        el("div", { class: "cal" }, [el("span", { text: DAY[dt.getDay()] }), el("b", { text: dt.getDate() }), el("span", { class: "mo", text: MON[dt.getMonth()] })]),
+        el("div", { class: "body" }, [el("div", { class: "top" }, [el("div", { class: "where" }, [el("b", { text: d.venue || (d.event ? d.site_name : "") || "Show" }),
+            el("div", { class: "hint", text: [d.city, niceTime(d.time), d.event && d.site_name && d.venue ? d.site_name : ""].filter(Boolean).join(" · ") })]),
+            d.status === "few_left" ? el("span", { class: "pill hot", text: "Few left" }) : null]),
+          others.length ? el("div", { class: "bill" }, [el("span", { text: "Also on the bill" })].concat(others.map(function (o) {
+            return el("a", { class: "mini", href: "/" + encodeURIComponent(o.handle || o.comic_id) }, [el("i", null, safe(o.photo_url) ? el("img", { src: o.photo_url, alt: "" }) : el("em", { text: initials(o.name) })), el("span", { text: o.name })]);
+          }))) : null,
+          act ? el("div", null, act) : null])]);
+    };
+    if (next) put("next", el("section", { "aria-label": "Next show" }, [el("h2", null, ["Next up", dates.length > 1 && plan.dates !== "off" ? el("small", { text: dates.length + " shows" }) : null]), stub(next)]));
+    if (dates.length && (plan.next === "off" || dates.length > 1)) {
+      var all = plan.next === "off" ? dates : dates.slice(1);
+      if (all.length) {
+        var list = el("div", { class: "dates" }), shown = 6;
+        var moreDates = el("button", { class: "btn", type: "button", style: "margin-top:12px", text: "All " + all.length + " dates", onclick: function () { shown = all.length; fill(); } });
+        var fill = function () { list.replaceChildren.apply(list, all.slice(0, shown).map(stub)); moreDates.hidden = all.length <= shown; };
+        fill();
+        put("dates", el("section", { "aria-label": "Dates" }, [el("h2", null, [plan.next === "off" ? "Dates" : "After that", el("small", { text: all.length + (all.length === 1 ? " show" : " shows") })]), list, moreDates]));
+      }
+    }
+
+    // ---- the Tape ----
+    var tape = safe(c.tape_url);
+    if (tape) {
+      var embed = CSB.videoEmbed ? CSB.videoEmbed(tape) : "", yt = (tape.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/) || [])[1];
+      var tapeBox = el("section", { class: "tape", "aria-label": "The Tape" }, el("h2", null, ["The Tape", el("small", { text: "Best set right now" })]));
+      if (embed) {
+        var frame = el("div", { class: "frame" }, [yt ? el("img", { src: "https://i.ytimg.com/vi/" + yt + "/hqdefault.jpg", alt: "" }) : null,
+          el("button", { class: "play", type: "button", "aria-label": "Play " + (c.tape_title || "the Tape"), onclick: function () {
+            frame.replaceChildren(el("iframe", { src: embed, title: c.tape_title || c.name + "'s Tape", allow: "autoplay; encrypted-media; picture-in-picture", allowfullscreen: true }));
+          } }, el("span", { text: "▶ Watch" }))]);
+        tapeBox.append(frame); if (c.tape_title) tapeBox.append(el("div", { class: "cap", text: c.tape_title }));
+      } else tapeBox.append(el("a", { class: "btn main", href: tape, target: "_blank", rel: "noopener", text: "▶ " + (c.tape_title || "Watch the Tape") }));
+      put("tape", tapeBox);
+    }
+
+    if (shorts && shorts.length) {
+      put("shorts", el("section", { "aria-label": "Shorts" }, [el("h2", null, ["Shorts", el("small", { text: "Swipe" })]),
+        el("div", { class: "shorts" }, shorts.map(function (v) {
+          var b = el("button", { type: "button", class: "short", "aria-label": "Play: " + v.title }, [el("img", { src: "https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg", alt: "", loading: "lazy" }), el("small", { text: v.title })]);
+          b.addEventListener("click", function () { b.replaceWith(el("div", { class: "short playing" }, el("iframe", { src: "https://www.youtube-nocookie.com/embed/" + v.youtube_id + "?autoplay=1&playsinline=1", title: v.title, allow: "autoplay; encrypted-media; picture-in-picture", allowfullscreen: true }))); });
+          return b;
+        }))]));
+    }
+    var bio = String(c.short_bio || c.bio || "").trim();
+    put("bio", bio ? el("section", { "aria-label": "Bio" }, [el("h2", { text: "About" }), el("p", { class: "bio", text: bio })]) : null);
+
+    var booking = String(c.booking_contact || "").trim(), mail = (booking.match(/[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+/) || [])[0];
+    putBtn("booking", mail ? el("a", { class: "btn", href: "mailto:" + mail, text: "Booking" }) : null);
+    putBtn("press", el("a", { class: "btn", href: "/press/" + encodeURIComponent(c.id), text: "Press kit" }));
+    var share = el("button", { class: "btn", type: "button", text: "Share", onclick: function () {
+      var d = { title: c.name, text: c.name + " on ComicTable", url: here };
+      if (navigator.share) navigator.share(d).catch(function () {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(here).then(function () { toast("Link copied"); }, function () { toast(here); });
+      else toast(here);
+    } });
+    var row = function (btns) { return btns.length ? el("div", { class: btns.length > 1 ? "row2 links" : "links" }, btns) : null; };
+    var order = CSB.coasterOrder ? CSB.coasterOrder(c) : Object.keys(items);
+    ["front", "more"].forEach(function (where) {
+      var out = where === "front" ? front : more, btns = where === "front" ? frontBtns : moreBtns;
+      order.forEach(function (k) {
+        var it = items[k]; if (!it || (plan[k] || "front") !== where) return;
+        if (it.btn) { btns.push(it.node); return; }
+        if (btns.length) { out.push(row(btns.splice(0))); }
+        out.push(it.node);
+      });
+    });
+
+    // ---- put it together: the Coaster, then More ----
+    parts.push.apply(parts, front.concat([row(frontBtns)]).filter(Boolean));
+    var moreAll = more.concat([row(moreBtns)]).filter(Boolean);
+    if (moreAll.length) {
+      var moreBox = el("div", { class: "more", id: "more", hidden: true }, moreAll);
+      var moreBtn = el("button", { class: "btn more-btn", type: "button", "aria-expanded": "false", "aria-controls": "more", text: "More from " + first + " ▾", onclick: function () {
+        moreBox.hidden = !moreBox.hidden; moreBtn.setAttribute("aria-expanded", String(!moreBox.hidden)); moreBtn.textContent = moreBox.hidden ? "More from " + first + " ▾" : "Less ▴";
+      } });
+      parts.push(moreBtn, moreBox);
+    }
+
+    // ---- every Coaster is an invitation ----
+    parts.push(el("section", { class: "own" }, [el("b", { text: "Do comedy?" }), el("p", { text: "Get a Coaster of your own: your Tape, dates and links in one place." }),
+      el("a", { class: "btn main", href: "/#coaster", text: "Get your own Coaster" })]));
+    parts.push(el("footer", null, ["A Coaster on ", el("a", { href: "/", text: "ComicTable" })]));
+    app.replaceChildren.apply(app, parts);
+
+    // ---- the dock: tickets for the next show, or join the list; plus Share ----
+    var old = document.querySelector(".dock"); if (old) old.remove();
+    var go = null;
+    if (live) go = el("a", { class: "btn main", href: live.url, target: "_blank", rel: "noopener" }, [el("span", { class: "dot", "aria-hidden": "true" }), "Watch live"]);
+    else if (next && safe(next.url) && next.status !== "sold_out" && plan.next !== "off") {
+      var nd = dayOf(next);
+      go = el("a", { class: "btn main", href: next.url, target: "_blank", rel: "noopener", text: (next.status === "free" ? "RSVP" : "Tickets") + " · " + DAY[nd.getDay()] + " " + MON[nd.getMonth()] + " " + nd.getDate() });
+    } else if (fanSite && plan.join !== "off") {
+      go = el("button", { class: "btn main", type: "button", text: "Join " + first + "'s list", onclick: function () {
+        var b = document.querySelector('.links button[aria-expanded]');
+        if (b && b.closest("#more") && document.getElementById("more").hidden) document.querySelector(".more-btn").click();
+        if (b && b.getAttribute("aria-expanded") !== "true") b.click();
+        if (b) b.scrollIntoView({ block: "center", behavior: "smooth" });
+      } });
+    }
+    share.className = go ? "btn icon" : "btn main"; share.setAttribute("aria-label", "Share " + c.name + "'s Coaster");
+    if (go) { share.textContent = ""; share.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>'; }
+    else share.textContent = "Share " + first + "'s Coaster";
+    var dock = el("div", { class: "dock" }, el("div", { class: "in" }, [go, share]));
+    document.body.append(dock);
+    // out of the way while the fan-list form is open (the phone keyboard needs the room)
+    document.addEventListener("focusin", function (e) { dock.classList.toggle("away", !!(e.target.closest && e.target.closest(".join"))); });
+  }
+
+  // Join the comic's fan list (it lives on their site, so it's the same list they already use).
+  function joinForm(c, site) {
+    var kit = CSB.init ? CSB.init({ url: CFG.SUPABASE_URL, key: CFG.SUPABASE_ANON_KEY, site: site.id }) : null;
+    var email = el("input", { type: "email", placeholder: "you@email.com", autocomplete: "email", "aria-label": "Email", required: true });
+    var city = el("input", { placeholder: "Your city", autocomplete: "off", "aria-label": "Your city", required: true });
+    var pick = null, list = el("ul", { hidden: true }), seq = 0;
+    var radius = el("select", { "aria-label": "How far you'd go" }, [[25, "Within 25 miles"], [50, "Within 50 miles"], [100, "Within 100 miles"], [250, "Within 250 miles"]].map(function (x) { return el("option", { value: x[0], text: x[1], selected: x[0] === 50 || null }); }));
+    var msg = el("div", { class: "msg", role: "status" });
+    city.addEventListener("input", function () {
+      pick = null; var my = ++seq;
+      if (!kit) return;
+      kit.fans.places(city.value).then(function (rows) {
+        if (my !== seq) return;
+        list.replaceChildren.apply(list, rows.map(function (p) { return el("li", null, el("button", { type: "button", text: p.label, onclick: function () { pick = p; city.value = p.label; list.hidden = true; } })); }));
+        list.hidden = !rows.length;
+      }, function () {});
+    });
+    var form = el("form", { class: "join", hidden: true, onsubmit: function (e) {
+      e.preventDefault(); msg.textContent = "";
+      if (!pick) { msg.textContent = "Pick your city from the list."; city.focus(); return; }
+      var b = form.querySelector("button[type=submit]"); b.disabled = true;
+      kit.fans.join({ email: email.value.trim(), placeId: pick.id, radius: +radius.value, met: "Coaster" }).then(function () {
+        form.replaceChildren(el("p", { class: "msg", text: "You're on " + c.name.split(" ")[0] + "'s list. You'll hear when they play near you." }));
+      }, function (er) { msg.textContent = er.message || "Couldn't sign you up. Try again."; b.disabled = false; });
+    } }, [el("p", { text: "Hear when " + c.name.split(" ")[0] + " plays near you. Nothing else." }), email, el("div", { class: "city" }, [city, list]), radius, msg,
+      el("button", { class: "btn main", type: "submit", text: "Join" })]);
+    return form;
+  }
+})();
+</script>
+</body>
+</html>
