@@ -39,7 +39,8 @@
     cfg = { url: String(o.SUPABASE_URL || o.url || "").replace(/\/$/, ""), key: o.SUPABASE_ANON_KEY || o.key || "", site: o.SITE_ID || o.site || "" };
     return CSB;
   }
-  function ready() { if (!cfg.url) init(); if (!cfg.url || !cfg.key || !cfg.site) throw new Error("CSB isn't configured: SITE_ID, SUPABASE_URL and SUPABASE_ANON_KEY are needed."); }
+  // SUPABASE_URL and SUPABASE_ANON_KEY are always needed; SITE_ID for anything about one site (not a Coaster's own list).
+  function ready() { if (!cfg.url) init(); if (!cfg.url || !cfg.key) throw new Error("CSB isn't configured: SITE_ID, SUPABASE_URL and SUPABASE_ANON_KEY are needed."); }
 
   function friendly(msg, status) {
     if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) return "Couldn't connect. Check your internet and try again.";
@@ -62,7 +63,7 @@
         });
       }, function (e) { throw new Error(friendly(e && e.message)); });
   }
-  var site = function () { return "site_id=eq." + encodeURIComponent(cfg.site); };
+  var site = function () { if (!cfg.site) throw new Error("CSB isn't configured: SITE_ID, SUPABASE_URL and SUPABASE_ANON_KEY are needed."); return "site_id=eq." + encodeURIComponent(cfg.site); };
   var optional = function (p) { return p.catch(function () { return []; }); };
   var visible = function (x) { return !x.hidden; };
   function todayISO() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
@@ -70,7 +71,7 @@
 
   /* ---------------- content ---------------- */
   function load() {
-    ready();
+    ready(); site();
     return Promise.all([
       api("sites?select=id,name,domain,features,profile,theme,community&id=eq." + encodeURIComponent(cfg.site)),
       // The lineup, with each comic's Coaster: a site shows what's on the Coaster, except anything the site
@@ -97,6 +98,7 @@
         return { id: x.id, person: x.host || "", event: !!x.event, lineup: x.lineup_hosts || [], date: x.date, time: x.time || "", venue: x.venue || "", city: x.city || "", venueId: x.venue_id || null,
           tickets: x.url || "", status: x.status || "on_sale", note: x.note || "" };
       }).sort(function (a, b) { return (a.date + timeKey(a.time)).localeCompare(b.date + timeKey(b.time)); });
+      shows = dedupeShows(shows);
       // News (home_picks) took over from announcements: banners in News are what designs used to read as
       // announcements. Old announcements that haven't moved into News yet (database not upgraded) still show.
       var news = homePicks(r[10], shows, today);
@@ -362,17 +364,122 @@
       return api("places?select=id,name,state,country,population&name=ilike." + encodeURIComponent(q + "*") + "&order=population.desc&limit=" + (limit || 8))
         .then(function (rows) { return rows.map(function (p) { return { id: p.id, name: p.name, label: p.name + (p.state ? ", " + p.state : "") + (p.country !== "US" ? " (" + p.country + ")" : "") }; }); });
     },
-    // { email, placeId, radius: 25 | 50 | 100 | 250, met?: "where we met", source?: "site" | "qr" | "embed" } → "joined" or "updated"
-    // met and source need supabase/16_fan_signup.sql; they're only sent when given, so older databases keep working.
+    // { email, name, zip, met?: "where we met", source?: "site" | "qr" | "embed" } → "joined" or "updated".
+    // Name, email and ZIP everywhere (founder, Oct 29); "near a show" is 50 miles from the ZIP. The fan also lands on
+    // the Coaster of every comic on the site's lineup. (The older { email, placeId } form still works.)
     join: function (o) {
+      if (o.zip !== undefined) return api("rpc/join_list", { method: "POST", body: { p_site: cfg.site, p_email: o.email, p_name: o.name || "", p_zip: String(o.zip || ""),
+        p_met: o.met ? String(o.met).slice(0, 200) : null, p_source: o.source || "site" } });
       var body = { p_site: cfg.site, p_email: o.email, p_place: o.placeId, p_radius: o.radius || 50 };
       if (o.met) body.p_met = String(o.met).slice(0, 200);
       if (o.source) body.p_source = o.source;
       return api("rpc/join_fans", { method: "POST", body: body });
     },
-    // For a "stop emailing me" link: ?leave=<token>
-    leave: function (token) { return api("rpc/leave_fans", { method: "POST", body: { p_token: token } }); }
+    // A comic's own list, from their Coaster (no site needed): joinCoaster("lev-fer", { email, name, zip })
+    joinCoaster: function (comic, o) {
+      if (!cfg.url) init();
+      return api("rpc/join_coaster", { method: "POST", body: { p_comic: comic, p_email: o.email, p_name: o.name || "", p_zip: String(o.zip || ""), p_met: o.met ? String(o.met).slice(0, 200) : null } });
+    },
+    // For a "stop emailing me" link: ?leave=<token>. Takes them off everywhere that sign-up reached.
+    leave: function (token) {
+      return api("rpc/leave_list", { method: "POST", body: { p_token: token } }).catch(function () { return api("rpc/leave_fans", { method: "POST", body: { p_token: token } }); });
+    }
   };
+
+  /* ---------------- shared pieces every design uses ---------------- */
+  // Minimal default looks for the shared pieces, added once. Designs restyle them with their own CSS
+  // (.csb-shows, .csb-show, .csb-signup …) or pass their own class names.
+  var styled = false;
+  function baseStyles() {
+    if (styled || typeof document === "undefined") return; styled = true;
+    var st = document.createElement("style"); st.id = "csb-base";
+    st.textContent = ".csb-shows{list-style:none;margin:0;padding:0;display:grid;gap:8px}.csb-show{display:flex;align-items:center;gap:14px}" +
+      ".csb-when{display:grid;justify-items:center;min-width:3.2em;line-height:1.05}.csb-when small{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.75}" +
+      ".csb-when b{font-size:1.5em}.csb-where{flex:1;min-width:0}.csb-where b,.csb-where span{display:block;overflow:hidden;text-overflow:ellipsis}.csb-where span{opacity:.7;font-size:.9em}" +
+      ".csb-act{white-space:nowrap}.csb-tag{font-size:.78em;font-weight:700}.csb-show.cancelled .csb-where{text-decoration:line-through;opacity:.6}" +
+      ".csb-signup{display:grid;gap:8px}.csb-signup .csb-row{display:grid;grid-template-columns:1fr 7.5em;gap:8px}.csb-signup input{font:inherit;min-width:0}" +
+      ".csb-signup .csb-msg:empty{display:none}.csb-signup .csb-fine{font-size:.8em;opacity:.7;margin:0}.csb-signup .csb-fine a{color:inherit}";
+    document.head.appendChild(st);
+  }
+  var MON3 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], DOW3 = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  function niceTime(t) {
+    if (/[ap]\.?m/i.test(String(t || ""))) return String(t).replace(/\s*([ap])\.?m\.?/i, function (_, x) { return x.toLowerCase() + "m"; }).replace(":00", "");
+    var m = String(t || "").match(/^(\d{1,2}):(\d{2})/); if (!m) return t || "";
+    var h = +m[1], ap = h >= 12 ? "pm" : "am"; h = h % 12 || 12; return h + (m[2] === "00" ? "" : ":" + m[2]) + ap;
+  }
+  // One show, ready to show anywhere: the same labels on every site, Coaster and embed.
+  // → { …show, weekday: "Fri", month: "Oct", day: 24, dateLabel: "Fri, Oct 24", timeLabel: "9:30pm",
+  //     action: { label: "Tickets" | "Few left" | "RSVP", url } or null, tag: "Sold out" | "Cancelled" | "Free" | "" }
+  function showView(s) {
+    var d = new Date(String(s.date).slice(0, 10) + "T12:00:00"), url = s.tickets || s.url || "", st = s.status || "on_sale";
+    var gone = st === "sold_out" || st === "cancelled";
+    return Object.assign({}, s, { weekday: DOW3[d.getDay()], month: MON3[d.getMonth()], day: d.getDate(), year: d.getFullYear(),
+      dateLabel: DOW3[d.getDay()] + ", " + MON3[d.getMonth()] + " " + d.getDate(), timeLabel: niceTime(s.time),
+      action: !gone && /^https?:\/\//i.test(url) ? { label: st === "free" ? "RSVP" : st === "few_left" ? "Few left" : "Tickets", url: url } : null,
+      tag: st === "sold_out" ? "Sold out" : st === "cancelled" ? "Cancelled" : st === "free" ? "Free" : "" });
+  }
+  // The same night added twice (by the comic and by a site): one row. Keeps the one with a ticket link.
+  function dedupeShows(list) {
+    var norm = function (x) { return String(x || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }, seen = {}, out = [];
+    (list || []).forEach(function (s) {
+      var k = [s.person || s.comic_id || s.host || (s.event ? "event" : ""), String(s.date).slice(0, 10), s.venueId || s.venue_id || norm(s.venue), norm(niceTime(s.time))].join("|");
+      if (seen[k] === undefined) { seen[k] = out.length; out.push(s); }
+      else if (!(out[seen[k]].tickets || out[seen[k]].url) && (s.tickets || s.url)) out[seen[k]] = s;
+    });
+    return out;
+  }
+  // A ready-made show list: CSB.showList(shows, { limit, empty: "No dates right now.", who: fn(show) → name }).
+  function showList(shows, o) {
+    o = o || {}; baseStyles();
+    var list = dedupeShows(shows).slice(0, o.limit || 999).map(showView);
+    var ul = document.createElement("ul"); ul.className = "csb-shows" + (o.className ? " " + o.className : "");
+    if (!list.length) { var li0 = document.createElement("li"); li0.className = "csb-empty"; li0.textContent = o.empty || "No dates right now. Check back soon."; ul.appendChild(li0); return ul; }
+    list.forEach(function (s) {
+      var li = document.createElement("li"); li.className = "csb-show" + (s.status === "cancelled" ? " cancelled" : "") + (s.status === "sold_out" ? " sold-out" : "");
+      var who = o.who ? o.who(s) : "";
+      li.innerHTML = '<span class="csb-when"><small></small><b></b></span><span class="csb-where"><b></b><span></span></span><span class="csb-act"></span>';
+      li.querySelector(".csb-when small").textContent = s.weekday + " · " + s.month;
+      li.querySelector(".csb-when b").textContent = s.day;
+      li.querySelector(".csb-where b").textContent = s.venue || s.city || "Show";
+      li.querySelector(".csb-where span").textContent = [s.city, s.timeLabel, who, s.note].filter(Boolean).join(" · ");
+      var act = li.querySelector(".csb-act");
+      if (s.action) { var a = document.createElement("a"); a.className = (o.buttonClass || "csb-btn") + (s.status === "few_left" ? " few" : ""); a.href = s.action.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = s.action.label; act.appendChild(a); }
+      else if (s.tag) { var t = document.createElement("span"); t.className = o.tagClass || "csb-tag"; t.textContent = s.tag; act.appendChild(t); }
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+  // The one sign-up form (name, email, ZIP), for a site's list or a comic's own list (o.comic).
+  // CSB.signup({ comic?, source?, met?: true, button: "Join", inputClass, buttonClass, done: fn })
+  function signup(o) {
+    o = o || {}; baseStyles();
+    var f = document.createElement("form"); f.className = "csb-signup" + (o.className ? " " + o.className : ""); f.noValidate = true;
+    var field = function (name, ph, type, extra) { var i = document.createElement("input"); i.name = name; i.type = type || "text"; i.placeholder = ph; i.setAttribute("aria-label", ph); if (o.inputClass) i.className = o.inputClass; for (var k in (extra || {})) i.setAttribute(k, extra[k]); return i; };
+    var name = field("name", "First name", "text", { autocomplete: "given-name", maxlength: "80" });
+    var email = field("email", "Email", "email", { autocomplete: "email", maxlength: "200" });
+    var zip = field("zip", "ZIP", "text", { autocomplete: "postal-code", inputmode: "numeric", maxlength: "5", pattern: "[0-9]{5}" });
+    var met = o.met ? field("met", "Where did we meet? (optional)", "text", { maxlength: "200" }) : null;
+    var btn = document.createElement("button"); btn.type = "submit"; btn.textContent = o.button || "Join"; if (o.buttonClass) btn.className = o.buttonClass;
+    var msg = document.createElement("p"); msg.className = "csb-msg"; msg.setAttribute("role", "status");
+    var fine = document.createElement("p"); fine.className = "csb-fine";
+    fine.innerHTML = 'Only emails about shows near you. Unsubscribe anytime. <a href="https://comictable.com/privacy" target="_blank" rel="noopener">Privacy</a>';
+    var row = document.createElement("div"); row.className = "csb-row"; row.appendChild(email); row.appendChild(zip);
+    [name, row, met, btn, msg, fine].forEach(function (x) { if (x) f.appendChild(x); });
+    f.addEventListener("submit", function (e) {
+      e.preventDefault(); msg.textContent = "";
+      var em = email.value.trim(), z = zip.value.replace(/\D/g, "");
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { msg.textContent = "Add your email."; email.focus(); return; }
+      if (z.length !== 5) { msg.textContent = "Add your 5-digit ZIP code."; zip.focus(); return; }
+      btn.disabled = true;
+      var data = { email: em, name: name.value.trim(), zip: z, met: met ? met.value.trim() : "", source: o.source || "site" };
+      (o.comic ? fans.joinCoaster(o.comic, data) : fans.join(data)).then(function (r) {
+        btn.disabled = false; f.classList.add("csb-done");
+        msg.textContent = o.thanks || (r === "updated" ? "Updated. Thanks!" : "You're on the list. We'll tell you when there's a show near you.");
+        if (o.done) o.done(r);
+      }, function (er) { btn.disabled = false; msg.textContent = er.message || "That didn't go through. Try again."; });
+    });
+    return f;
+  }
 
   /* ---------------- home screen items ----------------
    * Every comic arranges their Home screen item by item: each link, each social, Patreon, each podcast,
@@ -553,6 +660,6 @@
     return out;
   }
 
-  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
+  var CSB = { showView: showView, showList: showList, dedupeShows: dedupeShows, signup: signup, init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

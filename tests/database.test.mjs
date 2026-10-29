@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "99_rules.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "99_rules.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -514,4 +514,70 @@ test("forum and chat safety: no links by default, approved fans can, reports hid
   // chat: the same link rule
   assert.match(await as(null, `insert into chat_messages (site_id, author, body, device) values ('cockfight', 'Spam2', 'go to spam.xyz', 'c1')`), /approved fans/);
   await db.exec(`update sites set community = community || '{"hold_first_posts": false, "links_from": "nobody"}' where id = 'cockfight'`);
+});
+
+test("Coaster teams: the comic and their team change the Coaster; a site's team only looks after Coasters nobody has claimed", async () => {
+  const RITA = "77777777-7777-7777-7777-777777777771", MGR = "77777777-7777-7777-7777-777777777772", BOOKER = "77777777-7777-7777-7777-777777777773", SITE = "77777777-7777-7777-7777-777777777774";
+  await q(`insert into auth.users values ('${RITA}', 'rita@x'), ('${MGR}', 'mgr@x'), ('${BOOKER}', 'booker@x'), ('${SITE}', 'siteowner@x') on conflict do nothing`);
+  await q(`insert into admins (user_id, site_id, role) values ('${SITE}', 'cockfight', 'owner') on conflict do nothing`);
+  await q(`insert into comics (id, name) values ('rita-ramos', 'Rita Ramos') on conflict do nothing`);
+  await q(`insert into hosts (id, site_id, comic_id, name, sort) values ('cockfight-rita', 'cockfight', 'rita-ramos', 'Rita Ramos', 9) on conflict do nothing`);
+  // unclaimed: Cockfight's owner looks after it
+  assert.equal(await as(SITE, `update comics set bio = 'site wrote this' where id = 'rita-ramos'`), "ok");
+  assert.equal((await q("select bio from comics where id = 'rita-ramos'"))[0].bio, "site wrote this");
+  // Rita claims it; now the site's owner can't change her Coaster
+  await q(`update comics set user_id = '${RITA}' where id = 'rita-ramos'`);
+  await as(SITE, `update comics set bio = 'site again' where id = 'rita-ramos'`);
+  assert.equal((await q("select bio from comics where id = 'rita-ramos'"))[0].bio, "site wrote this");
+  // her manager (Editor on her team) can; a "Shows only" booker can add dates but not change the Coaster
+  await q(`insert into comic_team (comic_id, user_id, role) values ('rita-ramos', '${MGR}', 'editor'), ('rita-ramos', '${BOOKER}', 'shows')`);
+  assert.equal(await as(MGR, `update comics set bio = 'manager wrote this' where id = 'rita-ramos'`), "ok");
+  assert.equal((await q("select bio from comics where id = 'rita-ramos'"))[0].bio, "manager wrote this");
+  await as(BOOKER, `update comics set bio = 'booker' where id = 'rita-ramos'`);
+  assert.equal((await q("select bio from comics where id = 'rita-ramos'"))[0].bio, "manager wrote this");
+  assert.equal(await as(BOOKER, `insert into shows (comic_id, site_id, date, venue) values ('rita-ramos', null, current_date + 3, 'Booker added')`), "ok");
+  // the team sees its own rows; only Rita (or a team owner) manages the team
+  assert.deepEqual((await rows(MGR, "select role from comic_team where user_id = '" + MGR + "'")).map((r) => r.role), ["editor"]);
+  assert.equal((await rows(RITA, "select public.can_manage_comic_team('rita-ramos') ok"))[0].ok, true);
+  assert.equal((await rows(MGR, "select public.can_manage_comic_team('rita-ramos') ok"))[0].ok, false);
+});
+
+test("fans: name, email and ZIP; a site sign-up lands on every comic on the lineup; one link takes it all back", async () => {
+  await q(`insert into zips values ('10001', 40.748, -73.997, 'New York', 'NY'), ('02116', 42.350, -71.077, 'Boston', 'MA') on conflict do nothing`);
+  await q(`update sites set features = coalesce(features, '{}'::jsonb) || '{"fans": true}' where id = 'cockfight'`);
+  assert.match(await as(null, `select public.join_list('cockfight', 'fan@x.com', 'Sam', '99999')`), /ZIP code doesn't look right/);
+  assert.equal(await as(null, `select public.join_list('cockfight', 'Fan@X.com', 'Sam', '10001')`), "ok");
+  const fan = (await q("select * from fans where site_id = 'cockfight' and email = 'fan@x.com'"))[0];
+  assert.deepEqual([fan.name, fan.zip, fan.city, fan.state, fan.radius_mi], ["Sam", "10001", "New York", "NY", 50]);
+  const lineup = (await q("select comic_id from hosts where site_id = 'cockfight' and comic_id is not null")).map((r) => r.comic_id).sort();
+  const copies = (await q("select comic_id, city from comic_fans where fan_id = '" + fan.id + "'"));
+  assert.deepEqual(copies.map((r) => r.comic_id).sort(), lineup, "every comic on the lineup gets the fan");
+  // a comic who joins the lineup later gets the site's fans so far; leaving takes nothing away
+  await q(`insert into comics (id, name) values ('new-guy', 'New Guy') on conflict do nothing`);
+  await q(`insert into hosts (id, site_id, comic_id, name, sort) values ('cockfight-new-guy', 'cockfight', 'new-guy', 'New Guy', 10)`);
+  assert.equal((await q("select count(*)::int n from comic_fans where comic_id = 'new-guy'"))[0].n, (await q("select count(*)::int n from fans where site_id = 'cockfight'"))[0].n);
+  await q(`delete from hosts where id = 'cockfight-new-guy'`);
+  assert.ok((await q("select count(*)::int n from comic_fans where comic_id = 'new-guy'"))[0].n > 0, "keeps what they had");
+  await as(null, `select public.join_list('cockfight', 'later@x.com', 'Lee', '02116')`);
+  assert.equal((await q("select count(*)::int n from comic_fans where comic_id = 'new-guy' and email = 'later@x.com'"))[0].n, 0, "nothing new after leaving");
+  // nobody outside can read the lists; the comic's own login can read theirs
+  assert.match(await as(null, "select * from comic_fans"), /permission denied/);
+  // one "stop emailing me" link: off the site's list and every Coaster copy
+  assert.equal((await rows(null, `select public.leave_list('${fan.token}') ok`))[0].ok, true);
+  assert.equal((await q("select count(*)::int n from comic_fans where lower(email) = 'fan@x.com'"))[0].n, 0);
+  // joining a comic's own list from their Coaster, and leaving it
+  assert.equal(await as(null, `select public.join_coaster('new-guy', 'direct@x.com', 'Dee', '02116')`), "ok");
+  const direct = (await q("select * from comic_fans where comic_id = 'new-guy' and email = 'direct@x.com'"))[0];
+  assert.deepEqual([direct.city, direct.source, direct.fan_id], ["Boston", "coaster", null]);
+  // privacy: ComicTable staff can remove an email everywhere; nobody else can
+  assert.match(await as("77777777-7777-7777-7777-777777777774", `select public.forget_email('later@x.com')`), /Only ComicTable staff/);
+  assert.equal(await as(OWNER, `select public.forget_email('later@x.com')`), "ok");
+  assert.equal((await q("select count(*)::int n from comic_fans where email = 'later@x.com'"))[0].n + (await q("select count(*)::int n from fans where email = 'later@x.com'"))[0].n, 0);
+});
+
+test("podcasts a comic is on stay on their Coaster, and they can switch one off", async () => {
+  await q(`insert into episodes (site_id, num, title, posted, show_name) values ('cockfight', 501, 'New one', current_date, 'Cockfight')`);
+  const lev = (await q("select * from comic_podcasts where comic_id = 'lev-fer' and site_id = 'cockfight'"));
+  assert.ok(lev.some((p) => p.show_name === "Cockfight"));
+  assert.ok((await rows(null, "select count(*)::int n from comic_podcasts where comic_id = 'lev-fer'"))[0].n > 0, "anyone can see which shows a comic is on");
 });

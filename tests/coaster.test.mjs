@@ -37,7 +37,7 @@ test("a Coaster: photo, name, bio, socials, the Tape, their sites, press kit and
   assert.match(d.querySelector(".cap").textContent, /Live at the Cellar/);
   d.querySelector(".frame .play").click();
   assert.match(d.querySelector(".frame iframe").src, /youtube-nocookie\.com\/embed\/abcdefghijk/);
-  const links = [...d.querySelectorAll(".links a")].map((a) => a.getAttribute("href"));
+  const links = [...d.querySelectorAll(".links a")].map((a) => a.getAttribute("href")).filter((h) => !/privacy/.test(h));
   assert.deepEqual(links, ["https://levfer.gay", "https://cockfightpodcast.com", "mailto:book@lev.example", "/press/lev-fer"]);
   assert.match(d.querySelector(".lcard").textContent, /My website.*levfer\.gay/, "their own site says My website");
 });
@@ -61,7 +61,7 @@ test("next dates with tickets, and who else is on the bill links to their Coaste
   assert.match(other.textContent, /CTColum Tyrrell/);
   // tap the coaster: it flips to a QR code
   const coaster = d.querySelector(".coaster");
-  assert.match(d.querySelector(".back").textContent, /Lev Fer's Coaster.*comictable\.com\/lev-fer/s, "no fan list: the QR goes to the Coaster");
+  assert.match(d.querySelector(".back").textContent, /Join Lev Fer's list.*comictable\.com\/lev-fer#join/s, "no site with a list: the QR joins the comic's own list");
   coaster.click();
   assert.ok(coaster.classList.contains("flipped"));
   assert.equal(coaster.getAttribute("aria-pressed"), "true");
@@ -72,34 +72,42 @@ test("the name is printed on the coaster's band, and the page invites other comi
   assert.equal(d.querySelector(".front .ribbon b").textContent, "Tristan Bowling");
   assert.equal(d.querySelector(".front .initials").textContent, "TB");
   assert.equal([...d.querySelectorAll("a")].find((a) => /Get your own Coaster/.test(a.textContent)).getAttribute("href"), "/#coaster");
-  assert.ok(!d.querySelector(".join"), "no fan list without a site that has one");
+  assert.ok(d.querySelector(".join .csb-signup"), "every Coaster can collect fans, even with no site");
 });
 
-test("fans can join the comic's list from the Coaster", async () => {
-  const sent = [];
-  const sdk2 = sdk.replace(/<\/script/g, "<\\/script");
-  const dom = new JSDOM(html, { runScripts: "dangerously", url: "https://comictable.com/lev-fer", beforeParse(w) {
-    w.fetch = async (u, o) => { const t = u.split("/rest/v1/")[1].split("?")[0]; if (o && o.body) sent.push([t, JSON.parse(o.body)]);
-      const data = { comics: [{ id: "lev-fer", name: "Lev Fer" }], hosts: [{ site_id: "lev-fer" }], sites: [{ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay", features: { fans: true } }],
-        places: [{ id: 7, name: "Boston", state: "MA", country: "US" }], "rpc/join_fans": "joined" };
-      return { ok: true, status: 200, text: async () => JSON.stringify(data[t] ?? []), json: async () => data[t] ?? [] }; };
-  } });
-  opened.push(dom.window);
-  await new Promise((r) => setTimeout(r, 80));
-  const d = dom.window.document, w = dom.window;
-  [...d.querySelectorAll("button")].find((b) => b.textContent === "Join my list").click();
-  const form = d.querySelector(".join");
-  assert.ok(!form.hidden);
-  form.querySelector('input[type="email"]').value = "fan@x.com";
-  const city = form.querySelector('input[aria-label="Your city"]'); city.value = "Bos"; city.dispatchEvent(new w.Event("input"));
-  await new Promise((r) => setTimeout(r, 30));
-  form.querySelector("li button").click();
-  form.querySelector('button[type="submit"]').click();
-  await new Promise((r) => setTimeout(r, 30));
-  const join = sent.find((x) => x[0] === "rpc/join_fans")[1];
-  assert.deepEqual([join.p_site, join.p_email, join.p_place, join.p_met], ["lev-fer", "fan@x.com", 7, "Coaster"]);
+test("fans join with name, email and ZIP: the site's list when there is one, otherwise the comic's own", async () => {
+  async function joinOn(data) {
+    const sent = [];
+    const dom = new JSDOM(html, { runScripts: "dangerously", url: "https://comictable.com/lev-fer", beforeParse(w) {
+      w.fetch = async (u, o) => { const t = u.split("/rest/v1/")[1].split("?")[0]; if (o && o.body) sent.push([t, JSON.parse(o.body)]);
+        const all = { comics: [{ id: "lev-fer", name: "Lev Fer" }], "rpc/join_list": "joined", "rpc/join_coaster": "joined", ...data };
+        return { ok: true, status: 200, text: async () => JSON.stringify(all[t] ?? []), json: async () => all[t] ?? [] }; };
+    } });
+    opened.push(dom.window);
+    await new Promise((r) => setTimeout(r, 80));
+    const d = dom.window.document, w = dom.window;
+    [...d.querySelectorAll("button")].find((b) => b.textContent === "Join my list").click();
+    const form = d.querySelector(".join");
+    assert.ok(!form.hidden);
+    assert.equal(form.querySelector('select'), null, "no miles question");
+    form.querySelector('input[name="name"]').value = "Sam";
+    form.querySelector('input[type="email"]').value = "fan@x.com";
+    form.querySelector('input[name="zip"]').value = "021";
+    form.querySelector("form").dispatchEvent(new w.Event("submit", { cancelable: true }));
+    assert.match(form.textContent, /5-digit ZIP/);
+    form.querySelector('input[name="zip"]').value = "02116";
+    form.querySelector("form").dispatchEvent(new w.Event("submit", { cancelable: true }));
+    await new Promise((r) => setTimeout(r, 30));
+    return { d, sent };
+  }
+  let { d, sent } = await joinOn({ hosts: [{ site_id: "lev-fer" }], sites: [{ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay", features: { fans: true } }] });
+  const join = sent.find((x) => x[0] === "rpc/join_list")[1];
+  assert.deepEqual([join.p_site, join.p_email, join.p_name, join.p_zip], ["lev-fer", "fan@x.com", "Sam", "02116"]);
   assert.match(d.querySelector(".join").textContent, /on Lev's list/);
   assert.match(d.querySelector(".back").textContent, /Join Lev Fer's list.*levfer\.gay\/join/s, "with a fan list, the coaster's QR is the sign-up");
+  ({ d, sent } = await joinOn({}));
+  const own = sent.find((x) => x[0] === "rpc/join_coaster")[1];
+  assert.deepEqual([own.p_comic, own.p_email, own.p_zip], ["lev-fer", "fan@x.com", "02116"]);
 });
 
 test("lots of dates: the next one, six more under More, then all of them", async () => {

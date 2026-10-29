@@ -44,7 +44,7 @@ if (id === "platform") {
   writeFileSync(join(out, "_headers"), ["/app.html", "/login", "/dashboard"].map((p) => p + "\n  X-Robots-Tag: noindex, nofollow\n").join("") +
     "/embed.js\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=300\n");
   // comictable.com/join/<site>: the QR-code fan sign-up, for any comic (their own domain has /join too)
-  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/press/*  /press.html  200", "/admin  /login  301", "/admin.html  /login  301", "/join/*  /join.html  200",
+  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/press/*  /press.html  200", "/admin  /login  301", "/admin.html  /login  301", "/join/*  /join.html  200", "/privacy  /privacy.html  200",
     // comictable.com/<comic>: their Coaster. Last, so every real page and rule above wins.
     "/:comic  /.netlify/functions/coaster  200"].join("\n") + "\n");
   console.log(`Built the ComicTable admin into ${out} (${sites.length} site${sites.length === 1 ? "" : "s"} known)`);

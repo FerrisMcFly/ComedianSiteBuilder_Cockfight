@@ -1,4 +1,4 @@
-// The QR-code sign-up page (platform/home/join.html): one screen, email + city, optional "where did we meet".
+// The QR-code sign-up page (platform/home/join.html): one screen, name, email and ZIP, optional "where did we meet".
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -40,23 +40,22 @@ test("on comictable.com/join/<site>, and sign-up sends where you met and that it
   const { w, d, posts, gets } = await open("https://comictable.com/join/lev-fer", { ...db, PLATFORM: true });
   assert.ok(gets.some((u) => u.includes("sites?") && u.includes("id=eq.lev-fer")));
   d.getElementById("email").value = "fan@x.com";
-  const city = d.getElementById("city"); city.value = "st l"; city.dispatchEvent(new w.Event("input"));
-  await new Promise((r) => setTimeout(r, 300));
-  d.querySelector("#places button").click();
+  d.getElementById("fname").value = "Sam"; d.getElementById("zip").value = "63101";
   d.getElementById("met").value = "The airport";
   d.getElementById("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await new Promise((r) => setTimeout(r, 50));
-  assert.deepEqual(posts.find((p) => p[0] === "rpc/join_fans")[1], { p_site: "lev-fer", p_email: "fan@x.com", p_place: 7, p_radius: 50, p_met: "The airport", p_source: "qr" });
+  assert.deepEqual(posts.find((p) => p[0] === "rpc/join_list")[1], { p_site: "lev-fer", p_email: "fan@x.com", p_name: "Sam", p_zip: "63101", p_met: "The airport", p_source: "qr" });
   assert.ok(!d.getElementById("done").hidden);
-  assert.match(d.getElementById("doneLine").textContent, /when Lev Fer plays near St\. Louis, MO/);
+  assert.match(d.getElementById("doneLine").textContent, /when Lev Fer has a show near you/);
 });
 
 test("where you met is optional, and a site with the fan list off says so", async () => {
   let { w, d, posts } = await open("https://levfer.gay/join", { ...db, SITE_ID: "lev-fer" });
   d.getElementById("email").value = "fan@x.com";
-  const city = d.getElementById("city"); city.value = "st l"; city.dispatchEvent(new w.Event("input"));
-  await new Promise((r) => setTimeout(r, 300)); d.querySelector("#places button").click();
   d.getElementById("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await new Promise((r) => setTimeout(r, 50));
-  assert.ok(!("p_met" in posts.find((p) => p[0] === "rpc/join_fans")[1]));
+  assert.match(d.getElementById("msg").textContent, /ZIP/); assert.equal(posts.length, 0);
+  d.getElementById("zip").value = "63101";
+  d.getElementById("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await new Promise((r) => setTimeout(r, 50));
+  assert.equal(posts.find((p) => p[0] === "rpc/join_list")[1].p_met, null);
   ({ d } = await open("https://levfer.gay/join", { ...db, SITE_ID: "lev-fer" }, { ...data, sites: [{ ...data.sites[0], features: {} }] }));
   assert.match(d.body.textContent, /isn't taking sign-ups right now/);
 });

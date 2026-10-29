@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy · ComicTable</title>
+<meta name="description" content="What happens to your name, email and ZIP when you join a comic's list on ComicTable.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand/tokens.css">
+<style>
+/* Plain-words privacy for fans who join a comic's list. Linked from every sign-up form ("Privacy").
+   Says only what ComicTable actually does today. */
+:root { --ink: var(--ct-charcoal, #1d1b19); --bg: var(--ct-ivory, #f6f1e7); --muted: var(--ct-muted, #6b655c); --rule: var(--ct-ivory-deep, #e6dccb); --red: var(--ct-redwood, #8f2d1f); }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 17px/1.65 var(--ct-sans, Inter, system-ui, sans-serif); -webkit-font-smoothing: antialiased; }
+a { color: var(--red); }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+header { border-bottom: 1.5px solid var(--ink); }
+header .wrap { padding-top: 16px; padding-bottom: 16px; font: 700 12px/1 var(--ct-sans, Inter, sans-serif); letter-spacing: .14em; text-transform: uppercase; }
+header a { color: var(--ink); text-decoration: none; }
+main { padding: 40px 0 56px; }
+h1 { font: 900 clamp(36px, 7vw, 56px)/1 var(--ct-display, Inter, sans-serif); margin: 0 0 12px; }
+.lede { color: var(--muted); margin: 0 0 32px; font-size: 19px; }
+h2 { font-size: 19px; margin: 32px 0 6px; }
+p, ul { margin: 0 0 12px; }
+ul { padding-left: 20px; }
+footer { border-top: 1px solid var(--rule); }
+footer .wrap { padding-top: 20px; padding-bottom: 32px; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header><div class="wrap"><a href="/">ComicTable</a></div></header>
+<main><div class="wrap">
+  <h1>Privacy</h1>
+  <p class="lede">The short version: you join a comic's list, they can tell you when they have a show near you. That's it.</p>
+
+  <h2>What we keep</h2>
+  <ul>
+    <li>Your name, email and ZIP code.</li>
+    <li>Where you signed up (a comic's site, their Coaster or a QR code), and "where we met" if you filled it in.</li>
+  </ul>
+
+  <h2>Who sees it</h2>
+  <p>The comic whose list you joined, and the people on their team. If you join a show's or group's list, the comics on that lineup when you sign up get you on their lists too. Nobody else.</p>
+
+  <h2>What it's for</h2>
+  <p>Telling you about shows within about 50 miles of your ZIP. We don't sell it, rent it or share it with advertisers.</p>
+
+  <h2>Getting off the list</h2>
+  <p>Every email has a one-tap unsubscribe link. One tap takes you off every list you joined through ComicTable.</p>
+
+  <h2>Deleting everything</h2>
+  <p>Want your email gone completely? Email <a href="mailto:hello@comictable.com">hello@comictable.com</a> from that address and we'll delete it.</p>
+</div></main>
+<footer><div class="wrap">ComicTable · Last updated October 2026</div></footer>
+</body>
+</html>
