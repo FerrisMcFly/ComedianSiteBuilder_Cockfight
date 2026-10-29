@@ -83,7 +83,7 @@ const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", 
 test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open("#home");
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  assert.equal(d.querySelectorAll(".nav-btn").length, 15);
+  assert.equal(d.querySelectorAll(".nav-btn").length, 9, "a short menu: only what the site uses");
   assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Booking", "Content", "Fans", "Website"]);
   assert.equal([...d.querySelectorAll(".nav-btn")].pop().dataset.sec, "settings", "Settings sits at the bottom");
   assert.match(d.querySelector(".crumbs").textContent, /ComicTable.*Cockfight/s);
@@ -214,7 +214,7 @@ test("episodes, videos, merch, settings all render", async () => {
   assert.equal(d.querySelector("details form input[type=number]").value, "92");
   w.location.hash = "videos"; await wait(); assert.match(d.body.textContent, /Connect your YouTube channel/);
   w.location.hash = "merch"; await wait(); assert.match(d.body.textContent, /Nothing for sale yet/);
-  w.location.hash = "theme"; await wait();
+  w.location.hash = "settings"; await wait();
   const merchSwitch = d.querySelector('input[aria-label="Merch"]'); merchSwitch.checked = false; merchSwitch.dispatchEvent(new w.Event("change")); await wait(40);
   assert.equal(db.sites[0].features.merch, false);
   assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /Merch/.test(b.textContent)));
@@ -233,10 +233,11 @@ test("profile and theme settings save to the site", async () => {
   set(w, d.querySelector("main input"), "The funniest podcast"); d.querySelector("main form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
   assert.equal(db.sites[0].profile.tagline, "The funniest podcast");
   w.location.hash = "theme"; await wait(80);
-  assert.match(d.querySelector("h1").textContent, /^Design$/); assert.match(d.querySelector(".page-head .sub").textContent, /90s Cantina/);
+  assert.match(d.querySelector("h1").textContent, /^Website$/); assert.match(d.querySelector(".tab-panel").textContent, /90s Cantina/);
+  assert.equal(d.querySelector('.page-tabs [aria-selected="true"]').textContent, "Look");
   const splash = d.querySelector('input[aria-label="Rooster splash screen"]'); splash.checked = false;
   d.querySelector('select[aria-label="Scrolling banner speed"]').value = "fast";
-  [...d.querySelectorAll("main form.card")].find((f) => /Save custom/.test(f.textContent)).dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  splash.form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
   assert.equal(db.sites[0].theme.splash, false); assert.equal(db.sites[0].theme.banner_speed, "fast"); assert.equal(db.sites[0].theme.music, true);
 });
 
@@ -328,9 +329,8 @@ test("team section explains when it isn't set up yet", async () => {
 test("every site gets the same pages: Home screen (News, Links, Layout) is always there, whatever the design", async () => {
   const { d } = await open("#home", null, null);
   const labels = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
-  assert.ok(labels.some((l) => /Home screen/.test(l)), labels.join(","));
-  assert.ok(!labels.some((l) => /Announcements|^🔗?Links/.test(l)), "Announcements and Links live on the Home screen page now");
-  assert.ok(labels.some((l) => /About & contact/.test(l)) && labels.some((l) => /Settings/.test(l)) && labels.some((l) => /Press kit/.test(l)) && labels.some((l) => /Design/.test(l)));
+  assert.ok(labels.some((l) => /Website/.test(l)) && labels.some((l) => /Settings/.test(l)), labels.join(","));
+  assert.ok(!labels.some((l) => /Announcements|Links|Home screen|Design|About|Press kit|Live/.test(l)), "one Website page; the press kit is the Coaster's; Go live is on Overview");
   assert.match(d.querySelector("main").textContent, /Add news/);
 });
 
@@ -712,7 +712,7 @@ test("Home screen picks: add one, pin a show to the top, reorder", async () => {
     db.home_picks = [];
     db.shows.push({ id: "s9", site_id: "cockfight", host: "lev", date: fri, time: "9:00 PM", venue: "Laugh Boston", city: "Boston, MA", url: "https://t/9", status: "on_sale" });
   }, theme);
-  assert.ok([...d.querySelectorAll(".nav-btn")].some((b) => /Home screen/.test(b.textContent)));
+  assert.equal(d.querySelector('.nav-btn[aria-current="page"]').dataset.sec, "website");
   assert.match(d.body.textContent, /No news yet/);
   const form = d.querySelector("form.card");
   set(w, form.querySelector('input[aria-label="Headline"]'), "New special out now");
@@ -745,13 +745,13 @@ test("Design: look settings and the site's sections; home screen settings live o
     { key: "accent", label: "Highlight color", type: "color", default: "#ffb238" },
     { key: "tip_lines", label: "Your loading-screen jokes", type: "lines", default: [] }] };
   const { w, d, db } = await open("#theme", (db) => { db.home_picks = []; }, theme);
-  assert.ok(![...d.querySelectorAll(".set-head h2")].some((x) => x.textContent === "Home screen"), "no home screen settings on Design");
-  assert.ok(d.querySelector('input[role="switch"][aria-label="Podcast"]'), "the site's sections are switched on and off here");
+  assert.ok(![...d.querySelectorAll(".set-head h2")].some((x) => x.textContent === "Home screen"), "no home screen settings on Look");
+  assert.ok(!d.querySelector('input[role="switch"][aria-label="Podcast"]'), "the site's sections are switched on and off in Settings");
   set(w, d.querySelector('textarea[aria-label="Your loading-screen jokes"]'), "One\n\n  Two  \n");
   const rows = () => [...d.querySelectorAll(".order-row")];
   assert.deepEqual(rows().map((r) => r.querySelector("b").textContent), ["Tour Dates", "Clips"]);
   press(w, rows()[1].querySelector(".drag-grip"), "ArrowUp"); await wait();
-  const form = [...d.querySelectorAll("form.card")].find((f) => /Save custom/.test(f.textContent));
+  const form = d.querySelector('textarea[aria-label="Your loading-screen jokes"]').form;
   form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.menu)).map((x) => x.key), ["clips", "shows"]);
   assert.equal(db.sites[0].theme.accent, "#ffb238");
@@ -778,8 +778,8 @@ test("Profile: the link preview card updates as you type and saves", async () =>
   assert.equal(db.sites[0].profile.share_title, "COCKFIGHT LIVE");
 });
 
-test("Design: every podcast the site's comics are on, each with its own switch", async () => {
-  const { w, d, db } = await open("#theme", (db) => {
+test("Podcast: every podcast the site's comics are on, each with its own switch", async () => {
+  const { w, d, db } = await open("#podcast", (db) => {
     db.episodes[0].show_name = "Cockfight";
     db.sites.push({ id: "modern-apes", name: "The Modern Apes Podcast", domain: "modernapes.com", features: { podcast: true } });
     db.hosts.push({ id: "ma-tristan", site_id: "modern-apes", comic_id: "tristan-bowling", name: "Tristan Bowling", sort: 0 });
@@ -919,7 +919,8 @@ test("roles: a shows-only login sees just Shows, a moderator just the forum and 
   assert.deepEqual([...booker.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["shows"]);
   assert.match(booker.d.querySelector("h1").textContent, /Shows/, "they land on Shows");
   const mod = await open("#home", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "moderator" }]; db.sites.find((x) => x.id === "cockfight").features = { ...db.sites.find((x) => x.id === "cockfight").features, forum: true, chat: true }; });
-  assert.deepEqual([...mod.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["forum", "chat", "moderation"]);
+  assert.deepEqual([...mod.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["community"]);
+  assert.deepEqual([...mod.d.querySelectorAll(".page-tabs button")].map((b) => b.textContent), ["Forum", "Chat room", "Moderation"]);
 });
 
 test("roles: ComicTable staff work on every site but can't create sites, change the front page or manage staff", async () => {
@@ -1092,23 +1093,22 @@ test("Coaster settings: wear (fresh, used, well loved) is saved with the Coaster
   assert.equal(db.comics.find((c) => c.id === "lev-fer").coaster.wear, "loved");
 });
 
-test("Design: Options every site has (shows, socials, sign-up), then the design's own Custom extras", async () => {
+test("the options every site has sit on the page they're about; socials follow the Coaster", async () => {
   const theme = { name: "Console Lobby", settings: [
     { type: "heading", label: "Home screen" }, { key: "home_shows", label: "Old per-design setting", type: "select", options: [["1", "1"], ["3", "3"]], default: "3" },
     { type: "heading", label: "Look" }, { key: "accent", label: "Highlight color", type: "color", default: "#ffb238" }] };
-  const { w, d, db } = await open("#theme", null, theme);
-  const titles = [...d.querySelectorAll("main .sec-title")].map((x) => x.textContent);
-  assert.deepEqual(titles, ["Options", "Custom"]);
-  assert.ok(!d.querySelector('select[aria-label="Old per-design setting"]'), "a design can't redefine an option every site has");
-  const opts = [...d.querySelectorAll("main form.card")].find((f) => /Save options/.test(f.textContent));
+  const { w, d, db } = await open("#shows", (db) => { db.sites[0].features.fans = true; }, theme);
+  const opts = d.querySelector('select[aria-label="How many shows on the home screen"]').form;
   opts.querySelector('select[aria-label="How many shows on the home screen"]').value = "all";
-  opts.querySelector('select[aria-label="Socials show as"]').value = "both";
-  opts.querySelector('select[aria-label="Sign-up"]').value = "bar";
-  [...opts.querySelectorAll(".soc-pick")].find((b) => /TikTok/.test(b.textContent)).click();
   opts.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
-  const t = db.sites[0].theme;
-  assert.deepEqual([t.home_shows, t.socials_style, t.signup_style, JSON.parse(JSON.stringify(t.socials_hide))], ["all", "both", "bar", ["tiktok"]]);
-  assert.match(d.body.textContent, /Extras that come with Console Lobby/);
+  assert.equal(db.sites[0].theme.home_shows, "all");
+  w.location.hash = "fans"; await wait(80);
+  const su = d.querySelector('select[aria-label="Sign-up"]'); su.value = "bar"; su.form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.equal(db.sites[0].theme.signup_style, "bar");
+  w.location.hash = "theme"; await wait(80);
+  assert.ok(!d.querySelector('select[aria-label="Old per-design setting"]'), "a design can't redefine an option every site has");
+  assert.ok(!d.querySelector('select[aria-label="Socials show as"]'), "no second copy of the socials settings");
+  assert.ok(d.querySelector('input[aria-label="Highlight color"]'));
 });
 
 test("Live: go live with a Twitch or YouTube link (saved for next time), then end it", async () => {

@@ -475,6 +475,12 @@ td select.status.st-few_left { color: var(--warn); }
 .qr-pic { width: 180px; height: 180px; display: grid; place-items: center; background: #fff; border: 1px solid var(--line); border-radius: 10px; flex: none; overflow: hidden; }
 .qr-pic canvas { width: 180px; height: 180px; image-rendering: pixelated; }
 .qr-inline { padding: 12px 0 16px; border-bottom: 1px solid var(--line); }
+.page-tabs { margin: 0 0 16px; }
+.tab-panel > .page-head h1 { display: none; }
+.tab-panel > .page-head { margin-bottom: 10px; }
+.opts-fold { margin-top: 18px; }
+.opts-fold > summary, .live-fold > summary { cursor: pointer; font-weight: 600; }
+.live-fold[open] > summary { margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -857,25 +863,45 @@ td select.status.st-few_left { color: var(--warn); }
   // A site's menu, grouped by job: what's on, what you post, who's listening, how the site looks. Settings sits at the bottom.
   // A site's menu. Most-used on top, and named after what visitors see:
   // Booking (dates and what clubs need), Content (what you post), Fans, Website (how it looks). Lineup and Settings sit at the bottom.
+  // A site's menu: only what the site uses. The comic's own info (bio, photo, socials, press kit) lives on their Coaster,
+  // so a site's dashboard is just the site: dates, what you post, fans, and how the website looks.
   const SECTIONS = [
     { id: "home", label: "Overview", ico: "🏠", render: viewHome },
     { id: "shows", group: "Booking", label: "Shows", ico: "🎟️", feat: "shows", count: () => S.shows.filter((s) => s.date >= today()).length, render: viewShows },
-    { id: "press", group: "Booking", label: "Press kit", ico: "📷", render: viewPress },
     { id: "podcast", group: "Content", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
     { id: "videos", group: "Content", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
     { id: "blog", group: "Content", label: "Blog", ico: "✍️", feat: "blog", count: () => (S.posts || []).filter((p) => p.published).length, render: viewBlog },
-    { id: "live", group: "Content", label: "Live", ico: "🔴", render: viewLive },
     { id: "merch", group: "Content", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
     { id: "fans", group: "Fans", label: "Fan list", ico: "💌", feat: "fans", render: viewFans },
-    { id: "forum", group: "Fans", label: "Forum", ico: "💬", feat: "forum", render: viewForum },
-    { id: "chat", group: "Fans", label: "Chat room", ico: "🗨️", feat: "chat", render: viewChat },
-    { id: "moderation", group: "Fans", label: "Moderation", ico: "🛡️", feat: ["forum", "chat"], render: viewModeration },
-    { id: "picks", group: "Website", label: "Home screen", ico: "⭐", render: viewPicks },
-    { id: "theme", group: "Website", label: "Design", ico: "🎨", render: viewTheme },
-    { id: "profile", group: "Website", label: "About & contact", ico: "🪪", render: viewProfile },
+    { id: "community", group: "Fans", label: "Community", ico: "💬", feat: ["forum", "chat"], render: tabbed("community", "Community", "Your forum and chat room, and the house rules for both.", [
+      { id: "forum", label: "Forum", show: () => F("forum"), render: viewForum },
+      { id: "chat", label: "Chat room", show: () => F("chat"), render: viewChat },
+      { id: "rules", label: "Moderation", render: viewModeration }]) },
+    { id: "website", group: "Website", label: "Website", ico: "🎨", render: tabbed("website", "Website", "What visitors see: the home screen, your about info, and the look.", [
+      { id: "home", label: "Home screen", render: viewPicks },
+      { id: "about", label: "About", render: viewProfile },
+      { id: "look", label: "Look", render: viewTheme }]) },
     { id: "people", label: "Lineup", ico: "🎤", bottom: true, render: viewPeople },
     { id: "settings", label: "Settings", ico: "⚙️", bottom: true, render: viewSettings },
+    // not in the menu: a comic's press kit, opened from their Lineup card (it belongs to their Coaster)
+    { id: "press", label: "Press kit", nav: false, render: viewPress },
   ];
+  // Old page names still work in links and bookmarks: they open the page they became.
+  const ALIAS = { theme: ["website", "look"], picks: ["website", "home"], profile: ["website", "about"], forum: ["community", "forum"], chat: ["community", "chat"],
+    moderation: ["community", "rules"], live: ["home"] };
+  const hashParts = () => { let [id, tab] = location.hash.slice(1).split("/"); if (ALIAS[id]) { tab = ALIAS[id][1] || tab; id = ALIAS[id][0]; } return [id || "", tab || ""]; };
+  // A page made of tabs (Website, Community). The tab is in the address: #website/about.
+  function tabbed(id, title, sub, tabs) {
+    return (main) => {
+      const list = tabs.filter((t) => !t.show || t.show());
+      let cur = hashParts()[1]; if (!list.some((t) => t.id === cur)) cur = list[0].id;
+      main.append(head(title, sub));
+      if (list.length > 1) main.append(h("div", { class: "tabs page-tabs", role: "tablist", "aria-label": title }, list.map((t) =>
+        h("button", { type: "button", role: "tab", "data-tab": t.id, "aria-selected": String(t.id === cur), tabIndex: t.id === cur ? 0 : -1, text: t.label, onclick: () => go(id + "/" + t.id) }))));
+      const panel = h("div", { class: "tab-panel" }); main.append(panel);
+      list.find((t) => t.id === cur).render(panel);
+    };
+  }
   // The ComicTable level: above any one site. Super admins get the whole platform; comics get their own home.
   const CT_SECTIONS = [
     { id: "overview", label: "Overview", ico: "🏠", platform: true, render: viewOverview },
@@ -897,10 +923,10 @@ td select.status.st-few_left { color: var(--warn); }
     ["shows", "Shows only", "Dates, ticket links, clubs and the show finder"], ["moderator", "Moderator", "Forum, chat and bans"]];
   const roleName = (r) => (SITE_ROLES.find((x) => x[0] === r) || [r, "Editor"])[1];
   const myRole = () => (S.isPlatform ? "owner" : (S.roles && S.roles[sid()]) || "owner");
-  const ROLE_SECTIONS = { shows: ["shows"], moderator: ["forum", "chat", "moderation"] };
+  const ROLE_SECTIONS = { shows: ["shows"], moderator: ["community"] };
   const roleAllows = (id) => { const only = ROLE_SECTIONS[myRole()]; return !only || only.includes(id); };
   const visible = () => SECTIONS.filter((s) => roleAllows(s.id) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))));
-  const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
+  const current = () => { const id = hashParts()[0]; return visible().find((s) => s.id === id) || visible()[0]; };
   window.addEventListener("hashchange", () => { if (S.site || S.me) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
 
@@ -968,7 +994,7 @@ td select.status.st-few_left { color: var(--warn); }
     S.level = "site";
     setPath("dashboard"); document.title = S.site.name + " · ComicTable";
     const cur = current();
-    const nav = navList(visible(), cur, go);
+    const nav = navList(visible().filter((x) => x.nav !== false), cur.nav === false ? SECTIONS.find((x) => x.id === "people") : cur, go);
     // With more than one site, the name at the top opens the site finder (also ⌘K / Ctrl+K anywhere).
     const many = S.sites.length > 1;
     const top = many ? h("button", { class: "site-pick", type: "button", id: "sitePick", "aria-haspopup": "dialog", title: "Switch site (⌘K)", onclick: openSitePicker },
@@ -1076,8 +1102,16 @@ td select.status.st-few_left { color: var(--warn); }
           h("div", { class: "next" }, h("div", { class: "date-badge" }, h("div", null, h("small", { text: MON[parseISO(next.date).getMonth()] }), h("b", { text: parseISO(next.date).getDate() }))),
             h("div", null, h("b", { text: first(next.host) + " · " + (next.venue || next.city) }), h("div", { class: "hint", text: niceDate(next.date) + (next.time ? " at " + next.time : "") + (next.city ? " · " + next.city : "") })),
             next.url ? h("a", { class: "btn sm", href: next.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : h("span", { class: "pill warn", text: "No ticket link" }))) : null,
+        liveCard(),
         todo.length ? h("section", { class: "card" }, h("h2", { text: "Worth a look" }), h("div", { class: "todo" }, todo.map(([t, sec]) => h("div", { class: "todo-item" }, h("span", { text: t }), h("button", { class: "btn sm", type: "button", text: "Fix", onclick: () => go(sec) })))))
           : h("section", { class: "card" }, empty("All caught up ✨", "Everything on your site looks good."))));
+  }
+  // Go live sits on the Overview: a button when you're not live, the "You're live" card when you are.
+  function liveCard() {
+    if (!S.site || !("live" in S.site)) return null;
+    const live = S.site.live, isLive = live && live.url && (!live.started_at || Date.now() - Date.parse(live.started_at) < 12 * 3600 * 1000);
+    const box = h("div", { class: "stack live-box" }); viewLive(box);
+    return isLive ? box : h("details", { class: "card quiet live-fold" }, h("summary", { text: "🔴 Go live" }), box);
   }
   function relDay(d) {
     const n = Math.round((parseISO(d) - parseISO(today())) / 864e5);
@@ -1097,7 +1131,7 @@ td select.status.st-few_left { color: var(--warn); }
     const listCard = h("section", { class: "card" });
     const foundCard = h("div"), finder = h("div");
     main.append(head("Shows", "Your upcoming shows. Past ones drop off your site on their own.",
-      h("button", { class: "btn primary big", type: "button", id: "addShowsBtn", text: "+ Add shows", onclick: () => openRun() })), h("div", { class: "stack" }, foundCard, listCard, finder));
+      h("button", { class: "btn primary big", type: "button", id: "addShowsBtn", text: "+ Add shows", onclick: () => openRun() })), h("div", { class: "stack" }, foundCard, listCard, finder, optionsFold(["home_shows", "shows_style"], "How shows look on your site")));
     redrawShows = () => { drawShowList(listCard, redrawShows); drawFound(foundCard); drawFinder(finder); };
     redrawShows();
     if (run.open) drawPanel();
@@ -1658,7 +1692,8 @@ td select.status.st-few_left { color: var(--warn); }
   let epQ = "", editingEp = null;
   function viewPodcast(main) {
     const wrap = h("div", { class: "stack" });
-    main.append(head("Podcast", "Connect your feed once and episodes keep themselves up to date. Anything you edit here stays the way you wrote it."), wrap);
+    main.append(head("Podcast", "Connect your feed once and episodes keep themselves up to date. Anything you edit here stays the way you wrote it."), wrap,
+      h("details", { class: "quiet opts-fold" }, h("summary", { text: "Listen buttons and which podcasts show" }), h("div", { class: "stack" }, SITE_OPTIONS.some((o) => o.key === "listen_style") ? settingsForm(SITE_OPTIONS.filter((o) => o.key === "listen_style"), "Save") : null, podcastsCard())));
     const redraw = () => { wrap.replaceChildren(sourceCard("podcast", redraw), episodeAdd(redraw), episodeList(redraw)); refreshNav(); };
     redraw();
   }
@@ -3055,7 +3090,7 @@ td select.status.st-few_left { color: var(--warn); }
   function viewLive(main) {
     const p = S.site.profile || {}, live = S.site.live;
     const ready = "live" in S.site;  // the database has 23_media.sql
-    main.append(head("Live", "Streaming on Twitch or YouTube? Go live here and your site shows a LIVE banner and the stream on its Live page."));
+    main.append(h("p", { class: "hint", style: "margin:0", text: "Streaming on Twitch or YouTube? Go live and your site shows a LIVE banner and the stream." }));
     if (!ready) { main.append(h("section", { class: "card" }, h("p", { class: "hint", text: "Going live needs the latest database upgrade (supabase/23_media.sql, in UPGRADE_V3_ALL.sql)." }))); return; }
     const isLive = live && live.url && (!live.started_at || Date.now() - Date.parse(live.started_at) < 12 * 3600 * 1000);
     if (isLive) {
@@ -3413,17 +3448,20 @@ td select.status.st-few_left { color: var(--warn); }
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: l }), h("div", { class: "hint", text: d })), h("label", { class: "switch" }, box, h("span")));
     })));
   }
+  // Website → Look: the design, and the extras that come with it (Lev's loading jokes, Cockfight's music…).
   async function viewTheme(main) {
     const theme = await loadTheme();
+    const name = theme && theme.name ? theme.name : "Your design";
     const list = withoutUniversal(theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => !isHomeSetting(st)) : []);
-    main.append(head("Design", (theme && theme.name ? theme.name + ". " : "") + "What's on your site and how it looks: its sections, the options every site has, and the extras that come with your design. What's on the home screen is under Home screen."));
-    main.append(h("div", { class: "stack" }, sectionsCard(), F("podcast") ? podcastsCard() : null,
-      SITE_OPTIONS.length ? h("div", { class: "stack" }, h("h2", { class: "sec-title", text: "Options" }),
-        h("p", { class: "hint", style: "margin:-6px 0 0", text: "The same on every ComicTable site: how many shows, how your socials look, how big the mailing-list sign-up is." }),
-        settingsForm(SITE_OPTIONS, "Save options")) : null,
-      list.some((st) => st.type !== "heading") ? h("div", { class: "stack" }, h("h2", { class: "sec-title", text: "Custom" }),
-        h("p", { class: "hint", style: "margin:-6px 0 0", text: "Extras that come with " + (theme && theme.name ? theme.name : "your design") + ", just for this site." }),
-        settingsForm(list, "Save custom")) : null));
+    main.append(h("section", { class: "card stack" }, h("div", null, h("b", { text: name }), theme && theme.description ? h("p", { class: "hint", style: "margin:4px 0 0", text: theme.description }) : null),
+      list.some((st) => st.type !== "heading") ? null : h("p", { class: "hint", style: "margin:0", text: "This design has no extra settings." })));
+    if (list.some((st) => st.type !== "heading")) main.append(settingsForm(list, "Save"));
+  }
+  // A few of the options every site has, on the page they're about (Shows, Podcast, Fan list), folded away.
+  function optionsFold(keys, label) {
+    const list = SITE_OPTIONS.filter((o) => keys.includes(o.key));
+    if (!list.length) return null;
+    return h("details", { class: "quiet opts-fold" }, h("summary", { text: label }), settingsForm(list, "Save"));
   }
 
   /* ======================================================
@@ -3779,7 +3817,7 @@ td select.status.st-few_left { color: var(--warn); }
   }
   async function viewFans(main) {
     main.append(head("Fan list", "Fans who signed up on your site to hear when you're playing near them. The list is yours: only your team can see it."));
-    const wrap = h("div", { class: "stack" }, h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" }))); main.append(wrap);
+    const wrap = h("div", { class: "stack" }, h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" }))); main.append(wrap, optionsFold(["signup_style"], "The sign-up on your site"));
     let fans, near;
     try {
       [fans, near] = await Promise.all([
@@ -3864,7 +3902,7 @@ td select.status.st-few_left { color: var(--warn); }
   const FEATURES = [["shows", "Shows & tour dates", "Your upcoming shows with ticket links."], ["podcast", "Podcast", "Episode archive that updates itself from your feed."], ["videos", "Videos", "Your latest YouTube uploads."],
     ["merch", "Merch", "Items you sell, linked to your store."], ["blog", "Blog", "Write posts for your fans. Drafts stay private until you publish."], ["fans", "Fan list", "Fans sign up with their email and city, so you can tell them when you're playing nearby."], ["forum", "Forum", "Message boards for your fans."], ["chat", "Chat room", "A live chat room that's always open for fans."]];
   async function viewSettings(main) {
-    main.append(head("Settings", "Your site's name and address, who can log in, and the code for using it on your own website. Which sections are on is under Design."));
+    main.append(head("Settings", "Your site's name and address, which sections are on, who can log in, and the code for using it on your own website."));
     const name = h("input", { value: S.site.name });
     const domainIn = h("input", { value: S.site.domain || "", disabled: !S.isPlatform, placeholder: "yourname.com", autocapitalize: "none" });
     const siteCard = h("form", { class: "card stack", onsubmit: async (e) => {
@@ -3881,7 +3919,7 @@ td select.status.st-few_left { color: var(--warn); }
       h("div", { class: "hint", text: "Other pieces: data-comictable=\"episodes\", \"videos\" or \"posts\". Add data-limit=\"5\" to show fewer. Add data-accent=\"#ff3b6b\" to the script for your button color." }),
       h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Copy snippet", onclick: async () => toast((await copyText(snippet)) ? "Copied. Paste it into your site's HTML or embed block." : "Couldn't copy. Select it and copy instead.") })));
     // One page, four tabs, so nothing is buried at the bottom.
-    const panes = [["general", "General", siteCard], ["team", "Team", teamCard()], ["embed", "Your own website", embedCard]];
+    const panes = [["general", "General", h("div", { class: "stack" }, siteCard, sectionsCard())], ["team", "Team", teamCard()], ["embed", "Your own website", embedCard]];
     if (!panes.some((x) => x[0] === SETTAB)) SETTAB = "general";
     const tabs = h("div", { class: "tabs", role: "tablist", "aria-label": "Settings" });
     const show = () => { panes.forEach(([k, , el]) => { el.hidden = k !== SETTAB; }); tabs.querySelectorAll("button").forEach((b) => { const on = b.dataset.tab === SETTAB; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }); };
