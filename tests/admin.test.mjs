@@ -83,7 +83,7 @@ const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", 
 test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open("#home");
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  assert.equal(d.querySelectorAll(".nav-btn").length, 14);
+  assert.equal(d.querySelectorAll(".nav-btn").length, 15);
   assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Booking", "Content", "Fans", "Website"]);
   assert.equal([...d.querySelectorAll(".nav-btn")].pop().dataset.sec, "settings", "Settings sits at the bottom");
   assert.match(d.querySelector(".crumbs").textContent, /ComicTable.*Cockfight/s);
@@ -1100,4 +1100,21 @@ test("Design: Options every site has (shows, socials, sign-up), then the design'
   const t = db.sites[0].theme;
   assert.deepEqual([t.home_shows, t.socials_style, t.signup_style, JSON.parse(JSON.stringify(t.socials_hide))], ["all", "both", "bar", ["tiktok"]]);
   assert.match(d.body.textContent, /Extras that come with Console Lobby/);
+});
+
+test("Live: go live with a Twitch or YouTube link (saved for next time), then end it", async () => {
+  const { w, d, db } = await open("#live", (db) => { db.sites[0].live = null; });
+  await wait(60);
+  const f = d.querySelector("main form.card");
+  set(w, f.querySelector('input[aria-label="Stream link"]'), "twitch.tv/nope");
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  assert.match(f.textContent, /Paste your Twitch, YouTube or Kick link/);
+  set(w, f.querySelector('input[aria-label="Stream link"]'), "https://twitch.tv/cockfight");
+  set(w, f.querySelector('input[aria-label="What\'s on"]'), "Crowd work night");
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const site = db.sites[0];
+  assert.deepEqual([site.live.url, site.live.title, site.profile.stream_url], ["https://twitch.tv/cockfight", "Crowd work night", "https://twitch.tv/cockfight"]);
+  assert.match(d.querySelector("main").textContent, /You're live/);
+  btn(d, /End stream/).click(); await wait(80);
+  assert.equal(db.sites[0].live, null);
 });

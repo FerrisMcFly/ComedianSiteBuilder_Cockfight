@@ -186,6 +186,25 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
   background: var(--amber, #ffb238); font: 700 16px/1.2 var(--f-body); letter-spacing: .02em; }
 .signup-bar b { font: 12px var(--f-display); letter-spacing: .14em; }
 .signup-big p { margin: 0 0 12px; font-size: 18px; }
+.live-banner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; margin-bottom: 16px; text-decoration: none; color: #fff; background: #d62a2a; font: 700 16px/1.2 var(--f-body); letter-spacing: .02em; }
+.live-banner .dot, .live-dot { width: 10px; height: 10px; border-radius: 50%; background: #fff; display: inline-block; animation: livepulse 1.2s infinite; flex: none; }
+.live-banner .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.live-banner .go { font: 12px var(--f-display); letter-spacing: .14em; }
+.live-dot { background: #ff4b4b; }
+@keyframes livepulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .live-banner .dot, .live-dot { animation: none; } }
+.stream { position: relative; aspect-ratio: 16 / 9; border: 1px solid rgba(127,211,255,.45); margin-bottom: 14px; background: #000; }
+.stream iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.sched { font-size: 18px; margin: 0 0 12px; }
+.shorts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(132px, 38%); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+.short { position: relative; aspect-ratio: 9 / 16; border: 1px solid rgba(127,211,255,.35); background: #000; padding: 0; overflow: hidden; scroll-snap-align: start; cursor: pointer; color: #fff; text-align: left; }
+.short img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.short small { position: absolute; left: 8px; right: 8px; bottom: 8px; font: 600 13px/1.25 var(--f-body); text-shadow: 0 1px 3px #000; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.short .tri { position: absolute; top: 10px; right: 10px; width: 0; height: 0; border-left: 12px solid #fff; border-top: 8px solid transparent; border-bottom: 8px solid transparent; }
+.short.playing iframe { width: 100%; height: 100%; border: 0; display: block; }
+.listen-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.listen { display: inline-flex; align-items: center; gap: 8px; }
+.listen-menu { margin-bottom: 14px; } .listen-menu summary { list-style: none; cursor: pointer; display: inline-block; } .listen-menu div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .socrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
 .socrow .btn { padding: 12px 6px; letter-spacing: .06em; font-size: 11px; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
@@ -377,7 +396,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   var T = function () { return D.theme || {}; };
   // Lev's saved order ([{ key, on }]) merged with the defaults, so sections added later still show up.
   // These defaults match theme.json (a test checks they agree).
-  var MENU_DEFAULT = [["shows", 1], ["clips", 1], ["podcast", 1], ["blog", 1], ["forum", 1], ["chat", 1], ["list", 1], ["about", 1], ["socials", 1], ["press", 1], ["support", 0]];
+  var MENU_DEFAULT = [["shows", 1], ["live", 1], ["clips", 1], ["podcast", 1], ["blog", 1], ["forum", 1], ["chat", 1], ["list", 1], ["about", 1], ["socials", 1], ["press", 1], ["support", 0]];
   function orderOf(saved, defaults) {
     var known = defaults.map(function (x) { return x[0]; }), out = [];
     (Array.isArray(saved) ? saved : []).forEach(function (x) { if (x && known.indexOf(x.key) >= 0 && !out.some(function (o) { return o[0] === x.key; })) out.push([x.key, x.on ? 1 : 0]); });
@@ -387,6 +406,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   var PAGES = {
     home: ["Home", "What's new", function () { return true; }],
     shows: ["Tour Dates", "Upcoming shows & tickets", function () { return F("shows", true); }],
+    live: ["Live", "Streams", function () { return !!D.live || !!safeHref((D.profile || {}).stream_url); }],
     clips: ["Clips", "Videos", function () { return F("videos", true) && D.videos.length; }],
     podcast: ["Podcast", "Listen", function () { return (F("podcast", false) && D.episodes.length) || podcastsElsewhere().length; }],
     blog: ["Blog", "Posts from Lev", function () { return F("blog", false) && D.posts.length; }],
@@ -428,7 +448,11 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     nav(page);
     var app = $("app"); app.replaceChildren();
     app.style.animation = "none"; void app.offsetWidth; app.style.animation = "";
-    ({ home: viewHome, shows: viewShows, clips: viewClips, podcast: viewPodcast, blog: viewBlog, forum: viewForum, chat: viewChat, list: viewList, about: viewAbout, socials: viewSocials, press: viewPress }[page])(app, parts[1], parts[2]);
+    if (PAGES.live) PAGES.live[1] = D.live ? "● LIVE now" : "Streams";
+    // live right now: a banner on every page but the Live page itself
+    if (D.live && page !== "live") app.append(el("a", { class: "live-banner", href: "#/live" }, [el("span", { class: "dot", "aria-hidden": "true" }), el("b", { text: "LIVE" }),
+      el("span", { class: "t", text: D.live.title || "Lev is streaming right now" }), el("span", { class: "go", text: "Watch →" })]));
+    ({ home: viewHome, live: viewLive, shows: viewShows, clips: viewClips, podcast: viewPodcast, blog: viewBlog, forum: viewForum, chat: viewChat, list: viewList, about: viewAbout, socials: viewSocials, press: viewPress }[page])(app, parts[1], parts[2]);
     $("screen").classList.remove("engaged");
   }
   var phone = function () { return window.matchMedia && matchMedia("(max-width: 820px)").matches; };
@@ -570,7 +594,8 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     }
     if (key === "list") return F("fans", false) && O().signup_style === "box" ? { row: lnk({ label: "Get told when Lev's in your town", sub: "One email when there's a show near you", url: "#/list", icon: "✉", go: "Join" }) } : null;
     if (key === "blog") return F("blog", false) && D.posts.length ? { block: block("From the blog", D.posts.length > 2 ? el("a", { href: "#/blog", text: "All posts" }) : null, [el("div", { class: "list" }, D.posts.slice(0, 2).map(postItem))]) } : null;
-    if (key === "clips") return F("videos", true) && D.videos.length ? { block: block("Latest clips", el("a", { href: "#/clips", text: "All clips" }), [el("div", { class: "clips" }, D.videos.slice(0, 3).map(clipCard))]) } : null;
+    if (key === "shorts") return F("videos", true) && D.shorts && D.shorts.length ? { block: block("Shorts", el("a", { href: "#/clips", text: "All clips" }), [shortsStrip(D.shorts)]) } : null;
+    if (key === "clips") return F("videos", true) && D.videos.some(function (v) { return !v.short; }) ? { block: block("Latest clips", el("a", { href: "#/clips", text: "All clips" }), [el("div", { class: "clips" }, D.videos.filter(function (v) { return !v.short; }).slice(0, 3).map(clipCard))]) } : null;
     return null;
   }
   function homeLayout() {
@@ -600,6 +625,12 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   }
   function viewPodcast(app) {
     app.append.apply(app, head("Podcast", "Where to listen"));
+    // Listen buttons the way Lev chose (Design → Options → Listen buttons): Apple, Spotify, both, or one menu
+    var show = CSB.listenLinks ? CSB.listenLinks(null, D) : [];
+    if (F("podcast", false) && show.length) {
+      var btns = show.map(function (x) { return el("a", { class: "btn listen", href: x.url, target: "_blank", rel: "noopener" }, [logo(x.key), "Listen on " + x.label]); });
+      app.append(O().listen_style === "menu" && btns.length > 1 ? el("details", { class: "listen-menu" }, [el("summary", { class: "btn", text: "Listen on…" }), el("div", null, btns)]) : el("div", { class: "listen-row" }, btns));
+    }
     var rows = [];
     podcastsElsewhere().forEach(function (x) {
       rows.push(lnk({ label: x.name, sub: "With " + x.people.join(", ") + " · " + x.domain, url: x.url, icon: "🎧", go: "Visit" }));
@@ -615,7 +646,34 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
   }
   function viewClips(app) {
     app.append.apply(app, head("Clips", "New uploads post here automatically"));
-    app.append(el("div", { class: "clips" }, D.videos.map(clipCard)));
+    if (D.shorts && D.shorts.length) app.append(block("Shorts", null, [shortsStrip(D.shorts)]));
+    app.append(el("div", { class: "clips" }, D.videos.filter(function (v) { return !v.short; }).map(clipCard)));
+  }
+  // YouTube Shorts: a row you swipe; tap one and it plays right there
+  function shortsStrip(list) {
+    return el("div", { class: "shorts" }, list.slice(0, 12).map(function (v) {
+      var b = el("button", { type: "button", class: "short", "aria-label": "Play: " + v.title }, [el("img", { src: "https://i.ytimg.com/vi/" + v.id + "/oar2.jpg", alt: "", loading: "lazy", onerror: function () { this.src = v.thumbnail; } }), el("span", { class: "tri", "aria-hidden": "true" }), el("small", { text: v.title })]);
+      b.addEventListener("click", function () {
+        b.replaceWith(el("div", { class: "short playing" }, [el("iframe", { src: "https://www.youtube-nocookie.com/embed/" + v.id + "?autoplay=1&playsinline=1&loop=1&playlist=" + v.id, title: v.title, allow: "autoplay; encrypted-media; picture-in-picture", allowfullscreen: true })]));
+      });
+      return b;
+    }));
+  }
+  // Live: the stream right here when Lev's live (Dashboard → Live → Go live); his schedule and replays when he's not
+  function viewLive(app) {
+    var L = D.live, p = D.profile || {};
+    if (L) {
+      app.append.apply(app, head("Live", [el("span", { class: "live-dot", "aria-hidden": "true" }), " LIVE now" + (L.title ? ": " + L.title : "")]));
+      if (L.embed) app.append(el("div", { class: "stream" }, [el("iframe", { src: L.embed, title: L.title || "Lev's stream", allow: "autoplay; fullscreen; picture-in-picture", allowfullscreen: true })]));
+      app.append(el("p", null, [el("a", { class: "btn", href: L.url, target: "_blank", rel: "noopener", text: "Watch on " + host(L.url) })]));
+      return;
+    }
+    app.append.apply(app, head("Live", "Not live right now"));
+    var sched = String(p.stream_schedule || "").trim(), u = safeHref(p.stream_url);
+    app.append(el("div", { class: "block" }, [sched ? el("p", { class: "sched", text: sched }) : null,
+      u ? el("p", null, [el("a", { class: "btn", href: u, target: "_blank", rel: "noopener", text: "Follow on " + host(u) })]) : null]));
+    var replays = D.videos.filter(function (v) { return !v.short; }).slice(0, 3);
+    if (replays.length) app.append(block("Latest videos", el("a", { href: "#/clips", text: "All clips" }), [el("div", { class: "clips" }, replays.map(clipCard))]));
   }
   function viewBlog(app, slug) {
     if (!slug) { app.append.apply(app, head("Blog", "Posts from Lev · newest first")); app.append(el("div", { class: "list" }, D.posts.map(postItem))); return; }

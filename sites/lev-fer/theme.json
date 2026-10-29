@@ -54,6 +54,12 @@
           true
         ],
         [
+          "live",
+          "Live",
+          "Your stream when you're live; your schedule when you're not",
+          true
+        ],
+        [
           "clips",
           "Clips",
           "",

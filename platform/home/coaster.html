@@ -133,6 +133,18 @@ h1 { font: 900 clamp(32px, 9vw, 48px)/1 var(--ct-display, sans-serif); margin: 0
 .lcard.main { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .lcard.main small, .lcard.main .go { color: inherit; opacity: .85; }
 .lcard.main .ico { background: rgba(255,255,255,.18); }
+/* live and Shorts */
+.table { position: relative; }
+.live-badge { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 3; display: inline-flex; align-items: center; gap: 8px; max-width: 90%;
+  background: #d62a2a; color: #fff; text-decoration: none; font: 800 13px/1 var(--ct-sans, sans-serif); letter-spacing: .06em; padding: 7px 12px; border-radius: 999px; box-shadow: 0 6px 16px rgba(0,0,0,.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; flex: none; animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.shorts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(120px, 36%); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+.short { position: relative; aspect-ratio: 9 / 16; border-radius: 14px; overflow: hidden; border: 1.5px solid var(--line); background: #000; padding: 0; cursor: pointer; scroll-snap-align: start; color: #fff; text-align: left; }
+.short img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.short small { position: absolute; left: 8px; right: 8px; bottom: 8px; font: 700 12px/1.25 var(--ct-sans, sans-serif); text-shadow: 0 1px 3px #000; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.short.playing iframe { width: 100%; height: 100%; border: 0; display: block; }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
 /* the one thing to do, always in reach at the bottom of the phone */
 .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
   background: linear-gradient(transparent, var(--bg) 35%); display: flex; justify-content: center; pointer-events: none; transition: transform .25s; }
@@ -274,8 +286,11 @@ footer a { font-weight: 700; text-decoration: none; }
     var c = (r[0] || [])[0]; if (!c) return notFound();
     var dates = (r[1] || []).filter(function (d) { return d.status !== "cancelled"; });
     var onSites = (r[3] || []).filter(function (x) { return !x.hidden; }).map(function (x) { return x.site_id; });
-    var sitesP = onSites.length ? api("sites?select=id,name,domain,features&id=in.(" + onSites.map(encodeURIComponent).join(",") + ")").catch(function () { return []; }) : Promise.resolve([]);
-    return sitesP.then(function (sites) { draw(c, dates, r[2] || [], sites || []); });
+    var ids = "id=in.(" + onSites.map(encodeURIComponent).join(",") + ")";
+    // with live (23_media.sql) when the database has it; without when it doesn't
+    var sitesP = onSites.length ? api("sites?select=id,name,domain,features,live&" + ids).catch(function () { return api("sites?select=id,name,domain,features&" + ids); }).catch(function () { return []; }) : Promise.resolve([]);
+    var shortsP = api("videos?select=youtube_id,title,published&is_short=is.true&hidden=is.false&order=published.desc&limit=12&comic_id=eq." + encodeURIComponent(id)).catch(function () { return []; });
+    return Promise.all([sitesP, shortsP]).then(function (x) { draw(c, dates, r[2] || [], x[0] || [], x[1] || []); });
   }).catch(function () {
     app.replaceChildren(el("div", { class: "empty" }, [el("h1", { text: "Couldn't load this" }), el("p", { text: "Check your connection and try again." })]));
   });
@@ -313,7 +328,13 @@ footer a { font-weight: 700; text-decoration: none; }
     }, function () { box.replaceChildren(); });
   }
 
-  function draw(c, dates, bill, sites) {
+  // a site this comic is on that's live right now (Dashboard → Live), started in the last 12 hours
+  function liveOf(sites) {
+    return sites.map(function (s) { return s.live; }).filter(function (L) {
+      return L && safe(L.url) && (!L.started_at || Date.now() - Date.parse(L.started_at) < 12 * 3600 * 1000);
+    })[0] || null;
+  }
+  function draw(c, dates, bill, sites, shorts) {
     var look = LOOKS.indexOf(c.look) >= 0 ? c.look : "classic";
     document.body.className = "look-" + look;
     if (c.look === "custom") customLook(c);
@@ -362,7 +383,8 @@ footer a { font-weight: 700; text-decoration: none; }
       if (f && !qr.firstChild) qrInto(qr, qrTo);
     } }, el("div", { class: "spin" }, [front, back]));
     var tap = el("div", { class: "tap", text: "Tap the coaster for a QR code" });
-    parts.push(el("section", { class: "table" }, [coaster, tap]));
+    var live = liveOf(sites);
+    parts.push(el("section", { class: "table" }, [live ? el("a", { class: "live-badge", href: live.url, target: "_blank", rel: "noopener" }, [el("span", { class: "dot", "aria-hidden": "true" }), "LIVE" + (live.title ? " · " + live.title : "")]) : null, coaster, tap]));
 
     // The comic decides what's on the Coaster itself ("front"), what's under More, and what's off.
     var plan = CSB.coasterPlan ? CSB.coasterPlan(c) : {}, front = [], more = [], frontBtns = [], moreBtns = [];
@@ -448,6 +470,14 @@ footer a { font-weight: 700; text-decoration: none; }
       put("tape", tapeBox);
     }
 
+    if (shorts && shorts.length) {
+      put("shorts", el("section", { "aria-label": "Shorts" }, [el("h2", null, ["Shorts", el("small", { text: "Swipe" })]),
+        el("div", { class: "shorts" }, shorts.map(function (v) {
+          var b = el("button", { type: "button", class: "short", "aria-label": "Play: " + v.title }, [el("img", { src: "https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg", alt: "", loading: "lazy" }), el("small", { text: v.title })]);
+          b.addEventListener("click", function () { b.replaceWith(el("div", { class: "short playing" }, el("iframe", { src: "https://www.youtube-nocookie.com/embed/" + v.youtube_id + "?autoplay=1&playsinline=1", title: v.title, allow: "autoplay; encrypted-media; picture-in-picture", allowfullscreen: true }))); });
+          return b;
+        }))]));
+    }
     var bio = String(c.short_bio || c.bio || "").trim();
     put("bio", bio ? el("section", { "aria-label": "Bio" }, [el("h2", { text: "About" }), el("p", { class: "bio", text: bio })]) : null);
 
@@ -492,7 +522,8 @@ footer a { font-weight: 700; text-decoration: none; }
     // ---- the dock: tickets for the next show, or join the list; plus Share ----
     var old = document.querySelector(".dock"); if (old) old.remove();
     var go = null;
-    if (next && safe(next.url) && next.status !== "sold_out" && plan.next !== "off") {
+    if (live) go = el("a", { class: "btn main", href: live.url, target: "_blank", rel: "noopener" }, [el("span", { class: "dot", "aria-hidden": "true" }), "Watch live"]);
+    else if (next && safe(next.url) && next.status !== "sold_out" && plan.next !== "off") {
       var nd = dayOf(next);
       go = el("a", { class: "btn main", href: next.url, target: "_blank", rel: "noopener", text: (next.status === "free" ? "RSVP" : "Tickets") + " · " + DAY[nd.getDay()] + " " + MON[nd.getMonth()] + " " + nd.getDate() });
     } else if (fanSite && plan.join !== "off") {

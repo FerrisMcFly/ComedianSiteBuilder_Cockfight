@@ -198,3 +198,14 @@ test("wear: fresh by default; used and well loved add glass rings (well loved: d
   const again = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { wear: "loved" } }] });
   assert.equal([...again.d.querySelectorAll(".stain.ring")].map((x) => x.style.getPropertyValue("--x")).join(), where, "same stains every visit");
 });
+
+test("live and Shorts: a LIVE badge and Watch live while one of their sites is streaming; their Shorts as an item", async () => {
+  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { shorts: "front" } }], hosts: [{ site_id: "lev-fer" }],
+    sites: [{ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay", features: {}, live: { url: "https://twitch.tv/levfer", title: "Crowd work", started_at: new Date().toISOString() } }],
+    videos: [{ youtube_id: "shortshort1", title: "A short", published: "2026-10-01" }] });
+  assert.match(d.querySelector(".live-badge").textContent, /LIVE · Crowd work/);
+  assert.match(d.querySelector(".dock a.btn.main").textContent, /Watch live/);
+  assert.equal(d.querySelectorAll(".shorts .short").length, 1);
+  d.querySelector(".short").click();
+  assert.match(d.querySelector(".short.playing iframe").getAttribute("src"), /embed\/shortshort1/);
+});

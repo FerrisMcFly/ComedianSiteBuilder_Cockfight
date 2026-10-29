@@ -293,3 +293,33 @@ test("the options every site has: logos or names, hide one here, All shows, and 
   assert.equal(d.querySelectorAll(".home .dates .date").length, 3);
   assert.ok(!d.querySelector(".home .signup-bar, .home .signup-big"));
 });
+
+test("live: a LIVE banner on every page, the stream on the Live page; schedule and Follow when he's not live", async () => {
+  const site = (extra) => ({ ...full, sites: [{ ...full.sites[0], ...extra }] });
+  let { d } = await load(site({ live: { url: "https://twitch.tv/levfer", title: "Crowd work night", started_at: new Date().toISOString() } }));
+  assert.match(d.querySelector(".live-banner").textContent, /LIVE.*Crowd work night/s);
+  ({ d } = await load(site({ live: { url: "https://twitch.tv/levfer", started_at: new Date().toISOString() } }), "#/live"));
+  assert.match(d.querySelector(".stream iframe").getAttribute("src"), /player\.twitch\.tv\/\?channel=levfer/);
+  assert.ok(!d.querySelector(".live-banner"), "no banner on the Live page itself");
+  ({ d } = await load(site({ live: { url: "https://twitch.tv/levfer", started_at: new Date(Date.now() - 13 * 3600e3).toISOString() } })));
+  assert.ok(!d.querySelector(".live-banner"), "a stream left on for 13 hours stops showing");
+  ({ d } = await load(site({ live: null, profile: { ...full.sites[0].profile, stream_url: "https://twitch.tv/levfer", stream_schedule: "Tuesdays, 10pm" } }), "#/live"));
+  assert.match(d.getElementById("app").textContent, /Not live right now.*Tuesdays, 10pm.*Follow on twitch\.tv/s);
+});
+
+test("Shorts get their own strip (home and Clips) and stay out of the clips grid; listen buttons follow the site's choice", async () => {
+  const vids = [{ youtube_id: "abcdefghijk", title: "Long one", published: "2026-10-01" }, { youtube_id: "shortshort1", title: "Short one", published: "2026-10-02", is_short: true }];
+  const data = { ...full, videos: vids, episodes: [{ id: "e1", num: 1, title: "Ep one", url: "https://podcasts.apple.com/us/podcast/x/id1?i=1", show_name: "Lev Pod" }],
+    sites: [{ ...full.sites[0], features: { ...full.sites[0].features, podcast: true }, profile: { ...full.sites[0].profile, spotify_url: "https://open.spotify.com/show/1234567890abcdefghijkl" },
+      theme: { ...(full.sites[0].theme || {}), home_items: [{ key: "shorts", on: true }, { key: "clips", on: true }] } }] };
+  let { d } = await load(data);
+  assert.equal(d.querySelectorAll(".home .shorts .short").length, 1);
+  assert.deepEqual([...d.querySelectorAll(".home .clips .clip strong")].map((x) => x.textContent), ["Long one"]);
+  d.querySelector(".short").click();
+  assert.match(d.querySelector(".short.playing iframe").getAttribute("src"), /embed\/shortshort1/);
+  ({ d } = await load(data, "#/podcast"));
+  assert.deepEqual([...d.querySelectorAll(".listen-row a")].map((a) => a.textContent), ["Listen on Apple Podcasts", "Listen on Spotify"]);
+  const menu = { ...data, sites: [{ ...data.sites[0], theme: { ...data.sites[0].theme, listen_style: "menu" } }] };
+  ({ d } = await load(menu, "#/podcast"));
+  assert.match(d.querySelector(".listen-menu summary").textContent, /Listen on…/);
+});

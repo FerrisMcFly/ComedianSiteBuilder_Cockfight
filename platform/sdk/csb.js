@@ -6,7 +6,9 @@
  *
  *   <script src="config.js"></script>          // window.COMICTABLE_CONFIG = { SITE_ID, SUPABASE_URL, SUPABASE_ANON_KEY }
  *   <script src="sdk/csb.js"></script>
- *   const site = await CSB.load();              // { site, profile, theme, features, community, people, shows, episodes, videos, merch, news, links, boards, posts }
+ *   const site = await CSB.load();              // { site, profile, theme, features, community, options, live, people, shows, episodes, videos, shorts, merch, news, links, boards, posts }
+ *   options: the options every site has (Design → Options); live: { url, title, embed } while the site is live, else null
+ *   CSB.listenLinks(episode, site) → [{ label, url }] the way the site chose; CSB.socialLinks(person, site.options) → logos
  *   Podcasts the comic switched off in Settings → "Podcasts on your site" (profile.podcasts_off, by name) are left out
  *   of episodes and of CSB.elsewhere, so every design follows the same choice.
  *   CSB.elsewhere(people) → the other live ComicTable sites these people are on (a podcast they co-host, say),
@@ -103,22 +105,26 @@
         .concat(r[6].filter(function (a) { return !moved[a.id] && (!a.starts_on || a.starts_on <= today) && (!a.ends_on || a.ends_on >= today); })
           .sort(function (a, b) { return (b.pinned - a.pinned) || (a.sort - b.sort); })
           .map(function (a) { return { id: a.id, text: a.text, link: a.link || "", linkLabel: a.link_label || "", pinned: !!a.pinned }; }));
-      return {
+      var data = {
         site: { id: s.id, name: s.name, domain: s.domain },
         features: s.features || {}, profile: s.profile || {}, theme: s.theme || {}, community: s.community || {},
         people: people, shows: shows,
-        episodes: r[3].filter(visible).filter(function (e) { return !podOff(e.show_name); }).map(function (e) { return { id: e.id, number: e.num, title: e.title, posted: e.posted, length: e.length || "", link: e.url || e.audio_url || "", audio: e.audio_url || "", image: e.image_url || "", patreon: e.patreon || "", description: e.blurb || "", show: e.show_name || "" }; }),
+        episodes: r[3].filter(visible).filter(function (e) { return !podOff(e.show_name); }).map(function (e) { return { id: e.id, number: e.num, title: e.title, posted: e.posted, length: e.length || "", link: e.url || e.audio_url || "", audio: e.audio_url || "", image: e.image_url || "", patreon: e.patreon || "", description: e.blurb || "", show: e.show_name || "", apple: /podcasts\.apple\.com/.test(e.url || "") ? e.url : "", spotify: e.spotify_url || "" }; }),
         videos: r[4].filter(visible).sort(function (a, b) { return (b.featured - a.featured) || String(b.published || "").localeCompare(String(a.published || "")); })
-          .map(function (v) { return { id: v.youtube_id, title: v.title, published: v.published, thumbnail: v.thumbnail_url || ("https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg"), link: v.url || ("https://www.youtube.com/watch?v=" + v.youtube_id), featured: !!v.featured, channel: v.channel || "", person: v.host || "" }; }),
+          .map(function (v) { return { id: v.youtube_id, title: v.title, published: v.published, thumbnail: v.thumbnail_url || ("https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg"), link: v.url || ("https://www.youtube.com/watch?v=" + v.youtube_id), featured: !!v.featured, short: !!v.is_short, channel: v.channel || "", person: v.host || "" }; }),
         merch: r[5].filter(visible).map(function (m) { return { id: m.id, name: m.name, price: m.price || "", image: m.image_url || "", link: m.url || "" }; }),
         announcements: announcements,
         links: r[7].filter(visible).map(function (l) { return { id: l.id, label: l.label, url: l.url, icon: l.icon || "" }; }),
         boards: r[8].filter(visible).map(function (b) { return { id: b.id, name: b.name, description: b.description || "", locked: !!b.locked }; }),
         posts: r[9].map(post),
         options: siteOptions(s.theme),
+        live: liveNow(s.live),
         news: news,
         picks: news
       };
+      // YouTube Shorts on their own, newest first (they stay in videos too, marked short: true)
+      data.shorts = data.videos.filter(function (v) { return v.short; }).sort(function (a, b) { return String(b.published || "").localeCompare(String(a.published || "")); });
+      return data;
     });
   }
 
@@ -386,7 +392,8 @@
     if (f.videos !== false && (d.videos || []).some(function (v) { return v.featured; })) add("special", "special", "Featured video", "The video you starred in Videos");
     if (f.fans) add("list", "list", "Mailing list", "A button to join your fan list");
     if (f.blog && (d.posts || []).length) add("blog", "blog", "From the blog", "Your two newest posts");
-    if (f.videos !== false && (d.videos || []).length) add("clips", "clips", "Latest clips", "Your three newest videos");
+    if (f.videos !== false && (d.videos || []).some(function (v) { return v.short; })) add("shorts", "shorts", "Shorts", "Your newest YouTube Shorts in a row you swipe");
+    if (f.videos !== false && (d.videos || []).some(function (v) { return !v.short; })) add("clips", "clips", "Latest clips", "Your three newest videos");
     return out;
   }
   // Older sites saved whole sections (theme.home = [{ key: "socials", on }]): spread each over its items.
@@ -415,7 +422,7 @@
     ["socials", "Social links", "front", "Instagram, TikTok and the rest"], ["links", "Your sites", "front", "Buttons to the sites you're on, and your website"],
     ["join", "Join my list", "front", "Fans sign up to hear when you play near them"], ["next", "Next show", "front", "Your next date, with a ticket button"],
     ["tape", "The Tape", "more", "Your best set right now"], ["dates", "All dates", "more", "Every upcoming date, and who else is on the bill"],
-    ["bio", "Bio", "more", "Your short bio"], ["booking", "Booking", "more", "Your booking email"], ["press", "Press kit", "more", "Photos and bios for clubs"]];
+    ["shorts", "Shorts", "more", "Your newest YouTube Shorts, in a row fans swipe"], ["bio", "Bio", "more", "Your short bio"], ["booking", "Booking", "more", "Your booking email"], ["press", "Press kit", "more", "Photos and bios for clubs"]];
   function coasterPlan(c) {
     var set = (c && c.coaster && typeof c.coaster === "object") ? c.coaster : {}, out = {};
     COASTER_ITEMS.forEach(function (x) { var v = set[x[0]]; out[x[0]] = v === "front" || v === "more" || v === "off" ? v : x[2]; });
@@ -442,6 +449,9 @@
     { key: "socials_size", label: "Size", type: "select", options: [["small", "Small"], ["medium", "Medium"], ["big", "Big"]], "default": "medium" },
     { key: "socials_color", label: "Colors", type: "select", options: [["brand", "Each network's own colors"], ["site", "This site's colors"]], "default": "brand" },
     { key: "socials_hide", label: "Hide on this site", type: "socials_hide", help: "Tap a network to hide it here. It stays on your Coaster and your other sites.", "default": [] },
+    { type: "heading", label: "Podcast" },
+    { key: "listen_style", label: "Listen buttons", type: "select", options: [["both", "Apple and Spotify"], ["apple", "Apple Podcasts"], ["spotify", "Spotify"], ["menu", "One \"Listen on…\" menu"]], "default": "both",
+      help: "Spotify links per episode fill in by themselves once ComicTable's Spotify keys are set; until then the button goes to your show on Spotify (About & contact → Spotify show)." },
     { type: "heading", label: "Mailing list" },
     { key: "signup_style", label: "Sign-up", type: "select", options: [["box", "A box in its spot"], ["big", "Big, first on the home screen"], ["bar", "A slim bar: \"Get told when I'm in your city\""], ["off", "Off"]], "default": "box" }];
   // This site's values for those options, with the defaults filled in. home_shows comes back as a number, or Infinity for All.
@@ -464,6 +474,34 @@
       .map(function (x) { return { key: x[0], label: x[1], url: so[x[0]], svg: socialIcon(x[0], { brand: brand, size: o.socials_size === "small" ? 16 : o.socials_size === "big" ? 28 : 20 }) }; });
   }
 
-  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
+  // Live right now (Dashboard → Live → Go live): { url, title, since, embed } or null. Stops showing after 12 hours.
+  function liveNow(live) {
+    if (!live || !live.url || !/^https:\/\//i.test(live.url)) return null;
+    var since = live.started_at ? Date.parse(live.started_at) : NaN;
+    if (!isNaN(since) && Date.now() - since > 12 * 3600 * 1000) return null;
+    return { url: live.url, title: live.title || "", since: live.started_at || "", embed: liveEmbed(live.url) };
+  }
+  // A player address for a stream: Twitch channels, and YouTube streams (a watch, live or youtu.be link).
+  function liveEmbed(url, host) {
+    var u = String(url || ""), m = u.match(/twitch\.tv\/([A-Za-z0-9_]{3,25})(?:\/?$|\?)/);
+    if (m) return "https://player.twitch.tv/?channel=" + m[1] + "&parent=" + encodeURIComponent(host || (typeof location !== "undefined" ? location.hostname : "localhost"));
+    m = u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|live\/)|youtu\.be\/)([\w-]{11})/);
+    return m ? "https://www.youtube-nocookie.com/embed/" + m[1] + "?autoplay=1" : "";
+  }
+  // Where to listen to one episode, the way the site chose (Design → Options → Listen buttons):
+  // [{ label, url }]. Falls back to the podcast's Apple or Spotify page when an episode has no link of its own.
+  function listenLinks(ep, d) {
+    var p = (d && d.profile) || {}, how = ((d && d.options) || siteOptions({})).listen_style;
+    // the whole show (no episode): the podcast's own pages, or the newest episode's when those aren't set
+    var first = !ep && d && d.episodes && d.episodes[0];
+    var apple = (ep && ep.apple) || p.apple_url || (first && first.apple) || (ep && ep.link) || "", spotify = (ep && ep.spotify) || p.spotify_url || (first && first.spotify) || "";
+    var out = [];
+    if (how !== "spotify" && apple) out.push({ key: "apple_podcasts", label: "Apple Podcasts", url: apple });
+    if (how !== "apple" && spotify) out.push({ key: "spotify", label: "Spotify", url: spotify });
+    if (!out.length && (apple || spotify)) out.push({ key: apple ? "apple_podcasts" : "spotify", label: apple ? "Apple Podcasts" : "Spotify", url: apple || spotify });
+    return out;
+  }
+
+  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);
