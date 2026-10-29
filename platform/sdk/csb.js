@@ -7,6 +7,8 @@
  *   <script src="config.js"></script>          // window.COMICTABLE_CONFIG = { SITE_ID, SUPABASE_URL, SUPABASE_ANON_KEY }
  *   <script src="sdk/csb.js"></script>
  *   const site = await CSB.load();              // { site, profile, theme, features, community, options, live, people, shows, episodes, videos, shorts, merch, news, links, boards, posts }
+ *   people: the lineup, read from each comic's Coaster (name, title, bio, photo, socials, handle), with the site's own
+ *   title, bio or photo only where the site changed it. solo: one comic on the site; then profile.about is their Coaster bio.
  *   options: the options every site has (Design → Options); live: { url, title, embed } while the site is live, else null
  *   CSB.listenLinks(episode, site) → [{ label, url }] the way the site chose; CSB.socialLinks(person, site.options) → logos
  *   Podcasts the comic switched off in Settings → "Podcasts on your site" (profile.podcasts_off, by name) are left out
@@ -71,7 +73,9 @@
     ready();
     return Promise.all([
       api("sites?select=id,name,domain,features,profile,theme,community&id=eq." + encodeURIComponent(cfg.site)),
-      api("hosts?select=*&order=sort.asc&" + site()),
+      // The lineup, with each comic's Coaster: a site shows what's on the Coaster, except anything the site
+      // chose to change just for itself (own title, bio or photo). Older databases: the site's own copy.
+      api("hosts?select=*,coaster:comics(*)&order=sort.asc&" + site()).catch(function () { return api("hosts?select=*&order=sort.asc&" + site()); }),
       // site_shows / site_videos include the dates and channels of every comic on this site, even ones added on their other sites.
       // Before that database upgrade, fall back to this site's own rows.
       api("rpc/site_shows", { method: "POST", body: { p_site: cfg.site } }).catch(function () { return api("shows?select=*&order=date.asc&date=gte." + todayISO() + "&" + site()); }),
@@ -87,10 +91,7 @@
       var s = r[0][0] || { id: cfg.site, features: {}, profile: {}, theme: {}, community: {} };
       podcastsOff = offList(s.profile);
       var today = todayISO();
-      var people = r[1].filter(visible).map(function (h) {
-        return { id: h.id, comic: h.comic_id || "", name: h.name, title: h.title || "", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "",
-          socials: socialsOf(h) };
-      });
+      var people = r[1].filter(visible).map(personOf);
       var shows = r[2].filter(function (x) { return x.date >= today; }).map(function (x) {
         // person: whose solo date it is. event: a show by the whole site (a live podcast), with lineup = people ids.
         return { id: x.id, person: x.host || "", event: !!x.event, lineup: x.lineup_hosts || [], date: x.date, time: x.time || "", venue: x.venue || "", city: x.city || "", venueId: x.venue_id || null,
@@ -122,12 +123,23 @@
         news: news,
         picks: news
       };
+      // One bio (founder, Oct 29): a solo comic's site uses their Coaster bio as its About; a group site keeps its own.
+      data.solo = people.length === 1;
+      if (data.solo && people[0].bio) data.profile = Object.assign({}, data.profile, { about: people[0].bio });
       // YouTube Shorts on their own, newest first (they stay in videos too, marked short: true)
       data.shorts = data.videos.filter(function (v) { return v.short; }).sort(function (a, b) { return String(b.published || "").localeCompare(String(a.published || "")); });
       return data;
     });
   }
 
+  // One person on a site's lineup: their Coaster (the comic), with this site's own title, bio or photo where it set one.
+  function personOf(h) {
+    var c = h.coaster && typeof h.coaster === "object" ? h.coaster : null;
+    if (!c) return { id: h.id, comic: h.comic_id || "", name: h.name, title: h.title || "", bio: h.bio || "", status: h.status || "", photo: h.photo_url || "", socials: socialsOf(h), handle: "" };
+    return { id: h.id, comic: c.id, handle: c.handle || c.id, name: c.name || h.name,
+      title: (h.own_title ? h.title : c.title) || "", bio: (h.own_bio ? h.bio : c.bio) || "", status: c.status || "",
+      photo: (h.own_photo && h.photo_url ? h.photo_url : c.photo_url) || "", socials: socialsOf(c) };
+  }
   // A comic's press kit: approved photos (primary first) and bios, for clubs. Pass a person's comic id (person.comic).
   function press(comicId) {
     ready();

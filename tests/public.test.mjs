@@ -268,3 +268,20 @@ test("blog posts come through the data kit, safely formatted", async () => {
   assert.match(html, /<a href="https:\/\/a.com"/); assert.doesNotMatch(html, /href="javascript/);
   assert.match(html, /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
 });
+
+test("the lineup comes from each comic's Coaster; a site's own title, bio or photo wins only where it set one", async () => {
+  const data = { ...base,
+    hosts: [
+      { id: "lev", name: "Old copy", title: "Old", bio: "stale copy", photo_url: "https://old/p.jpg", sort: 0, comic_id: "lev-fer",
+        coaster: { id: "lev-fer", handle: "lev-fer", name: "Lev Fer", title: "Comedian", bio: "From the Coaster.", photo_url: "https://coaster/lev.jpg", instagram: "https://instagram.com/lev", socials: {} } },
+      { id: "colum", name: "Colum Tyrrell", title: "Co-host", bio: "Cockfight's own words.", own_bio: true, own_title: true, sort: 1, comic_id: "colum-tyrrell",
+        coaster: { id: "colum-tyrrell", handle: "colum-tyrrell", name: "Colum Tyrrell", title: "Comedian", bio: "His Coaster bio.", photo_url: null, socials: {} } }] };
+  const { w } = await load(data);
+  const fn = new Function("window", "globalThis", "fetch", sdk + "; return window.CSB;");
+  const CSB = fn(w, w, w.fetch);
+  CSB.init({ SITE_ID: "cockfight", SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "k" });
+  const d = await CSB.load();
+  const [lev, colum] = d.people;
+  assert.deepEqual([lev.name, lev.title, lev.bio, lev.photo, lev.socials.instagram, lev.handle], ["Lev Fer", "Comedian", "From the Coaster.", "https://coaster/lev.jpg", "https://instagram.com/lev", "lev-fer"]);
+  assert.deepEqual([colum.title, colum.bio], ["Co-host", "Cockfight's own words."]);
+});

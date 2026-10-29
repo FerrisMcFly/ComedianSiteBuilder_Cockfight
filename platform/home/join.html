@@ -90,7 +90,10 @@ button.go:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
   Promise.all([
     CSB.api("sites?select=name,domain,features,theme,profile&id=eq." + encodeURIComponent(site)),
-    CSB.api("hosts?select=name,title,photo_url&hidden=is.false&order=sort.asc&site_id=eq." + encodeURIComponent(site)).catch(function () { return []; }),
+    CSB.api("hosts?select=name,title,photo_url,own_photo,own_title,coaster:comics(name,title,photo_url)&hidden=is.false&order=sort.asc&site_id=eq." + encodeURIComponent(site))
+      .catch(function () { return CSB.api("hosts?select=name,title,photo_url&hidden=is.false&order=sort.asc&site_id=eq." + encodeURIComponent(site)); })
+      .then(function (rows) { return (rows || []).map(function (h) { var c = h.coaster; return c ? { name: c.name || h.name, title: (h.own_title ? h.title : c.title) || "", photo_url: (h.own_photo && h.photo_url) || c.photo_url } : h; }); })
+      .catch(function () { return []; }),
     showId && /^[0-9a-f-]{36}$/i.test(showId) ? CSB.api("shows?select=venue,city,date&id=eq." + showId).catch(function () { return []; }) : Promise.resolve([])
   ]).then(function (r) {
     var s = r[0][0];
