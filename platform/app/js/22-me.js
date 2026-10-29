@@ -92,7 +92,7 @@
           h("div", { style: "min-width:0" }, h("b", { text: shortDate(d.date) + (d.time ? " at " + d.time : "") + " · " + (d.venue || d.city || "Show") }),
             h("div", { class: "hint", text: [d.city, d.event ? d.site_name + " live show" : "", d.status === "sold_out" ? "Sold out" : d.status === "cancelled" ? "Cancelled" : ""].filter(Boolean).join(" · ") })),
           h("div", { class: "btns" }, d.url ? h("a", { class: "btn sm ghost", href: d.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : h("span", { class: "pill warn", text: "No ticket link" }),
-            !d.site_id && d.comic_id === me.id ? sure("Delete", async () => { try { await q(sb.from("shows").delete().eq("id", d.id)); toast("Date deleted."); route(); } catch (e) { toast(errText(e), { bad: true }); } }) : null))))
+            d.comic_id === me.id ? h("button", { class: "btn sm ghost", type: "button", text: "Edit", onclick: (e) => { const row = e.currentTarget.closest(".switch-row"); row.after(coasterDateForm(me, d)); } }) : null))))
           : empty("No upcoming dates", "Add some and they'll show on your Coaster and every site you're on."));
     } catch (e) { datesCard.replaceChildren(h("h2", { text: "Dates" }), h("p", { class: "err", text: /comic_shows|function/i.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) })); }
   }

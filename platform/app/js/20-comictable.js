@@ -196,7 +196,8 @@
           h("button", { class: "btn sm", type: "button", text: "+ Add a date", onclick: () => addBox.replaceChildren(coasterDateForm(c)) })), addBox,
         dates.length ? h("div", null, dates.slice(0, 30).map((d) => h("div", { class: "switch-row" },
           h("div", null, h("b", { text: shortDate(d.date) + (d.time ? " · " + d.time : "") + " · " + (d.venue || d.city || "Show") }), h("div", { class: "hint", text: [d.city, d.event ? d.site_name + " live show" : "added on " + d.site_name, d.url ? "" : "no ticket link"].filter(Boolean).join(" · ") })),
-          h("button", { class: "btn sm ghost", type: "button", text: "Edit", onclick: () => switchSite(d.site_id, "shows") }))))
+          d.comic_id ? h("button", { class: "btn sm ghost", type: "button", text: "Edit", onclick: (e) => { const row = e.currentTarget.closest(".switch-row"); const f = coasterDateForm(c, d); row.after(f); } })
+            : h("button", { class: "btn sm ghost", type: "button", text: "Edit on " + d.site_name, title: "A live show by the whole " + d.site_name + " crew", onclick: () => switchSite(d.site_id, "shows") }))))
           : empty("No upcoming dates", sites.length ? "Add some, or point the show finder at their tour page." : "Put them on a site first."));
     } catch (e) { datesCard.replaceChildren(h("h2", { text: "Upcoming dates" }), h("p", { class: "err", text: errText(e) })); }
 
@@ -296,15 +297,19 @@
 
   // Adding a date without a site (a Coaster on its own). Pick the club from ComicTable's club list so shared bills
   // can match it; anything not on the list can be typed in.
-  function coasterDateForm(me) {
-    const club = h("input", { placeholder: "Start typing the club", autocomplete: "off", "aria-label": "Club" });
-    const city = h("input", { placeholder: "City", "aria-label": "City" });
-    const date = h("input", { type: "date", min: today(), "aria-label": "Date", required: true });
-    const time = h("input", { type: "time", "aria-label": "Time" });
-    const url = h("input", { type: "url", placeholder: "https://… (tickets)", "aria-label": "Ticket link" });
+  // Add a date to a Coaster, or (with a show) change one, right there. Dates belong to the Coaster and show on every site they're on.
+  function coasterDateForm(me, show) {
+    const to24 = (t) => { const m = String(t || "").match(/^(\d{1,2}):(\d{2})\s*([AP]M)?/i); if (!m) return ""; const hh = m[3] ? (+m[1] % 12) + (/p/i.test(m[3]) ? 12 : 0) : +m[1]; return String(hh).padStart(2, "0") + ":" + m[2]; };
+    const club = h("input", { placeholder: "Start typing the club", autocomplete: "off", "aria-label": "Club", value: show ? show.venue || "" : "" });
+    const city = h("input", { placeholder: "City", "aria-label": "City", value: show ? show.city || "" : "" });
+    const date = h("input", { type: "date", min: show ? null : today(), "aria-label": "Date", required: true, value: show ? show.date : "" });
+    const time = h("input", { type: "time", "aria-label": "Time", value: show ? to24(show.time) : "" });
+    const url = h("input", { type: "url", placeholder: "https://… (tickets)", "aria-label": "Ticket link", value: show ? show.url || "" : "" });
+    const status = h("select", { "aria-label": "Tickets status" }, [["on_sale", "On sale"], ["few_left", "Few left"], ["sold_out", "Sold out"], ["free", "Free"], ["cancelled", "Cancelled"]]
+      .map(([v, l]) => h("option", { value: v, text: l, selected: (show ? show.status || "on_sale" : "on_sale") === v })));
     const list = h("div", { class: "stack", style: "gap:4px" });
     const msg = h("div", { class: "err" });
-    let venue = null, seq = 0;
+    let venue = show && show.venue_id ? { id: show.venue_id, name: show.venue } : null, seq = 0;
     club.addEventListener("input", async () => {
       venue = null; const t = club.value.trim(), my = ++seq;
       if (t.length < 2) { list.replaceChildren(); return; }
@@ -321,15 +326,19 @@
       if (!club.value.trim()) { club.focus(); return; }
       const u = url.value.trim();
       if (u && !/^https?:\/\//i.test(u)) { msg.textContent = "The ticket link needs to start with https://"; url.focus(); return; }
+      const row = { date: date.value, time: to12(time.value), venue: club.value.trim(), city: city.value.trim() || null,
+        venue_id: venue && venue.name === club.value.trim() ? venue.id : null, url: u || null, status: status.value };
       try {
-        await q(sb.from("shows").insert({ comic_id: me.id, site_id: null, date: date.value, time: to12(time.value), venue: club.value.trim(), city: city.value.trim() || null,
-          venue_id: venue && venue.name === club.value.trim() ? venue.id : null, url: u || null, status: "on_sale" }));
-        toast("Date added. It's on the Coaster and every site they're on."); route();
+        if (show) { await q(sb.from("shows").update(row).eq("id", show.id)); toast("Date saved. It's changed everywhere it shows."); }
+        else { await q(sb.from("shows").insert({ comic_id: me.id, site_id: null, ...row })); toast("Date added. It's on the Coaster and every site they're on."); }
+        route();
       } catch (er) { msg.textContent = /site_id|not-null|null value/i.test(errText(er)) ? "This needs the latest database upgrade." : errText(er); }
-    } }, h("b", { text: "Add a date" }),
+    } }, h("b", { text: show ? "Change this date" : "Add a date" }),
       h("div", { class: "grid" }, field("Club", club, "c6"), field("City", city, "c6")), list,
-      h("div", { class: "grid" }, field("Date", date, "c4"), field("Time", time, "c4"), field("Tickets", url, "c4")), msg,
-      h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add date" })));
+      h("div", { class: "grid" }, field("Date", date, "c3"), field("Time", time, "c3"), field("Tickets", url, "c3"), field("Status", status, "c3")), msg,
+      h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: show ? "Save date" : "Add date" }),
+        show ? h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: (e) => e.currentTarget.closest("form").remove() }) : null,
+        show ? sure("Delete date", async () => { try { await q(sb.from("shows").delete().eq("id", show.id)); toast("Date deleted."); route(); } catch (er) { msg.textContent = errText(er); } }) : null));
   }
   function viewMySites(main) {
     main.append(head("Your sites", "The sites you can manage."));

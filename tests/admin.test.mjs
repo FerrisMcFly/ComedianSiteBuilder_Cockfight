@@ -581,6 +581,24 @@ test("a comic on a group site: Shows is their Coaster's, and a date is added rig
   assert.ok(added, "added to Lev's Coaster"); assert.equal(added.site_id, null, "not to Cockfight");
 });
 
+test("a date on a Coaster is changed right there: sold out, new time, or deleted", async () => {
+  const { w, d, db } = await open("#ct/dates", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+    db.shows.push({ id: "sam1", comic_id: "solo-sam", site_id: "cockfight", date: fri, time: "9:30 PM", venue: "Comedy Cellar", city: "New York, NY", status: "on_sale" });
+  });
+  await wait(100);
+  btn(d, /^Edit$/).click(); await wait();
+  const f = [...d.querySelectorAll("main form.newclub")].find((x) => /Change this date/.test(x.textContent));
+  assert.equal(f.querySelector('input[aria-label="Time"]').value, "21:30");
+  f.querySelector('select[aria-label="Tickets status"]').value = "sold_out";
+  set(w, f.querySelector('input[aria-label="Time"]'), "22:00");
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const s1 = db.shows.find((x) => x.id === "sam1");
+  assert.deepEqual([s1.status, s1.time, s1.site_id], ["sold_out", "10:00 PM", "cockfight"], "changed in place, still the same show");
+  assert.equal(w.location.hash, "#ct/dates", "never jumps to a site");
+});
+
 test("people: give a comic their own login", async () => {
   const { w, d } = await open("#people");
   let sent = null;
