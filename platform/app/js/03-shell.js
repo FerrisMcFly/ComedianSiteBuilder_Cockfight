@@ -129,8 +129,12 @@
     else if (has("home")) items.push({ key: "home", id: "home", label: "Dashboard", onGo: () => go("home") });
     if (S.me) items.push({ key: "ct/me", id: "me", label: "Coaster", onGo: () => goCT("me") });
     if (S.isPlatform && S.site) items.push({ key: "home", id: "overview", label: "Overview", group: S.site.name, onGo: () => go("home") });
-    if (S.site) siteSecs.filter((x) => !["home", "people", "settings", "website"].includes(x.id)).forEach((x) => items.push({ key: x.id, id: x.id, label: x.label, count: x.count, onGo: () => go(x.id) }));
-    else if (S.me) items.push({ key: "ct/dates", id: "shows", label: "Shows", onGo: () => goCT("dates") });
+    // A comic's shows belong to their Coaster (founder, Oct 29): "Shows" is always theirs, added right there, never a site's page.
+    // On a group site the site's own live shows (the whole crew) stay under the site's name; on a solo site there's nothing extra.
+    if (S.me) items.push({ key: "ct/dates", id: "shows", label: "Shows", onGo: () => goCT("dates") });
+    const solo = S.hosts && S.hosts.length <= 1;
+    if (S.site) siteSecs.filter((x) => !["home", "people", "settings", "website"].includes(x.id) && !(S.me && x.id === "shows" && solo))
+      .forEach((x) => items.push({ key: x.id, id: x.id, label: S.me && x.id === "shows" ? S.site.name + " live shows" : x.label, count: x.count, onGo: () => go(x.id) }));
     if (S.helping && S.helping.length) items.push({ key: "ct/helping", id: "helping", label: S.helping.length === 1 ? S.helping[0].name + "'s Coaster" : "Coasters you help with", onGo: () => goCT("helping") });
     if (S.isPlatform) ["sites", "comics", "clubs"].forEach((id, i) => items.push({ key: "ct/" + id, id, label: ct(id).label, group: i === 0 ? "ComicTable" : null, onGo: () => goCT(id) }));
     if (S.isPlatform && S.site) { const firstSite = items.findIndex((x) => x.group === S.site.name); const n = items.findIndex((x) => x.group === "ComicTable"); if (n > firstSite) { const ctItems = items.splice(n, 3); items.splice(1, 0, ...ctItems.map((x, i) => ({ ...x, group: i === 0 ? "ComicTable" : null }))); } }

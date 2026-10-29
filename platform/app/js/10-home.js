@@ -4,6 +4,8 @@
   // The Dashboard: everything at a glance, real numbers only (founder's mockup, Oct 29). Each card has View all.
   const svgIco = (id) => { const sp = h("span", { class: "ic", "aria-hidden": "true" }); sp.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[id] || "") + "</svg>"; return sp; };
   const cardHead = (title, onAll, allText) => h("div", { class: "card-head" }, h("h2", { text: title }), onAll ? h("button", { class: "view-all", type: "button", onclick: onAll, text: (allText || "View all") + " →" }) : null);
+  // From a comic's dashboard, shows open their Coaster's Shows (added right there); staff go to the site's.
+  const goShows = () => (S.me && !S.isPlatform ? goCT("dates") : go("shows"));
   function viewHome(main) {
     const now = new Date();
     const who = (S.me && S.me.name ? S.me.name : S.user || "").split(/\s+/)[0];
@@ -39,11 +41,11 @@
     if (F("shows")) {
       const tag = (s) => s.status === "sold_out" ? h("span", { class: "pill", text: "Sold out" }) : s.status === "cancelled" ? h("span", { class: "pill", text: "Cancelled" })
         : s.url ? h("span", { class: "pill ok", text: s.status === "few_left" ? "Few left" : "Tickets live" }) : h("span", { class: "pill warn", text: "No ticket link" });
-      grid.append(h("section", { class: "card dash-shows" }, cardHead("Upcoming Shows", () => go("shows")),
-        up.length ? h("div", { class: "dash-list" }, up.slice(0, 5).map((s) => h("button", { class: "dash-row", type: "button", onclick: () => go("shows") },
+      grid.append(h("section", { class: "card dash-shows" }, cardHead("Upcoming Shows", () => goShows()),
+        up.length ? h("div", { class: "dash-list" }, up.slice(0, 5).map((s) => h("button", { class: "dash-row", type: "button", onclick: () => goShows() },
           h("span", { class: "dl-date" }, h("small", { text: MON[parseISO(s.date).getMonth()] }), h("b", { text: parseISO(s.date).getDate() })),
           h("span", { class: "dl-main" }, h("b", { text: s.venue || s.city || "Show" }), h("span", { text: [s.city, s.time, S.hosts.length > 1 ? first(s.host) : ""].filter(Boolean).join(" · ") })), tag(s))))
-          : h("div", { class: "empty" }, h("b", { text: "No shows yet" }), h("button", { class: "btn primary", type: "button", text: "+ Add shows", onclick: () => go("shows") }))));
+          : h("div", { class: "empty" }, h("b", { text: "No shows yet" }), h("button", { class: "btn primary", type: "button", text: "+ Add shows", onclick: () => goShows() }))));
     }
     // latest episode / video
     if (F("podcast") || F("videos")) {

@@ -565,6 +565,22 @@ test("a comic manages their own team from their Coaster page", async () => {
   assert.deepEqual([add.comic_id, add.email, add.role], ["solo-sam", "mgr@x.com", "editor"]);
 });
 
+test("a comic on a group site: Shows is their Coaster's, and a date is added right there, not on the site", async () => {
+  const { w, d, db } = await open("#home", (db) => { db.platform_admins = []; db.comics.find((c) => c.id === "lev-fer").user_id = "u1"; });
+  await wait(60);
+  const nav = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent.replace(/\d+$/, ""));
+  assert.ok(nav.includes("Shows") && nav.includes("Cockfight live shows"), nav.join(", "));
+  [...d.querySelectorAll(".nav-btn")].find((b) => b.textContent.replace(/\d+$/, "") === "Shows").click(); await wait(100);
+  assert.equal(w.location.hash, "#ct/dates");
+  btn(d, /Add a date/).click(); await wait();
+  const f = d.querySelector("main form.newclub");
+  set(w, f.querySelector('input[aria-label="Club"]'), "Comedy Cellar");
+  set(w, f.querySelector('input[aria-label="Date"]'), fri);
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const added = db.shows.find((x) => x.comic_id === "lev-fer" && x.venue === "Comedy Cellar");
+  assert.ok(added, "added to Lev's Coaster"); assert.equal(added.site_id, null, "not to Cockfight");
+});
+
 test("people: give a comic their own login", async () => {
   const { w, d } = await open("#people");
   let sent = null;
