@@ -2971,8 +2971,10 @@ button.stat:hover { border-color: var(--line-strong); }
     left.append(datesCard);
     try {
       const dates = await q(sb.rpc("comic_shows", { p_comic: c.id }));
+      // a date belongs to the comic's Coaster, so it's added right here and shows on every site they're on
+      const addBox = h("div");
       datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Upcoming dates (" + dates.length + ")" }),
-          sites[0] ? h("button", { class: "btn sm", type: "button", text: "+ Add dates", onclick: async () => { await switchSite(sites[0].site_id, "shows"); setTimeout(() => openRun({ host: sites[0].id })); } }) : null),
+          h("button", { class: "btn sm", type: "button", text: "+ Add a date", onclick: () => addBox.replaceChildren(coasterDateForm(c)) })), addBox,
         dates.length ? h("div", null, dates.slice(0, 30).map((d) => h("div", { class: "switch-row" },
           h("div", null, h("b", { text: shortDate(d.date) + (d.time ? " · " + d.time : "") + " · " + (d.venue || d.city || "Show") }), h("div", { class: "hint", text: [d.city, d.event ? d.site_name + " live show" : "added on " + d.site_name, d.url ? "" : "no ticket link"].filter(Boolean).join(" · ") })),
           h("button", { class: "btn sm ghost", type: "button", text: "Edit", onclick: () => switchSite(d.site_id, "shows") }))))
@@ -3089,7 +3091,7 @@ button.stat:hover { border-color: var(--line-strong); }
       try {
         await q(sb.from("shows").insert({ comic_id: me.id, site_id: null, date: date.value, time: to12(time.value), venue: club.value.trim(), city: city.value.trim() || null,
           venue_id: venue && venue.name === club.value.trim() ? venue.id : null, url: u || null, status: "on_sale" }));
-        toast("Date added. It's on your Coaster now."); route();
+        toast("Date added. It's on the Coaster and every site they're on."); route();
       } catch (er) { msg.textContent = /site_id|not-null|null value/i.test(errText(er)) ? "This needs the latest database upgrade." : errText(er); }
     } }, h("b", { text: "Add a date" }),
       h("div", { class: "grid" }, field("Club", club, "c6"), field("City", city, "c6")), list,
@@ -3207,8 +3209,7 @@ button.stat:hover { border-color: var(--line-strong); }
     try {
       const dates = await q(sb.rpc("comic_shows", { p_comic: me.id }));
       // with a site: the site's date tools (club search, runs, show finder); without one: a simple form right here
-      const addHere = here ? () => { go("shows"); setTimeout(() => openRun({ host: here.id })); }
-        : (() => { const st = mySites.find((x) => x.team); return st ? async () => { await switchSite(st.id, "shows"); const hh = S.hosts.find((x) => x.comic_id === me.id); setTimeout(() => openRun({ host: hh && hh.id })); } : null; })();
+      const addHere = null;  // dates are the Coaster's: added here, on every site they're on
       const addBox = h("div");
       datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Upcoming (" + dates.length + ")" }),
           h("button", { class: "btn primary", type: "button", text: "+ Add a date", onclick: addHere || (() => addBox.replaceChildren(coasterDateForm(me))) })),
