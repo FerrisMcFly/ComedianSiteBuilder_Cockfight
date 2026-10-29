@@ -205,6 +205,9 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .listen-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .listen { display: inline-flex; align-items: center; gap: 8px; }
 .listen-menu { margin-bottom: 14px; } .listen-menu summary { list-style: none; cursor: pointer; display: inline-block; } .listen-menu div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.report { background: none; border: 0; padding: 2px 0; margin-left: 8px; font: 11px var(--f-display); letter-spacing: .12em; text-transform: uppercase; color: var(--glow-dim); cursor: pointer; opacity: .7; }
+.report:hover, .report:focus-visible { opacity: 1; color: var(--glow); }
+.post .report { display: block; margin: 6px 0 0; }
 .socrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
 .socrow .btn { padding: 12px 6px; letter-spacing: .06em; font-size: 11px; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
@@ -714,7 +717,12 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
       if (!nm.value.trim()) { msg.textContent = "Add your name."; nm.focus(); return; }
       if (!title.value.trim() || !body.value.trim()) { msg.textContent = "Add a title and a message."; (title.value.trim() ? body : title).focus(); return; }
       send.disabled = true; CSB.name.set(nm.value.trim());
-      CSB.forum.newTopic({ board: b.id, title: title.value.trim(), author: nm.value.trim(), body: body.value.trim() }).then(function (id) { location.hash = "#/forum/" + encodeURIComponent(b.id) + "/" + encodeURIComponent(id); },
+      CSB.forum.newTopic({ board: b.id, title: title.value.trim(), author: nm.value.trim(), body: body.value.trim() }).then(function (id) {
+        // a site that holds first posts: it shows once a host approves it
+        return (CSB.forum.isHeld ? CSB.forum.isHeld("thread", id) : Promise.resolve(false)).then(function (held) {
+          if (held) { send.disabled = false; title.value = ""; body.value = ""; msg.textContent = "Thanks! Your topic shows up once a host approves it."; return; }
+          location.hash = "#/forum/" + encodeURIComponent(b.id) + "/" + encodeURIComponent(id);
+        }); },
         function (er) { send.disabled = false; msg.textContent = er.message; });
     } }, [el("h3", { class: "sub", text: "New topic" }), nm, title, body, el("div", { class: "row" }, [send]), msg]));
   }
@@ -722,7 +730,8 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     app.append.apply(app, head(b.name, [el("a", { href: "#/forum/" + encodeURIComponent(b.id), text: "← Back to " + b.name })]));
     var list = el("div", { class: "list" }, [el("p", { class: "mini", text: "Loading…" })]); app.append(list);
     var draw = function () { return CSB.forum.posts(id).then(function (ps) {
-      list.replaceChildren.apply(list, ps.length ? ps.map(function (p) { return el("div", { class: "post" + (p.isMod ? " mod" : "") }, [el("b", { text: p.author }), " ", el("span", { class: "mini", text: ago(p.createdAt) + (p.edited ? " · edited" : "") }), el("p", { text: p.body })]); }) : [empty("Topic not found")]);
+      list.replaceChildren.apply(list, ps.length ? ps.map(function (p, i) { return el("div", { class: "post" + (p.isMod ? " mod" : "") }, [el("b", { text: p.author }), " ", el("span", { class: "mini", text: ago(p.createdAt) + (p.edited ? " · edited" : "") }), el("p", { text: p.body }),
+        p.isMod || !CSB.reportButton ? null : CSB.reportButton(i === 0 ? "thread" : "post", i === 0 ? id : p.id, { className: "report" })]); }) : [empty("Topic not found")]);
     }, function (e) { list.replaceChildren(empty("Couldn't load the topic", e.message)); }); };
     draw();
     if (b.locked) return;
@@ -733,7 +742,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
       if (!nm.value.trim()) { msg.textContent = "Add your name."; nm.focus(); return; }
       if (!body.value.trim()) { body.focus(); return; }
       send.disabled = true; CSB.name.set(nm.value.trim());
-      CSB.forum.reply({ threadId: id, author: nm.value.trim(), body: body.value.trim() }).then(function () { send.disabled = false; body.value = ""; msg.textContent = ""; draw(); },
+      CSB.forum.reply({ threadId: id, author: nm.value.trim(), body: body.value.trim() }).then(function (r) { send.disabled = false; body.value = ""; msg.textContent = r && r.held ? "Thanks! Your reply shows up once a host approves it." : ""; draw(); },
         function (er) { send.disabled = false; msg.textContent = er.message; });
     } }, [nm, body, el("div", { class: "row" }, [send]), msg]));
   }
@@ -744,7 +753,8 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     var mine = CSB.name.get();
     stopChat = CSB.chat.subscribe(function (list) {
       var stick = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-      log.replaceChildren.apply(log, list.length ? list.map(function (m) { return el("div", { class: "line" + (m.isMod ? " mod" : m.author === mine ? " me" : "") }, [el("b", { text: m.author }), el("span", { text: m.body }), el("time", { text: clock(m.at) })]); }) : [el("p", { class: "mini", text: "Nobody's said anything yet. Say hi." })]);
+      log.replaceChildren.apply(log, list.length ? list.map(function (m) { return el("div", { class: "line" + (m.isMod ? " mod" : m.author === mine ? " me" : "") }, [el("b", { text: m.author }), el("span", { text: m.body }), el("time", { text: clock(m.at) }),
+        m.isMod || m.author === mine || !CSB.reportButton ? null : CSB.reportButton("chat", m.id, { className: "report" })]); }) : [el("p", { class: "mini", text: "Nobody's said anything yet. Say hi." })]);
       if (stick || list.length < 3) log.scrollTop = log.scrollHeight;
     }, function () { log.replaceChildren(el("p", { class: "mini", text: "Couldn't connect to the chat. It'll keep trying." })); });
     var nm = nameBox(), body = el("input", { id: "c-msg", maxlength: "500", placeholder: "Say something", "aria-label": "Chat message", autocomplete: "off" });
@@ -754,7 +764,7 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
       if (!nm.value.trim()) { msg.textContent = "Add your name first."; nm.focus(); return; }
       if (!body.value.trim()) return;
       send.disabled = true; CSB.name.set(nm.value.trim()); mine = nm.value.trim();
-      CSB.chat.send({ author: mine, body: body.value.trim() }).then(function () { send.disabled = false; body.value = ""; msg.textContent = ""; stopChat && stopChat.refresh(); body.focus(); },
+      CSB.chat.send({ author: mine, body: body.value.trim() }).then(function (r) { send.disabled = false; body.value = ""; msg.textContent = r && r.held ? "Thanks! Your first message shows once a host approves it." : ""; stopChat && stopChat.refresh(); body.focus(); },
         function (er) { send.disabled = false; msg.textContent = er.message; });
     } }, [el("div", { class: "row" }, [nm]), el("div", { class: "row" }, [body, send]), msg]));
     var rules = (D.community || {}).chat_rules; if (rules) app.append(el("p", { class: "mini", text: rules }));

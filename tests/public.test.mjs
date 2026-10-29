@@ -143,7 +143,8 @@ test("forum shows pinned and locked topics and the board's own error messages", 
 
 test("chat room shows messages, sends, and shows the chat's rules", async () => {
   const data = { ...base, sites: [{ id: "cockfight", features: { chat: true } }],
-    chat_messages: [{ id: "m1", author: "Colum Tyrrell", body: "Welcome!", is_mod: true, created_at: new Date().toISOString() }] };
+    chat_messages: [{ id: "m1", author: "Colum Tyrrell", body: "Welcome!", is_mod: true, created_at: new Date().toISOString() },
+      { id: "m0", author: "SomeFan", body: "first!", created_at: new Date(Date.now() - 1000).toISOString() }] };
   const { w, d, calls } = await load(data);
   assert.equal(d.querySelector('.nav [data-view="chat"]').hidden, false);
   d.getElementById("enter").click(); await new Promise((r) => setTimeout(r, 1000));
@@ -153,6 +154,11 @@ test("chat room shows messages, sends, and shows the chat's rules", async () => 
   d.getElementById("chatForm").dispatchEvent(new w.Event("submit", { cancelable: true })); await new Promise((r) => setTimeout(r, 80));
   assert.ok(calls.some((c) => c.startsWith("POST chat_messages")));
   assert.equal(data.chat_messages.at(-1).author, "TacoKing"); assert.equal(data.chat_messages.at(-1).site_id, "cockfight"); assert.ok(data.chat_messages.at(-1).device);
+  // hosts' messages have no Report button; fans' messages do
+  await new Promise((r) => setTimeout(r, 150));
+  const lines = [...d.querySelectorAll("#chatLog .ln")];
+  assert.ok(!lines.find((l) => /Welcome!/.test(l.textContent)).querySelector(".ln-report"));
+  assert.ok(lines.find((l) => /first!/.test(l.textContent)).querySelector(".ln-report"));
 });
 
 test("videos can be filtered by channel, and a person's videos show on their page", async () => {

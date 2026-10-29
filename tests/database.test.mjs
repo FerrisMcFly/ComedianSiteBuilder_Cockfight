@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "99_rules.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "99_rules.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -478,4 +478,40 @@ test("News: every announcement moved into News as a banner, once; News takes sty
   assert.equal((await q("select count(*)::int n from home_picks where from_announcement is not null"))[0].n, ann, "running it again doesn't copy them twice");
   assert.equal(await as(OWNER, `insert into home_picks (site_id, headline, style, starts_on) values ('cockfight', 'Strip test', 'strip', current_date + 3)`), "ok");
   assert.match(await as(OWNER, `insert into home_picks (site_id, headline, style) values ('cockfight', 'Bad', 'popup')`), /check constraint/);
+});
+
+test("forum and chat safety: no links by default, approved fans can, reports hide a post until a moderator looks, first posts can wait", async () => {
+  await db.exec(`update sites set community = '{"forum_open": true, "chat_open": true, "slow_mode_seconds": 0, "chat_slow_seconds": 0, "banned_words": []}' where id = 'cockfight'`);
+  await db.exec(`update threads set locked = false`);
+  const tid = (await q("select id from threads where site_id = 'cockfight' limit 1"))[0].id;
+  let n = 0;
+  const post = (author, body, dev) => `insert into posts (site_id, thread_id, author, body, created_at, device) values ('cockfight', '${tid}', '${author}', '${body}', ${Date.now() + n++}, '${dev}')`;
+  // links
+  assert.match(await as(null, post("Spammer", "buy at cheap-pills.com now", "s1")), /Links aren't allowed/);
+  assert.match(await as(null, post("Spammer", "see https://x.example/y", "s1")), /Links aren't allowed/);
+  assert.equal(await as(null, post("Fan", "no link, just vibes", "f1")), "ok");
+  await db.exec(`update sites set community = community || '{"links_from": "approved"}' where id = 'cockfight'`);
+  assert.match(await as(null, post("Fan", "my clip youtube.com/watch", "f1")), /only for approved fans/);
+  await db.exec(`insert into trusted (site_id, author) values ('cockfight', 'Fan')`);
+  assert.equal(await as(null, post("Fan", "my clip youtube.com/watch", "f1")), "ok");
+  assert.equal(await as(OWNER, post("Lev", "tickets at levfer.gay", "x")), "ok", "the site's team can always post links");
+  // reports hide it, a moderator keeps it, then reports can't hide it again
+  const pid = (await q("select id from posts where body = 'no link, just vibes'"))[0].id;
+  assert.equal(await as(null, `insert into reports (site_id, kind, item_id, reason, device) values ('cockfight', 'post', '${pid}', 'rude', 'r1')`), "ok");
+  assert.equal((await rows(null, `select id from posts where id = '${pid}'`)).length, 0, "hidden from the public once reported");
+  assert.equal((await rows(OWNER, `select id from posts where id = '${pid}'`)).length, 1, "moderators still see it");
+  assert.match(await as(null, "select * from reports"), /permission denied/, "the public can't read reports");
+  await as(OWNER, `update posts set held = false, reviewed = true where id = '${pid}'`);
+  await as(null, `insert into reports (site_id, kind, item_id, device) values ('cockfight', 'post', '${pid}', 'r2')`);
+  assert.equal((await rows(null, `select id from posts where id = '${pid}'`)).length, 1, "kept posts stay up");
+  assert.match(await as(null, `insert into reports (site_id, kind, item_id, device) values ('cockfight', 'post', '00000000-0000-0000-0000-000000000000', 'r3')`), /isn't here/);
+  // first posts wait
+  await db.exec(`update sites set community = community || '{"hold_first_posts": true}' where id = 'cockfight'`);
+  assert.equal(await as(null, post("Newbie", "hello all", "n1")), "ok");
+  assert.equal((await rows(null, "select id from posts where author = 'Newbie'")).length, 0, "waiting for a moderator");
+  assert.equal(await as(null, post("Fan", "approved fans skip the wait", "f1")), "ok");
+  assert.equal((await rows(null, "select id from posts where body = 'approved fans skip the wait'")).length, 1);
+  // chat: the same link rule
+  assert.match(await as(null, `insert into chat_messages (site_id, author, body, device) values ('cockfight', 'Spam2', 'go to spam.xyz', 'c1')`), /approved fans/);
+  await db.exec(`update sites set community = community || '{"hold_first_posts": false, "links_from": "nobody"}' where id = 'cockfight'`);
 });

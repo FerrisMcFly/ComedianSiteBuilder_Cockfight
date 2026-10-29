@@ -370,6 +370,8 @@ tr.cancel td { text-decoration: line-through; color: #777; }
   .marquee span { animation: none; padding-left: 10px; }
   .burst, .blink, .new, .enter span, .pb-btn, .pb-arrow { animation: none; }
 }
+.post-report { margin-top: 8px; text-align: right; }
+.ln .ln-report { margin-left: 6px; background: none; border: 0; padding: 0; font: inherit; font-size: 10px; color: #888; text-decoration: underline; cursor: pointer; }
 </style>
 
 <!-- ============ SPLASH ============ -->
@@ -1185,8 +1187,8 @@ tr.cancel td { text-decoration: line-through; color: #777; }
     A.kick = function () { pollers.forEach(function (go) { go(); }); };
     A.threads = function (cb, err) { return poll(function () { return CSB.forum.threads(); }, cb, err); };
     A.posts = function (id, cb, err) { return poll(function () { return CSB.forum.posts(id); }, cb, err); };
-    A.newThread = function (t, body) { return CSB.forum.newTopic({ board: t.board, title: t.title, author: t.author, body: body }).then(function (id) { A.kick(); return id; }); };
-    A.reply = function (id, p) { return CSB.forum.reply({ threadId: id, author: p.author, body: p.body }).then(function () { A.kick(); }); };
+    A.newThread = function (t, body) { return CSB.forum.newTopic({ board: t.board, title: t.title, author: t.author, body: body }).then(function (id) { A.kick(); if (CSB.forum.isHeld) CSB.forum.isHeld("thread", id).then(function (h) { if (h) { F.status = "Thanks! Your topic shows up once a host approves it."; forumRender(); } }); return id; }); };
+    A.reply = function (id, p) { return CSB.forum.reply({ threadId: id, author: p.author, body: p.body }).then(function (r) { A.kick(); if (r && r.held) { F.status = "Thanks! Your reply shows up once a host approves it."; forumRender(); } }); };
     A.remove = function () { return Promise.reject(new Error("Delete topics from your admin page.")); };
     return A;
   }
@@ -1219,7 +1221,8 @@ tr.cancel td { text-decoration: line-through; color: #777; }
       log.textContent = "";
       if (!list.length) log.appendChild(el("div", { class: "ln", text: "*** It's quiet in here. Say hi! ***" }));
       list.forEach(function (m) {
-        log.appendChild(el("div", { class: "ln" + (m.isMod ? " mod" : "") }, [el("time", { text: chatTime(m.at) }), m.isMod ? el("span", { class: "hostbadge", text: "HOST" }) : null, el("b", { text: m.author + ":" }), " " + m.body]));
+        log.appendChild(el("div", { class: "ln" + (m.isMod ? " mod" : "") }, [el("time", { text: chatTime(m.at) }), m.isMod ? el("span", { class: "hostbadge", text: "HOST" }) : null, el("b", { text: m.author + ":" }), " " + m.body,
+          m.isMod || !CSB.reportButton ? null : CSB.reportButton("chat", m.id, { className: "ln-report" })]));
       });
       state.textContent = "live";
       if (stick || first) log.scrollTop = log.scrollHeight;
@@ -1232,7 +1235,7 @@ tr.cancel td { text-decoration: line-through; color: #777; }
       if (!body) return;
       CSB.name.set(name); store("cf_handle", name);
       var btn = e.target.querySelector("button"); btn.disabled = true;
-      CSB.chat.send({ author: name, body: body }).then(function () { msgIn.value = ""; btn.disabled = false; msgIn.focus(); }, function (x) { err.textContent = x.message; btn.disabled = false; });
+      CSB.chat.send({ author: name, body: body }).then(function (r) { msgIn.value = ""; btn.disabled = false; msgIn.focus(); if (r && r.held) err.textContent = "Thanks! Your first message shows once a host approves it."; }, function (x) { err.textContent = x.message; btn.disabled = false; });
     });
   }
 
@@ -1350,7 +1353,8 @@ tr.cancel td { text-decoration: line-through; color: #777; }
       F.posts.forEach(function (p, i) {
         body.appendChild(el("div", { class: "post" }, [
           el("div", { class: "post-side" }, [el("b", { text: p.author }), el("div", { class: "avatar", text: p.isMod ? "🎤" : avatar(p.author || "?") }), p.isMod ? el("span", { class: "hostbadge", text: "★ HOST ★" }) : el("span", { text: i === 0 ? "Topic Starter" : "Member" })]),
-          el("div", { class: "post-body" }, [el("div", { class: "post-meta", text: (i === 0 ? "Posted: " : "Re: " + F.thread.title + " • ") + fmt(p.createdAt) }), p.body])
+          el("div", { class: "post-body" }, [el("div", { class: "post-meta", text: (i === 0 ? "Posted: " : "Re: " + F.thread.title + " • ") + fmt(p.createdAt) }), p.body,
+            p.isMod || !CSB.reportButton ? null : el("div", { class: "post-report" }, [CSB.reportButton(i === 0 ? "thread" : "post", i === 0 ? F.thread.id : p.id, { className: "fbtn small-x" })])])
         ]));
       });
       if (F.api.canDelete) body.appendChild(el("button", { class: "fbtn small-x", type: "button", text: "🗑 Delete Topic (admin)", onclick: function () { var id = F.thread.id, bd = F.thread.board; F.api.remove(id).then(function () { goBoard(bd); }).catch(failWrite); } }));

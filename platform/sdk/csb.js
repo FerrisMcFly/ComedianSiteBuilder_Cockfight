@@ -216,13 +216,46 @@
       return api("posts?select=*&order=created_at.asc&limit=500&thread_id=eq." + encodeURIComponent(threadId))
         .then(function (rows) { return rows.map(function (p) { return { id: p.id, author: p.author, body: p.body, createdAt: Number(p.created_at), isMod: !!p.is_mod, edited: !!p.edited_at }; }); });
     },
+    // Resolves to the new topic's id. If the site holds first posts, it may be waiting for a moderator:
+    // CSB.forum.isHeld("thread", id) says so (the fan's own browser can't see a held post).
     newTopic: function (o) {
-      var now = Date.now(), dev = device();
-      return api("threads", { method: "POST", prefer: "return=representation", body: { site_id: cfg.site, board: o.board, title: o.title, author: o.author, created_at: now, last_at: now, last_by: o.author, replies: 0, device: dev } })
-        .then(function (rows) { var id = rows[0].id; return api("posts", { method: "POST", body: { site_id: cfg.site, thread_id: id, author: o.author, body: o.body, created_at: now, device: dev } }).then(function () { return id; }); });
+      var now = Date.now(), dev = device(), id = uuid();
+      return api("threads", { method: "POST", body: { id: id, site_id: cfg.site, board: o.board, title: o.title, author: o.author, created_at: now, last_at: now, last_by: o.author, replies: 0, device: dev } })
+        .then(function () { return api("posts", { method: "POST", body: { id: uuid(), site_id: cfg.site, thread_id: id, author: o.author, body: o.body, created_at: now, device: dev } }); })
+        .then(function () { return id; });
     },
-    reply: function (o) { return api("posts", { method: "POST", body: { site_id: cfg.site, thread_id: o.threadId, author: o.author, body: o.body, created_at: Date.now(), device: device() } }); }
+    // Resolves to { id, held }: held is true when the reply is waiting for a moderator.
+    reply: function (o) {
+      var id = uuid();
+      return api("posts", { method: "POST", body: { id: id, site_id: cfg.site, thread_id: o.threadId, author: o.author, body: o.body, created_at: Date.now(), device: device() } })
+        .then(function () { return forum.isHeld("post", id).then(function (held) { return { id: id, held: held }; }); });
+    },
+    isHeld: function (kind, id) {
+      var t = kind === "thread" ? "threads" : kind === "chat" ? "chat_messages" : "posts";
+      return api(t + "?select=id&id=eq." + encodeURIComponent(id)).then(function (rows) { return !rows.length; }, function () { return false; });
+    },
+    // Anyone can report a topic or reply. It's hidden until a moderator keeps or removes it.
+    report: function (kind, id, reason) { return api("reports", { method: "POST", body: { site_id: cfg.site, kind: kind === "thread" ? "thread" : "post", item_id: String(id), reason: reason ? String(reason).slice(0, 200) : null, device: device() } }); }
   };
+  // A Report button any design can drop next to a post or chat message: tap once to ask, again to send.
+  // kind: "thread", "post" or "chat". The item is hidden until a moderator keeps or removes it.
+  function reportButton(kind, id, opts) {
+    var b = document.createElement("button"), armed = false, t;
+    b.type = "button"; b.className = (opts && opts.className) || "csb-report"; b.textContent = "Report";
+    b.setAttribute("aria-label", "Report this " + (kind === "chat" ? "message" : "post"));
+    b.addEventListener("click", function () {
+      if (b.disabled) return;
+      if (!armed) { armed = true; b.textContent = "Report this?"; clearTimeout(t); t = setTimeout(function () { armed = false; b.textContent = "Report"; }, 4000); return; }
+      clearTimeout(t); b.disabled = true; b.textContent = "Sending…";
+      (kind === "chat" ? chat.report(id) : forum.report(kind, id)).then(function () { b.textContent = "Reported. Thanks"; if (opts && opts.onDone) opts.onDone(); },
+        function (e) { b.disabled = false; armed = false; b.textContent = "Report"; if (opts && opts.onError) opts.onError(e); });
+    });
+    return b;
+  }
+  function uuid() {
+    if (root.crypto && root.crypto.randomUUID) return root.crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 3 | 8)).toString(16); });
+  }
 
   /* ---------------- chat ---------------- */
   function msg(m) { return { id: m.id, author: m.author, body: m.body, at: m.created_at, isMod: !!m.is_mod, deleted: !!m.deleted }; }
@@ -230,7 +263,13 @@
     recent: function (limit) {
       return api("chat_messages?select=*&deleted=is.false&order=created_at.desc&limit=" + (limit || 80) + "&" + site()).then(function (rows) { return rows.reverse().map(msg); });
     },
-    send: function (o) { return api("chat_messages", { method: "POST", body: { site_id: cfg.site, author: o.author, body: o.body, device: device() } }); },
+    // Resolves to { id, held }: held is true when the message is waiting for a moderator.
+    send: function (o) {
+      var id = uuid();
+      return api("chat_messages", { method: "POST", body: { id: id, site_id: cfg.site, author: o.author, body: o.body, device: device() } })
+        .then(function () { return forum.isHeld("chat", id).then(function (held) { return { id: id, held: held }; }); });
+    },
+    report: function (id, reason) { return api("reports", { method: "POST", body: { site_id: cfg.site, kind: "chat", item_id: String(id), reason: reason ? String(reason).slice(0, 200) : null, device: device() } }); },
     // onMessages(list) gets the full current list each time something changes. Returns a stop() function.
     subscribe: function (onMessages, onError) {
       var list = [], stopped = false, timer = null, channel = null, since = null;
@@ -502,6 +541,6 @@
     return out;
   }
 
-  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
+  var CSB = { init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

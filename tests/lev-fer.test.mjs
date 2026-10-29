@@ -21,6 +21,7 @@ async function load(data, hash = "") {
     w.fetch = async (u, o = {}) => {
       const t = u.split("/rest/v1/")[1].split("?")[0];
       if (o.method === "POST") { posts.push([t, JSON.parse(o.body)]); const out = t === "rpc/site_shows" ? data.shows : t === "rpc/site_videos" ? data.videos || [] : t === "rpc/join_fans" ? "joined" : t === "threads" ? [{ id: "t9" }] : null; return { ok: true, status: 200, text: async () => JSON.stringify(out) }; }
+      if (u.includes("?select=id&id=eq.")) return { ok: true, status: 200, text: async () => JSON.stringify(data.held ? [] : [{ id: "x" }]) };  // can a just-sent post be read back? (no = held)
       if (t === "blog_posts" && u.includes("slug=eq.")) return { ok: true, status: 200, text: async () => JSON.stringify((data.blog_posts || []).filter((p) => u.includes("slug=eq." + p.slug))) };
       if (t === "hosts" && u.includes("comic_id=in.")) return { ok: true, status: 200, text: async () => JSON.stringify(data.other_hosts || []) };
       if (t === "sites" && u.includes("id=in.")) return { ok: true, status: 200, text: async () => JSON.stringify(data.other_sites || []) };
@@ -322,4 +323,20 @@ test("Shorts get their own strip (home and Clips) and stay out of the clips grid
   const menu = { ...data, sites: [{ ...data.sites[0], theme: { ...data.sites[0].theme, listen_style: "menu" } }] };
   ({ d } = await load(menu, "#/podcast"));
   assert.match(d.querySelector(".listen-menu summary").textContent, /Listen on…/);
+});
+
+test("safety: every fan post and chat message has a Report button (tap twice); a held reply says it's waiting", async () => {
+  const data = { ...full, held: true, posts: [{ id: "p1", author: "Fan", body: "first!", created_at: 1 }, { id: "p2", author: "Rude", body: "mean", created_at: 2 }] };
+  const { w, d, posts } = await load(data, "#/forum/general/t1"); await wait();
+  const btns = [...d.querySelectorAll(".post .report")];
+  assert.equal(btns.length, 2);
+  btns[1].click(); assert.equal(btns[1].textContent, "Report this?");
+  btns[1].click(); await wait();
+  assert.deepEqual(posts.find((p) => p[0] === "reports")[1].kind, "post");
+  assert.equal(posts.find((p) => p[0] === "reports")[1].item_id, "p2");
+  assert.equal(btns[1].textContent, "Reported. Thanks");
+  // the reply can't be read back: it's waiting for a host
+  d.getElementById("f-name").value = "Newbie"; d.getElementById("f-reply").value = "hello";
+  d.querySelector("form.compose").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.match(d.querySelector("form.compose .msg").textContent, /once a host approves it/);
 });

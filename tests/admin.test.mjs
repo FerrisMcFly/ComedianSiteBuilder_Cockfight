@@ -1118,3 +1118,27 @@ test("Live: go live with a Twitch or YouTube link (saved for next time), then en
   btn(d, /End stream/).click(); await wait(80);
   assert.equal(db.sites[0].live, null);
 });
+
+test("Moderation: links rule and hold first posts; reported and held posts wait for you to keep, approve or remove", async () => {
+  const { w, d, db } = await open("#moderation", (db) => {
+    db.posts = [{ id: "p1", site_id: "cockfight", thread_id: "t1", author: "Rude", body: "you all stink", device: "d1", held: true },
+      { id: "p2", site_id: "cockfight", thread_id: "t1", author: "Newbie", body: "hi everyone", device: "d2", held: true }];
+    db.reports = [{ id: "r1", site_id: "cockfight", kind: "post", item_id: "p1", reason: "rude", status: "open" }];
+    db.trusted = [];
+  });
+  await wait(100);
+  const main = d.querySelector("main");
+  assert.match(main.textContent, /Waiting for you \(2\)/);
+  assert.match(main.textContent, /Reported.*Rude.*you all stink.*Why: rude/s);
+  btn(d, /^Approve$/, main).click(); await wait(80);
+  assert.equal(db.posts.find((p) => p.id === "p2").held, false);
+  assert.deepEqual([db.trusted[0].author, db.trusted[0].device], ["Newbie", "d2"], "approving a first post approves the fan");
+  btn(d, /^Remove$/, d.querySelector("main")).click(); await wait(80);
+  assert.ok(!db.posts.some((p) => p.id === "p1"));
+  assert.equal(db.reports[0].status, "removed");
+  const f = [...d.querySelectorAll("main form.card")].find((x) => /House rules/.test(x.textContent));
+  f.querySelector('select[aria-label="Links from"]').value = "approved";
+  f.querySelector('input[aria-label="Hold first posts"]').checked = true;
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.deepEqual([db.sites[0].community.links_from, db.sites[0].community.hold_first_posts], ["approved", true]);
+});

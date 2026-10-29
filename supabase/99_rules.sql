@@ -302,3 +302,186 @@ begin
 end $$;
 revoke all on function public.answer_coaster_request(uuid, boolean) from public;
 grant execute on function public.answer_coaster_request(uuid, boolean) to authenticated;
+
+/* ---------------- forum and chat safety ---------------- */
+-- Every fan post (topic, reply, chat message) goes through community_guard. A site's community settings:
+--   forum_open, chat_open, slow_mode_seconds (default 30), chat_slow_seconds (default 5), banned_words, reserve_names
+--   links_from: "nobody" (default), "approved" (fans a moderator approved) or "everyone"
+--   hold_first_posts: a fan's first post waits for a moderator (approving it approves the fan)
+-- Plus a cap per fan: 20 forum posts and 60 chat messages an hour.
+-- Held and reported posts are hidden from the public until a moderator keeps or removes them.
+alter table threads add column if not exists held boolean not null default false;
+alter table threads add column if not exists reviewed boolean not null default false;
+alter table posts add column if not exists held boolean not null default false;
+alter table posts add column if not exists reviewed boolean not null default false;
+alter table chat_messages add column if not exists held boolean not null default false;
+alter table chat_messages add column if not exists reviewed boolean not null default false;
+
+-- Does a post have a link in it? (an address, or something.com)
+create or replace function public.has_link(t text) returns boolean language sql immutable as $$
+  select coalesce(t, '') ~* '(https?://|www\.|[a-z0-9-]+\.(com|net|org|io|gg|ly|tv|co|me|xyz|app|link|info|biz|us|uk|ca|club|live|site|online|shop)(\M|/))';
+$$;
+
+-- A fan a moderator approved (by name or by device).
+create or replace function public.is_trusted(p_site text, p_author text, p_device text) returns boolean
+language plpgsql stable security definer set search_path = public as $$
+declare ok boolean := false;
+begin
+  if to_regclass('public.trusted') is null then return false; end if;
+  execute 'select exists (select 1 from trusted where site_id = $1 and ((author is not null and lower(author) = lower($2)) or (device is not null and device = $3)))'
+    into ok using p_site, p_author, p_device;
+  return ok;
+end $$;
+
+create or replace function public.community_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  c jsonb;
+  admin_ok boolean := public.can_site(new.site_id, 'community');
+  wait_s int;
+  txt text;
+  w text;
+  b record;
+  links text;
+  recent int;
+begin
+  new.author := trim(new.author);
+  if admin_ok then new.held := false; return new; end if;
+  new.is_mod := false;            -- only the site's team gets the host badge
+  new.held := false; new.reviewed := false;
+
+  select community into c from sites where id = new.site_id;
+  c := coalesce(c, '{}'::jsonb);
+
+  if tg_table_name = 'chat_messages' then
+    if coalesce((c->>'chat_open')::boolean, true) = false then raise exception 'The chat is closed right now.' using errcode = 'P0001'; end if;
+    wait_s := coalesce((c->>'chat_slow_seconds')::int, 5);
+    txt := new.body;
+  else
+    if coalesce((c->>'forum_open')::boolean, true) = false then raise exception 'The forum is closed for posting right now.' using errcode = 'P0001'; end if;
+    wait_s := coalesce((c->>'slow_mode_seconds')::int, 30);
+    if tg_table_name = 'threads' then
+      if not exists (select 1 from boards where site_id = new.site_id and id = new.board and not hidden) then
+        raise exception 'That board doesn''t exist.' using errcode = 'P0001'; end if;
+      if exists (select 1 from boards where site_id = new.site_id and id = new.board and locked) then
+        raise exception 'This board is locked. Only the hosts can post here.' using errcode = 'P0001'; end if;
+      txt := new.title;
+    else
+      if exists (select 1 from threads where id = new.thread_id and locked) then
+        raise exception 'This topic is locked.' using errcode = 'P0001'; end if;
+      txt := new.body;
+    end if;
+  end if;
+
+  -- bans (by name or by device)
+  select * into b from bans
+   where site_id = new.site_id and (until is null or until > now())
+     and ((author is not null and lower(author) = lower(new.author)) or (device is not null and device = new.device))
+   limit 1;
+  if found then raise exception 'You''ve been banned from posting here.' using errcode = 'P0001'; end if;
+
+  -- names that belong to the hosts
+  if coalesce((c->>'reserve_names')::boolean, true) and (
+       lower(new.author) in ('admin', 'administrator', 'mod', 'moderator', 'webmaster', 'host')
+       or exists (select 1 from hosts h where h.site_id = new.site_id
+                   and (lower(h.name) = lower(new.author) or lower(split_part(h.name, ' ', 1)) = lower(new.author)))) then
+    raise exception 'That name is reserved. Pick a different username.' using errcode = 'P0001';
+  end if;
+
+  -- banned words (checked in the title too for new topics)
+  for w in select jsonb_array_elements_text(coalesce(c->'banned_words', '[]'::jsonb)) loop
+    if length(trim(w)) > 0 and position(lower(trim(w)) in lower(coalesce(txt, ''))) > 0 then
+      raise exception 'Your post has a word this site doesn''t allow.' using errcode = 'P0001';
+    end if;
+  end loop;
+
+  -- links: nobody (the default), approved fans only, or everyone
+  links := coalesce(c->>'links_from', 'nobody');
+  if links <> 'everyone' and public.has_link(txt) and not (links = 'approved' and public.is_trusted(new.site_id, new.author, new.device)) then
+    raise exception '%', case when links = 'approved' then 'Links are only for approved fans here. Post it without the link.' else 'Links aren''t allowed here. Post it without the link.' end using errcode = 'P0001';
+  end if;
+
+  -- slow mode (per device, falling back to per name), then an hourly cap
+  if tg_table_name = 'chat_messages' then
+    if wait_s > 0 and exists (select 1 from chat_messages m where m.site_id = new.site_id
+                 and ((new.device is not null and m.device = new.device) or lower(m.author) = lower(new.author))
+                 and m.created_at > now() - make_interval(secs => wait_s)) then
+      raise exception 'Slow down! Wait a few seconds between messages.' using errcode = 'P0001'; end if;
+    select count(*) into recent from chat_messages m where m.site_id = new.site_id
+      and ((new.device is not null and m.device = new.device) or lower(m.author) = lower(new.author)) and m.created_at > now() - interval '1 hour';
+    if recent >= 60 then raise exception 'That''s a lot of messages. Take a breather and come back in a bit.' using errcode = 'P0001'; end if;
+  elsif tg_table_name = 'posts' then
+    if wait_s > 0 and exists (select 1 from posts p where p.site_id = new.site_id
+                 and ((new.device is not null and p.device = new.device) or lower(p.author) = lower(new.author))
+                 and p.created_at > (extract(epoch from now()) * 1000 - wait_s * 1000)) then
+      raise exception 'Slow down! Wait a little before posting again.' using errcode = 'P0001'; end if;
+    select count(*) into recent from posts p where p.site_id = new.site_id
+      and ((new.device is not null and p.device = new.device) or lower(p.author) = lower(new.author)) and p.created_at > (extract(epoch from now()) * 1000 - 3600000);
+    if recent >= 20 then raise exception 'That''s a lot of posts for one hour. Come back in a bit.' using errcode = 'P0001'; end if;
+  end if;
+
+  -- first posts wait for a moderator (when the site turned that on); a held topic holds its first post too
+  if tg_table_name = 'posts' then
+    if exists (select 1 from threads where id = new.thread_id and held) then new.held := true; return new; end if;
+  end if;
+  if coalesce((c->>'hold_first_posts')::boolean, false) and not public.is_trusted(new.site_id, new.author, new.device) then
+    if tg_table_name = 'chat_messages' then
+      new.held := not exists (select 1 from chat_messages m where m.site_id = new.site_id and not m.held and not m.deleted
+                               and ((new.device is not null and m.device = new.device) or lower(m.author) = lower(new.author)));
+    else
+      new.held := not exists (select 1 from posts p where p.site_id = new.site_id and not p.held
+                               and ((new.device is not null and p.device = new.device) or lower(p.author) = lower(new.author)));
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists threads_guard on threads;
+create trigger threads_guard before insert on threads for each row execute function public.community_guard();
+drop trigger if exists posts_guard on posts;
+create trigger posts_guard before insert on posts for each row execute function public.community_guard();
+drop trigger if exists chat_guard on chat_messages;
+create trigger chat_guard before insert on chat_messages for each row execute function public.community_guard();
+
+-- The public sees what isn't held (held: waiting for approval, or reported and waiting for a moderator)
+drop policy if exists "public read" on threads;
+create policy "public read" on threads for select using (not held or public.can_site(site_id, 'community'));
+drop policy if exists "public read" on posts;
+create policy "public read" on posts for select using (not held or public.can_site(site_id, 'community'));
+drop policy if exists "public read" on chat_messages;
+create policy "public read" on chat_messages for select using ((not deleted and not held) or public.can_site(site_id, 'community'));
+
+-- Reports: anyone can report; the item is hidden until a moderator keeps it (it can't be hidden again by reports)
+-- or removes it. Ten reports an hour per device, one per item.
+do $$ begin
+  if to_regclass('public.reports') is not null then
+    execute 'drop policy if exists "anyone reports" on reports';
+    execute 'create policy "anyone reports" on reports for insert with check (status = ''open'')';
+    execute 'drop policy if exists "moderators" on reports';
+    execute $p$create policy "moderators" on reports for all to authenticated using (public.can_site(site_id, 'community')) with check (public.can_site(site_id, 'community'))$p$;
+  end if;
+  if to_regclass('public.trusted') is not null then
+    execute 'drop policy if exists "moderators" on trusted';
+    execute $p$create policy "moderators" on trusted for all to authenticated using (public.can_site(site_id, 'community')) with check (public.can_site(site_id, 'community'))$p$;
+  end if;
+end $$;
+create or replace function public.report_guard() returns trigger language plpgsql security definer set search_path = public as $$
+declare tbl text := case new.kind when 'thread' then 'threads' when 'post' then 'posts' else 'chat_messages' end; ok boolean; n int;
+begin
+  if public.can_site(new.site_id, 'community') then return new; end if;
+  new.status := 'open';
+  execute format('select exists (select 1 from %I where id::text = $1 and site_id = $2)', tbl) into ok using new.item_id, new.site_id;
+  if not ok then raise exception 'That post isn''t here anymore.' using errcode = 'P0001'; end if;
+  if new.device is not null then
+    select count(*) into n from reports where device = new.device and created_at > now() - interval '1 hour';
+    if n >= 10 then raise exception 'That''s a lot of reports. A moderator will look at them soon.' using errcode = 'P0001'; end if;
+    if exists (select 1 from reports where device = new.device and kind = new.kind and item_id = new.item_id) then return null; end if;
+  end if;
+  execute format('update %I set held = true where id::text = $1 and site_id = $2 and not reviewed', tbl) using new.item_id, new.site_id;
+  return new;
+end $$;
+do $$ begin
+  if to_regclass('public.reports') is not null then
+    execute 'drop trigger if exists reports_guard on reports';
+    execute 'create trigger reports_guard before insert on reports for each row execute function public.report_guard()';
+  end if;
+end $$;
