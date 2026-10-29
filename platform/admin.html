@@ -2648,7 +2648,7 @@ td select.status.st-few_left { color: var(--warn); }
     } else if (!sites.length) {
       // No site yet: a login just for their Coaster (they land on Me)
       const user = h("input", { placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
-      const pass = h("input", { type: "text", placeholder: "starting password (8+)", "aria-label": "Starting password" });
+      const pass = h("input", { type: "text", placeholder: "only for a new login (8+)", "aria-label": "Starting password" });
       const msg = h("div", { class: "err" });
       loginCard.append(h("p", { class: "sub", text: "Gives them their own login to edit their Coaster. No site needed: they land on their Me page." }),
         h("div", { class: "grid" }, field("Username or email", user, "c6"), field("Starting password", pass, "c6")), msg,
@@ -2661,7 +2661,7 @@ td select.status.st-few_left { color: var(--warn); }
         } })));
     } else {
       const user = h("input", { placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
-      const pass = h("input", { type: "text", placeholder: "starting password (8+)", "aria-label": "Starting password" });
+      const pass = h("input", { type: "text", placeholder: "only for a new login (8+)", "aria-label": "Starting password" });
       const siteSel = h("select", { "aria-label": "Team", style: "width:auto" }, sites.map((x) => h("option", { value: x.site_id, text: x.site.name })));
       const owner = h("input", { type: "checkbox" });
       const msg = h("div", { class: "err" });
@@ -2869,11 +2869,11 @@ td select.status.st-few_left { color: var(--warn); }
     const box = h("div");
     const open = () => {
       const user = h("input", { placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
-      const pass = h("input", { type: "text", placeholder: "starting password (8+)", "aria-label": "Starting password" });
+      const pass = h("input", { type: "text", placeholder: "only for a new login (8+)", "aria-label": "Starting password" });
       const own = h("input", { type: "checkbox" });
       const msg = h("div", { class: "err" });
       box.replaceChildren(h("div", { class: "newclub stack", style: "gap:8px" }, h("b", { text: "Give " + first1 + " a login" }),
-        h("div", { class: "hint", text: "They'll be able to edit their own profile and dates on every site they're on, and they join " + S.site.name + "'s team." }),
+        h("div", { class: "hint", text: "They'll be able to edit their own Coaster and dates on every site they're on, and they join " + S.site.name + "'s team. Already have a login? Type it and leave the password empty." }),
         h("div", { class: "grid" }, field("Username or email", user, "c6"), field("Starting password", pass, "c6")),
         h("label", { class: "check" }, own, "Make them an owner of " + S.site.name + " (for their own site)"), msg,
         h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Create login", onclick: async (e) => {
@@ -2885,7 +2885,13 @@ td select.status.st-few_left { color: var(--warn); }
         } }), h("button", { class: "btn ghost sm", type: "button", text: "Cancel", onclick: () => box.replaceChildren(btn0) }))));
       user.focus();
     };
-    const btn0 = h("button", { class: "btn ghost sm", type: "button", text: "Give " + first1 + " a login", onclick: open });
+    const btn0 = h("div", { class: "btns" }, h("button", { class: "btn ghost sm", type: "button", text: "Give " + first1 + " a login", onclick: open }),
+      // the person logged in is this comic (their login just was never linked): one tap and the Coaster is theirs
+      S.me || S.isPlatform ? null : h("button", { class: "btn ghost sm", type: "button", text: "This is me", title: "Link your login to " + first1 + "'s Coaster", onclick: async (e) => {
+        const b = e.currentTarget; b.disabled = true;
+        try { await teamCall({ action: "link_comic", comic_id: x.comic_id, self: true }); toast("Linked. Coaster is in your sidebar now."); setTimeout(() => { location.hash = "#ct/me"; location.reload(); }, 600); }
+        catch (er) { toast(er.message, { bad: true }); b.disabled = false; }
+      } }));
     box.append(btn0);
     return box;
   }

@@ -129,9 +129,10 @@ export default async (req) => {
   if (body.action === "link_comic") {
     const { data: onSite } = await db.from("hosts").select("comic_id").eq("site_id", site).eq("comic_id", body.comic_id || "").maybeSingle();
     if (!onSite) return json(400, { error: "That person isn't on this site." });
-    const email = String(body.email || "").trim().toLowerCase();
+    // self: "This is me", linking the owner's own login to their Coaster
+    const email = body.self === true ? String(who.user.email || "").toLowerCase() : String(body.email || "").trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(400, { error: "That doesn't look like a valid login." });
-    let user = await findUserByEmail(db, email);
+    let user = body.self === true ? who.user : await findUserByEmail(db, email);
     if (!user) {
       const password = String(body.password || "");
       if (password.length < 8) return json(400, { error: "Give them a password of at least 8 characters." });
@@ -145,9 +146,13 @@ export default async (req) => {
     if (other) return json(400, { error: "That login already belongs to " + other.name + "." });
     const up = await db.from("comics").update({ user_id: user.id }).eq("id", comic.id);
     if (up.error) return json(500, { error: up.error.message });
-    const role = siteRole(body.role);
-    const { error } = await db.from("admins").upsert({ user_id: user.id, site_id: site, role }, { onConflict: "user_id,site_id" });
-    if (error) return json(500, { error: error.message });
+    // someone already on the team keeps their access (an owner is never turned into an editor); it only goes up to owner when asked
+    const { data: had } = await db.from("admins").select("role").eq("user_id", user.id).eq("site_id", site).maybeSingle();
+    const role = had && had.role && (had.role === "owner" || body.role !== "owner") ? had.role : siteRole(body.role);
+    if (!had || had.role !== role) {
+      const { error } = await db.from("admins").upsert({ user_id: user.id, site_id: site, role }, { onConflict: "user_id,site_id" });
+      if (error) return json(500, { error: error.message });
+    }
     return json(200, { ok: true, existed: !!user.last_sign_in_at });
   }
   if (body.action === "unlink_comic") {
