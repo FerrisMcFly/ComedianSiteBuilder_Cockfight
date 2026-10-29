@@ -210,6 +210,15 @@ test("chat room shows messages, sends, and shows the chat's rules", async () => 
   assert.ok(lines.find((l) => /first!/.test(l.textContent)).querySelector(".ln-report"));
 });
 
+test("a group site shows only its own channel unless it switches the comics' channels on", async () => {
+  const vids = [{ youtube_id: "AAAAAAAAAAA", title: "Show clip", published: "2026-10-20", site_id: "cockfight" },
+    { youtube_id: "CCCCCCCCCCC", title: "Lev's own upload", published: "2026-10-22", comic_id: "lev-fer", site_id: null, host: "lev" }];
+  let { d } = await load({ ...base, videos: vids });
+  assert.deepEqual([...d.querySelectorAll("#videoGrid .vcard span")].map((x) => x.textContent), ["Show clip"], "Lev's channel stays on his Coaster");
+  ({ d } = await load({ ...base, videos: vids, sites: [{ ...base.sites[0], theme: { lineup_videos: "on" } }] }));
+  assert.deepEqual([...d.querySelectorAll("#videoGrid .vcard span")].map((x) => x.textContent).sort(), ["Lev's own upload", "Show clip"]);
+});
+
 test("videos can be filtered by channel, and a person's videos show on their page", async () => {
   const data = { ...base,
     videos: [{ youtube_id: "AAAAAAAAAAA", title: "Show clip", published: "2026-10-20", channel: "Cockfight" }, { youtube_id: "BBBBBBBBBBB", title: "Lev set", published: "2026-10-21", channel: "Lev Fer", host: "lev" }] };

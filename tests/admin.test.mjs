@@ -535,6 +535,35 @@ test("a Coaster with no site: the comic logs in, lands on their Coaster, and add
   assert.deepEqual([added.site_id, added.venue, added.time, added.date], [null, "Comedy Cellar", "9:30 PM", fri]);
 });
 
+test("someone on a comic's team (a manager) logs in with no Coaster of their own and edits that comic's Coaster", async () => {
+  const { w, d } = await open("", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comic_team = [{ user_id: "u1", role: "editor", comic: { id: "rita-r", handle: "rita-r", name: "Rita R", look: "classic", coaster: {} } }];
+  });
+  w.fetch = async (u, o) => ({ ok: true, json: async () => (JSON.parse(o.body).action === "coaster_team" ? { team: [{ user_id: "u1", role: "editor", email: "ferris@x.com", you: true }], you_are: "editor", can_change: false } : {}) });
+  w.location.hash = "#ct/helping"; await wait(120);
+  assert.match(d.querySelector("main h1").textContent, /Rita R's Coaster/);
+  assert.ok(d.querySelector("main #coasterForm .looks"), "Rita's Coaster, ready to edit");
+  assert.ok([...d.querySelectorAll(".nav-btn")].some((b) => /Rita R's Coaster/.test(b.textContent)), "it's in the menu");
+  assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => b.dataset.sec === "me"), "no Coaster of their own");
+  assert.match(d.body.textContent, /Rita R's team/);
+  assert.ok(!btn(d, /Add to team/), "an Editor can see the team but not change it");
+});
+
+test("a comic manages their own team from their Coaster page", async () => {
+  const { w, d } = await open("#ct/me", (db) => { db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} }); });
+  const sent = [];
+  w.fetch = async (u, o) => { const b = JSON.parse(o.body); sent.push(b); return { ok: true, json: async () => (b.action === "coaster_team" ? { team: [], you_are: "comic", can_change: true } : { ok: true }) }; };
+  w.location.hash = "#ct/dates"; await wait(60); w.location.hash = "#ct/me"; await wait(120);
+  assert.match(d.body.textContent, /Your team/);
+  const card = [...d.querySelectorAll("main section.card")].find((c) => /Your team/.test(c.querySelector("h2").textContent));
+  set(w, card.querySelector('input[aria-label="Username or email"]'), "mgr@x.com");
+  set(w, card.querySelector('input[aria-label="Starting password"]'), "longenough");
+  btn(d, /Add to team/, card).click(); await wait(60);
+  const add = sent.find((b) => b.action === "coaster_team_add");
+  assert.deepEqual([add.comic_id, add.email, add.role], ["solo-sam", "mgr@x.com", "editor"]);
+});
+
 test("people: give a comic their own login", async () => {
   const { w, d } = await open("#people");
   let sent = null;

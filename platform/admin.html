@@ -940,8 +940,10 @@ button.stat:hover { border-color: var(--line-strong); }
       // Is this login a comic? Then they get a "Me" page with their profile and dates on every site.
       try { S.me = (await q(sb.from("comics").select("*").eq("user_id", session.user.id)))[0] || null; } catch (e) { S.me = null; }
       S.uid = session.user.id;
-      // A comic with a Coaster but no site still gets in: they land on Me and edit their Coaster.
-      if (!mine.length && !S.isPlatform && !S.me) { await sb.auth.signOut(); return showLogin("This login isn't an admin of any site yet."); }
+      // Coasters this login helps with (a manager, agent or assistant on a comic's own team). Before 25_foundation.sql: none.
+      try { S.helping = (await q(sb.from("comic_team").select("role, comic:comics(*)").eq("user_id", session.user.id))).filter((r) => r.comic).map((r) => ({ ...r.comic, teamRole: r.role })); } catch (e) { S.helping = []; }
+      // A comic with a Coaster but no site still gets in: they land on Me and edit their Coaster. So does someone on a comic's team.
+      if (!mine.length && !S.isPlatform && !S.me && !S.helping.length) { await sb.auth.signOut(); return showLogin("This login isn't an admin of any site yet."); }
       // Super admins get every site; everyone else gets only the sites they're on the team of.
       S.sites = S.isPlatform ? await q(sb.from("sites").select("*").order("name", { ascending: true }))
         : await q(sb.from("sites").select("*").in("id", mine.map((m) => m.site_id)));
@@ -960,7 +962,7 @@ button.stat:hover { border-color: var(--line-strong); }
     await loadTheme();
     // Where you land: super admins and comics start at the ComicTable level; a one-site team member goes straight to their site.
     const h0 = location.hash.slice(1);
-    if ((!h0 || h0 === "ct") && hasCT() && history.replaceState) history.replaceState(null, "", location.pathname + "#ct/" + (S.isPlatform ? "overview" : S.me ? "me" : "mysites"));
+    if ((!h0 || h0 === "ct") && hasCT() && history.replaceState) history.replaceState(null, "", location.pathname + ctHome());
     route();
   }
 
@@ -1050,13 +1052,14 @@ button.stat:hover { border-color: var(--line-strong); }
     { id: "me", label: "Coaster", ico: "🎤", meOnly: true, render: viewMe },
     { id: "dates", label: "Dates", ico: "📅", meOnly: true, render: viewMyDates },
     { id: "press", label: "Press kit", ico: "📷", meOnly: true, render: (main) => { main.append(head("Your press kit", "Approved photos and bios for clubs. It's the same on every site you're on.")); main.append(pressKitEditor(S.me.id)); } },
+    { id: "helping", label: "Coasters you help with", ico: "🤝", helping: true, render: viewHelping },
     { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, needsSite: true, render: viewMySites },
     { id: "sites", group: "Platform", label: "Sites", ico: "🧩", platform: true, count: () => S.sites.length, render: viewSites },
     { id: "comics", group: "Platform", label: "Coasters", ico: "🎤", platform: true, render: viewComics },
     { id: "clubs", group: "Platform", label: "Club database", ico: "🏛️", platform: true, render: viewClubs },
     { id: "account", label: "Your account", ico: "🔐", bottom: true, render: viewAccount }
   ];
-  const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me) && (!x.needsSite || S.sites.length));
+  const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me) && (!x.needsSite || S.sites.length) && (!x.helping || (S.helping && S.helping.length)));
   const atCT = () => location.hash.startsWith("#ct/");
   const goCT = (id) => { const h0 = "#ct/" + id; if (location.hash === h0) route(); else location.hash = h0; };
   // A site's team roles. "shows" and "moderator" see only their part of the dashboard.
@@ -1096,6 +1099,7 @@ button.stat:hover { border-color: var(--line-strong); }
     if (S.isPlatform && S.site) items.push({ key: "home", id: "overview", label: "Overview", group: S.site.name, onGo: () => go("home") });
     if (S.site) siteSecs.filter((x) => !["home", "people", "settings", "website"].includes(x.id)).forEach((x) => items.push({ key: x.id, id: x.id, label: x.label, count: x.count, onGo: () => go(x.id) }));
     else if (S.me) items.push({ key: "ct/dates", id: "shows", label: "Shows", onGo: () => goCT("dates") });
+    if (S.helping && S.helping.length) items.push({ key: "ct/helping", id: "helping", label: S.helping.length === 1 ? S.helping[0].name + "'s Coaster" : "Coasters you help with", onGo: () => goCT("helping") });
     if (S.isPlatform) ["sites", "comics", "clubs"].forEach((id, i) => items.push({ key: "ct/" + id, id, label: ct(id).label, group: i === 0 ? "ComicTable" : null, onGo: () => goCT(id) }));
     if (S.isPlatform && S.site) { const firstSite = items.findIndex((x) => x.group === S.site.name); const n = items.findIndex((x) => x.group === "ComicTable"); if (n > firstSite) { const ctItems = items.splice(n, 3); items.splice(1, 0, ...ctItems.map((x, i) => ({ ...x, group: i === 0 ? "ComicTable" : null }))); } }
     else if (S.sites.length > 1 || (S.me && S.sites.length)) items.push({ key: "ct/mysites", id: "mysites", label: "My Sites", onGo: () => goCT("mysites") });
@@ -1124,7 +1128,7 @@ button.stat:hover { border-color: var(--line-strong); }
       many ? h("span", { class: "sw-arrow", "aria-hidden": "true", text: "⌄" }) : null);
   }
   // Top bar: where you are, and your account. (The site finder is ⌘K anywhere, or the site name in the menu.)
-  const ctHome = () => "#ct/" + (S.isPlatform ? "overview" : S.me ? "me" : "mysites");
+  const ctHome = () => "#ct/" + (S.isPlatform ? "overview" : S.me ? "me" : S.helping && S.helping.length && !S.sites.length ? "helping" : "mysites");
   const logOut = async () => { await sb.auth.signOut(); S.site = null; showLogin(); };
   function acctMenu() {
     const initials = String(S.user || "?").split(/[\s._@-]+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
@@ -1148,7 +1152,7 @@ button.stat:hover { border-color: var(--line-strong); }
         acctMenu()));
   }
   // Who gets the ComicTable level: super admins, comics with their own login, and anyone on more than one site.
-  const hasCT = () => S.isPlatform || !!S.me || S.sites.length > 1;
+  const hasCT = () => S.isPlatform || !!S.me || S.sites.length > 1 || !!(S.helping && S.helping.length);
 
   function routeCT() {
     S.level = "ct";
@@ -1164,7 +1168,7 @@ button.stat:hover { border-color: var(--line-strong); }
   }
 
   function route() {
-    if (!S.site) { if (!atCT() && history.replaceState) history.replaceState(null, "", location.pathname + "#ct/me"); return routeCT(); }  // a Coaster with no site
+    if (!S.site) { if (!atCT() && history.replaceState) history.replaceState(null, "", location.pathname + ctHome()); return routeCT(); }  // a Coaster with no site
     if (atCT() && hasCT()) return routeCT();
     if (atCT()) { history.replaceState && history.replaceState(null, "", location.pathname + "#home"); }
     S.level = "site";
@@ -2020,7 +2024,7 @@ button.stat:hover { border-color: var(--line-strong); }
   function ytId(u) { const m = String(u).match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/); return m ? m[1] : null; }
   function viewVideos(main) {
     const wrap = h("div", { class: "stack" });
-    main.append(head("Videos", "New uploads come in on their own. Star the ones you want up top, hide the ones you don't."), wrap);
+    main.append(head("Videos", "New uploads come in on their own. Star the ones you want up top, hide the ones you don't."), wrap, optionsFold(["lineup_videos"], "Comics' own channels on this site"));
     const redraw = () => {
       const add = (() => {
         const u = h("input", { type: "url", placeholder: "https://www.youtube.com/watch?v=…", "aria-label": "YouTube link" });
@@ -2345,7 +2349,7 @@ button.stat:hover { border-color: var(--line-strong); }
       for (const k of COL_SOC) prof[k] = inp[k].value.trim() || null;
       if (hasMore) { const more = {}; for (const [k] of SOC) if (!COL_SOC.includes(k) && inp[k] && inp[k].value.trim()) more[k] = inp[k].value.trim(); prof.socials = more; }
       try {
-        if (file.files[0]) prof.photo_url = await uploadImage(file.files[0], c.id);
+        if (file.files[0]) prof.photo_url = await uploadImage(file.files[0], c.id, { folder: opts.folder });
         await q(sb.from("comics").update(prof).eq("id", c.id));
         if (S.site) await reload.hosts();
         if (opts.me) S.me = { ...S.me, ...prof };
@@ -2540,7 +2544,8 @@ button.stat:hover { border-color: var(--line-strong); }
      ====================================================== */
   async function uploadImage(file, prefix, opts = {}) {
     const blob = await squareJpeg(file, opts.square === false ? 1600 : 900, opts.square === false);
-    const path = sid() + "/" + prefix + "-" + Date.now() + ".jpg";
+    // a site's photos go in its folder; a Coaster's (no site open, or a Coaster you help with) in the comic's
+    const path = (opts.folder || sid() || (S.me && S.me.id) || "misc") + "/" + prefix + "-" + Date.now() + ".jpg";
     // Every upload gets a new name, so it never needs to overwrite (overwriting needs extra database permissions).
     const up = await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", upsert: false });
     if (up.error) throw /row-level security|permission|unauthorized|403/i.test(up.error.message || "")
@@ -3200,19 +3205,75 @@ button.stat:hover { border-color: var(--line-strong); }
   // A comic's own Coaster page: requests from sites, then their Coaster (everything, including the fine-tuning).
   async function viewMe(main) {
     const me = S.me;
+    if (!me) return viewHelping(main);
     const url = coasterUrl(me);
     main.append(head("Coaster", "Your card on ComicTable and your link in bio. Every site you're on pulls from it."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     const here = S.hosts.find((x) => x.comic_id === me.id);
     const asks = h("div");
-    wrap.append(asks, coasterPage({ ...me, id: here ? here.id : null, comic_id: me.id }, { me: true }));
+    wrap.append(asks, coasterPage({ ...me, id: here ? here.id : null, comic_id: me.id }, { me: true }), coasterTeamCard(me));
     requestsCard(me).then((c) => { if (c) asks.replaceWith(c); });
   }
+  // Coasters this login helps with (on a comic's own team). Owners and Editors get the Coaster; Shows only gets the dates.
+  let HELPING = null;
+  async function viewHelping(main) {
+    const list = S.helping || [];
+    if (!list.length) { main.append(empty("No Coasters yet", "When a comic adds you to their team, their Coaster shows up here.")); return; }
+    const c = list.find((x) => x.id === HELPING) || list[0];
+    const pick = list.length > 1 ? h("select", { "aria-label": "Which Coaster", style: "width:auto", onchange: (e) => { HELPING = e.target.value; route(); } },
+      list.map((x) => h("option", { value: x.id, text: x.name, selected: x.id === c.id }))) : null;
+    if (c.teamRole === "shows") {
+      main.append(head(c.name + "'s shows", "You're on " + c.name + "'s team for dates. Every date you add shows on their Coaster and every site they're on.", pick));
+      return viewMyDates(main, c, true);
+    }
+    main.append(head(c.name + "'s Coaster", "You're on " + c.name + "'s team. Changes show on their Coaster and every site they're on.", pick));
+    const wrap = h("div", { class: "stack" }); main.append(wrap);
+    wrap.append(coasterPage({ ...c, id: null, comic_id: c.id }, { comic: true, onSite: false, bookers: false, folder: c.id }));
+    const dates = h("div"); wrap.append(dates); viewMyDates(dates, c, true);
+    wrap.append(coasterTeamCard(c));
+  }
+  // A comic's own team: their manager, agent, assistant. Same roles as a site team; several people can share one.
+  const COASTER_ROLES = [["owner", "Owner", "Everything, including the team"], ["editor", "Editor", "The Coaster, links, look, dates and fans"], ["shows", "Shows only", "Dates"]];
+  function coasterTeamCard(c) {
+    const card = h("section", { class: "card" }, h("h2", { text: "Your team" }), h("p", { class: "hint", text: "Loading…" }));
+    const call = (body) => teamCall({ comic_id: c.id, ...body });
+    const title = c.id === (S.me && S.me.id) ? "Your team" : c.name + "'s team";
+    async function draw() {
+      let res;
+      try { res = await call({ action: "coaster_team" }); }
+      catch (e) { card.replaceChildren(h("h2", { text: title }), h("p", { class: "err", text: /Failed to fetch|NetworkError|Load failed/.test(e.message) ? "Couldn't reach ComicTable. Try again in a minute." : e.message })); return; }
+      const name = (m) => LOGIN_DOMAINS.reduce((e, d) => e.replace("@" + d, ""), m.email);
+      const roleSel = (m) => { const sel = h("select", { "aria-label": "Access for " + name(m), style: "width:auto" }, COASTER_ROLES.map(([k, l]) => h("option", { value: k, text: l, selected: m.role === k })));
+        sel.addEventListener("change", async () => { try { await call({ action: "coaster_team_role", user_id: m.user_id, role: sel.value }); toast("Changed."); draw(); } catch (e) { toast(e.message, { bad: true }); } });
+        return sel; };
+      const user = h("input", { placeholder: "username or email", autocapitalize: "none", "aria-label": "Username or email" });
+      const pass = h("input", { type: "text", placeholder: "at least 8 characters", "aria-label": "Starting password" });
+      const role = h("select", { "aria-label": "Access", style: "width:auto" }, COASTER_ROLES.map(([k, l, d]) => h("option", { value: k, text: l + ": " + d.toLowerCase(), selected: k === "editor" })));
+      const msg = h("div", { class: "err" });
+      card.replaceChildren(h("h2", { text: title }), h("p", { class: "sub", text: "People who help with " + (title === "Your team" ? "your" : c.name + "'s") + " Coaster: a manager, an agent, an assistant." }),
+        res.team.length ? h("div", null, res.team.map((m) => h("div", { class: "switch-row" },
+          h("div", null, h("b", { text: name(m) }), m.you ? h("span", { class: "pill", style: "margin-left:6px", text: "You" }) : null,
+            h("div", { class: "hint", text: (COASTER_ROLES.find((r) => r[0] === m.role) || [0, m.role])[1] + (m.last_sign_in ? " · last in " + ago(m.last_sign_in) : " · hasn't logged in yet") })),
+          res.can_change && !m.you ? h("div", { class: "btns" }, roleSel(m), sure("Remove", async () => { try { await call({ action: "coaster_team_remove", user_id: m.user_id }); toast("Removed."); draw(); } catch (e) { toast(e.message, { bad: true }); } })) : null)))
+          : h("p", { class: "hint", text: "Nobody yet." }),
+        res.can_change ? h("div", { class: "newclub stack", style: "gap:10px;margin-top:12px" }, h("b", { text: "Add someone" }),
+          h("div", { class: "grid" }, field("Username or email", user, "c6"), field("Starting password", pass, "c6"), h("div", { class: "field c12" }, h("span", { text: "Access" }), role)),
+          h("div", { class: "hint", text: "They get a login, not a Coaster. Send them their username and password yourself. If they already have a login, the password is ignored." }), msg,
+          h("div", { class: "btns" }, h("button", { class: "btn primary sm", type: "button", text: "Add to team", onclick: async (e) => {
+            msg.textContent = "";
+            if (!user.value.trim()) { user.classList.add("bad"); user.focus(); return; }
+            const b = e.currentTarget; b.disabled = true;
+            try { await call({ action: "coaster_team_add", email: loginEmail(user.value), password: pass.value, role: role.value }); toast("Added. They log in with " + loginEmail(user.value) + "."); draw(); }
+            catch (er) { msg.textContent = er.message; b.disabled = false; }
+          } }))) : null);
+    }
+    draw(); return card;
+  }
   // A comic's dates, on their Coaster and every site they're on.
-  async function viewMyDates(main) {
-    const me = S.me;
-    const here = S.hosts.find((x) => x.comic_id === me.id);
-    main.append(head("Dates", "Every date you add shows on your Coaster and every site you're on."));
+  async function viewMyDates(main, comic, noHead) {
+    const me = comic || S.me;
+    if (!me) return viewHelping(main);
+    if (!noHead) main.append(head("Dates", "Every date you add shows on your Coaster and every site you're on."));
     const datesCard = h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" }));
     main.append(datesCard);
     let mySites = [];

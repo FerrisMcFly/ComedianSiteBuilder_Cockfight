@@ -108,12 +108,15 @@
         .concat(r[6].filter(function (a) { return !moved[a.id] && (!a.starts_on || a.starts_on <= today) && (!a.ends_on || a.ends_on >= today); })
           .sort(function (a, b) { return (b.pinned - a.pinned) || (a.sort - b.sort); })
           .map(function (a) { return { id: a.id, text: a.text, link: a.link || "", linkLabel: a.link_label || "", pinned: !!a.pinned }; }));
+      // Each site decides what it shows (founder, Oct 29): a one-comic site shows that comic's channel; a group site
+      // shows only its own unless it switches the comics' channels on (Design → Options → Videos).
+      var lv = siteOptions(s.theme).lineup_videos, lineupVideos = lv === "on" || (lv !== "off" && people.length === 1);
       var data = {
         site: { id: s.id, name: s.name, domain: s.domain },
         features: s.features || {}, profile: s.profile || {}, theme: s.theme || {}, community: s.community || {},
         people: people, shows: shows,
         episodes: r[3].filter(visible).filter(function (e) { return !podOff(e.show_name); }).map(function (e) { return { id: e.id, number: e.num, title: e.title, posted: e.posted, length: e.length || "", link: e.url || e.audio_url || "", audio: e.audio_url || "", image: e.image_url || "", patreon: e.patreon || "", description: e.blurb || "", show: e.show_name || "", apple: /podcasts\.apple\.com/.test(e.url || "") ? e.url : "", spotify: e.spotify_url || "" }; }),
-        videos: r[4].filter(visible).sort(function (a, b) { return (b.featured - a.featured) || String(b.published || "").localeCompare(String(a.published || "")); })
+        videos: r[4].filter(visible).filter(function (v) { return !v.comic_id || v.site_id === cfg.site || lineupVideos; }).sort(function (a, b) { return (b.featured - a.featured) || String(b.published || "").localeCompare(String(a.published || "")); })
           .map(function (v) { return { id: v.youtube_id, title: v.title, published: v.published, thumbnail: v.thumbnail_url || ("https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg"), link: v.url || ("https://www.youtube.com/watch?v=" + v.youtube_id), featured: !!v.featured, short: !!v.is_short, channel: v.channel || "", person: v.host || "" }; }),
         merch: r[5].filter(visible).map(function (m) { return { id: m.id, name: m.name, price: m.price || "", image: m.image_url || "", link: m.url || "" }; }),
         announcements: announcements,
@@ -610,6 +613,9 @@
     { type: "heading", label: "Podcast" },
     { key: "listen_style", label: "Listen buttons", type: "select", options: [["both", "Apple and Spotify"], ["apple", "Apple Podcasts"], ["spotify", "Spotify"], ["menu", "One \"Listen on…\" menu"]], "default": "both",
       help: "Spotify links per episode fill in by themselves once ComicTable's Spotify keys are set; until then the button goes to your show on Spotify (About & contact → Spotify show)." },
+    { type: "heading", label: "Videos" },
+    { key: "lineup_videos", label: "Comics' own YouTube channels", type: "select", options: [["auto", "Automatic: on for a one-comic site, off for a group"], ["on", "On: every comic's channel shows here too"], ["off", "Off: only this site's own channel"]], "default": "auto",
+      help: "A comic's channel lives on their Coaster. This decides whether it also shows on this site." },
     { type: "heading", label: "Mailing list" },
     { key: "signup_style", label: "Sign-up", type: "select", options: [["box", "A box in its spot"], ["big", "Big, first on the home screen"], ["bar", "A slim bar: \"Get told when I'm in your city\""], ["off", "Off"]], "default": "box" }];
   // This site's values for those options, with the defaults filled in. home_shows comes back as a number, or Infinity for All.
