@@ -83,11 +83,12 @@ const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", 
 test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open("#home");
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  assert.equal(d.querySelectorAll(".nav-btn").length, 9, "a short menu: only what the site uses");
-  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent).filter(Boolean), ["Booking", "Content", "Fans", "Website"]);
+  const nav = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent.replace(/\d+$/, ""));
+  assert.deepEqual(nav, ["Dashboard", "Sites", "Coasters", "Club database", "Overview", "Shows", "Podcast / YouTube", "Posts", "Merch", "Community", "Website", "Lineup", "Settings"], "one short menu: ComicTable's pages, then the open site's");
+  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent), ["ComicTable", "Cockfight"]);
   assert.equal([...d.querySelectorAll(".nav-btn")].pop().dataset.sec, "settings", "Settings sits at the bottom");
-  assert.match(d.querySelector(".crumbs").textContent, /ComicTable.*Cockfight/s);
-  assert.ok(d.querySelector(".back-ct"), "a way back up to ComicTable");
+  assert.equal(d.querySelector(".switch-pill b").textContent, "Cockfight", "the site switcher says which site you're on");
+  assert.match(d.querySelector("h1").textContent, /Welcome back, ferris\./);
   assert.match(d.body.textContent, /Connect your podcast/);
 });
 
@@ -253,7 +254,7 @@ test("forum: pin, lock, move, ban, boards", async () => {
   assert.equal(db.threads[0].locked, true);
   const move = d.querySelector('select[aria-label="Move to board"]'); move.value = "cantina"; move.dispatchEvent(new w.Event("change")); await wait(40);
   assert.equal(db.threads[0].board, "cantina");
-  btn(d, /^Posts$/).click(); await wait(60);
+  btn(d, /^Posts$/, d.querySelector("main")).click(); await wait(60);
   btn(d, /^Ban$/).click(); await wait(20);
   d.querySelector(".newclub input[type=checkbox]").checked = true;
   btn(d, /^Ban$/, d.querySelector(".newclub")).click(); await wait(40);
@@ -331,7 +332,7 @@ test("every site gets the same pages: Home screen (News, Links, Layout) is alway
   const labels = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
   assert.ok(labels.some((l) => /Website/.test(l)) && labels.some((l) => /Settings/.test(l)), labels.join(","));
   assert.ok(!labels.some((l) => /Announcements|Links|Home screen|Design|About|Press kit|Live/.test(l)), "one Website page; the press kit is the Coaster's; Go live is on Overview");
-  assert.match(d.querySelector("main").textContent, /Add news/);
+  assert.ok(d.getElementById("topNewPost"), "+ New post is always in the top bar");
 });
 
 
@@ -367,7 +368,7 @@ test("platform admins can start a new comic's site and land on it ready to set u
   const site = db.sites.find((x) => x.id === "rita-ramos");
   assert.equal(site.domain, "ritaramoscomedy.com");
   assert.equal(site.features.forum, true); assert.equal(site.features.chat, false);
-  assert.equal(d.querySelector(".brand").textContent, "Rita Ramos");
+  assert.equal(d.querySelector(".switch-pill b").textContent, "Rita Ramos");
   assert.equal(w.location.hash, "#people");
   assert.ok(d.getElementById("sitePick"), "site switcher appears once you have two sites");
 });
@@ -408,7 +409,7 @@ test("super admins see every site, comics only their own", async () => {
   assert.deepEqual([...sup.d.querySelectorAll(".sp-item b")].map((o) => o.textContent).sort(), ["Cockfight", "Rita Ramos"]);
   const comic = await open("", (db) => { addRita(db); db.platform_admins = []; });
   assert.equal(comic.d.getElementById("sitePick"), null, "a comic on one site gets no site switcher");
-  assert.equal(comic.d.querySelector(".brand").textContent, "Cockfight");
+  assert.equal(comic.d.querySelector(".switch-pill b").textContent, "Cockfight");
 });
 
 test("people: add someone already on ComicTable, and edit a shared profile or this site's own bio", async () => {
@@ -498,7 +499,7 @@ test("a comic with their own login gets Coaster and Dates in the sidebar: one Co
   });
   await wait(80);
   const nav = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent.trim());
-  assert.ok(nav.some((t) => /Coaster$/.test(t)) && nav.some((t) => /Dates$/.test(t)), nav.join(" | "));
+  assert.ok(nav.some((t) => /Coaster$/.test(t)) && nav.some((t) => /^Shows/.test(t)), nav.join(" | "));
   let main = d.querySelector("main");
   assert.match(main.querySelector("h1").textContent, /Coaster/);
   // editing here edits the comic, not one site's copy
@@ -577,7 +578,7 @@ test("site finder: with 50 sites, type a few letters and press Enter; recent sit
     for (let i = 1; i <= 50; i++) db.sites.push({ id: "comic-" + i, name: "Comic Number " + i, domain: "comic" + i + ".com", features: { shows: true } });
     db.sites.push({ id: "lev-fer", name: "Lev Fer", domain: "levfer.com", features: { shows: true } });
   });
-  assert.match(d.querySelector(".kbd-btn").textContent, /Switch site/);
+  assert.ok(d.getElementById("sitePick"), "the site switcher is at the top");
   d.dispatchEvent(new w.KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })); await wait();
   const input = d.getElementById("sitePickerSearch");
   assert.ok(input, "⌘K opens the finder");
@@ -585,7 +586,7 @@ test("site finder: with 50 sites, type a few letters and press Enter; recent sit
   set(w, input, "lev"); await wait();
   assert.deepEqual([...d.querySelectorAll(".sp-item b")].map((b) => b.textContent), ["Lev Fer"]);
   input.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Enter", bubbles: true })); await wait(120);
-  assert.equal(d.querySelector(".site-pick .brand").textContent, "Lev Fer");
+  assert.equal(d.querySelector(".switch-pill b").textContent, "Lev Fer");
   // next time, Lev is under Recent... well, he's open now; switch back and check
   d.getElementById("sitePick").click(); await wait();
   set(w, d.getElementById("sitePickerSearch"), "levfer.com"); await wait();
@@ -623,13 +624,13 @@ test("super admins land on the ComicTable overview, then open a site and come ba
   await wait(80);
   assert.equal(w.location.hash, "#ct/overview");
   assert.match(d.querySelector(".ct-brand").textContent, /ComicTable/);
-  assert.deepEqual([...d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["overview", "sites", "comics", "clubs", "account"]);
+  assert.deepEqual([...d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec).slice(0, 4), ["overview", "sites", "comics", "clubs"]);
   assert.match(d.querySelector("main").textContent, /Sites.*Cockfight.*Lev Fer/s);
   const row = [...d.querySelectorAll("main .switch-row")].find((r) => /Lev Fer/.test(r.textContent));
   btn(d, /^Open$/, row).click(); await wait(120);
   assert.equal(w.location.hash, "#home");
-  assert.equal(d.querySelector(".site-pick .brand").textContent, "Lev Fer");
-  d.querySelector(".back-ct").click(); w.location.hash = "#ct/overview"; await wait(80);
+  assert.equal(d.querySelector(".switch-pill b").textContent, "Lev Fer");
+  w.location.hash = "#ct/overview"; await wait(80);
   assert.ok(d.querySelector(".ct-brand"));
 });
 
@@ -638,7 +639,7 @@ test("someone on one site's team, with no comic login, goes straight to that sit
   await wait(60);
   assert.notEqual(w.location.hash.slice(0, 4), "#ct/");
   assert.equal(d.querySelector(".back-ct"), null);
-  assert.equal(d.querySelector(".brand").textContent, "Cockfight");
+  assert.equal(d.querySelector(".switch-pill b").textContent, "Cockfight");
 });
 
 test("appearance: pick dark, light or match the computer", async () => {
@@ -712,7 +713,7 @@ test("Home screen picks: add one, pin a show to the top, reorder", async () => {
     db.home_picks = [];
     db.shows.push({ id: "s9", site_id: "cockfight", host: "lev", date: fri, time: "9:00 PM", venue: "Laugh Boston", city: "Boston, MA", url: "https://t/9", status: "on_sale" });
   }, theme);
-  assert.equal(d.querySelector('.nav-btn[aria-current="page"]').dataset.sec, "website");
+  assert.equal(d.querySelector('.nav-btn[aria-current="page"]').dataset.sec, "posts");
   assert.match(d.body.textContent, /No news yet/);
   const form = d.querySelector("form.card");
   set(w, form.querySelector('input[aria-label="Headline"]'), "New special out now");

@@ -9,10 +9,10 @@
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Inter:wght@400;500;600;700&display=swap">
 <script>
-  // Theme before anything draws, so there's no flash: "light", "dark", or follow the computer.
-  try { var t = localStorage.getItem("ct_theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+  // Theme before anything draws, so there's no flash. Dark unless they picked light (or "follow my computer").
+  try { var t = localStorage.getItem("ct_theme"); if (t !== "system") document.documentElement.setAttribute("data-theme", t === "light" ? "light" : "dark"); } catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
 </script>
 <style>
 /* Layout: sticky sidebar + one working column. Each section: a friendly "do the thing" card on top, the live list below. Phones get a top tab row and full-width cards. */
@@ -36,23 +36,23 @@
   --warn-soft: #fbf0d6;
   --focus: #1f1f1f;
   --shadow: 0 1px 2px rgba(16, 16, 20, .04), 0 1px 1px rgba(16, 16, 20, .03);
-  --display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Archivo", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --radius: 12px;
+  --radius: 16px;
   color-scheme: light;
 }
 /* Dark: neutral grays, the traditional kind */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #141414; --panel: #1c1c1c; --side: #171717; --line: #2a2a2a; --line-strong: #383838; --text: #edeae4; --muted: #a3a3a3;
-    --accent: #e66a4b; --accent-ink: #161616; --accent-soft: #3a1f19; --brand-red: #e0583b; --ok: #4ac26b; --ok-soft: #142a1b; --warn: #e0a21a; --warn-soft: #2e2512; --focus: #f3ead7;
+--bg: #0e0c0b; --panel: #171413; --side: #120f0e; --line: #2a2422; --line-strong: #3a322e; --text: #f5f0e9; --muted: #a89e95;
+    --accent: #ef4a2f; --accent-ink: #ffffff; --accent-soft: #3b1a13; --brand-red: #ef4a2f; --ok: #3ad07d; --ok-soft: #10291b; --warn: #f2b32a; --warn-soft: #2f2410; --focus: #f5f0e9;
     --shadow: none; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #141414; --panel: #1c1c1c; --side: #171717; --line: #2a2a2a; --line-strong: #383838; --text: #edeae4; --muted: #a3a3a3;
-  --accent: #e66a4b; --accent-ink: #161616; --accent-soft: #3a1f19; --brand-red: #e0583b; --ok: #4ac26b; --ok-soft: #142a1b; --warn: #e0a21a; --warn-soft: #2e2512; --focus: #f3ead7;
+--bg: #0e0c0b; --panel: #171413; --side: #120f0e; --line: #2a2422; --line-strong: #3a322e; --text: #f5f0e9; --muted: #a89e95;
+  --accent: #ef4a2f; --accent-ink: #ffffff; --accent-soft: #3b1a13; --brand-red: #ef4a2f; --ok: #3ad07d; --ok-soft: #10291b; --warn: #f2b32a; --warn-soft: #2f2410; --focus: #f5f0e9;
   --shadow: none; color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -481,6 +481,129 @@ td select.status.st-few_left { color: var(--warn); }
 .opts-fold { margin-top: 18px; }
 .opts-fold > summary, .live-fold > summary { cursor: pointer; font-weight: 600; }
 .live-fold[open] > summary { margin-bottom: 12px; }
+
+/* ---------- The 2026 look: bold type, roomy cards, one red. Dark by default. ---------- */
+h1, h2, h3 { font-family: var(--display); font-stretch: 88%; font-weight: 800; letter-spacing: -.025em; }
+.page-head { margin-bottom: 22px; }
+.page-head h1 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1; font-weight: 900; margin: 0 0 6px; }
+.page-head .sub { font-size: 15px; color: var(--muted); margin: 0; max-width: 62ch; }
+h1.hello { font-size: clamp(38px, 6vw, 68px); font-weight: 900; font-stretch: 82%; letter-spacing: -.035em; line-height: .95; }
+h1.hello em { font-style: normal; color: var(--accent); }
+.card { border-radius: 18px; padding: 22px; }
+.card > h2, .card-head h2 { font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+.card-head h2 { margin: 0; }
+.view-all { color: var(--accent); font-weight: 600; font-size: 14px; text-decoration: none; background: none; border: 0; cursor: pointer; padding: 0; white-space: nowrap; }
+.view-all:hover { text-decoration: underline; }
+.btn { border-radius: 10px; font-weight: 600; }
+.btn.primary { box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
+.btn.big { border-radius: 12px; }
+.side { padding: 22px 14px; gap: 4px; }
+.ct-brand .wm { height: 26px; }
+.ct-brand { color: var(--text); margin-bottom: 14px; }
+.ct-brand .wm .t2, .ct-brand .wm [data-accent] { fill: var(--accent); }
+.nav-btn { padding: 10px 14px; border-radius: 12px; font-size: 15px; font-weight: 500; color: color-mix(in srgb, var(--text) 78%, var(--muted)); gap: 14px; }
+.nav-btn .ico svg { width: 20px; height: 20px; }
+.nav-btn:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); }
+.nav-btn[aria-current="page"] { background: var(--accent); color: #fff; box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--accent) 80%, transparent); }
+.nav-btn[aria-current="page"] .ico { color: #fff; }
+.nav-btn .cnt { background: color-mix(in srgb, var(--text) 10%, transparent); border-radius: 999px; padding: 0 8px; font-size: 12px; line-height: 20px; }
+.nav-btn[aria-current="page"] .cnt { background: rgba(255,255,255,.22); }
+.nav-btn .cnt.hot { background: var(--accent); color: #fff; }
+.nav-group { padding: 16px 14px 6px; }
+.topbar { min-height: 68px; padding: 12px 28px; border-bottom-color: color-mix(in srgb, var(--line) 70%, transparent); }
+.stats { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.stat { border-radius: 18px; padding: 18px 20px; display: flex; gap: 16px; align-items: center; }
+.stat .ic { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); }
+.stat .ic svg { width: 26px; height: 26px; }
+.stat .ic.gold { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.stat .l { text-transform: uppercase; letter-spacing: .06em; font-size: 12px; font-weight: 700; color: color-mix(in srgb, var(--text) 85%, var(--muted)); margin: 0 0 4px; }
+.stat .n { font-size: 36px; font-weight: 900; font-stretch: 85%; }
+.stat .s { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.pill.ok::before, .pill.warn::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: 6px; vertical-align: 1px; }
+.next .date-badge { border-radius: 14px; }
+input, select, textarea { border-radius: 12px; }
+@media (max-width: 880px) { h1.hello { font-size: 40px; } .stat .n { font-size: 30px; } }
+.top-left { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.top-left .crumbs { display: none; }
+.switch-pill { display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 340px; padding: 8px 14px 8px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); font: inherit; text-align: left; }
+button.switch-pill { cursor: pointer; }
+button.switch-pill:hover { border-color: var(--line-strong); }
+.switch-pill .sw-av { width: 38px; height: 38px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font: 800 14px var(--display); flex: none; }
+.switch-pill.static:not(:has(.sw-av)) { padding-left: 14px; }
+.switch-pill .sw-txt { display: grid; min-width: 0; line-height: 1.25; }
+.switch-pill .sw-txt b, .switch-pill .sw-txt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.switch-pill .sw-txt span { color: var(--muted); font-size: 13px; }
+.switch-pill .sw-arrow { margin-left: 8px; font-size: 18px; color: var(--muted); }
+.dash-head { align-items: end; margin-bottom: 26px; }
+.dash-date { display: grid; justify-items: end; gap: 4px; text-align: right; }
+.dash-date b { text-transform: uppercase; letter-spacing: .14em; font-size: 12px; }
+.dash-date span { color: var(--muted); }
+button.stat { text-align: left; cursor: pointer; color: var(--text); font: inherit; }
+button.stat:hover { border-color: var(--line-strong); }
+.stat .st-txt { display: grid; }
+.stats { margin-bottom: 16px; }
+.dash-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.dash-shows { grid-column: span 1; }
+@media (max-width: 1200px) { .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .dash-grid { grid-template-columns: 1fr; } .dash-date { justify-items: start; text-align: left; } }
+.dash-list { display: grid; }
+.dash-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border: 0; border-top: 1px solid var(--line); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; width: 100%; }
+.dash-row:first-child { border-top: 0; }
+.dash-row.chat { cursor: default; }
+.dl-date { width: 44px; display: grid; justify-items: center; line-height: 1; flex: none; }
+.dl-date small { color: var(--accent); font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.dl-date b { font: 900 28px var(--display); font-stretch: 85%; }
+.dl-main { display: grid; min-width: 0; flex: 1; }
+.dl-main b, .dl-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-main span { color: var(--muted); font-size: 13px; }
+.dl-av { width: 40px; height: 40px; border-radius: 50%; flex: none; object-fit: cover; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 800; }
+.dm-top { display: flex; gap: 14px; align-items: start; }
+.dm-thumb { width: 52%; aspect-ratio: 16/10; border-radius: 12px; object-fit: cover; flex: none; background: var(--accent-soft); display: grid; place-items: center; color: var(--accent); }
+.dm-thumb.ph .ic svg { width: 40px; height: 40px; }
+.dm-txt { display: grid; gap: 6px; min-width: 0; }
+.dm-txt b { font-size: 16px; }
+.dm-txt span { color: var(--muted); font-size: 13px; }
+.dm-feeds { display: grid; margin-top: 12px; }
+.dm-feed { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.dm-feed .ic svg { width: 18px; height: 18px; display: block; color: var(--accent); }
+.dm-feed b { flex: 1; font-size: 14px; }
+.cities { list-style: none; counter-reset: c; margin: 0; padding: 0; display: grid; gap: 14px; }
+.cities li { counter-increment: c; display: grid; grid-template-columns: 22px 1fr auto; gap: 4px 10px; align-items: center; }
+.cities li::before { content: counter(c); font-weight: 800; color: var(--muted); grid-row: span 2; }
+.cities .ct-pct { color: var(--muted); font-size: 13px; }
+.cities .bar { grid-column: 2 / 4; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--text) 10%, transparent); overflow: hidden; }
+.cities .bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.dme-top { display: flex; gap: 16px; align-items: start; }
+.dme-top img, .dme-ph { width: 96px; height: 96px; border-radius: 14px; object-fit: cover; flex: none; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font: 900 30px var(--display); }
+.dme-name { display: block; font: 800 24px var(--display); font-stretch: 88%; }
+.dme-top p { margin: 6px 0 0; font-size: 14px; }
+.dme-sites { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 16px; }
+.dme-site { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: none; color: var(--text); font: inherit; text-align: left; text-decoration: none; cursor: pointer; min-width: 0; }
+.dme-site:hover { border-color: var(--line-strong); }
+.dme-site b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dme-site span { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dme-site span.live::before { content: "● "; color: var(--ok); }
+.dash-todo .live-fold { margin-top: 14px; }
+.live-fold > summary { list-style: none; display: inline-flex; }
+.live-fold > summary::-webkit-details-marker { display: none; }
+@media (max-width: 880px) {
+  .side { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 10px 12px; gap: 6px; align-items: center; position: sticky; top: 0; z-index: 25; background: var(--side); }
+  .side::-webkit-scrollbar { display: none; }
+  .side > .ct-brand { width: auto; margin: 0 6px 0 2px; flex: none; }
+  .side > .ct-brand .wm { height: 20px; }
+  .nav-btn { flex: none; padding: 8px 12px; font-size: 14px; gap: 8px; border-radius: 999px; }
+  .nav-btn .ico svg { width: 17px; height: 17px; }
+  .topbar { min-height: 0; padding: 10px 14px; }
+  .switch-pill { padding: 6px 12px 6px 6px; } .switch-pill .sw-av { width: 32px; height: 32px; }
+  .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { padding: 14px; gap: 10px; flex-direction: column; align-items: flex-start; }
+  .stat .ic { width: 40px; height: 40px; } .stat .ic svg { width: 20px; height: 20px; }
+  .stat .n { font-size: 28px; }
+  .stat .l { font-size: 11px; }
+  h1.hello { font-size: 40px; }
+  .card { padding: 18px; border-radius: 16px; }
+}
 </style>
 </head>
 <body>
@@ -868,17 +991,17 @@ td select.status.st-few_left { color: var(--warn); }
   const SECTIONS = [
     { id: "home", label: "Overview", ico: "🏠", render: viewHome },
     { id: "shows", group: "Booking", label: "Shows", ico: "🎟️", feat: "shows", count: () => S.shows.filter((s) => s.date >= today()).length, render: viewShows },
-    { id: "podcast", group: "Content", label: "Podcast", ico: "🎧", feat: "podcast", count: () => S.episodes.length, render: viewPodcast },
-    { id: "videos", group: "Content", label: "Videos", ico: "📺", feat: "videos", count: () => S.videos.filter((v) => !v.hidden).length, render: viewVideos },
-    { id: "blog", group: "Content", label: "Blog", ico: "✍️", feat: "blog", count: () => (S.posts || []).filter((p) => p.published).length, render: viewBlog },
+    { id: "podcast", group: "Content", get label() { return F("podcast") && F("videos") ? "Podcast / YouTube" : F("podcast") ? "Podcast" : "YouTube"; }, ico: "🎧", feat: ["podcast", "videos"],
+      render: tabbed("podcast", "Podcast / YouTube", "", [{ id: "episodes", label: "Podcast", show: () => F("podcast"), render: viewPodcast }, { id: "videos", label: "YouTube", show: () => F("videos"), render: viewVideos }]) },
+    { id: "posts", group: "Content", label: "Posts", ico: "✍️", render: tabbed("posts", "Posts", "News on your home screen, your links, and your blog.", [
+      { id: "news", label: "News & home screen", render: viewPicks }, { id: "blog", label: "Blog", show: () => F("blog"), render: viewBlog }]) },
     { id: "merch", group: "Content", label: "Merch", ico: "👕", feat: "merch", count: () => S.merch.filter((m) => !m.hidden).length, render: viewMerch },
     { id: "fans", group: "Fans", label: "Fan list", ico: "💌", feat: "fans", render: viewFans },
     { id: "community", group: "Fans", label: "Community", ico: "💬", feat: ["forum", "chat"], render: tabbed("community", "Community", "Your forum and chat room, and the house rules for both.", [
       { id: "forum", label: "Forum", show: () => F("forum"), render: viewForum },
       { id: "chat", label: "Chat room", show: () => F("chat"), render: viewChat },
       { id: "rules", label: "Moderation", render: viewModeration }]) },
-    { id: "website", group: "Website", label: "Website", ico: "🎨", render: tabbed("website", "Website", "What visitors see: the home screen, your about info, and the look.", [
-      { id: "home", label: "Home screen", render: viewPicks },
+    { id: "website", label: "Website", ico: "🎨", bottom: true, render: tabbed("website", "Website", "Your site's about info and its look. News and links are under Posts.", [
       { id: "about", label: "About", render: viewProfile },
       { id: "look", label: "Look", render: viewTheme }]) },
     { id: "people", label: "Lineup", ico: "🎤", bottom: true, render: viewPeople },
@@ -887,8 +1010,8 @@ td select.status.st-few_left { color: var(--warn); }
     { id: "press", label: "Press kit", nav: false, render: viewPress },
   ];
   // Old page names still work in links and bookmarks: they open the page they became.
-  const ALIAS = { theme: ["website", "look"], picks: ["website", "home"], profile: ["website", "about"], forum: ["community", "forum"], chat: ["community", "chat"],
-    moderation: ["community", "rules"], live: ["home"] };
+  const ALIAS = { theme: ["website", "look"], picks: ["posts", "news"], blog: ["posts", "blog"], profile: ["website", "about"], forum: ["community", "forum"], chat: ["community", "chat"],
+    moderation: ["community", "rules"], live: ["home"], videos: ["podcast", "videos"] };
   const hashParts = () => { let [id, tab] = location.hash.slice(1).split("/"); if (ALIAS[id]) { tab = ALIAS[id][1] || tab; id = ALIAS[id][0]; } return [id || "", tab || ""]; };
   // A page made of tabs (Website, Community). The tab is in the address: #website/about.
   function tabbed(id, title, sub, tabs) {
@@ -924,6 +1047,7 @@ td select.status.st-few_left { color: var(--warn); }
   const roleName = (r) => (SITE_ROLES.find((x) => x[0] === r) || [r, "Editor"])[1];
   const myRole = () => (S.isPlatform ? "owner" : (S.roles && S.roles[sid()]) || "owner");
   const ROLE_SECTIONS = { shows: ["shows"], moderator: ["community"] };
+  ICONS.community = ICONS.chat; ICONS.website = ICONS.theme; ICONS.posts = ICONS.blog;
   const roleAllows = (id) => { const only = ROLE_SECTIONS[myRole()]; return !only || only.includes(id); };
   const visible = () => SECTIONS.filter((s) => roleAllows(s.id) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))));
   const current = () => { const id = hashParts()[0]; return visible().find((s) => s.id === id) || visible()[0]; };
@@ -940,6 +1064,46 @@ td select.status.st-few_left { color: var(--warn); }
         navIcon(s), h("span", { text: s.label }), s.count ? h("span", { class: "cnt", text: s.count() }) : null));
       return out;
     });
+  }
+  // One menu for everything (founder, Oct 29): Dashboard, the comic's Coaster, the open site's pages, and for
+  // ComicTable staff the platform's own pages. The switcher in the top bar picks which site the site pages work on.
+  function menuItems() {
+    const items = [], siteSecs = S.site ? visible().filter((x) => x.nav !== false) : [];
+    const has = (id) => siteSecs.find((x) => x.id === id);
+    const ct = (id) => CT_SECTIONS.find((x) => x.id === id);
+    // ComicTable staff: Dashboard is the whole platform; the open site's own dashboard is "Overview" under its name
+    if (S.isPlatform) items.push({ key: "ct/overview", id: "home", label: "Dashboard", onGo: () => goCT("overview") });
+    else if (has("home")) items.push({ key: "home", id: "home", label: "Dashboard", onGo: () => go("home") });
+    if (S.me) items.push({ key: "ct/me", id: "me", label: "Coaster", onGo: () => goCT("me") });
+    if (S.isPlatform && S.site) items.push({ key: "home", id: "overview", label: "Overview", group: S.site.name, onGo: () => go("home") });
+    if (S.site) siteSecs.filter((x) => !["home", "people", "settings", "website"].includes(x.id)).forEach((x) => items.push({ key: x.id, id: x.id, label: x.label, count: x.count, onGo: () => go(x.id) }));
+    else if (S.me) items.push({ key: "ct/dates", id: "shows", label: "Shows", onGo: () => goCT("dates") });
+    if (S.isPlatform) ["sites", "comics", "clubs"].forEach((id, i) => items.push({ key: "ct/" + id, id, label: ct(id).label, group: i === 0 ? "ComicTable" : null, onGo: () => goCT(id) }));
+    if (S.isPlatform && S.site) { const firstSite = items.findIndex((x) => x.group === S.site.name); const n = items.findIndex((x) => x.group === "ComicTable"); if (n > firstSite) { const ctItems = items.splice(n, 3); items.splice(1, 0, ...ctItems.map((x, i) => ({ ...x, group: i === 0 ? "ComicTable" : null }))); } }
+    else if (S.sites.length > 1 || (S.me && S.sites.length)) items.push({ key: "ct/mysites", id: "mysites", label: "My Sites", onGo: () => goCT("mysites") });
+    ["website", "people", "settings"].forEach((id) => { const x = has(id); if (x) items.push({ key: id, id, label: x.label, bottom: true, onGo: () => go(id) }); });
+    return items;
+  }
+  function sideMenu(curKey) {
+    const out = [];
+    let bottom = false;
+    for (const it of menuItems()) {
+      if (it.bottom && !bottom) { out.push(h("div", { class: "nav-spacer" })); bottom = true; }
+      if (it.group) out.push(h("div", { class: "nav-group", text: it.group }));
+      out.push(h("button", { class: "nav-btn", type: "button", "data-sec": it.key.replace(/^ct\//, ""), "aria-current": it.key === curKey ? "page" : null, onclick: it.onGo },
+        navIcon(it), h("span", { text: it.label }), it.count ? h("span", { class: "cnt", text: it.count() }) : null));
+    }
+    return out;
+  }
+  // The site switcher, top left: which site you're working on. With one site it's just the name.
+  function siteSwitch() {
+    if (!S.sites.length) return S.me ? h("div", { class: "switch-pill static" }, h("span", { class: "sw-txt" }, h("b", { text: S.me.name }), h("span", { text: coasterUrl(S.me).replace(/^https?:\/\//, "") }))) : null;
+    const st = S.site || S.sites[0];
+    const many = S.sites.length > 1;
+    return h(many ? "button" : "div", { class: "switch-pill" + (many ? "" : " static"), type: many ? "button" : null, id: many ? "sitePick" : null, title: many ? "Switch site (⌘K)" : null, "aria-haspopup": many ? "dialog" : null, onclick: many ? openSitePicker : null },
+      h("span", { class: "sw-av", "aria-hidden": "true", text: (st.name || "?").split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase() }),
+      h("span", { class: "sw-txt" }, h("b", { text: st.name }), h("span", { text: st.domain || "No web address yet" })),
+      many ? h("span", { class: "sw-arrow", "aria-hidden": "true", text: "⌄" }) : null);
   }
   // Top bar: where you are, and your account. (The site finder is ⌘K anywhere, or the site name in the menu.)
   const ctHome = () => "#ct/" + (S.isPlatform ? "overview" : S.me ? "me" : "mysites");
@@ -959,10 +1123,10 @@ td select.status.st-few_left { color: var(--warn); }
     const trail = [];
     crumbs.filter(Boolean).forEach((c, i) => { if (i) trail.push(h("span", { class: "crumb-sep", "aria-hidden": "true", text: "/" })); trail.push(c); });
     return h("header", { class: "topbar" },
-      h("nav", { class: "crumbs", "aria-label": "You are here" }, trail),
+      h("div", { class: "top-left" }, siteSwitch(), h("nav", { class: "crumbs", "aria-label": "You are here" }, trail)),
       h("div", { class: "top-actions" },
+        S.site && roleAllows("posts") ? h("button", { class: "btn primary", type: "button", id: "topNewPost", text: "+ New post", onclick: () => go("posts/news") }) : null,
         S.level === "site" && (S.site.domain || !CFG.PLATFORM) ? h("a", { class: "btn ghost sm", href: S.site.domain ? "https://" + S.site.domain : "./", target: "_blank", rel: "noopener", text: "View site ↗" }) : null,
-        S.sites.length > 1 ? h("button", { class: "btn ghost sm kbd-btn", type: "button", title: "Find a site", onclick: openSitePicker }, "Switch site", h("kbd", { text: /Mac/i.test(navigator.platform || "") ? "⌘K" : "Ctrl K" })) : null,
         acctMenu()));
   }
   // Who gets the ComicTable level: super admins, comics with their own login, and anyone on more than one site.
@@ -975,13 +1139,7 @@ td select.status.st-few_left { color: var(--warn); }
     const cur = list.find((x) => x.id === id) || list[0];
     const main = h("main", { id: "main" });
     root.replaceChildren(h("div", { class: "app" },
-      h("aside", { class: "side" },
-        h("div", null, h("a", { class: "ct-brand", href: ctHome() }, wordmark("")), h("div", { class: "brand-sub", text: S.isPlatform ? "Super admin" : S.me ? S.me.name : "Your dashboard" })),
-        S.sites.length ? h("button", { class: "site-pick open-site", type: "button", id: "sitePick", onclick: openSitePicker },
-          h("span", { class: "sp-txt" }, h("span", { class: "brand", style: "font-size:15px", text: S.sites.length > 1 ? "Open a site…" : "Open " + S.sites[0].name }), h("span", { class: "brand-sub", text: S.sites.length > 1 ? S.sites.length + " sites · ⌘K" : S.sites[0].domain || "" })),
-          h("span", { class: "sp-arrow", "aria-hidden": "true", text: "→" })) : null,
-        h("div", { style: "height:10px" }),
-        navList(list, cur, goCT)),
+      h("aside", { class: "side" }, h("a", { class: "ct-brand", href: ctHome(), "aria-label": "ComicTable" }, wordmark("")), sideMenu(cur.id === "dates" && !S.site ? "ct/dates" : "ct/" + cur.id)),
       h("div", { class: "col" }, topBar([h("a", { class: "crumb", href: ctHome(), text: "ComicTable" }), h("span", { class: "crumb now", text: cur.label })]), main)));
     cur.render(main);
     window.scrollTo && window.scrollTo(0, 0);
@@ -994,17 +1152,9 @@ td select.status.st-few_left { color: var(--warn); }
     S.level = "site";
     setPath("dashboard"); document.title = S.site.name + " · ComicTable";
     const cur = current();
-    const nav = navList(visible().filter((x) => x.nav !== false), cur.nav === false ? SECTIONS.find((x) => x.id === "people") : cur, go);
-    // With more than one site, the name at the top opens the site finder (also ⌘K / Ctrl+K anywhere).
-    const many = S.sites.length > 1;
-    const top = many ? h("button", { class: "site-pick", type: "button", id: "sitePick", "aria-haspopup": "dialog", title: "Switch site (⌘K)", onclick: openSitePicker },
-        h("span", { class: "sp-txt" }, h("span", { class: "brand", text: S.site.name }), h("span", { class: "brand-sub", text: S.site.domain || "No web address yet" })),
-        h("span", { class: "sp-arrow", "aria-hidden": "true", text: "⌄" }))
-      : h("div", null, h("div", { class: "brand", text: S.site.name }), h("div", { class: "brand-sub", text: S.site.domain || "Your site" }));
     const main = h("main", { id: "main" });
     root.replaceChildren(h("div", { class: "app" },
-      h("aside", { class: "side" }, h("a", { class: "ct-brand", href: hasCT() ? ctHome() : "#home", "aria-label": "ComicTable" }, wordmark("")),
-        top, nav),
+      h("aside", { class: "side" }, h("a", { class: "ct-brand", href: "#home", "aria-label": "ComicTable" }, wordmark("")), sideMenu(cur.nav === false ? "people" : cur.id)),
       h("div", { class: "col" }, topBar([hasCT() ? h("a", { class: "crumb back-ct", href: ctHome(), text: "ComicTable" }) : null,
         h("a", { class: "crumb", href: "#home", text: S.site.name }), cur.id !== "home" ? h("span", { class: "crumb now", text: cur.label }) : null]), main)));
     cur.render(main);
@@ -1067,51 +1217,119 @@ td select.status.st-few_left { color: var(--warn); }
     if (sec && location.hash.slice(1) !== sec) location.hash = sec; else route();
   }
   function refreshNav() { document.querySelectorAll(".nav-btn").forEach((b) => { const s = SECTIONS.find((x) => x.id === b.dataset.sec); const c = b.querySelector(".cnt"); if (c && s && s.count) c.textContent = s.count(); }); }
+  
   const head = (title, sub, right) => h("div", { class: "page-head" }, h("div", null, h("h1", { text: title }), sub ? h("p", { class: "sub", text: sub }) : null), right || null);
   const empty = (title, line) => h("div", { class: "empty" }, h("b", { text: title }), line || "");
 
   /* ======================================================
      HOME
      ====================================================== */
+  // The Dashboard: everything at a glance, real numbers only (founder's mockup, Oct 29). Each card has View all.
+  const svgIco = (id) => { const sp = h("span", { class: "ic", "aria-hidden": "true" }); sp.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[id] || "") + "</svg>"; return sp; };
+  const cardHead = (title, onAll, allText) => h("div", { class: "card-head" }, h("h2", { text: title }), onAll ? h("button", { class: "view-all", type: "button", onclick: onAll, text: (allText || "View all") + " →" }) : null);
   function viewHome(main) {
-    const hr = new Date().getHours();
-    const hi = hr < 5 ? "Up late" : hr < 12 ? "Morning" : hr < 17 ? "Afternoon" : "Evening";
+    const now = new Date();
+    const who = (S.me && S.me.name ? S.me.name : S.user || "").split(/\s+/)[0];
     const up = S.shows.filter((s) => s.date >= today()).sort((a, b) => (a.date + to24(a.time)).localeCompare(b.date + to24(b.time)));
     const next = up[0];
-    const stats = [];
-    if (F("shows")) stats.push(["Upcoming shows", up.length, "shows"]);
-    if (F("podcast")) stats.push(["Episodes", S.episodes.length, "podcast"]);
-    if (F("videos")) stats.push(["Videos", S.videos.filter((v) => !v.hidden).length, "videos"]);
-    if (F("merch")) stats.push(["Merch items", S.merch.filter((m) => !m.hidden).length, "merch"]);
+    const days = next ? Math.round((parseISO(next.date) - parseISO(today())) / 864e5) : null;
     const todo = [];
-    if (!S.hosts.length) todo.push(["Add the comics on this site (name, photo, bio, socials)", "people"]);
+    if (!S.hosts.length) todo.push(["Add the comics on this site", "people"]);
     if (F("shows")) { const n = up.filter((s) => !s.url).length; if (n) todo.push([n + " upcoming show" + (n > 1 ? "s" : "") + " with no ticket link", "shows"]); }
     if (F("podcast") && !S.sources.some((s) => s.kind === "podcast")) todo.push(["Connect your podcast so new episodes add themselves", "podcast"]);
     if (F("videos") && !S.sources.some((s) => s.kind === "youtube")) todo.push(["Connect your YouTube channels", "videos"]);
-    const bad = S.sources.filter((s) => s.last_status && /^Error/.test(s.last_status));
-    for (const s of bad) todo.push([(s.label || (s.kind === "podcast" ? "Podcast" : "YouTube")) + " import hit a problem: " + s.last_status.replace(/^Error:\s*/, ""), s.kind === "podcast" ? "podcast" : "videos"]);
-    main.append(
-      h("div", { class: "page-head" }, h("div", null, h("h1", { class: "hello", text: hi + ", " + S.user }), h("p", { class: "sub", text: next ? "Next up: " + first(next.host) + " in " + (next.city || next.venue) + " " + relDay(next.date) + "." : "Here's your site at a glance." }))),
-      h("div", { class: "stack" },
-        h("div", { class: "btns" },
-          F("shows") ? h("button", { class: "btn primary big", type: "button", text: "+ Add shows", onclick: () => go("shows") }) : null,
-          F("podcast") ? h("button", { class: "btn big", type: "button", text: "+ Add an episode", onclick: () => { go("podcast"); } }) : null,
-          h("button", { class: "btn big", type: "button", text: "+ Add news", onclick: () => go("picks") })),
-        stats.length ? h("div", { class: "stats" }, stats.map(([l, n, sec]) => h("button", { class: "stat", type: "button", style: "text-align:left;cursor:pointer", onclick: () => go(sec) }, h("div", { class: "n", text: n }), h("div", { class: "l", text: l })))) : null,
-        next ? h("section", { class: "card" }, h("h2", { text: "Next show" }),
-          h("div", { class: "next" }, h("div", { class: "date-badge" }, h("div", null, h("small", { text: MON[parseISO(next.date).getMonth()] }), h("b", { text: parseISO(next.date).getDate() }))),
-            h("div", null, h("b", { text: first(next.host) + " · " + (next.venue || next.city) }), h("div", { class: "hint", text: niceDate(next.date) + (next.time ? " at " + next.time : "") + (next.city ? " · " + next.city : "") })),
-            next.url ? h("a", { class: "btn sm", href: next.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : h("span", { class: "pill warn", text: "No ticket link" }))) : null,
-        liveCard(),
-        todo.length ? h("section", { class: "card" }, h("h2", { text: "Worth a look" }), h("div", { class: "todo" }, todo.map(([t, sec]) => h("div", { class: "todo-item" }, h("span", { text: t }), h("button", { class: "btn sm", type: "button", text: "Fix", onclick: () => go(sec) })))))
-          : h("section", { class: "card" }, empty("All caught up ✨", "Everything on your site looks good."))));
+    for (const s of S.sources.filter((s) => s.last_status && /^Error/.test(s.last_status))) todo.push([(s.label || (s.kind === "podcast" ? "Podcast" : "YouTube")) + " import hit a problem: " + s.last_status.replace(/^Error:\s*/, ""), s.kind === "podcast" ? "podcast" : "videos"]);
+
+    // top: big hello, today's date
+    main.append(h("div", { class: "page-head dash-head" },
+      h("h1", { class: "hello" }, "Welcome back, ", h("em", { text: who + "." })),
+      h("div", { class: "dash-date" }, h("b", { text: now.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric", year: "numeric" }) }),
+        h("span", { text: next ? "Next up: " + first(next.host) + " in " + (next.city || next.venue) + " " + relDay(next.date) + "." : "Here's what's happening." }))));
+
+    // stat cards: only numbers we really have
+    const stat = (ico, label, n, sub, sec, gold) => h("button", { class: "stat", type: "button", onclick: () => go(sec) }, h("span", { class: "ic" + (gold ? " gold" : "") }, svgIco(ico).firstChild),
+      h("span", { class: "st-txt" }, h("span", { class: "l", text: label }), h("span", { class: "n", text: n }), sub ? h("span", { class: "s", text: sub }) : null));
+    const stats = h("div", { class: "stats" });
+    if (F("shows")) stats.append(stat("shows", "Upcoming shows", up.length, next ? (days === 0 ? "Next show tonight" : days === 1 ? "Next show tomorrow" : "Next show in " + days + " days") : "Nothing booked yet", "shows"));
+    if (F("podcast")) stats.append(stat("podcast", "Episodes", S.episodes.length, S.episodes[0] ? "Latest: " + shortDate(String(S.episodes.slice().sort((a, b) => String(b.posted).localeCompare(String(a.posted)))[0].posted).slice(0, 10)) : "", "podcast", true));
+    if (F("videos")) stats.append(stat("videos", "Videos", S.videos.filter((v) => !v.hidden).length, "", "videos", true));
+    const fanStat = F("fans") ? stat("fans", "Fan list", "…", "", "fans", true) : null; if (fanStat) stats.append(fanStat);
+    if (F("merch")) stats.append(stat("merch", "Merch items", S.merch.filter((m) => !m.hidden).length, "", "merch", true));
+    main.append(stats);
+
+    const grid = h("div", { class: "dash-grid" }); main.append(grid);
+    // upcoming shows
+    if (F("shows")) {
+      const tag = (s) => s.status === "sold_out" ? h("span", { class: "pill", text: "Sold out" }) : s.status === "cancelled" ? h("span", { class: "pill", text: "Cancelled" })
+        : s.url ? h("span", { class: "pill ok", text: s.status === "few_left" ? "Few left" : "Tickets live" }) : h("span", { class: "pill warn", text: "No ticket link" });
+      grid.append(h("section", { class: "card dash-shows" }, cardHead("Upcoming Shows", () => go("shows")),
+        up.length ? h("div", { class: "dash-list" }, up.slice(0, 5).map((s) => h("button", { class: "dash-row", type: "button", onclick: () => go("shows") },
+          h("span", { class: "dl-date" }, h("small", { text: MON[parseISO(s.date).getMonth()] }), h("b", { text: parseISO(s.date).getDate() })),
+          h("span", { class: "dl-main" }, h("b", { text: s.venue || s.city || "Show" }), h("span", { text: [s.city, s.time, S.hosts.length > 1 ? first(s.host) : ""].filter(Boolean).join(" · ") })), tag(s))))
+          : h("div", { class: "empty" }, h("b", { text: "No shows yet" }), h("button", { class: "btn primary", type: "button", text: "+ Add shows", onclick: () => go("shows") }))));
+    }
+    // latest episode / video
+    if (F("podcast") || F("videos")) {
+      const ep = S.episodes.slice().sort((a, b) => String(b.posted).localeCompare(String(a.posted)))[0];
+      const vid = S.videos.filter((v) => !v.hidden).sort((a, b) => String(b.published).localeCompare(String(a.published)))[0];
+      const feeds = S.sources.filter((x) => x.kind === "podcast" || x.kind === "youtube");
+      grid.append(h("section", { class: "card dash-media" }, cardHead(F("podcast") && F("videos") ? "Latest Podcast / YouTube" : F("podcast") ? "Latest Episode" : "Latest Video", () => go("podcast")),
+        ep || vid ? h("div", { class: "dm-top" },
+          vid ? h("img", { class: "dm-thumb", src: vid.thumbnail_url || ("https://i.ytimg.com/vi/" + vid.youtube_id + "/hqdefault.jpg"), alt: "" }) : h("span", { class: "dm-thumb ph" }, svgIco("podcast")),
+          h("div", { class: "dm-txt" }, h("b", { text: ep ? (ep.num ? "#" + ep.num + " " : "") + ep.title : vid.title }), h("span", { text: ep ? niceDate(String(ep.posted).slice(0, 10)) : vid.published ? niceDate(String(vid.published).slice(0, 10)) : "" })))
+          : h("p", { class: "hint", text: F("podcast") ? "Nothing yet. Connect your feed and new episodes add themselves." : "Nothing yet. Connect your YouTube channel and new videos add themselves." }),
+        feeds.length ? h("div", { class: "dm-feeds" }, feeds.map((x) => h("div", { class: "dm-feed" }, svgIco(x.kind === "youtube" ? "videos" : "podcast"), h("b", { text: x.label || (x.kind === "youtube" ? "YouTube" : "Podcast") }),
+          h("span", { class: "pill " + (/^Error/.test(x.last_status || "") ? "warn" : "ok"), text: /^Error/.test(x.last_status || "") ? "Problem" : "Connected" }))) ) : null));
+    }
+    // fans by city (filled in when it loads)
+    const fansCard = F("fans") ? h("section", { class: "card dash-fans" }, cardHead("Fans by City", () => go("fans")), h("p", { class: "hint", text: "Loading…" })) : null;
+    if (fansCard) grid.append(fansCard);
+    // the comic's Coaster and their sites
+    const meCard = S.me ? h("section", { class: "card dash-me" }, cardHead("Your Coaster", () => goCT("me"), "Edit"),
+      h("div", { class: "dme-top" }, S.me.photo_url ? h("img", { src: S.me.photo_url, alt: "" }) : h("span", { class: "dme-ph", text: (S.me.name || "?").split(/\s+/).map((w) => w[0]).join("").slice(0, 2) }),
+        h("div", null, h("b", { class: "dme-name", text: S.me.name }), h("span", { class: "hint", text: S.me.title || "Comedian" }),
+          h("p", { text: String(S.me.bio || "").split(/\n/)[0].slice(0, 160) || "Add a short bio on your Coaster." }))),
+      h("div", { class: "dme-sites" }, h("a", { class: "dme-site", href: coasterUrl(S.me), target: "_blank", rel: "noopener" }, h("b", { text: "Coaster" }), h("span", { text: coasterUrl(S.me).replace(/^https?:\/\//, "") })),
+        S.sites.map((x) => h("button", { class: "dme-site", type: "button", onclick: () => switchSite(x.id, "home") }, h("b", { text: x.name }), h("span", { class: x.domain ? "live" : "", text: x.domain || "No address yet" })))))
+      : h("section", { class: "card dash-me" }, cardHead("Lineup", () => go("people")), S.hosts.length ? h("div", { class: "dash-list" }, S.hosts.slice(0, 5).map((x) => h("button", { class: "dash-row", type: "button", onclick: () => go("people") },
+          x.photo_url ? h("img", { class: "dl-av", src: x.photo_url, alt: "" }) : h("span", { class: "dl-av", text: x.name[0] }), h("span", { class: "dl-main" }, h("b", { text: x.name }), h("span", { text: x.title || "Comedian" })))))
+        : empty("No one yet", "Add the comics on this site."));
+    grid.append(meCard);
+    const live = liveCard();
+    grid.append(h("section", { class: "card dash-todo" }, cardHead(todo.length ? "Worth a look" : "All caught up"),
+      todo.length ? h("div", { class: "todo" }, todo.map(([t, sec]) => h("div", { class: "todo-item" }, h("span", { text: t }), h("button", { class: "btn sm", type: "button", text: "Fix", onclick: () => go(sec) }))))
+        : h("p", { class: "hint", style: "margin:0", text: "Everything on your site looks good." }), live));
+    // the latest from the chat room
+    const chatCard = F("chat") ? h("section", { class: "card dash-chat" }, cardHead("Community Chat", () => go("chat"), "Open"), h("p", { class: "hint", text: "Loading…" })) : null;
+    if (chatCard) grid.append(chatCard);
+
+    if (fansCard) (async () => {
+      try {
+        const fans = await q(sb.from("fans").select("city,state,created_at").eq("site_id", sid()).limit(5000));
+        const week = fans.filter((f) => Date.now() - Date.parse(f.created_at) < 7 * 864e5).length;
+        const n = fanStat.querySelector(".n"); n.textContent = fans.length; if (week) fanStat.querySelector(".st-txt").append(h("span", { class: "s", text: "+" + week + " this week" }));
+        const by = new Map(); fans.forEach((f) => { const k = [f.city, f.state].filter(Boolean).join(", ") || "Somewhere"; by.set(k, (by.get(k) || 0) + 1); });
+        const top = [...by].sort((a, b) => b[1] - a[1]).slice(0, 5);
+        fansCard.replaceChildren(fansCard.firstChild, top.length ? h("ol", { class: "cities" }, top.map(([c, k]) => h("li", null, h("span", { class: "ct-name", text: c }), h("span", { class: "ct-pct", text: Math.round(k / fans.length * 100) + "%" }),
+          h("span", { class: "bar" }, h("i", { style: "width:" + Math.max(4, Math.round(k / top[0][1] * 100)) + "%" })))))
+          : h("p", { class: "hint", text: "No fans yet. Your sign-up QR code is on the Fan list page." }));
+      } catch (e) { fansCard.replaceChildren(fansCard.firstChild, h("p", { class: "hint", text: "Couldn't load the fan list." })); fanStat.querySelector(".n").textContent = "–"; }
+    })();
+    if (chatCard) (async () => {
+      try {
+        const msgs = await q(sb.from("chat_messages").select("author,body,created_at,is_mod").eq("site_id", sid()).eq("deleted", false).order("created_at", { ascending: false }).limit(5));
+        chatCard.replaceChildren(chatCard.firstChild, msgs.length ? h("div", { class: "dash-list" }, msgs.map((m) => h("div", { class: "dash-row chat" },
+          h("span", { class: "dl-av", text: (m.author || "?")[0].toUpperCase() }), h("span", { class: "dl-main" }, h("b", { text: m.author }), h("span", { text: m.body })), h("span", { class: "hint", text: ago(m.created_at) }))))
+          : h("p", { class: "hint", text: "Quiet so far." }));
+      } catch (e) { chatCard.replaceChildren(chatCard.firstChild, h("p", { class: "hint", text: "Couldn't load the chat." })); }
+    })();
   }
   // Go live sits on the Overview: a button when you're not live, the "You're live" card when you are.
   function liveCard() {
     if (!S.site || !("live" in S.site)) return null;
     const live = S.site.live, isLive = live && live.url && (!live.started_at || Date.now() - Date.parse(live.started_at) < 12 * 3600 * 1000);
     const box = h("div", { class: "stack live-box" }); viewLive(box);
-    return isLive ? box : h("details", { class: "card quiet live-fold" }, h("summary", { text: "🔴 Go live" }), box);
+    return isLive ? box : h("details", { class: "live-fold" }, h("summary", { class: "btn", text: "🔴 Go live" }), box);
   }
   function relDay(d) {
     const n = Math.round((parseISO(d) - parseISO(today())) / 864e5);
@@ -2226,7 +2444,7 @@ td select.status.st-few_left { color: var(--warn); }
   let editingPost = null;
   async function loadPosts() { try { S.posts = await q(sb.from("blog_posts").select("*").eq("site_id", sid()).order("created_at", { ascending: false })); } catch (e) { S.posts = null; } }
   async function viewBlog(main) {
-    const addBtn = h("button", { class: "btn primary", type: "button", id: "newPost", text: "+ New post", onclick: () => { editingPost = "new"; draw(); } });
+    const addBtn = h("button", { class: "btn primary", type: "button", id: "newPost", text: "+ New blog post", onclick: () => { editingPost = "new"; draw(); } });
     main.append(head("Blog", "Write for your fans. Drafts are only visible to your team until you publish.", addBtn));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     await loadPosts();
