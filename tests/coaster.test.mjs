@@ -181,9 +181,10 @@ test("the dock: tickets for the next show always in reach, plus Share", async ()
   const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer" }],
     "rpc/comic_shows": [{ id: "s1", date: day(2), venue: "The Stand", url: "https://t/1", status: "on_sale" }] });
   const dock = d.querySelector(".dock");
-  assert.match(dock.querySelector("a.btn.main").textContent, /^Tickets · /);
-  assert.equal(dock.querySelector("a.btn.main").getAttribute("href"), "https://t/1");
-  assert.equal(dock.querySelector("button").getAttribute("aria-label"), "Share Lev Fer's Coaster");
+  assert.equal(dock.querySelector("a.tab.go").textContent, "Tickets");
+  assert.match(dock.querySelector("a.tab.go").getAttribute("aria-label"), /^Tickets for /);
+  assert.equal(dock.querySelector("a.tab.go").getAttribute("href"), "https://t/1");
+  assert.equal([...dock.querySelectorAll(".tab")].pop().getAttribute("aria-label"), "Share Lev Fer's Coaster");
 });
 
 test("wear: fresh by default; used and well loved add glass rings (well loved: drips and scuffs too), the same every visit", async () => {
@@ -204,7 +205,7 @@ test("live and Shorts: a LIVE badge and Watch live while one of their sites is s
     sites: [{ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay", features: {}, live: { url: "https://twitch.tv/levfer", title: "Crowd work", started_at: new Date().toISOString() } }],
     videos: [{ youtube_id: "shortshort1", title: "A short", published: "2026-10-01" }] });
   assert.match(d.querySelector(".live-badge").textContent, /LIVE · Crowd work/);
-  assert.match(d.querySelector(".dock a.btn.main").textContent, /Watch live/);
+  assert.match(d.querySelector(".dock a.tab.go").textContent, /Watch live/);
   assert.equal(d.querySelectorAll(".shorts .short").length, 1);
   d.querySelector(".short").click();
   assert.match(d.querySelector(".short.playing iframe").getAttribute("src"), /embed\/shortshort1/);
