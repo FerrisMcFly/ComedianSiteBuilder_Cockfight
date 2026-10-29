@@ -61,7 +61,7 @@ test("next dates with tickets, and who else is on the bill links to their Coaste
   assert.match(other.textContent, /CTColum Tyrrell/);
   // tap the coaster: it flips to a QR code
   const coaster = d.querySelector(".coaster");
-  assert.match(d.querySelector(".back").textContent, /Lev's Coaster.*comictable\.com\/lev-fer/s, "no fan list: the QR goes to the Coaster");
+  assert.match(d.querySelector(".back").textContent, /Lev Fer's Coaster.*comictable\.com\/lev-fer/s, "no fan list: the QR goes to the Coaster");
   coaster.click();
   assert.ok(coaster.classList.contains("flipped"));
   assert.equal(coaster.getAttribute("aria-pressed"), "true");
@@ -69,7 +69,7 @@ test("next dates with tickets, and who else is on the bill links to their Coaste
 
 test("the name is printed on the coaster's band, and the page invites other comics to get one", async () => {
   const { d } = await load("/tristan-bowling", { comics: [{ id: "tristan-bowling", name: "Tristan Bowling" }] });
-  assert.equal(d.querySelector(".front .band b").textContent, "Tristan Bowling");
+  assert.equal(d.querySelector(".front .ribbon b").textContent, "Tristan Bowling");
   assert.equal(d.querySelector(".front .initials").textContent, "TB");
   assert.equal([...d.querySelectorAll("a")].find((a) => /Get your own Coaster/.test(a.textContent)).getAttribute("href"), "/#coaster");
   assert.ok(!d.querySelector(".join"), "no fan list without a site that has one");
@@ -99,7 +99,7 @@ test("fans can join the comic's list from the Coaster", async () => {
   const join = sent.find((x) => x[0] === "rpc/join_fans")[1];
   assert.deepEqual([join.p_site, join.p_email, join.p_place, join.p_met], ["lev-fer", "fan@x.com", 7, "Coaster"]);
   assert.match(d.querySelector(".join").textContent, /on Lev's list/);
-  assert.match(d.querySelector(".back").textContent, /Join Lev's list.*levfer\.gay\/join/s, "with a fan list, the coaster's QR is the sign-up");
+  assert.match(d.querySelector(".back").textContent, /Join Lev Fer's list.*levfer\.gay\/join/s, "with a fan list, the coaster's QR is the sign-up");
 });
 
 test("lots of dates: the next one, six more under More, then all of them", async () => {
@@ -153,7 +153,7 @@ test("comictable.com/<address> finds the comic; an old link with their id still 
   opened.push(a.window, b.window);
   await new Promise((r) => setTimeout(r, 100));
   assert.equal(a.window.document.querySelector("h1").textContent, "Lev Fer");
-  assert.equal(a.window.document.querySelector(".band span").textContent, "comictable.com/lev-fer");
+  assert.equal(a.window.document.querySelector(".front .addr").textContent, "comictable.com/lev-fer");
   assert.equal(b.window.document.querySelector("h1").textContent, "Lev Fer");
   assert.equal(b.window.location.pathname, "/lev-fer");
 });
