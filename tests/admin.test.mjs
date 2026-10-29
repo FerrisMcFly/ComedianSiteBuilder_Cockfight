@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import { after } from "node:test";
+import { adminPage } from "../tools/admin-page.mjs";
 const opened = [];
 after(() => opened.forEach((w) => w.close()));
 
-const html = readFileSync(new URL("../platform/admin.html", import.meta.url), "utf8")
+const html = adminPage()
   .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "").replace('<script src="config.js"></script>', '<script>window.COMICTABLE_CONFIG={SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
   .replace('<script src="sdk/csb.js"></script>', () => "<script>" + readFileSync(new URL("../platform/sdk/csb.js", import.meta.url), "utf8").replace(/<\/script/g, "<\\/script") + "</script>");
 

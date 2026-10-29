@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { adminPage } from "./admin-page.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const id = process.argv[2] || process.env.SITE || "cockfight";
@@ -29,7 +30,7 @@ if (id === "platform") {
   // comictable.com: the front page at /, the admin at /admin
   cpSync(join(root, "platform", "home"), out, { recursive: true });
   // the app is one page, served at /login and /dashboard
-  cpSync(join(root, "platform", "admin.html"), join(out, "app.html"));
+  writeFileSync(join(out, "app.html"), adminPage());  // the dashboard, put together from platform/app/
   cpSync(join(root, "platform", "sdk"), join(out, "sdk"), { recursive: true });
   // Each site's front end says which extras and design settings it has; the admin reads these per site.
   mkdirSync(join(out, "themes"));
