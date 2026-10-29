@@ -210,3 +210,13 @@ test("live and Shorts: a LIVE badge and Watch live while one of their sites is s
   d.querySelector(".short").click();
   assert.match(d.querySelector(".short.playing iframe").getAttribute("src"), /embed\/shortshort1/);
 });
+
+test("link buttons: their own site first by default; the comic's order and hidden ones win", async () => {
+  const sites = [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com" }, { id: "lev-fer", name: "Lev Fer", domain: "levfer.gay" }];
+  const base = { hosts: [{ site_id: "cockfight" }, { site_id: "lev-fer" }], sites };
+  let { d } = await load("/lev-fer", { ...base, comics: [{ id: "lev-fer", name: "Lev Fer", website: "https://linktr.ee/levfer" }] });
+  assert.deepEqual([...d.querySelectorAll(".lcard b")].map((b) => b.textContent), ["My website", "Cockfight", "Linktree"]);
+  assert.equal(d.querySelector(".lcard.main"), null, "no button is singled out");
+  ({ d } = await load("/lev-fer", { ...base, comics: [{ id: "lev-fer", name: "Lev Fer", website: "https://linktr.ee/levfer", coaster: { links: ["website", "site:lev-fer", "site:cockfight"], links_off: ["site:cockfight"] } }] }));
+  assert.deepEqual([...d.querySelectorAll(".lcard b")].map((b) => b.textContent), ["Linktree", "My website"]);
+});

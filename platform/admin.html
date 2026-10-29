@@ -2259,6 +2259,31 @@ button.stat:hover { border-color: var(--line-strong); }
     drawSoc();
     drawPlan();
     paint();
+    // The link buttons on the Coaster (the sites they're on, and their link-in-bio): drag to order, switch any off
+    const linkOrder = (c.coaster && Array.isArray(c.coaster.links)) ? [...c.coaster.links] : [];
+    const linkOff = new Set((c.coaster && Array.isArray(c.coaster.links_off)) ? c.coaster.links_off : []);
+    let linkList = [];
+    const linkRows = h("div", { class: "plan" }, h("p", { class: "hint", style: "margin:0", text: "Loading…" }));
+    const drawLinks = () => {
+      linkList.sort((a, b) => { const i = linkOrder.indexOf(a.key), j = linkOrder.indexOf(b.key); return (i < 0 ? 100 + a.rank : i) - (j < 0 ? 100 + b.rank : j); });
+      linkRows.replaceChildren(...(linkList.length ? linkList.map((x) => h("div", { class: "switch-row plan-row", "data-drag": x.key }, grip(x.title),
+        h("div", { style: "flex:1;min-width:0" }, h("b", { text: x.title }), h("div", { class: "hint", text: x.sub })),
+        h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: !linkOff.has(x.key), "aria-label": "Show " + x.title, onchange: (e) => { e.target.checked ? linkOff.delete(x.key) : linkOff.add(x.key); } }), h("span")))) 
+        : [h("p", { class: "hint", style: "margin:0", text: "None yet. Sites " + (opts.me ? "you're" : "they're") + " on, and a Linktree or website under Socials, show up here." })]));
+    };
+    sortable(linkRows, (from, to) => { const keys = linkList.map((x) => x.key); arrMove(keys, from, to); linkOrder.splice(0, linkOrder.length, ...keys); drawLinks(); });
+    (async () => {
+      try {
+        const hs = await q(sb.from("hosts").select("site_id,hidden").eq("comic_id", c.id));
+        const ids = hs.filter((x) => !x.hidden).map((x) => x.site_id);
+        const sites = ids.length ? await q(sb.from("sites").select("id,name,domain").in("id", ids)) : [];
+        linkList = sites.filter((x) => x.domain).map((x) => ({ key: "site:" + x.id, rank: x.name === c.name ? 0 : 1, title: x.name === c.name ? "My website" : x.name, sub: x.domain }));
+        const web = (window.CSB && CSB.socialsOf ? CSB.socialsOf(c) : {}).website;
+        if (web) linkList.push({ key: "website", rank: 2, title: /linktr\.ee/i.test(web) ? "Linktree" : "Website", sub: web.replace(/^https?:\/\/(www\.)?/, "") });
+      } catch (e) { linkList = []; }
+      drawLinks();
+    })();
+    const linksBox = linkRows;
     const billsRow = h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
       h("div", { class: "hint", text: "When another comic on ComicTable has the same club on the same night, you show up on each other's dates. Nobody has to tag anyone." })),
       h("label", { class: "switch" }, bills, h("span")));
@@ -2266,7 +2291,7 @@ button.stat:hover { border-color: var(--line-strong); }
       url,
       // the pieces on their own, for the Coaster page (coasterPage) to lay out
       parts: { preview, looks: h("div", { class: "stack", style: "gap:10px;min-width:0" }, looks, customBox, customNote), wear: h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear" }), wearSeg),
-        tapeUrl, tapeTitle, plan: h("div", { class: "stack", style: "gap:8px" }, h("b", { text: "What's on " + yours + " Coaster" }),
+        tapeUrl, tapeTitle, linksBox, plan: h("div", { class: "stack", style: "gap:8px" }, h("b", { text: "What's on " + yours + " Coaster" }),
           h("p", { class: "hint", style: "margin:0", text: "Up front, under More, or off. Drag to change the order." }), planRows), socBox, billsRow, proBox },
       // a line under the name: the Coaster's address, with Open
       link: h("div", { class: "hint coaster-link" }, h("a", { href: url, target: "_blank", rel: "noopener", text: url.replace(/^https?:\/\//, "") + " ↗" }),
@@ -2284,7 +2309,7 @@ button.stat:hover { border-color: var(--line-strong); }
       patch() {
         const t = tapeUrl.value.trim();
         const out = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
-        if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, wear, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
+        if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, wear, links: linkList.length ? linkList.map((x) => x.key) : linkOrder, links_off: [...linkOff], ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
         return out;
       }
     };
@@ -2335,6 +2360,7 @@ button.stat:hover { border-color: var(--line-strong); }
       h("section", { class: "card stack" }, h("h2", { text: "Socials" }),
         filled.length ? h("div", { class: "soc-list" }, filled.map(socRow)) : h("p", { class: "hint", style: "margin:0", text: "Paste the link to each one you use." }),
         empties.length ? h("details", { class: "quiet", open: !filled.length || null }, h("summary", { text: filled.length ? "Add another" : "All networks" }), h("div", { class: "soc-list", style: "margin-top:10px" }, empties.map(socRow))) : null),
+      P ? h("section", { class: "card stack" }, h("div", null, h("h2", { text: "Links" }), h("p", { class: "hint", style: "margin:2px 0 0", text: "The buttons under the coaster. Drag to change the order; switch one off to hide it." })), P.linksBox) : null,
       P ? h("section", { class: "card stack" }, h("h2", { text: "Look" }), P.looks, P.wear) : null,
       P ? h("details", { class: "card cp-fold" }, h("summary", { text: "More options" }), h("div", { class: "stack" }, P.plan, P.socBox, P.billsRow, P.proBox)) : null);
     const side = h("aside", { class: "cp-side" }, P ? h("div", { class: "cp-stage" }, P.preview) : null,

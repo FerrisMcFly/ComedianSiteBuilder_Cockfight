@@ -571,11 +571,17 @@ h1 { font: 400 clamp(36px, 10vw, 54px)/1 Anton, Impact, var(--ct-display, sans-s
     var links = [];
     var card = function (href, title, sub, ico, ext) {
       var i = el("span", { class: "ico", "aria-hidden": "true" }); i.innerHTML = ico;
-      return el("a", { class: "lcard" + (links.length ? "" : " main"), href: href, target: ext ? "_blank" : null, rel: ext ? "noopener" : null }, [i, el("span", null, [el("b", { text: title }), sub ? el("small", { text: sub }) : null]), el("span", { class: "go", "aria-hidden": "true", text: "›" })]);
+      return el("a", { class: "lcard", href: href, target: ext ? "_blank" : null, rel: ext ? "noopener" : null }, [i, el("span", null, [el("b", { text: title }), sub ? el("small", { text: sub }) : null]), el("span", { class: "go", "aria-hidden": "true", text: "›" })]);
     };
     var globe = CSB.socialIcon ? CSB.socialIcon("website") : "↗";
-    sites.filter(function (s) { return s.domain; }).forEach(function (s) { links.push(card("https://" + s.domain, s.name === c.name ? "My website" : s.name, s.domain, globe)); });
-    if (safe(so.website)) links.push(card(so.website, "Website", so.website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""), globe, true));
+    // The comic arranges these in the dashboard (coaster.links, by key) and can switch any off (coaster.links_off).
+    // Until they do: their own site first, then the others, then their link-in-bio.
+    var setL = (c.coaster && Array.isArray(c.coaster.links)) ? c.coaster.links : [], offL = (c.coaster && Array.isArray(c.coaster.links_off)) ? c.coaster.links_off : [];
+    var cand = sites.filter(function (s) { return s.domain; }).map(function (s) { var mine = s.name === c.name; return { key: "site:" + s.id, rank: mine ? 0 : 1, href: "https://" + s.domain, title: mine ? "My website" : s.name, sub: s.domain }; });
+    if (safe(so.website)) cand.push({ key: "website", rank: 2, href: so.website, title: /linktr\.ee/i.test(so.website) ? "Linktree" : "Website", sub: so.website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""), ext: true });
+    var pos = function (x) { var i = setL.indexOf(x.key); return i < 0 ? 100 + x.rank : i; };
+    cand.filter(function (x) { return offL.indexOf(x.key) < 0; }).sort(function (a, b) { return pos(a) - pos(b); })
+      .forEach(function (x) { links.push(card(x.href, x.title, x.sub, globe, x.ext)); });
     put("links", links.length ? el("nav", { class: "links", "aria-label": "Links" }, links) : null);
 
     if (fanSite) {
