@@ -604,6 +604,24 @@ button.stat:hover { border-color: var(--line-strong); }
   h1.hello { font-size: 40px; }
   .card { padding: 18px; border-radius: 16px; }
 }
+.cp { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; margin-bottom: 20px; }
+.cp-side { position: sticky; top: 90px; display: grid; gap: 12px; justify-items: stretch; text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+.cp-stage { display: grid; place-items: center; padding: 18px 0 8px; background: radial-gradient(closest-side, color-mix(in srgb, var(--text) 10%, transparent), transparent); }
+.cp-stage .mini-coaster { width: 200px; height: 200px; }
+.cp-name { font: 800 22px var(--display); font-stretch: 88%; }
+.cp-save { width: 100%; justify-content: center; }
+.cp-basics { display: flex; gap: 18px; align-items: start; }
+.cp-pic { display: grid; gap: 8px; justify-items: center; flex: none; }
+.cp-photo { width: 112px; height: 112px; border-radius: 16px; object-fit: cover; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font: 900 34px var(--display); }
+.soc-list { display: grid; gap: 8px; }
+.soc-row { display: grid; grid-template-columns: 22px 110px minmax(0, 1fr); gap: 10px; align-items: center; }
+.soc-row .soc-ic svg { display: block; }
+.soc-row .soc-l { font-weight: 600; font-size: 14px; }
+.cp-fold > summary { cursor: pointer; font: 800 20px var(--display); font-stretch: 88%; letter-spacing: -.02em; }
+.cp-fold[open] > summary { margin-bottom: 14px; }
+.cp .card h2 { margin: 0; }
+@media (max-width: 1000px) { .cp { grid-template-columns: 1fr; } .cp-side { position: static; order: -1; } }
+@media (max-width: 560px) { .cp-basics { flex-direction: column; align-items: stretch; } .cp-pic { justify-items: start; grid-template-columns: auto auto; align-items: end; } .soc-row { grid-template-columns: 22px minmax(0, 1fr); } .soc-row .soc-l { display: none; } }
 </style>
 </head>
 <body>
@@ -2143,6 +2161,9 @@ button.stat:hover { border-color: var(--line-strong); }
   // The same editor shows on a comic's page (super admins) and on Me (the comic themselves).
   const LOOKS = [["classic", "Classic", "#F7F0DF", "#C4452E", "#1F1F1F"], ["night", "Night", "#232120", "#D9583F", "#F3EAD7"], ["redwood", "Redwood", "#F3EAD7", "#1F1F1F", "#A93A26"],
     ["mustard", "Mustard", "#1F1F1F", "#E0A21A", "#E0A21A"], ["spooky", "Spooky", "#1E1726", "#F07C1F", "#F07C1F", "Seasonal"], ["holiday", "Holiday", "#FBF3E4", "#D9443A", "#17321F", "Seasonal"]];
+  // Seasonal looks show only in their season (month-day windows), unless a comic already has one on
+  const SEASONS = { spooky: ["09-25", "11-05"], holiday: ["11-20", "01-06"] };
+  const inSeason = (k, d = new Date()) => { const w = SEASONS[k]; if (!w) return true; const md = String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); return w[0] <= w[1] ? md >= w[0] && md <= w[1] : md >= w[0] || md <= w[1]; };
   const coasterUrl = (c) => PRESS_HOST + "/" + encodeURIComponent(c.handle || c.id);
   // The Coaster's own settings (Tape, look, what's on it, also on the bill), as pieces for a person's card to place in
   // its form. The card saves them with everything else in one go: one card, one Save, wherever a comic is edited.
@@ -2176,7 +2197,7 @@ button.stat:hover { border-color: var(--line-strong); }
     const drawWear = () => wearSeg.replaceChildren(...[["fresh", "Fresh"], ["used", "Used"], ["loved", "Well loved"]].map(([v, t]) =>
       h("button", { type: "button", "aria-pressed": String(wear === v), text: t, onclick: () => { wear = v; drawWear(); paint(); } })));
     drawWear();
-    const looks = h("div", { class: "looks", role: "group", "aria-label": "Look" }, [...LOOKS.map(([k, l, pulp, ring, print, tag]) =>
+    const looks = h("div", { class: "looks", role: "group", "aria-label": "Look" }, [...LOOKS.filter(([k]) => inSeason(k) || k === c.look).map(([k, l, pulp, ring, print, tag]) =>
       h("button", { type: "button", "data-look": k, "aria-pressed": "false", onclick: () => { look = k; paint(); } },
         h("i", { style: `--pulp:${pulp};--ring:${ring};--print:${print}` }), h("span", { text: l }), tag ? h("small", { text: tag }) : null)),
       h("button", { type: "button", "data-look": "custom", "aria-pressed": "false", onclick: () => { if (!canCustom()) return; look = "custom"; paint(); } },
@@ -2238,20 +2259,27 @@ button.stat:hover { border-color: var(--line-strong); }
     drawSoc();
     drawPlan();
     paint();
+    const billsRow = h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
+      h("div", { class: "hint", text: "When another comic on ComicTable has the same club on the same night, you show up on each other's dates. Nobody has to tag anyone." })),
+      h("label", { class: "switch" }, bills, h("span")));
     return {
       url,
+      // the pieces on their own, for the Coaster page (coasterPage) to lay out
+      parts: { preview, looks: h("div", { class: "stack", style: "gap:10px;min-width:0" }, looks, customBox, customNote), wear: h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear" }), wearSeg),
+        tapeUrl, tapeTitle, plan: h("div", { class: "stack", style: "gap:8px" }, h("b", { text: "What's on " + yours + " Coaster" }),
+          h("p", { class: "hint", style: "margin:0", text: "Up front, under More, or off. Drag to change the order." }), planRows), socBox, billsRow, proBox },
       // a line under the name: the Coaster's address, with Open
       link: h("div", { class: "hint coaster-link" }, h("a", { href: url, target: "_blank", rel: "noopener", text: url.replace(/^https?:\/\//, "") + " ↗" }),
         h("button", { class: "linkish", type: "button", text: "Copy", onclick: async () => toast((await copyText(url)) ? "Coaster link copied." : "Couldn't copy. Try again.") })),
-      tape: h("div", { class: "grid" }, field("The Tape: " + yours + " best set right now", tapeUrl, "c8"), field("What it is", tapeTitle, "c4")),
-      look: h("div", { class: "coaster-edit" }, preview, h("div", { class: "stack", style: "gap:8px;min-width:0" }, h("b", { text: "Coaster look" }), looks,
+      get tape() { return h("div", { class: "grid" }, field("The Tape: " + yours + " best set right now", tapeUrl, "c8"), field("What it is", tapeTitle, "c4")); },
+      get look() { return h("div", { class: "coaster-edit" }, preview, h("div", { class: "stack", style: "gap:8px;min-width:0" }, h("b", { text: "Coaster look" }), looks,
         h("div", { class: "hint", text: "Seasonal looks come and go with the time of year." }), customBox, customNote,
-        h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear:" }), wearSeg))),
-      more: h("details", { class: "quiet coaster-more" }, h("summary", { text: "What's on " + yours + " Coaster" }),
+        h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear:" }), wearSeg))); },
+      get more() { return h("details", { class: "quiet coaster-more" }, h("summary", { text: "What's on " + yours + " Coaster" }),
         h("p", { class: "hint", style: "margin:8px 0 0", text: "Keep it simple: a few things up front. Fans tap More for the rest. Drag the grips to change the order." }), planRows, socBox,
         h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Also on the bill" }),
           h("div", { class: "hint", text: "When another comic on ComicTable has the same club on the same night, you show up on each other's dates. Nobody has to tag anyone." })),
-          h("label", { class: "switch" }, bills, h("span"))), proBox),
+          h("label", { class: "switch" }, bills, h("span"))), proBox); },
       check() { const t = tapeUrl.value.trim(); if (t && !/^https:\/\//i.test(t)) { tapeUrl.focus(); return "The Tape needs a full link that starts with https://"; } return ""; },
       patch() {
         const t = tapeUrl.value.trim();
@@ -2260,6 +2288,61 @@ button.stat:hover { border-color: var(--line-strong); }
         return out;
       }
     };
+  }
+  // The Coaster page (founder, Oct 29: "messy, confusing, looks bad"): the basics in plain cards, the coaster itself
+  // on the side with the Save button, and everything else folded under More options and For bookers.
+  function coasterPage(x, opts = {}) {
+    const c = { ...x, id: x.comic_id };
+    const cf = coasterFields(c, { me: opts.me, admin: opts.comic, onSite: opts.onSite });
+    const P = cf ? cf.parts : null;
+    const first = (c.name || "").split(" ")[0];
+    const yours = opts.me ? "your" : first + "'s";
+    const inp = { name: h("input", { value: c.name || "", required: true, "aria-label": "Name" }), title: h("input", { value: c.title || "", placeholder: "Comedian", "aria-label": "Title" }),
+      bio: h("textarea", { value: c.bio || "", "aria-label": "Bio", placeholder: "Two or three lines about " + (opts.me ? "you" : first) + "." }) };
+    inp.bio.value = c.bio || "";
+    const moreSoc = (c.socials && typeof c.socials === "object") ? c.socials : {};
+    const hasMore = "socials" in c;
+    for (const [k, l, ph] of SOC) if (COL_SOC.includes(k) || hasMore) inp[k] = h("input", { type: "url", value: (COL_SOC.includes(k) ? c[k] : moreSoc[k]) || "", placeholder: ph, "aria-label": l });
+    const socInputs = SOC.filter(([k]) => inp[k]);
+    const filled = socInputs.filter(([k]) => inp[k].value), empties = socInputs.filter(([k]) => !inp[k].value);
+    const socIcon = (k) => { const sp = h("span", { class: "soc-ic", "aria-hidden": "true" }); sp.innerHTML = window.CSB && CSB.socialIcon ? CSB.socialIcon(k, { brand: true, size: 20, onDark: true }) : ""; return sp; };
+    const socRow = ([k, l]) => h("label", { class: "soc-row" }, socIcon(k), h("span", { class: "soc-l", text: l }), inp[k]);
+    let pic = c.photo_url ? h("img", { class: "cp-photo", src: c.photo_url, alt: "" }) : h("div", { class: "cp-photo", text: (c.name || "?").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() });
+    const file = h("input", { type: "file", accept: "image/*", style: "display:none" });
+    file.addEventListener("change", () => { if (file.files[0]) { const im = h("img", { class: "cp-photo", src: URL.createObjectURL(file.files[0]), alt: "" }); pic.replaceWith(im); pic = im; } });
+    const msg = h("div", { class: "err" });
+    const save = h("button", { class: "btn primary big cp-save", type: "submit", form: "coasterForm", text: "Save Coaster" });
+    const form = h("form", { id: "coasterForm", class: "stack", onsubmit: async (e) => {
+      e.preventDefault(); msg.textContent = "";
+      const bad = cf ? cf.check() : ""; if (bad) { msg.textContent = bad; return; }
+      save.disabled = true;
+      const prof = { name: inp.name.value.trim(), title: inp.title.value.trim() || "Comedian", bio: inp.bio.value.trim(), ...(cf ? cf.patch() : {}) };
+      for (const k of COL_SOC) prof[k] = inp[k].value.trim() || null;
+      if (hasMore) { const more = {}; for (const [k] of SOC) if (!COL_SOC.includes(k) && inp[k] && inp[k].value.trim()) more[k] = inp[k].value.trim(); prof.socials = more; }
+      try {
+        if (file.files[0]) prof.photo_url = await uploadImage(file.files[0], c.id);
+        await q(sb.from("comics").update(prof).eq("id", c.id));
+        if (S.site) await reload.hosts();
+        if (opts.me) S.me = { ...S.me, ...prof };
+        file.value = ""; toast(prof.name + "'s Coaster is saved."); route();
+      } catch (err) { msg.textContent = errText(err); save.disabled = false; }
+    } },
+      h("section", { class: "card stack" }, h("h2", { text: "The basics" }),
+        h("div", { class: "cp-basics" }, h("div", { class: "cp-pic" }, pic, h("label", { class: "btn sm" }, "Change photo", file)),
+          h("div", { class: "stack", style: "gap:10px;min-width:0;flex:1" }, h("div", { class: "grid" }, field("Name", inp.name, "c6"), field("Title", inp.title, "c6")), field("Bio", inp.bio), cf ? cf.link : null))),
+      P ? h("section", { class: "card stack" }, h("div", null, h("h2", { text: "Tape" }), h("p", { class: "hint", style: "margin:2px 0 0", text: yours[0].toUpperCase() + yours.slice(1) + " best set right now. Bookers watch this first." })),
+        h("div", { class: "grid" }, field("Link", P.tapeUrl, "c8"), field("What it is", P.tapeTitle, "c4"))) : null,
+      h("section", { class: "card stack" }, h("h2", { text: "Socials" }),
+        filled.length ? h("div", { class: "soc-list" }, filled.map(socRow)) : h("p", { class: "hint", style: "margin:0", text: "Paste the link to each one you use." }),
+        empties.length ? h("details", { class: "quiet", open: !filled.length || null }, h("summary", { text: filled.length ? "Add another" : "All networks" }), h("div", { class: "soc-list", style: "margin-top:10px" }, empties.map(socRow))) : null),
+      P ? h("section", { class: "card stack" }, h("h2", { text: "Look" }), P.looks, P.wear) : null,
+      P ? h("details", { class: "card cp-fold" }, h("summary", { text: "More options" }), h("div", { class: "stack" }, P.plan, P.socBox, P.billsRow, P.proBox)) : null);
+    const side = h("aside", { class: "cp-side" }, P ? h("div", { class: "cp-stage" }, P.preview) : null,
+      h("b", { class: "cp-name", text: c.name }), cf ? h("a", { class: "btn", href: cf.url, target: "_blank", rel: "noopener", text: "See " + yours + " Coaster ↗" }) : null, save, msg);
+    const main = h("div", { class: "cp-main stack" }, form,
+      opts.bookers === false ? null : (() => { const d = h("details", { class: "card cp-fold" }, h("summary", { text: "For bookers: press kit" }));
+        d.addEventListener("toggle", () => { if (d.open && d.children.length === 1) d.append(pressKitEditor(c.id)); }); return d; })());
+    return h("div", { class: "cp" }, main, side);
   }
   // A site asks before adding a comic who has their own login. They answer on Me.
   async function askForComic(c, siteId) {
@@ -2858,7 +2941,8 @@ button.stat:hover { border-color: var(--line-strong); }
 
     // dates everywhere
     const datesCard = h("section", { class: "card" }, h("h2", { text: "Upcoming dates" }), h("p", { class: "hint", text: "Loading…" }));
-    left.append(personCard({ ...c, id: null, comic_id: c.id }, 0, { comic: true, onSite: sites.length > 0 }), datesCard);
+    main.insertBefore(coasterPage({ ...c, id: null, comic_id: c.id }, { comic: true, onSite: sites.length > 0, bookers: false }), grid);
+    left.append(datesCard);
     try {
       const dates = await q(sb.rpc("comic_shows", { p_comic: c.id }));
       datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Upcoming dates (" + dates.length + ")" }),
@@ -3075,12 +3159,11 @@ button.stat:hover { border-color: var(--line-strong); }
   async function viewMe(main) {
     const me = S.me;
     const url = coasterUrl(me);
-    main.append(head("Coaster", "Your card on ComicTable. Put the link in your bio. Every site you're on pulls from it.",
-      h("a", { class: "btn", href: url, target: "_blank", rel: "noopener", text: "See your Coaster ↗" })));
+    main.append(head("Coaster", "Your card on ComicTable and your link in bio. Every site you're on pulls from it."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     const here = S.hosts.find((x) => x.comic_id === me.id);
     const asks = h("div");
-    wrap.append(asks, personCard({ ...me, id: here ? here.id : null, comic_id: me.id }, 0, { me: true }));
+    wrap.append(asks, coasterPage({ ...me, id: here ? here.id : null, comic_id: me.id }, { me: true }));
     requestsCard(me).then((c) => { if (c) asks.replaceWith(c); });
   }
   // A comic's dates, on their Coaster and every site they're on.
