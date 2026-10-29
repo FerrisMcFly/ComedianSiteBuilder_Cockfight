@@ -8,7 +8,7 @@ after(() => opened.forEach((w) => w.close()));
 
 const sdk = readFileSync(new URL("../platform/sdk/csb.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("../sites/cockfight/index.html", import.meta.url), "utf8")
-  .replace('<script src="config.js"></script>', '<script>window.COCKFIGHT_CONFIG={SITE_ID:"cockfight",SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
+  .replace('<script src="config.js"></script>', '<script>window.COMICTABLE_CONFIG={SITE_ID:"cockfight",SUPABASE_URL:"https://x.supabase.co",SUPABASE_ANON_KEY:"k"}</script>')
   .replace(/<script src="https:\/\/cdn[^>]*><\/script>/, "")
   .replace('<script src="sdk/csb.js"></script>', () => "<script>" + sdk.replace(/<\/script/g, "<\\/script") + "</script>");
 const future = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };  // local date, like the sites use
@@ -75,10 +75,59 @@ test("forum posts carry the site", async () => {
   assert.ok(calls.filter((c) => c.startsWith("POST") && !c.includes("rpc/")).length === 2);
 });
 
-test("before the database upgrade runs, the site keeps its built-in content", async () => {
+test("when the content can't load, it says so and shows nothing made up", async () => {
   const { d } = await load(base, ["episodes", "shows", "hosts", "settings"]);
-  assert.equal(d.querySelectorAll("#dishes .dish").length, 47);
-  assert.match(d.getElementById("liveNote").textContent, /Showing saved dates/);
+  assert.equal(d.querySelectorAll("#dishes .dish").length, 0);
+  assert.match(d.getElementById("liveNote").textContent, /Couldn't load/);
+  assert.match(d.getElementById("dishes").textContent, /Couldn't load episodes/);
+  assert.equal(d.getElementById("hostNav").children.length, 0);
+  assert.equal(d.querySelectorAll("[data-support]:not([hidden])").length, 0, "no support link until the site has one");
+});
+
+test("not connected yet: an honest note, no baked-in content, and the forum and chat stay closed", async () => {
+  const bare = html.replace(/<script>window.COMICTABLE_CONFIG=[^<]*<\/script>/, "<script>window.COMICTABLE_CONFIG={}</script>");
+  const dom = new JSDOM(bare, { runScripts: "dangerously", pretendToBeVisual: true, url: "https://example.com/", beforeParse(w) { w.matchMedia = () => ({ matches: false }); w.scrollTo = () => {}; w.fetch = async () => { throw new Error("should not fetch"); }; } });
+  opened.push(dom.window); await new Promise((r) => setTimeout(r, 60));
+  const d = dom.window.document;
+  assert.match(d.getElementById("liveNote").textContent, /isn't connected/);
+  assert.equal(d.querySelectorAll("#dishes .dish").length, 0);
+  assert.equal(d.getElementById("est").textContent, "");
+  assert.doesNotMatch(d.body.textContent, /Colum|Tristan|Marathon Chainsaw|DEMO MODE/);
+  d.getElementById("enter").click(); await new Promise((r) => setTimeout(r, 50));
+  d.querySelector('.nav [data-view="forum"]').click(); await new Promise((r) => setTimeout(r, 50));
+  assert.match(d.getElementById("fStatus").textContent, /open once this site is connected/);
+  assert.equal(d.getElementById("fBody").textContent, "");
+});
+
+test("the site's name, hosts, socials as logos, listen buttons, News cards and support link all come from the dashboard", async () => {
+  const data = { ...base,
+    sites: [{ id: "cockfight", name: "Cockfight Podcast", features: { shows: true, podcast: true }, profile: { support_url: "https://www.patreon.com/Show", apple_url: "https://apple/show", spotify_url: "https://spotify/show" },
+      theme: { socials_style: "icons", socials_hide: ["tiktok"] } }],
+    hosts: [{ id: "lev", name: "Lev Fer", sort: 0, instagram: "https://instagram.com/lev", tiktok: "https://tiktok.com/@lev", photo_url: "https://img/lev.jpg" }, { id: "colum", name: "Colum Tyrrell", sort: 1 }],
+    home_picks: [{ id: "n1", style: "card", headline: "Watch the special", link: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", sort: 0 }, { id: "n2", style: "strip", headline: "New merch", link: "https://store", button_label: "Shop", sort: 1 }] };
+  const { d } = await load(data);
+  assert.equal(d.title, "Cockfight Podcast");
+  assert.equal(d.querySelector(".wordart .home-link").innerHTML, "COCKFIGHT<br>PODCAST");
+  assert.equal(d.getElementById("est").textContent, "With Lev Fer • Colum Tyrrell");
+  assert.deepEqual([...d.querySelectorAll("#hostNav a")].map((a) => a.textContent), ["Lev", "Colum"]);
+  const socials = [...d.querySelectorAll("#v-lev .socials a")];
+  assert.deepEqual(socials.map((a) => a.title), ["Instagram"], "TikTok is hidden on this site");
+  assert.ok(socials[0].querySelector("svg"));
+  assert.equal(d.querySelector("#v-lev img.photo").getAttribute("src"), "https://img/lev.jpg");
+  assert.equal(d.querySelector("#v-colum .photo-none").textContent, "CT", "no photo: initials, never someone else's picture");
+  assert.deepEqual([...d.querySelectorAll("#listenBtns a")].map((a) => a.textContent), ["▶ Listen on Apple Podcasts", "▶ Listen on Spotify"]);
+  assert.match(d.querySelector("#newsBox iframe").src, /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+  assert.match(d.getElementById("newsBox").textContent, /New merch.*Shop/);
+  assert.equal(d.querySelector(".patreon-box").hidden, false);
+  assert.equal(d.querySelector(".nav .patreon").href, "https://www.patreon.com/Show");
+  assert.match(d.querySelector(".nav .patreon").textContent, /Patreon/);
+  assert.match(d.getElementById("pbSmall").textContent, /Support Lev & Colum on Patreon/);
+});
+
+test("the fan sign-up follows Design → Options → Sign-up", async () => {
+  const on = { ...base, sites: [{ id: "cockfight", features: { shows: true, fans: true }, theme: { signup_style: "off" } }] };
+  const { d } = await load(on);
+  assert.equal(d.getElementById("fanBox").hidden, true);
 });
 
 test("announcements are News now: banners in News feed the headline and the scroller, with no double copies", async () => {
@@ -205,7 +254,7 @@ test("a live show by the whole crew gets its own spot, and shows on each person'
 
 test("the home page intro comes from Profile → About when it's filled in", async () => {
   const plain = await load(base);
-  assert.match(plain.d.getElementById("aboutText").textContent, /weekly comedy podcast/);
+  assert.equal(plain.d.getElementById("aboutText").hidden, true);
   const { d } = await load({ ...base, sites: [{ id: "cockfight", features: { shows: true }, profile: { about: "Three idiots and a microphone." } }] });
   assert.equal(d.getElementById("aboutText").textContent, "Three idiots and a microphone.");
 });

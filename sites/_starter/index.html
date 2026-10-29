@@ -97,6 +97,16 @@ section.page { padding: 56px 0 72px; }
 .about img { border-radius: var(--radius); aspect-ratio: 1; object-fit: cover; width: 100%; }
 .about .bio { white-space: pre-line; font-size: 19px; }
 .socials { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.social { display: inline-flex; align-items: center; gap: 6px; }
+.shows.compact .show { padding-top: 6px; padding-bottom: 6px; }
+.shows.compact .where span { display: none; }
+.news { display: grid; gap: 12px; }
+.news .card { display: grid; gap: 6px; }
+.news .btn { justify-self: start; }
+.vid { position: relative; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; }
+.vid iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.bar { display: block; text-align: center; padding: 10px; border-radius: 10px; background: var(--card); color: var(--text); text-decoration: none; margin-bottom: 14px; }
+.listen { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 
 /* fan sign-up */
 .fans { background: var(--card); border-radius: var(--radius); padding: 28px; display: grid; gap: 12px; max-width: 640px; }
@@ -202,7 +212,33 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
       el("div", { class: "tix" }, [tix])
     ]);
   }
-  function showList(list) { return list.length ? el("ul", { class: "shows" }, list.map(showRow)) : el("p", { class: "empty", text: "No dates right now. Sign up below to hear about the next ones." }); }
+  // Design → Options (shared by every design): how many shows on the home screen, detailed or compact listings,
+  // socials as logos or names, listen buttons, and where the sign-up goes. CSB.load fills in the defaults.
+  var O = function () { return D.options || CSB.siteOptions({}); };
+  function showList(list) {
+    if (!list.length) return el("p", { class: "empty", text: "No dates right now." + (D.features.fans && O().signup_style !== "off" ? " Sign up below to hear about the next ones." : "") });
+    return el("ul", { class: "shows" + (O().shows_style === "compact" ? " compact" : "") }, list.map(showRow));
+  }
+  function socialRow(me) {
+    var how = O().socials_style;
+    return CSB.socialLinks(me, O()).map(function (x) {
+      var a = el("a", { class: "btn ghost sm social", href: x.url, target: "_blank", rel: "noopener", title: x.label, "aria-label": x.label });
+      if (how !== "names") a.insertAdjacentHTML("beforeend", x.svg);
+      if (how !== "icons") a.append(el("span", { text: x.label }));
+      return a;
+    });
+  }
+  // News on the home screen: the first one is big; one that links to a video plays right there.
+  function newsBlock() {
+    var list = D.news || [];
+    if (!list.length) return null;
+    return el("div", { class: "block news" }, list.map(function (p, i) {
+      var media = p.video && i === 0 ? el("div", { class: "vid" }, [el("iframe", { src: p.video.replace("?autoplay=1", ""), title: p.headline || "Video", allowfullscreen: true, loading: "lazy" })])
+        : p.image && p.style !== "strip" ? el("img", { class: "thumb", src: p.image, alt: "", loading: "lazy" }) : null;
+      return el("div", { class: "card news-" + (i === 0 ? "big" : p.style) }, [media, el("b", { text: p.headline || "" }), p.text ? el("span", { text: p.text }) : null,
+        p.link && !(p.video && i === 0) ? el("a", { class: "btn sm", href: p.link, target: "_blank", rel: "noopener", text: p.button || (p.show ? "Tickets" : "More") }) : null]);
+    }));
+  }
   function videoCard(v) {
     return el("a", { class: "card", href: v.link, target: "_blank", rel: "noopener" }, [el("img", { class: "thumb", src: v.thumbnail, alt: "", loading: "lazy" }), el("b", { text: v.title }), el("span", { text: v.published ? niceDate(v.published) : "" })]);
   }
@@ -216,7 +252,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
 
   // fan list sign-up: email + city (picked from a list) + how far they'd go
   function fanBox() {
-    if (!D.features.fans) return null;
+    if (!D.features.fans || O().signup_style === "off") return null;
     var chosen = null, seq = 0, timer;
     var email = el("input", { type: "email", placeholder: "Email", "aria-label": "Email", autocomplete: "email" });
     var city = el("input", { placeholder: "Your city", "aria-label": "Your city", autocomplete: "off" });
@@ -242,17 +278,21 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
 
   /* ---------- views ---------- */
   function viewHome(app) {
-    var me = person(), p = D.profile || {};
+    var me = person(), p = D.profile || {}, sign = O().signup_style;
+    if (sign === "bar" && D.features.fans) app.append(el("a", { class: "bar", href: "#/shows", text: "Get told when I'm in your city →" }));
+    if (sign === "big") { var big = fanBox(); if (big) app.append(el("div", { class: "block" }, [big])); }
     app.append(el("div", { class: "hero" }, [
       el("div", null, [el("h1", { text: D.site.name }), el("p", { text: p.tagline || me.title || "" }),
         el("div", { class: "ctas" }, [D.shows.length ? el("a", { class: "btn", href: "#/shows", text: "See shows" }) : null,
           p.support_url ? el("a", { class: "btn ghost", href: p.support_url, target: "_blank", rel: "noopener", text: p.support_label || "Support me" }) : null])]),
       me.photo ? el("img", { class: "photo", src: me.photo, alt: me.name }) : null
     ]));
-    if (D.features.shows !== false) app.append(block("Upcoming shows", D.shows.length > 4 ? ["#/shows", "All " + D.shows.length + " shows"] : null, showList(D.shows.slice(0, 4))));
+    var nb = newsBlock(); if (nb) app.append(nb);
+    var n = O().home_shows;
+    if (D.features.shows !== false) app.append(block("Upcoming shows", D.shows.length > n ? ["#/shows", "All " + D.shows.length + " shows"] : null, showList(D.shows.slice(0, n))));
     if (D.features.blog && D.posts.length) app.append(block("From the blog", ["#/blog", "All posts"], el("div", { class: "grid3" }, D.posts.slice(0, 3).map(postCard))));
     if (D.features.videos !== false && D.videos.length) app.append(block("Latest videos", ["#/videos", "All videos"], el("div", { class: "grid3" }, D.videos.slice(0, 3).map(videoCard))));
-    var f = fanBox(); if (f) app.append(el("div", { class: "block" }, [f]));
+    if (sign === "box") { var f = fanBox(); if (f) app.append(el("div", { class: "block" }, [f])); }
   }
   function viewShows(app) {
     app.append(el("section", { class: "page" }, [el("h2", { class: "sec", text: "Shows" }), showList(D.shows), fanBox()]));
@@ -272,7 +312,8 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
     app.append(el("section", { class: "page" }, [el("h2", { class: "sec", text: D.episodes[0] && D.episodes[0].show || "Podcast" }),
       el("div", null, D.episodes.slice(0, 100).map(function (e) {
         return el("div", { class: "ep" }, [el("b", null, [e.link ? el("a", { href: e.link, target: "_blank", rel: "noopener", text: (e.number ? e.number + ". " : "") + e.title }) : (e.number ? e.number + ". " : "") + e.title]),
-          el("span", { class: "muted", text: [niceDate(e.posted), e.length].filter(Boolean).join(" · ") }), e.description ? el("p", { text: e.description.split("\n")[0] }) : null]);
+          el("span", { class: "muted", text: [niceDate(e.posted), e.length].filter(Boolean).join(" · ") }), e.description ? el("p", { text: e.description.split("\n")[0] }) : null,
+          el("div", { class: "listen" }, CSB.listenLinks(e, D).map(function (l) { return el("a", { class: "btn ghost sm", href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))]);
       }))]));
   }
   function viewMerch(app) {
@@ -281,12 +322,11 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
     }))]));
   }
   function viewAbout(app) {
-    var me = person(), p = D.profile || {}, s = me.socials || {};
-    var links = (CSB.SOCIALS || [["instagram", "Instagram"], ["youtube", "YouTube"], ["tiktok", "TikTok"], ["twitter", "X"], ["website", "Website"]]).filter(function (x) { return s[x[0]]; });
+    var me = person(), p = D.profile || {};
     app.append(el("section", { class: "page about" }, [
       me.photo ? el("img", { src: me.photo, alt: me.name }) : el("div"),
       el("div", null, [el("h2", { class: "sec", text: "About" }), el("div", { class: "bio", text: p.about || me.bio || "" }),
-        el("div", { class: "socials" }, links.map(function (x) { return el("a", { class: "btn ghost sm", href: s[x[0]], target: "_blank", rel: "noopener", text: x[1] }); })
+        el("div", { class: "socials" }, socialRow(me)
           .concat(p.booking_email ? [el("a", { class: "btn ghost sm", href: "mailto:" + p.booking_email, text: "Booking" })] : [])
           .concat(p.contact_email ? [el("a", { class: "btn ghost sm", href: "mailto:" + p.contact_email, text: "Contact" })] : []))])
     ]));

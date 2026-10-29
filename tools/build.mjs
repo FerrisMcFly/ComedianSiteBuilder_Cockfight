@@ -13,7 +13,7 @@ const out = resolve(root, process.env.OUT_DIR || "dist");
 const sites = readdirSync(join(root, "sites")).filter((d) => existsSync(join(root, "sites", d, "site.json")));
 const writeConfig = (dir, cfg, label) => writeFileSync(join(dir, "config.js"),
   "// Made by tools/build.mjs for " + label + ". The anon key is meant to be public; the database's security rules protect the data.\n" +
-  "window.COMICTABLE_CONFIG = window.COCKFIGHT_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n");
+  "window.COMICTABLE_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n");
 // The Coaster function serves platform/home/coaster.html with a link preview filled in. It carries its own copy of the
 // page (netlify/lib/coaster-page.mjs) so it never has to fetch the site it's running on. Kept in step here and by a test.
 export const coasterPageModule = () => "// Made by tools/build.mjs from platform/home/coaster.html. Don't edit; edit that file and run the build or the tests.\n" +
