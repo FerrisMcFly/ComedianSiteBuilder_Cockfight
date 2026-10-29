@@ -1153,3 +1153,18 @@ test("Moderation: links rule and hold first posts; reported and held posts wait 
   f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   assert.deepEqual([db.sites[0].community.links_from, db.sites[0].community.hold_first_posts], ["approved", true]);
 });
+
+test("Coasters: a comic's role on each site they're on is set right on their Coaster page", async () => {
+  const { w, d } = await open("#ct/comics", (db) => {
+    db.comics.find((c) => c.id === "lev-fer").user_id = "lev-login";
+    db.admins.push({ user_id: "lev-login", site_id: "cockfight", role: "editor" });
+  });
+  let sent = null;
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(150);
+  w.fetch = async (u, o) => { sent = JSON.parse(o.body); return { ok: true, json: async () => ({ ok: true }) }; };
+  const sel = d.querySelector('select[aria-label="Role on Cockfight"]');
+  assert.equal(sel.value, "editor");
+  sel.value = "owner"; sel.dispatchEvent(new w.Event("change")); await wait(60);
+  assert.deepEqual([sent.action, sent.site_id, sent.comic_id, sent.role], ["comic_role", "cockfight", "lev-fer", "owner"]);
+});

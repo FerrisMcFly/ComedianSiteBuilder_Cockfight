@@ -2984,9 +2984,23 @@ button.stat:hover { border-color: var(--line-strong); }
     // sites
     const addSel = h("select", { "aria-label": "Add to a site", style: "max-width:240px" }, h("option", { value: "", text: "Put them on a site…" }),
       S.sites.filter((st) => !sites.some((x) => x.site_id === st.id)).sort((a, b) => a.name.localeCompare(b.name)).map((st) => h("option", { value: st.id, text: st.name })));
-    right.append(h("section", { class: "card stack" }, h("h2", { text: "Sites" }),
+    // their role on each site, right here (founder, Oct 29): On the lineup, Shows only, Moderator, Editor or Owner
+    let roles = {};
+    if (c.user_id) { try { (await q(sb.from("admins").select("site_id,role").eq("user_id", c.user_id))).forEach((r) => { roles[r.site_id] = r.role; }); } catch (e) { roles = null; } }
+    const roleSel = (x) => {
+      if (!c.user_id) return h("span", { class: "pill", title: "Give them a login (below) to make them an owner or editor", text: "On the lineup" });
+      const cur = roles && roles[x.site_id] ? roles[x.site_id] : "none";
+      const sel = h("select", { class: "role-sel", "aria-label": "Role on " + x.site.name, style: "width:auto" },
+        [["none", "On the lineup"]].concat(SITE_ROLES.slice().reverse().map((r) => [r[0], r[1]])).map(([v, l]) => h("option", { value: v, text: l, selected: v === cur })));
+      sel.addEventListener("change", async () => {
+        try { await teamCall({ action: "comic_role", site_id: x.site_id, comic_id: c.id, role: sel.value }); toast(c.name.split(" ")[0] + " is " + (sel.value === "none" ? "on the lineup (no dashboard access)" : roleName(sel.value).toLowerCase()) + " on " + x.site.name + "."); }
+        catch (e) { toast(e.message, { bad: true }); sel.value = cur; }
+      });
+      return sel;
+    };
+    right.append(h("section", { class: "card stack" }, h("h2", { text: "Sites" }), h("p", { class: "hint", style: "margin:-6px 0 0", text: "Every site " + c.name.split(" ")[0] + " is on, and what they can do there." }),
       sites.length ? h("div", null, sites.map((x) => h("div", { class: "switch-row" }, h("div", null, h("b", { text: x.site.name }), x.hidden ? h("span", { class: "pill", style: "margin-left:6px", text: "Hidden there" }) : null, h("div", { class: "hint", text: x.site.domain || "No web address yet" })),
-        h("div", { class: "btns" }, h("button", { class: "btn sm ghost", type: "button", text: "Open", onclick: () => switchSite(x.site_id, "people") }),
+        h("div", { class: "btns" }, roleSel(x), h("button", { class: "btn sm ghost", type: "button", text: "Open", onclick: () => switchSite(x.site_id, "people") }),
           sure("Take off", async () => { try { await q(sb.from("hosts").delete().eq("id", x.id)); toast(c.name + " is off " + x.site.name + ". Their dates stay theirs."); await reloadData(); route(); } catch (e) { toast(errText(e), { bad: true }); } })))))
         : h("p", { class: "hint", text: "Not on any site yet." }),
       h("div", { class: "btns" }, addSel, h("button", { class: "btn sm", type: "button", text: "Add", onclick: async () => {

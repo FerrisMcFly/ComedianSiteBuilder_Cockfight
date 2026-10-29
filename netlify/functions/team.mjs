@@ -155,6 +155,21 @@ export default async (req) => {
     }
     return json(200, { ok: true, existed: !!user.last_sign_in_at });
   }
+  // A comic's role on this site, from their Coaster page: "none" (on the lineup, no access), or a team role.
+  // Their login must already be linked to their Coaster.
+  if (body.action === "comic_role") {
+    const { data: onSite } = await db.from("hosts").select("comic_id").eq("site_id", site).eq("comic_id", body.comic_id || "").maybeSingle();
+    if (!onSite) return json(400, { error: "They aren't on this site." });
+    const { data: comic } = await db.from("comics").select("name, user_id").eq("id", body.comic_id).maybeSingle();
+    if (!comic || !comic.user_id) return json(400, { error: "Give them a login first." });
+    if (comic.user_id === who.user.id && body.role !== "owner") return json(400, { error: "You can't change your own access." });
+    if (body.role === "none") {
+      const { error } = await db.from("admins").delete().eq("user_id", comic.user_id).eq("site_id", site);
+      return error ? json(500, { error: error.message }) : json(200, { ok: true });
+    }
+    const { error } = await db.from("admins").upsert({ user_id: comic.user_id, site_id: site, role: siteRole(body.role) }, { onConflict: "user_id,site_id" });
+    return error ? json(500, { error: error.message }) : json(200, { ok: true });
+  }
   if (body.action === "unlink_comic") {
     const { data: onSite } = await db.from("hosts").select("comic_id").eq("site_id", site).eq("comic_id", body.comic_id || "").maybeSingle();
     if (!onSite) return json(400, { error: "That person isn't on this site." });
