@@ -891,7 +891,6 @@ td select.status.st-few_left { color: var(--warn); }
   const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me) && (!x.needsSite || S.sites.length));
   const atCT = () => location.hash.startsWith("#ct/");
   const goCT = (id) => { const h0 = "#ct/" + id; if (location.hash === h0) route(); else location.hash = h0; };
-  const hasExtra = (x) => !!(THEME && (x === "design" ? Array.isArray(THEME.settings) && THEME.settings.length : Array.isArray(THEME.extras) && THEME.extras.includes(x)));
   // A site's team roles. "shows" and "moderator" see only their part of the dashboard.
   const SITE_ROLES = [["owner", "Owner", "Everything, including the team"], ["editor", "Editor", "Everything but the team"],
     ["shows", "Shows only", "Dates, ticket links, clubs and the show finder"], ["moderator", "Moderator", "Forum, chat and bans"]];
@@ -899,7 +898,7 @@ td select.status.st-few_left { color: var(--warn); }
   const myRole = () => (S.isPlatform ? "owner" : (S.roles && S.roles[sid()]) || "owner");
   const ROLE_SECTIONS = { shows: ["shows"], moderator: ["forum", "chat", "moderation"] };
   const roleAllows = (id) => { const only = ROLE_SECTIONS[myRole()]; return !only || only.includes(id); };
-  const visible = () => SECTIONS.filter((s) => roleAllows(s.id) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))) && (!s.extra || hasExtra(s.extra)));
+  const visible = () => SECTIONS.filter((s) => roleAllows(s.id) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))));
   const current = () => { const id = location.hash.slice(1); return visible().find((s) => s.id === id) || visible()[0]; };
   window.addEventListener("hashchange", () => { if (S.site || S.me) route(); });
   const go = (id) => { if (location.hash.slice(1) === id) route(); else location.hash = id; };
@@ -1508,7 +1507,7 @@ td select.status.st-few_left { color: var(--warn); }
             await reload.shows(); redraw(); refreshNav(); toast(s.hidden_here ? "It's back on this site." : "Hidden here. It still shows on " + first(s.host) + "'s other sites.");
           } catch (e) { toast(errText(e), { bad: true }); }
         } }),
-        hasExtra("home_picks") && s.date >= t0 ? h("button", { type: "button", text: "Pin to Home screen", onclick: () => pinToHome(showPick(s)) }) : null,
+        s.date >= t0 ? h("button", { type: "button", text: "Pin to Home screen", onclick: () => pinToHome(showPick(s)) }) : null,
         h("button", { type: "button", class: "danger", text: "Delete", onclick: async () => {
           try { await q(sb.from("shows").delete().eq("id", s.id)); await reload.shows(); redraw(); refreshNav();
             toast("Deleted " + shortDate(s.date) + " in " + (s.city || s.venue) + ".", { action: { label: "Undo", run: () => restore([s], redraw) } }); }
@@ -1789,7 +1788,7 @@ td select.status.st-few_left { color: var(--warn); }
           VIDREMOVED
             ? h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Put back", onclick: async () => { try { await setHidden(v, false); toast("Back on your site."); } catch (e) { toast(errText(e), { bad: true }); } } }))
             : h("div", { class: "btns" },
-                hasExtra("home_picks") ? h("button", { class: "btn sm ghost", type: "button", text: "Pin to Home", onclick: () => pinToHome({ kind: "video", headline: String(v.title || "New video").slice(0, 90), button_label: "Watch", link: v.url || null, image_url: v.thumbnail_url || null }) }) : null,
+                h("button", { class: "btn sm ghost", type: "button", text: "Pin to Home", onclick: () => pinToHome({ kind: "video", headline: String(v.title || "New video").slice(0, 90), button_label: "Watch", link: v.url || null, image_url: v.thumbnail_url || null }) }),
                 h("button", { class: "btn sm", type: "button", text: v.featured ? "Unstar" : "Star", onclick: async () => { try { await q(sb.from("videos").update({ featured: !v.featured }).eq("id", v.id)); v.featured = !v.featured; redraw(); } catch (e) { toast(errText(e), { bad: true }); } } }),
                 h("button", { class: "btn sm ghost danger", type: "button", text: "Remove", onclick: async () => {
                   try { await setHidden(v, true); toast("Removed “" + v.title + "” from your site.", { action: { label: "Undo", run: async () => { try { await setHidden(v, false); } catch (e) { toast(errText(e), { bad: true }); } } } }); }
@@ -3373,8 +3372,7 @@ td select.status.st-few_left { color: var(--warn); }
   async function viewTheme(main) {
     const theme = await loadTheme();
     const list = withoutUniversal(theme && Array.isArray(theme.settings) ? theme.settings.filter((st) => !isHomeSetting(st)) : []);
-    const homeToo = hasExtra("home_picks") || (theme && Array.isArray(theme.settings) && theme.settings.some(isHomeSetting));
-    main.append(head("Design", (theme && theme.name ? theme.name + ". " : "") + "What's on your site and how it looks: sections, the menu, colors and the extras that come with your design." + (homeToo ? " What's on the home screen is under Home screen." : "")));
+    main.append(head("Design", (theme && theme.name ? theme.name + ". " : "") + "What's on your site and how it looks: its sections, the options every site has, and the extras that come with your design. What's on the home screen is under Home screen."));
     main.append(h("div", { class: "stack" }, sectionsCard(), F("podcast") ? podcastsCard() : null,
       SITE_OPTIONS.length ? h("div", { class: "stack" }, h("h2", { class: "sec-title", text: "Options" }),
         h("p", { class: "hint", style: "margin:-6px 0 0", text: "The same on every ComicTable site: how many shows, how your socials look, how big the mailing-list sign-up is." }),

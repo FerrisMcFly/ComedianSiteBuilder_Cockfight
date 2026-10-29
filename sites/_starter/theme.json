@@ -1,8 +1,13 @@
 {
   "name": "Starter",
   "description": "A plain, complete ComicTable front end. Copy it for a new comic and make it theirs.",
-  "extras": [],
   "settings": [
-    { "key": "accent", "label": "Accent color", "help": "Buttons, highlights and links.", "type": "color", "default": "#e8402b" }
+    {
+      "key": "accent",
+      "label": "Accent color",
+      "help": "Buttons, highlights and links.",
+      "type": "color",
+      "default": "#e8402b"
+    }
   ]
 }

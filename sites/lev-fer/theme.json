@@ -1,10 +1,6 @@
 {
   "name": "Console Lobby",
   "description": "Lev Fer's site: an early-2000s console game menu in space, built to be the one link in his bio. Home, tour dates, clips, podcast, blog, forum, chat room and mailing list as menu items.",
-  "extras": [
-    "home_picks",
-    "links"
-  ],
   "settings": [
     {
       "type": "heading",

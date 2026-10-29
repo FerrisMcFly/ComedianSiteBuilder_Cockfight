@@ -49,7 +49,7 @@ In the list, change a show's status (on sale, few left, sold out, free, cancelle
 - **Profile:** tagline, about, contact, and your support link (Patreon, Ko-fi…).
 - **Settings:** turn whole sections on or off (chat starts off), and manage your **Team**, meaning who can log in. Owners can add people with a username and starting password, as an Editor or another Owner, and can remove them.
 
-**Site extras (only when a site's own front end uses them):** a front end lists what it supports in its `theme.json`. Cockfight's lists:
+**Site extras (retired Oct 28: every site now gets every page):** a front end lists what it supports in its `theme.json`. Cockfight's lists:
 - **Announcements:** news with optional links, start/end dates and pinning. On Cockfight they scroll in the banner, with the pinned one as the NEW!! line.
 - **Links:** a link list. On Cockfight it's the Links box on the home page.
 - **Design settings:** Cockfight's own switches: splash screen, music, banner speed, visitor counter, support banner, cursor trail, webmaster credit.
