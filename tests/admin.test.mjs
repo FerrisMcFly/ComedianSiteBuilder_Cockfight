@@ -1131,7 +1131,7 @@ test("Coasters: Custom colors for comics on a site; Pro is ComicTable's switch",
   const lev = db.comics.find((c) => c.id === "lev-fer");
   assert.equal(lev.look, "custom");
   assert.deepEqual(JSON.parse(JSON.stringify(lev.coaster.style)), { pulp: "#101010", ink: "#1F1F1F", band: "#C4452E", photo: "color" });
-  assert.equal(lev.coaster.next, "front", "what's-on-it choices are kept alongside");
+  assert.equal(lev.coaster.dates, "front", "what's-on-it choices are kept alongside");
 });
 
 test("Lineup: each person's card is their Coaster, with the fine-tuning on the Coaster page", async () => {
@@ -1169,7 +1169,7 @@ test("Coaster settings: reorder what's on it (drag, or arrow keys on the grip); 
   press(w, card.querySelector('[data-drag="tape"] .drag-grip'), "ArrowUp"); await wait();
   card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
   const order = db.comics.find((c) => c.id === "lev-fer").coaster.order;
-  assert.deepEqual(JSON.parse(JSON.stringify(order)).slice(0, 5), ["socials", "links", "tape", "join", "next"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(order)).slice(0, 6), ["socials", "dates", "bill", "tape", "links", "join"]);
 });
 
 test("Coaster settings: socials show as logos, logo + name or names; pick which networks show", async () => {

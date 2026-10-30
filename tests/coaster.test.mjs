@@ -29,7 +29,8 @@ test("a Coaster: photo, name, bio, socials, the Tape, their sites, press kit and
     sites: [{ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay" }, { id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com" }] });
   assert.ok(asked[0].includes("handle=eq.lev-fer"), "looks up the address first");
   assert.equal(d.title, "Lev Fer · ComicTable");
-  assert.equal(d.body.className, "look-spooky");
+  assert.ok(d.body.classList.contains("look-spooky"));
+  assert.deepEqual(["bg-brick", "dates-tickets", "btns-status", "soc-tiles"].map((k) => d.body.classList.contains(k)), [true, true, true, true], "the reference page by default: brick, torn tickets, status buttons, social tiles");
   assert.equal(d.querySelector("h1").textContent, "Lev Fer");
   assert.match(d.querySelector(".bio").textContent, /Short one/);
   assert.deepEqual([...d.querySelectorAll(".socials a")].map((a) => a.getAttribute("aria-label")), ["Instagram", "Threads"], "logos by default, named for screen readers");
@@ -42,7 +43,7 @@ test("a Coaster: photo, name, bio, socials, the Tape, their sites, press kit and
   assert.match(d.querySelector(".lcard").textContent, /My website.*levfer\.gay/, "their own site says My website");
 });
 
-test("next dates with tickets, and who else is on the bill links to their Coaster", async () => {
+test("shows as tickets with a button by status, and who else is on the bill links to their Coaster", async () => {
   const { d } = await load("/lev-fer", {
     comics: [{ id: "lev-fer", name: "Lev Fer" }],
     "rpc/comic_shows": [
@@ -50,13 +51,14 @@ test("next dates with tickets, and who else is on the bill links to their Coaste
       { id: "s2", date: day(5), time: "9:30 PM", venue: "The Stand", city: "New York", status: "sold_out" },
       { id: "s3", date: day(6), venue: "Gone", status: "cancelled" }],
     "rpc/also_on_bill": [{ show_id: "s1", comic_id: "colum-tyrrell", name: "Colum Tyrrell", photo_url: null }] });
-  const rows = d.querySelectorAll(".stub");
+  const rows = d.querySelectorAll(".tix");
   assert.equal(rows.length, 2, "cancelled dates don't show");
-  assert.match(rows[0].textContent, /Comedy Cellar.*New York · 8pm/);
-  assert.equal(rows[0].querySelector("a.btn").getAttribute("href"), "https://tix/1");
-  assert.match(rows[1].textContent, /Sold out/);
-  assert.match(rows[1].textContent, /New York · 9:30pm/, "a 9:30 PM show says 9:30pm");
-  const other = rows[0].querySelector(".bill a");
+  assert.match(rows[0].textContent, /Comedy Cellar.*New York.*8pm/);
+  assert.equal(rows[0].querySelector("a.tb.live").getAttribute("href"), "https://tix/1");
+  assert.equal(rows[0].querySelector("a.tb").textContent, "Tickets");
+  assert.equal(rows[1].querySelector(".tb.sold").textContent, "Sold out");
+  assert.match(rows[1].textContent, /9:30pm/, "a 9:30 PM show says 9:30pm");
+  const other = d.querySelector(".billbar a");
   assert.equal(other.getAttribute("href"), "/colum-tyrrell");
   assert.match(other.textContent, /CTColum Tyrrell/);
   // tap the coaster: it flips to a QR code
@@ -110,18 +112,21 @@ test("fans join with name, email and ZIP: the site's list when there is one, oth
   assert.deepEqual([own.p_comic, own.p_email, own.p_zip], ["lev-fer", "fan@x.com", "02116"]);
 });
 
-test("lots of dates: the next one, six more under More, then all of them", async () => {
+test("lots of dates: the next three, then all of them; the comic picks how many show", async () => {
   const shows = Array.from({ length: 9 }, (_, i) => ({ id: "s" + i, date: day(i + 1), venue: "Club " + i }));
-  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer" }], "rpc/comic_shows": shows });
-  assert.equal(d.querySelectorAll(".stub").length, 7, "the next one up front, then six under More");
-  [...d.querySelectorAll("button")].find((b) => /All 8 dates/.test(b.textContent)).click();
-  assert.equal(d.querySelectorAll(".stub").length, 9);
+  let { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer" }], "rpc/comic_shows": shows });
+  assert.equal(d.querySelectorAll(".tix").length, 3, "the next three");
+  [...d.querySelectorAll("button")].find((b) => /All 9 dates/.test(b.textContent)).click();
+  assert.equal(d.querySelectorAll(".tix").length, 9);
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { page: { shown: "1", dates: "chalk", bg: "velvet", buttons: "outline", tiles: "plain" } } }], "rpc/comic_shows": shows }));
+  assert.equal(d.querySelectorAll(".tix").length, 1);
+  assert.deepEqual(["bg-velvet", "dates-chalk", "btns-outline", "soc-plain"].map((k) => d.body.classList.contains(k)), [true, true, true, true]);
 });
 
 test("an unknown name says so, and an unknown look falls back to classic", async () => {
   assert.match((await load("/nobody", {})).d.body.textContent, /No one here yet/);
   const { d } = await load("/x", { comics: [{ id: "x", name: "X", look: "neon" }] });
-  assert.equal(d.body.className, "look-classic");
+  assert.ok(d.body.classList.contains("look-classic"));
 });
 
 test("simple by default, with the rest under More; the comic chooses what goes where", async () => {

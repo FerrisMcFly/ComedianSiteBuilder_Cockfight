@@ -579,14 +579,30 @@
   }
 
   // What a Coaster can show, and where it goes unless the comic moves it: "front" (on the Coaster), "more" (under More), "off".
+  // What can be on a Coaster, in the default order (founder's phone reference, Oct 30): socials, the next shows as
+  // tickets, who else is on the bill, then their sites and the rest. [key, name, default place, what it is]
   var COASTER_ITEMS = [
-    ["socials", "Social links", "front", "Instagram, TikTok and the rest"], ["links", "Your sites", "front", "Buttons to the sites you're on, and your website"],
-    ["join", "Join my list", "front", "Fans sign up to hear when you play near them"], ["next", "Next show", "front", "Your next date, with a ticket button"],
-    ["tape", "The Tape", "more", "Your best set right now"], ["dates", "All dates", "more", "Every upcoming date, and who else is on the bill"],
+    ["socials", "Social links", "front", "Instagram, TikTok and the rest"], ["dates", "Shows", "front", "Your next shows as tickets, then all of them"],
+    ["bill", "Also on the bill", "front", "Other comics on your upcoming shows"], ["links", "Your sites", "front", "Buttons to the sites you're on, and your website"],
+    ["join", "Join my list", "front", "Fans sign up to hear when you play near them"], ["tape", "The Tape", "more", "Your best set right now"],
     ["shorts", "Shorts", "more", "Your newest YouTube Shorts, in a row fans swipe"], ["bio", "Bio", "more", "Your short bio"], ["booking", "Booking", "more", "Your booking email"], ["press", "Press kit", "more", "Photos and bios for clubs"]];
+  // How the page around the coaster looks. Saved as coaster.page; every choice has a default.
+  var COASTER_PAGE = {
+    bg: [["brick", "Brick wall"], ["velvet", "Velvet curtain"], ["neon", "Neon night"], ["wood", "Bar top"], ["checker", "Checker"], ["solid", "Solid"]],
+    dates: [["tickets", "Torn tickets"], ["list", "Clean list"], ["chalk", "Chalkboard"]],
+    buttons: [["status", "Colored by status"], ["one", "One color"], ["outline", "Outline"]],
+    tiles: [["tiles", "Tiles"], ["plain", "Plain"]],
+    shown: [["3", "Next 3"], ["1", "Next 1"], ["5", "Next 5"], ["all", "All"]]
+  };
+  function coasterPage(c) {
+    var p = (c && c.coaster && c.coaster.page && typeof c.coaster.page === "object") ? c.coaster.page : {}, out = {};
+    for (var k in COASTER_PAGE) { var ok = COASTER_PAGE[k].map(function (x) { return x[0]; }); out[k] = ok.indexOf(String(p[k])) >= 0 ? String(p[k]) : ok[0]; }
+    return out;
+  }
   function coasterPlan(c) {
     var set = (c && c.coaster && typeof c.coaster === "object") ? c.coaster : {}, out = {};
     COASTER_ITEMS.forEach(function (x) { var v = set[x[0]]; out[x[0]] = v === "front" || v === "more" || v === "off" ? v : x[2]; });
+    if (set.dates === undefined && set.next === "off") out.dates = "more";   // saved before Shows took over Next show
     return out;
   }
 
@@ -666,6 +682,6 @@
     return out;
   }
 
-  var CSB = { showView: showView, showList: showList, dedupeShows: dedupeShows, signup: signup, init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
+  var CSB = { showView: showView, showList: showList, dedupeShows: dedupeShows, signup: signup, init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, COASTER_PAGE: COASTER_PAGE, coasterPageStyle: coasterPage, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);
