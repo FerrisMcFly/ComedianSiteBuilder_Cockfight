@@ -76,6 +76,10 @@ async function open(hash = "", prep, theme = THEME_JSON) {
 }
 const THEME_JSON = JSON.parse(readFileSync(new URL("../sites/cockfight/theme.json", import.meta.url), "utf8"));
 const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
+// the calendar opens on this month; next Friday can be next month
+async function pickDay(d, ds) { for (let i = 0; i < 2 && !d.querySelector(`.day[data-date="${ds}"]`); i++) { d.querySelector('[aria-label="Next month"]').click(); await wait(); } d.querySelector(`.day[data-date="${ds}"]`).click(); }
+const navLabels = (d) => [...d.querySelectorAll(".nav-btn")].map((b) => (b.querySelector(".nav-label") || b).textContent.trim());
+const openSite = (d) => d.querySelector(".nav-btn.site.open .nav-label");
 const btn = (d, re, scope = d) => [...scope.querySelectorAll("button")].find((b) => re.test(b.textContent));
 // Reordering: every list drags by its grip; the keyboard (arrow keys on the grip) does the same thing
 const press = (w, el, key) => el.dispatchEvent(new w.KeyboardEvent("keydown", { key, bubbles: true }));
@@ -84,11 +88,11 @@ const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", 
 test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open("#home");
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  const nav = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent.replace(/\d+$/, ""));
-  assert.deepEqual(nav, ["Dashboard", "Sites", "Coasters", "Club database", "Overview", "Shows", "Podcast / YouTube", "Posts", "Merch", "Community", "Website", "Lineup", "Settings"], "one short menu: ComicTable's pages, then the open site's");
-  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent), ["ComicTable", "Cockfight"]);
-  assert.equal([...d.querySelectorAll(".nav-btn")].pop().dataset.sec, "settings", "Settings sits at the bottom");
-  assert.equal(d.querySelector(".switch-pill b").textContent, "Cockfight", "the site switcher says which site you're on");
+  assert.deepEqual(navLabels(d), ["Dashboard", "Sites", "Coasters", "Club database", "Cockfight", "Overview", "Home & News", "Design", "Shows", "Podcast / YouTube", "Forum & chat", "Merch", "Lineup", "Settings", "Account"],
+    "one menu (page map): ComicTable's pages, then the open site unfolded into its pages, Account at the bottom");
+  assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent), ["ComicTable", "Websites"]);
+  assert.equal([...d.querySelectorAll(".nav-btn")].pop().dataset.sec, "account", "Account sits at the bottom");
+  assert.equal(openSite(d).textContent, "Cockfight", "the open site is unfolded in the menu");
   assert.match(d.querySelector("h1").textContent, /Welcome back, ferris\./);
   assert.match(d.body.textContent, /Connect your podcast/);
 });
@@ -107,8 +111,8 @@ test("adding a weekend run: club search, calendar, learned times, pasted links",
   assert.match(panel().querySelector(".steps li.on").textContent, /Dates/);
   assert.match(panel().querySelector(".run-summary").textContent, /Laugh Boston.*Boston, MA.*Lev Fer/);
   assert.equal(d.getElementById("toTimes").disabled, true);
-  d.querySelector(`.day[data-date="${fri}"]`).click(); await wait();
-  d.querySelector(`.day[data-date="${sat}"]`).click(); await wait();
+  await pickDay(d, fri); await wait();
+  await pickDay(d, sat); await wait();
   assert.match(d.getElementById("toTimes").textContent, /4 shows/);
   d.getElementById("toTimes").click(); await wait();
   const times = [...panel().querySelectorAll(".slot input[type=time]")].map((i) => i.value);
@@ -133,7 +137,7 @@ test("one pasted link is used for every show", async () => {
   d.getElementById("addShowsBtn").click(); await wait();
   set(w, d.getElementById("clubSearch"), "comedy works"); await wait();
   d.querySelector("#clubList .combo-item").click(); await wait(60);
-  d.querySelector(`.day[data-date="${fri}"]`).click(); await wait();
+  await pickDay(d, fri); await wait();
   d.getElementById("toTimes").click(); await wait();
   d.getElementById("openPaste").click(); await wait();
   set(w, d.getElementById("pasteLinks"), "https://club/all-shows");
@@ -330,9 +334,9 @@ test("team section explains when it isn't set up yet", async () => {
 
 test("every site gets the same pages: Home screen (News, Links, Layout) is always there, whatever the design", async () => {
   const { d } = await open("#home", null, null);
-  const labels = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent);
-  assert.ok(labels.some((l) => /Website/.test(l)) && labels.some((l) => /Settings/.test(l)), labels.join(","));
-  assert.ok(!labels.some((l) => /Announcements|Links|Home screen|Design|About|Press kit|Live/.test(l)), "one Website page; the press kit is the Coaster's; Go live is on Overview");
+  const labels = navLabels(d);
+  assert.ok(labels.includes("Design") && labels.includes("Home & News") && labels.includes("Settings"), labels.join(","));
+  assert.ok(!labels.some((l) => /Announcements|^Links|Home screen|About|Press kit|Live/.test(l)), "one Design page; the press kit is the Coaster's; Go live is on Overview");
   assert.ok(d.getElementById("topNewPost"), "+ New post is always in the top bar");
 });
 
@@ -369,7 +373,7 @@ test("platform admins can start a new comic's site and land on it ready to set u
   const site = db.sites.find((x) => x.id === "rita-ramos");
   assert.equal(site.domain, "ritaramoscomedy.com");
   assert.equal(site.features.forum, true); assert.equal(site.features.chat, false);
-  assert.equal(d.querySelector(".switch-pill b").textContent, "Rita Ramos");
+  assert.equal(openSite(d).textContent, "Rita Ramos");
   assert.equal(w.location.hash, "#people");
   assert.ok(d.getElementById("sitePick"), "site switcher appears once you have two sites");
 });
@@ -410,7 +414,7 @@ test("super admins see every site, comics only their own", async () => {
   assert.deepEqual([...sup.d.querySelectorAll(".sp-item b")].map((o) => o.textContent).sort(), ["Cockfight", "Rita Ramos"]);
   const comic = await open("", (db) => { addRita(db); db.platform_admins = []; });
   assert.equal(comic.d.getElementById("sitePick"), null, "a comic on one site gets no site switcher");
-  assert.equal(comic.d.querySelector(".switch-pill b").textContent, "Cockfight");
+  assert.match(comic.d.querySelector(".crumbs").textContent, /Cockfight/, "one site: its pages, named at the top");
 });
 
 test("people: add someone already on ComicTable, and edit a shared profile or this site's own bio", async () => {
@@ -453,7 +457,7 @@ test("whole-show events, and a comic's date from another site can be hidden here
   btn(d, /Whole show/, panel()).click(); await wait();
   set(w, d.getElementById("clubSearch"), "laugh bos"); await wait();
   d.querySelector("#clubList .combo-item").click(); await wait(60);
-  d.querySelector(`.day[data-date="${sat}"]`).click(); await wait();
+  await pickDay(d, sat); await wait();
   d.getElementById("toTimes").click(); await wait();
   d.getElementById("saveRun").click(); await wait(80);
   const ev = db.shows.filter((s) => s.date === sat && s.venue === "Laugh Boston");
@@ -516,13 +520,15 @@ test("a comic with their own login gets Coaster and Dates in the sidebar: one Co
   assert.ok(![...other.d.querySelectorAll(".nav-btn")].some((b) => /Dates$/.test(b.textContent.trim())));
 });
 
-test("a Coaster with no site: the comic logs in, lands on their Coaster, and adds a date right there", async () => {
+test("a Coaster with no site: the comic logs in, lands on their dashboard, edits their Coaster and adds a date right there", async () => {
   const { w, d, db } = await open("", (db) => {
     db.platform_admins = []; db.admins = [];
     db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
   });
   await wait(100);
-  assert.equal(w.location.hash, "#ct/me");
+  assert.equal(w.location.hash, "#ct/home");
+  assert.match(d.querySelector("h1").textContent, /Welcome back, Solo\./);
+  w.location.hash = "#ct/me"; await wait(100);
   assert.ok(d.querySelector("main #coasterForm .looks"), "their Coaster, ready to edit");
   assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /Your sites/.test(b.textContent)), "no sites, no Your sites");
   w.location.hash = "#ct/dates"; await wait(100);
@@ -568,9 +574,9 @@ test("a comic manages their own team from their Coaster page", async () => {
 test("a comic on a group site: Shows is their Coaster's, and a date is added right there, not on the site", async () => {
   const { w, d, db } = await open("#home", (db) => { db.platform_admins = []; db.comics.find((c) => c.id === "lev-fer").user_id = "u1"; });
   await wait(60);
-  const nav = [...d.querySelectorAll(".nav-btn")].map((b) => b.textContent.replace(/\d+$/, ""));
-  assert.ok(nav.includes("Shows") && nav.includes("Cockfight live shows"), nav.join(", "));
-  [...d.querySelectorAll(".nav-btn")].find((b) => b.textContent.replace(/\d+$/, "") === "Shows").click(); await wait(100);
+  const nav = navLabels(d);
+  assert.ok(nav.includes("Shows") && nav.includes("Live shows"), nav.join(", "));
+  [...d.querySelectorAll(".nav-btn")].find((b) => b.dataset.sec === "dates").click(); await wait(100);
   assert.equal(w.location.hash, "#ct/dates");
   btn(d, /Add a date/).click(); await wait();
   const f = d.querySelector("main form.newclub");
@@ -597,6 +603,39 @@ test("a date on a Coaster is changed right there: sold out, new time, or deleted
   const s1 = db.shows.find((x) => x.id === "sam1");
   assert.deepEqual([s1.status, s1.time, s1.site_id], ["sold_out", "10:00 PM", "cockfight"], "changed in place, still the same show");
   assert.equal(w.location.hash, "#ct/dates", "never jumps to a site");
+});
+
+test("a comic's dashboard: their next show, real numbers, their Coaster, and only real things that need them", async () => {
+  const { w, d } = await open("", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {}, bio: "Stand-up." });
+    db.shows.push({ id: "sam1", comic_id: "solo-sam", site_id: null, date: fri, time: "9:30 PM", venue: "Comedy Cellar", city: "New York, NY", status: "on_sale" });
+    db.comic_fans = [{ comic_id: "solo-sam", email: "a@x.com", created_at: new Date().toISOString() }, { comic_id: "solo-sam", email: "b@x.com", created_at: "2025-01-01T00:00:00Z" }];
+    db.coaster_requests = [];
+  });
+  await wait(150);
+  assert.equal(w.location.hash, "#ct/home");
+  assert.match(d.querySelector(".dash-sub").textContent, /Next up: Comedy Cellar/);
+  assert.deepEqual([...d.querySelectorAll(".ncard .n")].map((n) => n.textContent), ["1", "2", "+1"]);
+  assert.match(d.querySelector(".dgrid").textContent, /Comedy Cellar.*No ticket link/s);
+  assert.match(d.querySelector(".dgrid").textContent, /has no ticket link/);
+  assert.match(d.querySelector(".dgrid").textContent, /Add a photo to your Coaster/);
+  assert.equal(d.getElementById("topAddShow").textContent, "+ Add a show", "one red button: add a show");
+});
+
+test("a comic's Fans: everyone on their list, by where they joined, searchable", async () => {
+  const { w, d } = await open("#ct/fans", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+    db.comic_fans = [{ comic_id: "solo-sam", name: "Rae", email: "rae@x.com", city: "Boston", state: "MA", site_id: "cockfight", created_at: "2026-10-01" },
+      { comic_id: "solo-sam", name: "Jo", email: "jo@x.com", zip: "60614", site_id: null, met_at: "The Stand", created_at: "2026-10-02" }];
+  });
+  await wait(150);
+  assert.deepEqual([...d.querySelectorAll("main .chip")].map((c) => c.textContent), ["Everywhere", "Your Coaster", "Cockfight"]);
+  assert.equal(d.querySelectorAll("main .drow").length, 2);
+  [...d.querySelectorAll("main .chip")].find((c) => c.textContent === "Your Coaster").click(); await wait();
+  assert.deepEqual([...d.querySelectorAll("main .drow b")].map((b) => b.textContent), ["Jo"]);
+  assert.match(d.querySelector("main .drow").textContent, /met at The Stand/);
 });
 
 test("people: give a comic their own login", async () => {
@@ -650,7 +689,7 @@ test("site finder: with 50 sites, type a few letters and press Enter; recent sit
   set(w, input, "lev"); await wait();
   assert.deepEqual([...d.querySelectorAll(".sp-item b")].map((b) => b.textContent), ["Lev Fer"]);
   input.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Enter", bubbles: true })); await wait(120);
-  assert.equal(d.querySelector(".switch-pill b").textContent, "Lev Fer");
+  assert.equal(openSite(d).textContent, "Lev Fer");
   // next time, Lev is under Recent... well, he's open now; switch back and check
   d.getElementById("sitePick").click(); await wait();
   set(w, d.getElementById("sitePickerSearch"), "levfer.com"); await wait();
@@ -693,7 +732,7 @@ test("super admins land on the ComicTable overview, then open a site and come ba
   const row = [...d.querySelectorAll("main .switch-row")].find((r) => /Lev Fer/.test(r.textContent));
   btn(d, /^Open$/, row).click(); await wait(120);
   assert.equal(w.location.hash, "#home");
-  assert.equal(d.querySelector(".switch-pill b").textContent, "Lev Fer");
+  assert.equal(openSite(d).textContent, "Lev Fer");
   w.location.hash = "#ct/overview"; await wait(80);
   assert.ok(d.querySelector(".ct-brand"));
 });
@@ -703,7 +742,7 @@ test("someone on one site's team, with no comic login, goes straight to that sit
   await wait(60);
   assert.notEqual(w.location.hash.slice(0, 4), "#ct/");
   assert.equal(d.querySelector(".back-ct"), null);
-  assert.equal(d.querySelector(".switch-pill b").textContent, "Cockfight");
+  assert.match(d.querySelector(".crumbs").textContent, /Cockfight/);
 });
 
 test("appearance: pick dark, light or match the computer", async () => {
@@ -981,10 +1020,10 @@ test("All sites: super admins choose what comictable.com shows off", async () =>
 
 test("roles: a shows-only login sees just Shows, a moderator just the forum and chat", async () => {
   const booker = await open("#home", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "shows" }]; db.sites.find((x) => x.id === "cockfight").features = { ...db.sites.find((x) => x.id === "cockfight").features, forum: true, chat: true }; });
-  assert.deepEqual([...booker.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["shows"]);
+  assert.deepEqual([...booker.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["shows", "account"]);
   assert.match(booker.d.querySelector("h1").textContent, /Shows/, "they land on Shows");
   const mod = await open("#home", (db) => { db.platform_admins = []; db.admins = [{ user_id: "u1", site_id: "cockfight", role: "moderator" }]; db.sites.find((x) => x.id === "cockfight").features = { ...db.sites.find((x) => x.id === "cockfight").features, forum: true, chat: true }; });
-  assert.deepEqual([...mod.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["community"]);
+  assert.deepEqual([...mod.d.querySelectorAll(".nav-btn")].map((b) => b.dataset.sec), ["community", "account"]);
   assert.deepEqual([...mod.d.querySelectorAll(".page-tabs button")].map((b) => b.textContent), ["Forum", "Chat room", "Moderation"]);
 });
 

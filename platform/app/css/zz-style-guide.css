@@ -1,0 +1,156 @@
+/* ============================================================
+   The style guide (Oct 29), the pieces every screen is built from.
+   Warm black, cream type, red in a few places, solid badges, condensed caps for the one loud headline.
+   Loaded last, so it wins over the older styles above while pages move over.
+   ============================================================ */
+@font-face { font-family: "CT Display"; font-weight: 700; font-display: swap; src: url("/fonts/encode-sans-condensed-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "CT Display"; font-weight: 800; font-display: swap; src: url("/fonts/encode-sans-condensed-latin-800-normal.woff2") format("woff2"); }
+@font-face { font-family: "CT Display"; font-weight: 900; font-display: swap; src: url("/fonts/encode-sans-condensed-latin-900-normal.woff2") format("woff2"); }
+
+:root {
+  /* light: the brand's ivory paper and charcoal; red and mustard stay */
+  --bg: #F3EAD7; --panel: #FBF7EE; --side: #EFE4CD; --raised: #F6EFDF; --line: #E2D5BB; --line-strong: #CDBD9C;
+  --text: #1F1F1F; --muted: #5E5A52; --accent: #C4452E; --accent-ink: #FFFFFF; --accent-soft: #F3D9CF; --accent-text: #A93A26;
+  --gold: #E0A21A; --gold-ink: #1A140A; --gold-soft: #F4E2B5; --gold-text: #7A5300;
+  --go: #2E9E62; --go-soft: #D8EEDF; --go-text: #1E6B43; --badge-red: #F1CDBF; --badge-red-ink: #A93A26;
+  --display: "CT Display", "Encode Sans Condensed", "Arial Narrow", sans-serif;
+  --radius: 16px; --shadow: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13100E; --panel: #1C1815; --side: #13100E; --raised: #26201C; --line: #2A2420; --line-strong: #4A413A;
+    --text: #F3EAD7; --muted: #A89F92; --accent: #E66A4B; --accent-ink: #1A0E0A; --accent-soft: #3A1D16; --accent-text: #F59A82;
+    --gold-soft: #352812; --gold-text: #F2C35B; --go: #57C78A; --go-soft: #17301F; --go-text: #8FE0B0; --badge-red: #4A1F15; --badge-red-ink: #F08A70;
+    --ok: #57C78A; --ok-soft: #17301F; --warn: #F2C35B; --warn-soft: #352812; --focus: #F3EAD7; --brand-red: #E66A4B;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #13100E; --panel: #1C1815; --side: #13100E; --raised: #26201C; --line: #2A2420; --line-strong: #4A413A;
+  --text: #F3EAD7; --muted: #A89F92; --accent: #E66A4B; --accent-ink: #1A0E0A; --accent-soft: #3A1D16; --accent-text: #F59A82;
+  --gold-soft: #352812; --gold-text: #F2C35B; --go: #57C78A; --go-soft: #17301F; --go-text: #8FE0B0; --badge-red: #4A1F15; --badge-red-ink: #F08A70;
+  --ok: #57C78A; --ok-soft: #17301F; --warn: #F2C35B; --warn-soft: #352812; --focus: #F3EAD7; --brand-red: #E66A4B;
+}
+
+/* ---------- type: one loud headline per screen, condensed caps for titles ---------- */
+h1, h2, h3 { font-family: var(--display); font-stretch: normal; letter-spacing: 0; }
+.page-head h1, h1 { font-weight: 900; text-transform: uppercase; font-size: clamp(40px, 5vw, 64px); line-height: .92; letter-spacing: -.005em; margin: 0 0 8px; }
+h1.hello { font-size: clamp(44px, 6.4vw, 84px); font-stretch: normal; letter-spacing: -.005em; line-height: .9; }
+h1.hello em { color: var(--accent); font-style: normal; }
+.card > h2, .card-head h2, .card h2 { font-weight: 800; text-transform: uppercase; font-size: 21px; letter-spacing: .01em; }
+.page-head .sub, .dash-sub { color: var(--muted); font-size: 15px; margin: 0; }
+
+/* ---------- sidebar: Dashboard, Coaster, Websites, staff, Account ---------- */
+.side { background: var(--side); border-right: 1px solid var(--line); padding: 20px 12px; }
+.nav-group { font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--muted); padding: 20px 12px 6px; }
+.nav-btn { padding: 9px 12px; border-radius: 10px; font-size: 14.5px; font-weight: 500; gap: 12px; color: color-mix(in srgb, var(--text) 84%, var(--muted)); min-height: 40px; }
+.nav-btn .ico svg { width: 19px; height: 19px; }
+.nav-btn:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); }
+.nav-btn[aria-current="page"] { background: var(--accent-soft); color: var(--accent-text); font-weight: 700; box-shadow: none; }
+.nav-btn[aria-current="page"] .ico { color: var(--accent-text); }
+.nav-btn.sub { padding-left: 44px; min-height: 34px; font-size: 14px; color: var(--muted); }
+.nav-btn.sub:hover, .nav-btn.sub[aria-current="page"] { color: var(--text); }
+.nav-btn.sub[aria-current="page"] { color: var(--accent-text); }
+.nav-btn.site { font-weight: 600; }
+.nav-btn.site.open { color: var(--text); }
+.nav-btn .nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-btn .nav-chev { color: var(--muted); font-size: 12px; }
+.nav-av { flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--raised); color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .02em; }
+.drows .nav-av { width: 34px; height: 34px; border-radius: 50%; font-size: 12px; }
+.nav-btn .cnt { background: none; padding: 0; color: var(--muted); }
+.ct-brand .wm { height: 24px; }
+
+/* ---------- cards ---------- */
+.card { background: var(--panel); border: 0; border-radius: var(--radius); padding: 22px 24px; box-shadow: none; }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+.view-all { background: none; border: 0; padding: 4px 0; color: var(--accent-text); font-weight: 700; font-size: 14px; cursor: pointer; }
+.view-all:hover { text-decoration: underline; }
+
+/* ---------- buttons: one red per screen, then outline, then plain ---------- */
+.btn { border: 1px solid var(--line-strong); background: transparent; color: var(--text); border-radius: 10px; font-weight: 600; box-shadow: none; min-height: 40px; }
+.btn:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: none; }
+.btn.primary:hover { filter: brightness(1.06); background: var(--accent); }
+.btn.big { min-height: 46px; border-radius: 12px; }
+.btn.ghost { border-color: transparent; color: var(--muted); }
+.btn.sm { min-height: 34px; border-radius: 9px; }
+
+/* ---------- status: a word, plus a dot that glows only when live ---------- */
+.spill { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; background: var(--raised); color: var(--muted); }
+.spill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.spill.live { background: var(--go-soft); color: var(--go-text); }
+.spill.live i { background: var(--go); box-shadow: 0 0 8px var(--go); }
+.spill.soon { background: var(--gold-soft); color: var(--gold-text); }
+.spill.soon i { background: var(--gold); }
+.spill.hot { background: var(--accent-soft); color: var(--accent-text); }
+.spill.hot i { background: var(--accent); }
+.spill.muted i { background: var(--line-strong); }
+.pill.ok { background: var(--go-soft); color: var(--go-text); }
+.pill.warn { background: var(--gold-soft); color: var(--gold-text); }
+
+/* ---------- the dashboard ---------- */
+.dash-top { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 26px; }
+.ncards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.ncard { display: flex; align-items: center; gap: 16px; padding: 20px; border: 0; border-radius: var(--radius); background: var(--panel); color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.ncard:hover { background: color-mix(in srgb, var(--panel) 85%, var(--text)); }
+.nbadge { flex: none; display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--badge-red); color: var(--badge-red-ink); }
+.nbadge.gold { background: var(--gold); color: var(--gold-ink); }
+.nbadge svg { width: 22px; height: 22px; stroke-width: 2; }
+.ntxt { display: flex; flex-direction: column; gap: 3px; }
+.ntxt .n { font-family: var(--display); font-weight: 800; font-size: 38px; line-height: 1; }
+.ntxt span { color: var(--muted); font-size: 13px; }
+.dgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start; }
+.dgrid > .dcard:first-child { grid-column: 1 / -1; }
+.drows { display: flex; flex-direction: column; }
+.drow { display: flex; align-items: center; gap: 16px; width: 100%; padding: 13px 0; border: 0; border-top: 1px solid var(--line); background: none; color: var(--text); text-align: left; font: inherit; cursor: default; }
+button.drow { cursor: pointer; }
+button.drow:hover .drow-main b { text-decoration: underline; }
+.drow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.drow-main b { font-size: 15px; }
+.drow-main span { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.dtile { flex: none; width: 50px; display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.dtile small { font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--accent-text); }
+.dtile b { font-family: var(--display); font-weight: 800; font-size: 30px; }
+.tdot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+.tdot.soon { background: var(--gold); } .tdot.hot { background: var(--accent); }
+.dme { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+.dme img, .dme-ph { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; border: 3px solid var(--text); flex: none; }
+.dme-ph { display: grid; place-items: center; background: var(--raised); font-family: var(--display); font-weight: 900; font-size: 26px; }
+.dme-txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dme-txt b { font-family: var(--display); font-weight: 900; font-size: 26px; text-transform: uppercase; line-height: 1; }
+.dme-txt span { font-size: 13px; }
+
+/* ---------- chips and toolbars ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.chip { height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--muted); font: 600 13px var(--sans); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
+.toolbar input[type="search"] { flex: 1; min-width: 200px; max-width: 420px; }
+input, select, textarea { background: var(--raised); border-color: var(--line); border-radius: 10px; }
+
+/* ---------- top bar ---------- */
+.topbar { background: color-mix(in srgb, var(--bg) 92%, transparent); border-bottom: 1px solid var(--line); min-height: 64px; }
+img.acct-av { object-fit: cover; width: 30px; height: 30px; }
+.acct summary { background: transparent; border-color: var(--line); }
+
+/* ---------- the menu on a phone: one button, the list folds open ---------- */
+.side-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; min-height: 0; }
+.menu-toggle { display: none; }
+@media (max-width: 880px) {
+  .side { position: static; height: auto; min-height: 0; max-height: none; overflow: visible; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 12px 14px; gap: 8px; }
+  .topbar { min-height: 0; padding: 10px 14px; }
+  .app { grid-template-rows: auto 1fr; }
+  .side > .ct-brand { width: auto; margin: 0; padding: 0; }
+  .menu-toggle { display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); font: 600 14px var(--sans); cursor: pointer; }
+  .side-nav { display: none; width: 100%; flex: none; padding-top: 6px; }
+  .side-nav.open { display: flex; }
+  .side-nav .nav-btn { width: 100%; }
+  .side-nav .nav-group { display: block; }
+  .ncards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ncard { flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; }
+  .ncard .nbadge { width: 40px; height: 40px; }
+  .ntxt .n { font-size: 32px; }
+  .dgrid { grid-template-columns: 1fr; }
+  .card { padding: 18px; }
+  h1.hello { font-size: 46px; }
+  .page-head h1, h1 { font-size: 40px; }
+  .drow .spill { padding: 0 9px; font-size: 12px; }
+}

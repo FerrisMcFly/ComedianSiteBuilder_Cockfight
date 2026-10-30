@@ -81,15 +81,17 @@
   const CT_SECTIONS = [
     { id: "overview", label: "Overview", ico: "🏠", platform: true, render: viewOverview },
     // Every comic gets a dashboard. What's in the sidebar grows with them: a Coaster, then (with a site) their sites.
-    { id: "me", label: "Coaster", ico: "🎤", meOnly: true, render: viewMe },
-    { id: "dates", label: "Dates", ico: "📅", meOnly: true, render: viewMyDates },
+    { id: "home", label: "Dashboard", meOnly: true, render: viewMyHome },
+    { id: "me", label: "My Coaster", ico: "🎤", meOnly: true, render: viewMe },
+    { id: "dates", label: "Shows", ico: "📅", meOnly: true, render: viewMyDates },
+    { id: "fans", label: "Fans", meOnly: true, render: viewMyFans },
     { id: "press", label: "Press kit", ico: "📷", meOnly: true, render: (main) => { main.append(head("Your press kit", "Approved photos and bios for clubs. It's the same on every site you're on.")); main.append(pressKitEditor(S.me.id)); } },
     { id: "helping", label: "Coasters you help with", ico: "🤝", helping: true, render: viewHelping },
     { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, needsSite: true, render: viewMySites },
     { id: "sites", group: "Platform", label: "Sites", ico: "🧩", platform: true, count: () => S.sites.length, render: viewSites },
     { id: "comics", group: "Platform", label: "Coasters", ico: "🎤", platform: true, render: viewComics },
     { id: "clubs", group: "Platform", label: "Club database", ico: "🏛️", platform: true, render: viewClubs },
-    { id: "account", label: "Your account", ico: "🔐", bottom: true, render: viewAccount }
+    { id: "account", label: "Account", ico: "🔐", bottom: true, render: viewAccount }
   ];
   const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me) && (!x.needsSite || S.sites.length) && (!x.helping || (S.helping && S.helping.length)));
   const atCT = () => location.hash.startsWith("#ct/");
@@ -118,28 +120,42 @@
       return out;
     });
   }
-  // One menu for everything (founder, Oct 29): Dashboard, the comic's Coaster, the open site's pages, and for
-  // ComicTable staff the platform's own pages. The switcher in the top bar picks which site the site pages work on.
+  // The sidebar (page map, Oct 29): Dashboard, then the comic's Coaster (their stuff), then Websites (each site's own
+  // pages, the open one unfolded), ComicTable's staff pages, and Account at the bottom. Pages a site doesn't use never show.
+  const SITE_NAV = { home: "Overview", posts: "Home & News", website: "Design", podcast: null, community: "Forum & chat", people: "Lineup", fans: "Fan list" };
+  const ORDER = ["home", "posts", "website", "shows", "podcast", "community", "fans", "blog", "merch", "people", "settings"];
   function menuItems() {
     const items = [], siteSecs = S.site ? visible().filter((x) => x.nav !== false) : [];
-    const has = (id) => siteSecs.find((x) => x.id === id);
     const ct = (id) => CT_SECTIONS.find((x) => x.id === id);
-    // ComicTable staff: Dashboard is the whole platform; the open site's own dashboard is "Overview" under its name
+    // Dashboard: the comic's own, ComicTable's for staff, else the open site's
     if (S.isPlatform) items.push({ key: "ct/overview", id: "home", label: "Dashboard", onGo: () => goCT("overview") });
-    else if (has("home")) items.push({ key: "home", id: "home", label: "Dashboard", onGo: () => go("home") });
-    if (S.me) items.push({ key: "ct/me", id: "me", label: "Coaster", onGo: () => goCT("me") });
-    if (S.isPlatform && S.site) items.push({ key: "home", id: "overview", label: "Overview", group: S.site.name, onGo: () => go("home") });
-    // A comic's shows belong to their Coaster (founder, Oct 29): "Shows" is always theirs, added right there, never a site's page.
-    // On a group site the site's own live shows (the whole crew) stay under the site's name; on a solo site there's nothing extra.
-    if (S.me) items.push({ key: "ct/dates", id: "shows", label: "Shows", onGo: () => goCT("dates") });
-    const solo = S.hosts && S.hosts.length <= 1;
-    if (S.site) siteSecs.filter((x) => !["home", "people", "settings", "website"].includes(x.id) && !(S.me && x.id === "shows" && solo))
-      .forEach((x) => items.push({ key: x.id, id: x.id, label: S.me && x.id === "shows" ? S.site.name + " live shows" : x.label, count: x.count, onGo: () => go(x.id) }));
-    if (S.helping && S.helping.length) items.push({ key: "ct/helping", id: "helping", label: S.helping.length === 1 ? S.helping[0].name + "'s Coaster" : "Coasters you help with", onGo: () => goCT("helping") });
+    else if (S.me) items.push({ key: "ct/home", id: "home", label: "Dashboard", onGo: () => goCT("home") });
+    else if (S.site && siteSecs.some((x) => x.id === "home")) items.push({ key: "home", id: "home", label: "Dashboard", onGo: () => go("home") });
+    // Coaster: everything that's the comic's, wherever it shows. Shows are always theirs, added right there.
+    if (S.me) {
+      items.push({ key: "ct/me", id: "me", label: "My Coaster", group: "Coaster", onGo: () => goCT("me") });
+      items.push({ key: "ct/dates", id: "shows", label: "Shows", onGo: () => goCT("dates") });
+      items.push({ key: "ct/fans", id: "fans", label: "Fans", onGo: () => goCT("fans") });
+      items.push({ key: "ct/press", id: "press", label: "Press kit", onGo: () => goCT("press") });
+    }
+    if (S.helping && S.helping.length) items.push({ key: "ct/helping", id: "helping", label: S.helping.length === 1 ? S.helping[0].name + "'s Coaster" : "Coasters you help with", group: S.me ? null : "Coaster", onGo: () => goCT("helping") });
+    // ComicTable's own pages, for staff
     if (S.isPlatform) ["sites", "comics", "clubs"].forEach((id, i) => items.push({ key: "ct/" + id, id, label: ct(id).label, group: i === 0 ? "ComicTable" : null, onGo: () => goCT(id) }));
-    if (S.isPlatform && S.site) { const firstSite = items.findIndex((x) => x.group === S.site.name); const n = items.findIndex((x) => x.group === "ComicTable"); if (n > firstSite) { const ctItems = items.splice(n, 3); items.splice(1, 0, ...ctItems.map((x, i) => ({ ...x, group: i === 0 ? "ComicTable" : null }))); } }
-    else if (S.sites.length > 1 || (S.me && S.sites.length)) items.push({ key: "ct/mysites", id: "mysites", label: "My Sites", onGo: () => goCT("mysites") });
-    ["website", "people", "settings"].forEach((id) => { const x = has(id); if (x) items.push({ key: id, id, label: x.label, bottom: true, onGo: () => go(id) }); });
+    // Websites: the open site unfolds into its pages; the others are one tap away
+    const siteList = S.isPlatform ? (S.site ? [S.site] : []) : S.sites.slice().sort((a, b) => a.name.localeCompare(b.name));
+    const solo = S.hosts && S.hosts.length <= 1;
+    // someone on one site's team (no Coaster, not staff) just gets that site's pages, no site row
+    const flat = !S.isPlatform && !S.me && siteList.length === 1;
+    siteList.forEach((st, i) => {
+      const open = S.site && st.id === S.site.id;
+      if (flat) { siteSecs.filter((x) => x.id !== "home").sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id)).forEach((x) => items.push({ key: x.id, id: x.id, label: SITE_NAV[x.id] || x.label, count: x.count, onGo: () => go(x.id) })); return; }
+      items.push({ key: "site:" + st.id, site: st, label: st.name, group: i === 0 ? "Websites" : null, open, onGo: () => (open && S.level === "site" ? go("home") : switchSite(st.id, "home")) });
+      if (!open) return;
+      siteSecs.filter((x) => !(S.me && x.id === "shows" && solo)).sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id)).forEach((x) => items.push({ key: x.id, id: x.id, sub: true,
+        label: S.me && x.id === "shows" ? "Live shows" : SITE_NAV[x.id] || x.label, count: x.count, onGo: () => go(x.id) }));
+    });
+    if (S.isPlatform && S.sites.length > 1) items.push({ key: "pick", id: "sites", label: S.site ? "Open another site…" : "Open a site…", sub: !!S.site, onGo: openSitePicker });
+    items.push({ key: "ct/account", id: "account", label: "Account", bottom: true, onGo: () => goCT("account") });
     return items;
   }
   function sideMenu(curKey) {
@@ -148,10 +164,20 @@
     for (const it of menuItems()) {
       if (it.bottom && !bottom) { out.push(h("div", { class: "nav-spacer" })); bottom = true; }
       if (it.group) out.push(h("div", { class: "nav-group", text: it.group }));
-      out.push(h("button", { class: "nav-btn", type: "button", "data-sec": it.key.replace(/^ct\//, ""), "aria-current": it.key === curKey ? "page" : null, onclick: it.onGo },
-        navIcon(it), h("span", { text: it.label }), it.count ? h("span", { class: "cnt", text: it.count() }) : null));
+      const cur = it.key === curKey || (it.site && it.open && curKey === "home" && S.level === "site");
+      out.push(h("button", { id: it.key === "pick" ? "sitePick" : null, class: "nav-btn" + (it.sub ? " sub" : "") + (it.site ? " site" + (it.open ? " open" : "") : ""), type: "button", "data-sec": it.site ? "site-" + it.site.id : it.key.replace(/^ct\//, ""),
+        "aria-current": cur ? "page" : null, "aria-expanded": it.site ? String(!!it.open) : null, onclick: it.onGo },
+        it.site ? h("span", { class: "nav-av", "aria-hidden": "true", text: it.site.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase() }) : it.sub ? null : navIcon(it),
+        h("span", { class: "nav-label", text: it.label }), it.count ? h("span", { class: "cnt", text: it.count() }) : null,
+        it.site ? h("span", { class: "nav-chev", "aria-hidden": "true", text: it.open ? "▾" : "▸" }) : null));
     }
-    return out;
+    // on a phone the menu folds behind one button
+    const nav = h("nav", { class: "side-nav", id: "sideNav", "aria-label": "Menu" }, out);
+    const cur = menuItems().find((it) => it.key === curKey);
+    const toggle = h("button", { class: "menu-toggle", type: "button", "aria-controls": "sideNav", "aria-expanded": "false",
+      onclick: (e) => { const open = e.currentTarget.getAttribute("aria-expanded") !== "true"; e.currentTarget.setAttribute("aria-expanded", String(open)); nav.classList.toggle("open", open); } },
+      h("span", { text: cur ? cur.label : "Menu" }), h("span", { class: "mt-ico", "aria-hidden": "true", text: "☰" }));
+    return [toggle, nav];
   }
   // The site switcher, top left: which site you're working on. With one site it's just the name.
   function siteSwitch() {
@@ -164,12 +190,12 @@
       many ? h("span", { class: "sw-arrow", "aria-hidden": "true", text: "⌄" }) : null);
   }
   // Top bar: where you are, and your account. (The site finder is ⌘K anywhere, or the site name in the menu.)
-  const ctHome = () => "#ct/" + (S.isPlatform ? "overview" : S.me ? "me" : S.helping && S.helping.length && !S.sites.length ? "helping" : "mysites");
+  const ctHome = () => "#ct/" + (S.isPlatform ? "overview" : S.me ? "home" : S.helping && S.helping.length && !S.sites.length ? "helping" : "mysites");
   const logOut = async () => { await sb.auth.signOut(); S.site = null; showLogin(); };
   function acctMenu() {
     const initials = String(S.user || "?").split(/[\s._@-]+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
     const menu = h("details", { class: "acct" },
-      h("summary", { "aria-label": "Your account" }, h("span", { class: "acct-av", "aria-hidden": "true", text: initials }), h("span", { class: "acct-name", text: S.user })),
+      h("summary", { "aria-label": "Your account" }, S.me && S.me.photo_url ? h("img", { class: "acct-av", src: S.me.photo_url, alt: "" }) : h("span", { class: "acct-av", "aria-hidden": "true", text: initials }), h("span", { class: "acct-name", text: S.me ? S.me.name : S.user })),
       h("div", { class: "acct-pop", role: "menu" },
         h("div", { class: "acct-who" }, h("b", { text: S.user }), h("span", { class: "hint", text: S.email || "" }), S.isPlatform ? h("span", { class: "pill", text: "Super admin" }) : null),
         h("a", { role: "menuitem", href: "#ct/account", class: "acct-link", text: "Your account" }),
@@ -181,9 +207,11 @@
     const trail = [];
     crumbs.filter(Boolean).forEach((c, i) => { if (i) trail.push(h("span", { class: "crumb-sep", "aria-hidden": "true", text: "/" })); trail.push(c); });
     return h("header", { class: "topbar" },
-      h("div", { class: "top-left" }, siteSwitch(), h("nav", { class: "crumbs", "aria-label": "You are here" }, trail)),
+      h("div", { class: "top-left" }, h("nav", { class: "crumbs", "aria-label": "You are here" }, trail)),
       h("div", { class: "top-actions" },
-        S.site && roleAllows("posts") ? h("button", { class: "btn primary", type: "button", id: "topNewPost", text: "+ New post", onclick: () => go("posts/news") }) : null,
+        // the one red button: a comic's next show from anywhere in their own pages; on a site, a new post
+        S.me && S.level === "ct" ? h("button", { class: "btn primary", type: "button", id: "topAddShow", text: "+ Add a show", onclick: () => { goCT("dates"); setTimeout(() => { const b = [...document.querySelectorAll("main button")].find((x) => /Add a date/.test(x.textContent)); if (b) b.click(); }, 60); } })
+          : S.site && S.level === "site" && roleAllows("posts") ? h("button", { class: "btn primary", type: "button", id: "topNewPost", text: "+ New post", onclick: () => go("posts/news") }) : null,
         S.level === "site" && (S.site.domain || !CFG.PLATFORM) ? h("a", { class: "btn ghost sm", href: S.site.domain ? "https://" + S.site.domain : "./", target: "_blank", rel: "noopener", text: "View site ↗" }) : null,
         acctMenu()));
   }
