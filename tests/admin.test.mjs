@@ -748,6 +748,27 @@ test("first login: Get your Coaster ready walks a new comic through photo, bio, 
   assert.equal(d.querySelector(".walk"), null);
 });
 
+test("search everything: ⌘K finds a setting, a show or a fan and jumps there", async () => {
+  const { w, d } = await open("", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+    db.shows.push({ id: "q1", comic_id: "solo-sam", site_id: null, date: fri, time: "9:30 PM", venue: "Zanies", city: "Chicago, IL", status: "on_sale" });
+    db.comic_fans = [{ comic_id: "solo-sam", name: "Rae Lin", email: "rae@x.com", city: "Boston" }];
+  });
+  await wait(120);
+  d.dispatchEvent(new w.KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })); await wait(80);
+  const input = d.getElementById("searchInput");
+  assert.ok(input, "⌘K opens search");
+  set(w, input, "qr"); await wait();
+  assert.match(d.querySelector("#searchList").textContent, /QR code.*My Coaster/s);
+  set(w, input, "zanies"); await wait();
+  assert.match(d.querySelector("#searchList").textContent, /Shows.*Zanies/s);
+  set(w, input, "rae"); await wait();
+  input.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Enter", bubbles: true })); await wait(120);
+  assert.equal(w.location.hash, "#ct/fans");
+  assert.equal(d.getElementById("searchBox"), null);
+});
+
 test("people: give a comic their own login", async () => {
   const { w, d } = await open("#people");
   let sent = null;

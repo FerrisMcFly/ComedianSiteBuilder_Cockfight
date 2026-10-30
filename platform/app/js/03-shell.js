@@ -211,7 +211,9 @@
     const trail = [];
     crumbs.filter(Boolean).forEach((c, i) => { if (i) trail.push(h("span", { class: "crumb-sep", "aria-hidden": "true", text: "/" })); trail.push(c); });
     return h("header", { class: "topbar" },
-      h("div", { class: "top-left" }, h("nav", { class: "crumbs", "aria-label": "You are here" }, trail)),
+      h("div", { class: "top-left" }, h("button", { class: "top-search", type: "button", id: "topSearch", "aria-label": "Search everything", onclick: openSearch },
+        h("span", { class: "ts-ico", "aria-hidden": "true" }), h("span", { class: "ts-t", text: "Search pages, settings, shows, fans" }), h("kbd", { text: "⌘K" })),
+        h("nav", { class: "crumbs", "aria-label": "You are here" }, trail)),
       h("div", { class: "top-actions" },
         // the one red button: a comic's next show from anywhere in their own pages; on a site, a new post
         S.me && S.level === "ct" && location.hash !== "#ct/dates" ? h("button", { class: "btn primary", type: "button", id: "topAddShow", text: "+ Add a show", onclick: () => { goCT("dates"); setTimeout(() => { const b = document.getElementById("addDateBtn"); if (b) b.click(); }, 300); } })
@@ -296,7 +298,11 @@
     draw(); input.focus();
   }
   document.addEventListener("keydown", (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && S.site && (S.sites.length > 1 || atCT())) { e.preventDefault(); openSitePicker(); }
+    // ⌘K: ComicTable staff jump between sites; everyone else searches everything
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      if (S.isPlatform && S.site && S.sites.length > 1) { e.preventDefault(); openSitePicker(); }
+      else if (S.me || S.site) { e.preventDefault(); openSearch(); }
+    }
   });
 
   async function switchSite(id, sec) {
