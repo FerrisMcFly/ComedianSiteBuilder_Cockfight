@@ -172,7 +172,8 @@
   async function comicDetail(main, c, onSites, reloadData) {
     const sites = onSites(c);
     const back = h("button", { class: "btn ghost sm", type: "button", text: "← All Coasters", onclick: () => { comicOpen = null; route(); } });
-    main.append(h("div", { style: "margin-bottom:8px" }, back),
+    const viewAs = h("button", { class: "btn sm", type: "button", id: "viewAsBtn", text: "View as " + c.name.split(" ")[0], title: "See exactly what " + c.name + " sees", onclick: () => startViewAs(c) });
+    main.append(h("div", { class: "btns", style: "margin-bottom:8px;justify-content:space-between" }, back, viewAs),
       h("div", { class: "page-head" }, h("div", { class: "person-top", style: "margin:0" },
         c.photo_url ? h("img", { class: "avatar", src: c.photo_url, alt: "" }) : h("div", { class: "avatar initials", text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }),
         h("div", null, h("h1", { text: c.name }), h("p", { class: "sub", text: (c.title || "Comedian") + " · " + (sites.length ? "on " + sites.map((x) => x.site.name).join(", ") : "not on a site yet") + (c.user_id ? " · has a login" : "") })))));

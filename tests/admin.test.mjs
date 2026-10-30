@@ -88,7 +88,7 @@ const set = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event("input", 
 test("home shows a greeting, stats and to-dos", async () => {
   const { d } = await open("#home");
   assert.match(d.querySelector("h1").textContent, /ferris/);
-  assert.deepEqual(navLabels(d), ["Dashboard", "Sites", "Coasters", "Club database", "Cockfight", "Overview", "Home & News", "Design", "Shows", "Podcast / YouTube", "Forum & chat", "Merch", "Lineup", "Settings", "Account"],
+  assert.deepEqual(navLabels(d), ["Dashboard", "Sites", "Coasters", "Club database", "Health check", "Cockfight", "Overview", "Home & News", "Design", "Shows", "Podcast / YouTube", "Forum & chat", "Merch", "Lineup", "Settings", "Account"],
     "one menu (page map): ComicTable's pages, then the open site unfolded into its pages, Account at the bottom");
   assert.deepEqual([...d.querySelectorAll(".nav-group")].map((g) => g.textContent), ["ComicTable", "Websites"]);
   assert.equal([...d.querySelectorAll(".nav-btn")].pop().dataset.sec, "account", "Account sits at the bottom");
@@ -702,6 +702,50 @@ test("Podcast / YouTube: connect a channel with no site, pick Shorts, and set th
   main.querySelector('input[aria-label="Spotify show link"]').closest("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   assert.equal(db.comics.find((c) => c.id === "solo-sam").coaster.podcast.spotify, "https://open.spotify.com/show/4rOoJ6Egrf8K2IrywzwOMk");
   assert.ok(db.comics.find((c) => c.id === "solo-sam").coaster.shorts, "saving the player keeps the Shorts picks");
+});
+
+test("staff: view as a comic (their sidebar and Dashboard, with a way back), and the health check merges a duplicate show", async () => {
+  const { w, d, db } = await open("#ct/comics", (db) => {
+    db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, handle: c.id }));
+    db.comics.find((c) => c.id === "lev-fer").user_id = "lev-login";
+    db.shows.push({ id: "d1", comic_id: "lev-fer", site_id: null, venue: "Comedy Cellar", venue_id: "v9", date: fri, time: "9:30 PM", url: "https://t/x", status: "on_sale" },
+      { id: "d2", comic_id: "lev-fer", site_id: "cockfight", venue: "Comedy Cellar", venue_id: "v9", date: fri, time: "9:30 PM", url: null, status: "on_sale" });
+    db.sources.push({ id: "bad", kind: "youtube", url: "https://youtube.com/@x", site_id: "cockfight", last_status: "Error: channel not found", last_run_at: new Date().toISOString() });
+  });
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
+  d.getElementById("viewAsBtn").click(); await wait(150);
+  assert.equal(w.location.hash, "#ct/home");
+  assert.match(d.querySelector(".viewas-bar").textContent, /Viewing as Lev Fer/);
+  assert.match(d.querySelector("h1").textContent, /Welcome back, Lev\./);
+  assert.ok(!navLabels(d).includes("Club database"), "their sidebar, not staff's");
+  btn(d, /Back to ComicTable/).click(); await wait(150);
+  assert.equal(d.querySelector(".viewas-bar"), null);
+  assert.ok(navLabels(d).includes("Health check"));
+  w.location.hash = "#ct/health"; await wait(150);
+  const main = d.querySelector("main");
+  assert.match(main.textContent, /channel not found/);
+  assert.match(main.textContent, /Comedy Cellar · Lev Fer.*2 copies/s);
+  btn(d, /Merge into one/).click(); await wait(80);
+  assert.deepEqual(db.shows.filter((s) => s.venue_id === "v9").map((s) => s.id), ["d1"], "kept the one with tickets");
+});
+
+test("first login: Get your Coaster ready walks a new comic through photo, bio, socials, a show and a look", async () => {
+  const { w, d, db } = await open("", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "new-nia", handle: "new-nia", name: "New Nia", user_id: "u1", look: "classic", coaster: {}, bio: "Stand-up." });
+  });
+  await wait(150);
+  const walk = d.querySelector(".walk");
+  assert.match(walk.textContent, /Get your Coaster ready.*1 of 5 done/s, "the bio was already there");
+  assert.deepEqual([...walk.querySelectorAll(".walk-step")].map((b) => b.classList.contains("done")), [false, true, false, false, false]);
+  btn(d, /Add your photo/, walk).click(); await wait(150);
+  assert.equal(w.location.hash, "#ct/me");
+  assert.equal(d.querySelector('details.cp-part[data-part="1"]').open, true, "opens on Basics");
+  w.location.hash = "#ct/home"; await wait(150);
+  btn(d, /^Hide$/, d.querySelector(".walk")).click(); await wait(60);
+  assert.equal(db.comics.find((c) => c.id === "new-nia").coaster.welcome_done, true);
+  assert.equal(d.querySelector(".walk"), null);
 });
 
 test("people: give a comic their own login", async () => {

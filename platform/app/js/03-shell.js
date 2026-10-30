@@ -92,6 +92,7 @@
     { id: "sites", group: "Platform", label: "Sites", ico: "🧩", platform: true, count: () => S.sites.length, render: viewSites },
     { id: "comics", group: "Platform", label: "Coasters", ico: "🎤", platform: true, render: viewComics },
     { id: "clubs", group: "Platform", label: "Club database", ico: "🏛️", platform: true, render: viewClubs },
+    { id: "health", group: "Platform", label: "Health check", platform: true, render: viewHealth },
     { id: "account", label: "Account", ico: "🔐", bottom: true, render: viewAccount }
   ];
   const ctVisible = () => CT_SECTIONS.filter((x) => (!x.platform || S.isPlatform) && (!x.notPlatform || !S.isPlatform) && (!x.meOnly || S.me) && (!x.needsSite || S.sites.length) && (!x.helping || (S.helping && S.helping.length)));
@@ -103,6 +104,7 @@
   const roleName = (r) => (SITE_ROLES.find((x) => x[0] === r) || [r, "Editor"])[1];
   const myRole = () => (S.isPlatform ? "owner" : (S.roles && S.roles[sid()]) || "owner");
   const ROLE_SECTIONS = { shows: ["shows"], moderator: ["community"] };
+  ICONS.health = '<path d="M3 12h4l2-6 4 12 2-6h6"/>';
   ICONS.community = ICONS.chat; ICONS.website = ICONS.theme; ICONS.posts = ICONS.blog;
   const roleAllows = (id) => { const only = ROLE_SECTIONS[myRole()]; return !only || only.includes(id); };
   const visible = () => SECTIONS.filter((s) => roleAllows(s.id) && (!s.feat || (Array.isArray(s.feat) ? s.feat.some(F) : F(s.feat))));
@@ -142,7 +144,7 @@
     }
     if (S.helping && S.helping.length) items.push({ key: "ct/helping", id: "helping", label: S.helping.length === 1 ? S.helping[0].name + "'s Coaster" : "Coasters you help with", group: S.me ? null : "Coaster", onGo: () => goCT("helping") });
     // ComicTable's own pages, for staff
-    if (S.isPlatform) ["sites", "comics", "clubs"].forEach((id, i) => items.push({ key: "ct/" + id, id, label: ct(id).label, group: i === 0 ? "ComicTable" : null, onGo: () => goCT(id) }));
+    if (S.isPlatform) ["sites", "comics", "clubs", "health"].forEach((id, i) => items.push({ key: "ct/" + id, id, label: ct(id).label, group: i === 0 ? "ComicTable" : null, onGo: () => goCT(id) }));
     // Websites: the open site unfolds into its pages; the others are one tap away
     const siteList = S.isPlatform ? (S.site ? [S.site] : []) : S.sites.slice().sort((a, b) => a.name.localeCompare(b.name));
     const solo = S.hosts && S.hosts.length <= 1;
@@ -228,7 +230,7 @@
     const main = h("main", { id: "main" });
     root.replaceChildren(h("div", { class: "app" },
       h("aside", { class: "side" }, h("a", { class: "ct-brand", href: ctHome(), "aria-label": "ComicTable" }, wordmark("")), sideMenu(cur.id === "dates" && !S.site ? "ct/dates" : "ct/" + cur.id)),
-      h("div", { class: "col" }, topBar([h("a", { class: "crumb", href: ctHome(), text: "ComicTable" }), h("span", { class: "crumb now", text: cur.label })]), main)));
+      h("div", { class: "col" }, viewAsBar(), topBar([h("a", { class: "crumb", href: ctHome(), text: "ComicTable" }), h("span", { class: "crumb now", text: cur.label })]), main)));
     cur.render(main);
     window.scrollTo && window.scrollTo(0, 0);
   }
@@ -243,7 +245,7 @@
     const main = h("main", { id: "main" });
     root.replaceChildren(h("div", { class: "app" },
       h("aside", { class: "side" }, h("a", { class: "ct-brand", href: "#home", "aria-label": "ComicTable" }, wordmark("")), sideMenu(cur.nav === false ? "people" : cur.id)),
-      h("div", { class: "col" }, topBar([hasCT() ? h("a", { class: "crumb back-ct", href: ctHome(), text: "ComicTable" }) : null,
+      h("div", { class: "col" }, viewAsBar(), topBar([hasCT() ? h("a", { class: "crumb back-ct", href: ctHome(), text: "ComicTable" }) : null,
         h("a", { class: "crumb", href: "#home", text: S.site.name }), cur.id !== "home" ? h("span", { class: "crumb now", text: cur.label }) : null]), main)));
     cur.render(main);
     window.scrollTo && window.scrollTo(0, 0);

@@ -363,7 +363,7 @@
         h("div", { class: "stack", style: "gap:8px" }, h("b", { text: "Socials" }),
           filled.length ? h("div", { class: "soc-list" }, filled.map(socRow)) : h("p", { class: "hint", style: "margin:0", text: "Paste the link to each one you use." }),
           empties.length ? h("details", { class: "quiet", open: !filled.length || null }, h("summary", { text: filled.length ? "Add another" : "All networks" }), h("div", { class: "soc-list", style: "margin-top:10px" }, empties.map(socRow))) : null)),
-      P ? part("2", "Look", "Templates, the coaster, lettering, doodles, the wall behind it", opts.open !== "basics", P.templates, h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Coaster colors (Custom: design your own)" }), P.looks), P.letter, P.doodles, P.wear, P.page) : null,
+      P ? part("2", "Look", "Templates, the coaster, lettering, doodles, the wall behind it", opts.open !== "basics" && opts.open !== "links" && opts.open !== "on", P.templates, h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Coaster colors (Custom: design your own)" }), P.looks), P.letter, P.doodles, P.wear, P.page) : null,
       P ? part("3", "Links & QR", "Your buttons, where the QR code goes, how socials show", false, P.linksBox, P.qr, P.socBox) : null,
       P ? part("4", "What's on it", "Up front, under More or off, and in what order", false, P.plan, P.shown, P.billsRow, P.proBox) : null,
       msg);

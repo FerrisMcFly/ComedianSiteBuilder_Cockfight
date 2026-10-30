@@ -17,12 +17,16 @@
   const numCard = (ico, n, label, gold, onGo) => h("button", { class: "ncard", type: "button", onclick: onGo },
     h("span", { class: "nbadge" + (gold ? " gold" : "") }, svgIco(ico).firstChild), h("span", { class: "ntxt" }, h("b", { class: "n", text: n }), h("span", { text: label })));
 
+  // open My Coaster on one part (Basics or Look)
+  let ME_OPEN = null;
+  const openMe = (part) => { ME_OPEN = part; goCT("me"); };
   async function viewMyHome(main) {
     const me = S.me, who = (me.name || S.user || "").split(/\s+/)[0];
     const hello = h("p", { class: "dash-sub", text: " " });
     main.append(h("div", { class: "dash-top" }, h("h1", { class: "hello" }, "Welcome back, ", h("em", { text: who + "." })), hello));
     const nums = h("div", { class: "ncards" }), grid = h("div", { class: "dgrid" });
-    main.append(nums, grid);
+    const walk = h("div");
+    main.append(walk, nums, grid);
     const showsCard = dcard("Upcoming shows", ["View all", () => goCT("dates")], h("p", { class: "hint", text: "Loading…" }));
     const coaster = dcard("Your Coaster", ["Edit", () => goCT("me")],
       h("div", { class: "dme" }, me.photo_url ? h("img", { src: me.photo_url, alt: "" }) : h("span", { class: "dme-ph", text: initials(me.name) }),
@@ -37,6 +41,19 @@
     try { shows = (await q(sb.rpc("comic_shows", { p_comic: me.id }))).filter((s) => s.date >= today()); } catch (e) {}
     try { fans = await q(sb.from("comic_fans").select("created_at").eq("comic_id", me.id).limit(10000)); } catch (e) {}
     shows.sort((a, b) => (a.date + to24(a.time)).localeCompare(b.date + to24(b.time)));
+    // first login: a few steps to a Coaster worth sharing, ticked off as they're done (founder's pick, Oct 29)
+    const cs = me.coaster || {}, so = (window.CSB && CSB.socialsOf) ? CSB.socialsOf(me) : {};
+    const steps = [["Add your photo", !!me.photo_url, () => openMe("basics")], ["Write a short bio", !!String(me.bio || "").trim(), () => openMe("basics")],
+      ["Add your socials", Object.keys(so).length > 0, () => openMe("basics")], ["Add your next show", shows.length > 0, () => goCT("dates")],
+      ["Pick a look", !!(cs.page || cs.letter || (me.look && me.look !== "classic")), () => openMe("look")]];
+    const done = steps.filter((x) => x[1]).length;
+    if (done < steps.length && !cs.welcome_done) walk.replaceChildren(h("section", { class: "card walk" },
+      h("div", { class: "card-head" }, h("h2", { text: "Get your Coaster ready" }), h("button", { class: "view-all", type: "button", text: "Hide", onclick: async () => {
+        const coaster = { ...(S.me.coaster || {}), welcome_done: true }; walk.replaceChildren(); try { await q(sb.from("comics").update({ coaster }).eq("id", me.id)); S.me = { ...S.me, coaster }; } catch (e) {} } })),
+      h("p", { class: "hint", style: "margin:0 0 12px", text: "A few minutes, then share it everywhere. " + done + " of " + steps.length + " done." }),
+      h("div", { class: "walk-bar", "aria-hidden": "true" }, h("i", { style: "width:" + Math.round(done / steps.length * 100) + "%" })),
+      h("div", { class: "walk-steps" }, steps.map(([t, ok, fn], i) => h("button", { class: "walk-step" + (ok ? " done" : ""), type: "button", onclick: fn },
+        h("span", { class: "ws-n", text: ok ? "✓" : String(i + 1) }), h("span", { text: t }))))));
     const next = shows[0];
     hello.textContent = next ? "Next up: " + (next.venue || next.city) + ", " + relDay(next.date) + (next.time ? " at " + next.time : "") + "." : "No shows on the books yet. Add one and it's everywhere at once.";
     nums.append(numCard("shows", shows.length, "Upcoming shows", true, () => goCT("dates")));

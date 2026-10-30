@@ -10,7 +10,8 @@
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     const here = S.hosts.find((x) => x.comic_id === me.id);
     const asks = h("div");
-    wrap.append(asks, coasterPage({ ...me, id: here ? here.id : null, comic_id: me.id }, { me: true }), coasterTeamCard(me));
+    wrap.append(asks, coasterPage({ ...me, id: here ? here.id : null, comic_id: me.id }, { me: true, open: ME_OPEN }), coasterTeamCard(me));
+    ME_OPEN = null;
     requestsCard(me).then((c) => { if (c) asks.replaceWith(c); });
   }
   // Coasters this login helps with (on a comic's own team). Owners and Editors get the Coaster; Shows only gets the dates.
