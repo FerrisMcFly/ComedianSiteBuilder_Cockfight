@@ -163,8 +163,8 @@
             } }))));
       }));
       draw();
-      shortsCard.replaceChildren(h("h2", { text: "Shorts" }), vids.length ? h("p", { class: "hint", style: "margin:0", text: "Featured ones go first and play big. Hidden ones stay off your Coaster." }) : null,
-        vids.length ? grid : h("p", { class: "hint", style: "margin:0", text: "Your Shorts show up here once your channel is connected." }));
+      shortsCard.replaceChildren(...[h("h2", { text: "Shorts" }), vids.length ? h("p", { class: "hint", style: "margin:0", text: "Featured ones go first and play big. Hidden ones stay off your Coaster." }) : null,
+        vids.length ? grid : h("p", { class: "hint", style: "margin:0", text: "Your Shorts show up here once your channel is connected." })].filter(Boolean));
     })();
 
     // ---- the whole-show podcast player ----
