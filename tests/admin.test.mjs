@@ -638,6 +638,30 @@ test("a comic's Fans: everyone on their list, by where they joined, searchable",
   assert.match(d.querySelector("main .drow").textContent, /met at The Stand/);
 });
 
+test("My Coaster: four parts, one open at a time; the page around the coaster and the QR code are the comic's choice, and it saves by itself", async () => {
+  const { w, d, db } = await open("#ct/me", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+  });
+  await wait(120);
+  const form = d.querySelector("main #coasterForm");
+  const parts = [...form.querySelectorAll("details.cp-part")];
+  assert.deepEqual(parts.map((p) => p.querySelector(".cp-t b").textContent), ["Basics", "Look", "Links & QR", "What's on it"]);
+  assert.deepEqual(parts.map((p) => p.open), [false, true, false, false], "Look is open");
+  parts[2].open = true; parts[2].dispatchEvent(new w.Event("toggle")); await wait();
+  assert.deepEqual(parts.map((p) => p.open), [false, false, true, false], "opening one closes the others");
+  form.querySelector('[data-page="bg:velvet"]').click();
+  form.querySelector('[data-page="dates:chalk"]').click();
+  form.querySelector('select[aria-label="QR code goes to"]').value = "coaster";
+  form.querySelector('select[aria-label="QR code goes to"]').dispatchEvent(new w.Event("change", { bubbles: true }));
+  await wait(1400);
+  const sam = db.comics.find((c) => c.id === "solo-sam");
+  assert.equal(sam.coaster.page.bg, "velvet", "saved by itself a moment later");
+  assert.equal(sam.coaster.page.dates, "chalk");
+  assert.deepEqual(JSON.parse(JSON.stringify(sam.coaster.qr)), { to: "coaster" });
+  assert.match(d.querySelector(".cp-status").textContent, /Saved/);
+});
+
 test("people: give a comic their own login", async () => {
   const { w, d } = await open("#people");
   let sent = null;
@@ -1164,7 +1188,7 @@ test("Coaster settings: reorder what's on it (drag, or arrow keys on the grip); 
   await wait(80);
   [...d.querySelectorAll(".comic-card")].find((b) => /Lev Fer/.test(b.textContent)).click(); await wait(120);
   const card = d.querySelector("main #coasterForm");
-  card.querySelector("details.cp-fold").open = true;
+  card.querySelector("details[data-part=\"4\"]").open = true;
   press(w, card.querySelector('[data-drag="tape"] .drag-grip'), "ArrowUp"); await wait();
   press(w, card.querySelector('[data-drag="tape"] .drag-grip'), "ArrowUp"); await wait();
   card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);

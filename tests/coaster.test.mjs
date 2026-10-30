@@ -233,3 +233,10 @@ test("link buttons: their own site first by default; the comic's order and hidde
   ({ d } = await load("/lev-fer", { ...base, comics: [{ id: "lev-fer", name: "Lev Fer", website: "https://linktr.ee/levfer", coaster: { links: ["website", "site:lev-fer", "site:cockfight"], links_off: ["site:cockfight"] } }] }));
   assert.deepEqual([...d.querySelectorAll(".lcard b")].map((b) => b.textContent), ["Linktree", "My website"]);
 });
+
+test("the QR code on the back goes where the comic picked", async () => {
+  let { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { qr: { to: "coaster" } } }] });
+  assert.match(d.querySelector(".back").textContent, /Find Lev here.*comictable\.com\/lev-fer/s);
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { qr: { to: "link", link: "https://linktr.ee/lev" } } }] }));
+  assert.match(d.querySelector(".back").textContent, /Scan me.*linktr\.ee\/lev/s);
+});

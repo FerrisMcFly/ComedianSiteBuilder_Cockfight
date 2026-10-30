@@ -615,6 +615,13 @@ body.preview .coaster { animation: none; }
     var first = c.name.split(" ")[0];
     // the QR on the back joins the fan list by default: the site's list, or the comic's own (this page, opened to Join)
     var qrTo = fanSite ? (fanSite.domain ? "https://" + fanSite.domain + "/join" : location.origin + "/join/" + encodeURIComponent(fanSite.id)) : here + "#join";
+    // ...unless the comic picked somewhere else for it (My Coaster → Links & QR)
+    var qrPick = (c.coaster && c.coaster.qr) || {}, qrSay = "Join " + c.name + "'s list";
+    var ownSite = sites.filter(function (s) { return s.domain; }).sort(function (a, b) { return (b.name === c.name) - (a.name === c.name); })[0];
+    if (qrPick.to === "coaster") { qrTo = here; qrSay = "Find " + first + " here"; }
+    else if (qrPick.to === "site" && ownSite) { qrTo = "https://" + ownSite.domain; qrSay = first + "'s website"; }
+    else if (qrPick.to === "tickets" && dates[0] && safe(dates[0].url)) { qrTo = dates[0].url; qrSay = "Tickets: " + (dates[0].venue || "next show"); }
+    else if (qrPick.to === "link" && safe(qrPick.link)) { qrTo = qrPick.link; qrSay = "Scan me"; }
     var wear = ["used", "loved"].indexOf(c.coaster && c.coaster.wear) >= 0 ? c.coaster.wear : "fresh";
     var seed = 0; String(c.id).split("").forEach(function (ch) { seed = (seed * 31 + ch.charCodeAt(0)) >>> 0; });
     var rnd = function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
@@ -651,8 +658,8 @@ body.preview .coaster { animation: none; }
       el("div", { class: "addr" }, ["comictable.com/", el("br"), handle])]).concat(wearOn(false))));
     var qr = el("div", { class: "qr" });
     var back = el("div", { class: "face back" }, el("div", { class: "print" }, [art(), el("div", { class: "rim2", "aria-hidden": "true" })].concat(wearOn(true)).concat([
-      el("span", { class: "hand", text: "Join " + c.name + "'s list" }), qr,
-      el("span", { class: "scan", text: "Scan to join, or visit" }),
+      el("span", { class: "hand", text: qrSay }), qr,
+      el("span", { class: "scan", text: /^Join/.test(qrSay) ? "Scan to join, or visit" : "Scan, or visit" }),
       el("span", { class: "url", text: qrTo.replace(/^https?:\/\//, "") })])));
     var coaster = el("button", { class: "coaster wear-" + wear, style: "--nx:" + (50 + Math.cos(nick) * 48).toFixed(1) + "%;--ny:" + (50 + Math.sin(nick) * 48).toFixed(1) + "%", type: "button", "aria-label": c.name + "'s Coaster. Flip it for a QR code", "aria-pressed": "false", onclick: function () {
       var f = coaster.classList.toggle("flipped"); coaster.setAttribute("aria-pressed", String(f)); tap.textContent = f ? "Tap to flip back" : "Tap the coaster for a QR code";

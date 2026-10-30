@@ -6,7 +6,7 @@
     const me = S.me;
     if (!me) return viewHelping(main);
     const url = coasterUrl(me);
-    main.append(head("Coaster", "Your card on ComicTable and your link in bio. Every site you're on pulls from it."));
+    main.append(head("My Coaster", "Every change shows on the phone as you make it, and saves by itself. Every site you're on pulls from it."));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
     const here = S.hosts.find((x) => x.comic_id === me.id);
     const asks = h("div");
