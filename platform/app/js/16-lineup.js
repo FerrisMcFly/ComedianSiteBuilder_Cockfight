@@ -99,7 +99,7 @@
         field("Name", name), results, msg, h("div", { class: "btns" }, h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => addBox.replaceChildren() }))));
       name.focus();
     } });
-    main.append(head("Lineup", "Everyone on " + S.site.name + ". Each person gets their own page, bio, photo, socials and show dates.", addBtn), addBox);
+    main.append(head("Lineup", "Everyone on " + S.site.name + ", in order. Each comes with their Coaster; change anything for this site only.", addBtn), addBox);
     const grid = sortable(h("div", { class: "people" }), async (from, to) => { await resort("hosts", S.hosts, from, to); await reload.hosts(); route(); }); main.append(grid);
     if (!S.hosts.length) grid.append(h("section", { class: "card" }, empty("No one here yet", "Add the first person above.")));
     // which other sites each person is on, so it's clear what a shared change affects
@@ -115,7 +115,21 @@
         grid.querySelectorAll("[data-also]").forEach((el) => { const l = elsewhere[el.dataset.also]; if (l) { el.textContent = "Also on " + l.join(", ") + ". Name, photo, socials and the shared bio show there too."; el.hidden = false; } });
       } catch (e) {}
     })();
+    // one row per person, their Coaster at a glance; open it to change things for this site only
     S.hosts.forEach((x, idx) => {
-      grid.append(personCard(x, idx));
+      const card = personCard(x, idx);
+      card.removeAttribute("data-drag");
+      const n = S.shows.filter((s) => s.host === x.id && s.date >= today()).length;
+      const custom = [x.own_title && "title", x.own_bio && "bio", x.own_photo && "photo"].filter(Boolean);
+      const role = x.comic_id && S.logins && S.logins[x.comic_id] ? "Has a login" : "";
+      const row = h("details", { class: "card lrow" + (x.hidden ? " is-hidden" : ""), "data-drag": x.id },
+        h("summary", null, grip(x.name),
+          x.photo_url ? h("img", { class: "lrow-av", src: x.photo_url, alt: "" }) : h("span", { class: "lrow-av nav-av", text: x.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase() }),
+          h("span", { class: "drow-main" }, h("b", { text: x.name }), h("span", { text: [x.title || "Comedian", n ? n + " upcoming show" + (n > 1 ? "s" : "") : "No shows yet", role].filter(Boolean).join(" · ") })),
+          x.hidden ? h("span", { class: "spill muted" }, h("i"), "Hidden") : null,
+          x.comic_id ? h("span", { class: "spill " + (custom.length ? "soon" : "live") }, h("i"), custom.length ? "Own " + custom.join(", ") + " here" : "Using their Coaster") : null,
+          h("span", { class: "btn sm lrow-open", "aria-hidden": "true", text: "Change for this site" })),
+        card);
+      grid.append(row);
     });
   }
