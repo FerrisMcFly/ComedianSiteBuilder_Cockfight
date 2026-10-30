@@ -69,34 +69,58 @@
     draw(); return card;
   }
   // A comic's dates, on their Coaster and every site they're on.
+  // A comic's Shows (style guide board 5): one list for everything, by month, with a filter for each site they're on.
+  // Dates belong to the Coaster: added and changed right here, and they show everywhere.
   async function viewMyDates(main, comic, noHead) {
     const me = comic || S.me;
     if (!me) return viewHelping(main);
-    if (!noHead) main.append(head("Dates", "Every date you add shows on your Coaster and every site you're on."));
-    const datesCard = h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" }));
-    main.append(datesCard);
-    let mySites = [];
+    const addBox = h("div");
+    const add = h("button", { class: "btn primary big", type: "button", id: "addDateBtn", text: "+ Add a show", onclick: () => { addBox.replaceChildren(coasterDateForm(me)); const f = addBox.querySelector("input"); if (f) f.focus(); } });
+    if (!noHead) main.append(head("Shows", "Add a show once. It's on your Coaster and every site you're on.", add));
+    else main.append(h("div", { class: "btns", style: "margin-bottom:12px" }, add));
+    const chips = h("div", { class: "chips", role: "group", "aria-label": "Where it shows" });
+    const list = h("div", { class: "stack", style: "gap:16px" }, h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" })));
+    main.append(addBox, chips, list);
+    let dates;
+    try { dates = await q(sb.rpc("comic_shows", { p_comic: me.id })); }
+    catch (e) { list.replaceChildren(h("section", { class: "card" }, h("p", { class: "err", text: /comic_shows|function/i.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) }))); return; }
+    dates = dates.filter((d) => d.date >= today()).sort((a, b) => (a.date + to24(a.time)).localeCompare(b.date + to24(b.time)));
+    // fans within 50 miles of each club (their own list), when we know where both are
+    const near = {};
     try {
-      const rows = await q(sb.from("hosts").select("site_id, id").eq("comic_id", me.id));
-      mySites = rows.map((r) => ({ id: r.site_id, team: S.sites.some((x) => x.id === r.site_id) }));
+      const vids = [...new Set(dates.map((d) => d.venue_id).filter(Boolean))];
+      if (vids.length) {
+        const [vs, fs] = await Promise.all([q(sb.from("venues").select("id,lat,lng").in("id", vids)), q(sb.from("comic_fans").select("lat,lng").eq("comic_id", me.id).not("lat", "is", null).limit(20000))]);
+        const mi = (a, b, c, d) => { const r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2; return 7918 * Math.asin(Math.sqrt(x)); };
+        vs.filter((v) => v.lat != null).forEach((v) => { near[v.id] = fs.filter((f) => mi(v.lat, v.lng, f.lat, f.lng) <= 50).length; });
+      }
     } catch (e) {}
-    try {
-      const dates = await q(sb.rpc("comic_shows", { p_comic: me.id }));
-      // with a site: the site's date tools (club search, runs, show finder); without one: a simple form right here
-      const addHere = null;  // dates are the Coaster's: added here, on every site they're on
-      const addBox = h("div");
-      datesCard.replaceChildren(h("div", { class: "toolbar" }, h("h2", { style: "margin:0", text: "Upcoming (" + dates.length + ")" }),
-          h("button", { class: "btn primary", type: "button", text: "+ Add a date", onclick: addHere || (() => addBox.replaceChildren(coasterDateForm(me))) })),
-        addBox,
-        dates.length ? h("div", null, dates.map((d) => h("div", { class: "switch-row" },
-          h("div", { style: "min-width:0" }, h("b", { text: shortDate(d.date) + (d.time ? " at " + d.time : "") + " · " + (d.venue || d.city || "Show") }),
-            h("div", { class: "hint", text: [d.city, d.event ? d.site_name + " live show" : "", d.status === "sold_out" ? "Sold out" : d.status === "cancelled" ? "Cancelled" : ""].filter(Boolean).join(" · ") })),
-          h("div", { class: "btns" }, d.url ? h("a", { class: "btn sm ghost", href: d.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : h("span", { class: "pill warn", text: "No ticket link" }),
-            d.comic_id === me.id ? h("button", { class: "btn sm ghost", type: "button", text: "Edit", onclick: (e) => { const row = e.currentTarget.closest(".switch-row"); row.after(coasterDateForm(me, d)); } }) : null))))
-          : empty("No upcoming dates", "Add some and they'll show on your Coaster and every site you're on."));
-    } catch (e) { datesCard.replaceChildren(h("h2", { text: "Dates" }), h("p", { class: "err", text: /comic_shows|function/i.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) })); }
+    // where each date shows: everywhere (their own), or a group's live show on that site
+    const sites = [...new Map(dates.filter((d) => d.event && d.site_id).map((d) => [d.site_id, d.site_name])).entries()];
+    let pick = "";
+    const drawChips = () => chips.replaceChildren(...(sites.length ? [["", "Everywhere"], ["mine", "Just mine"]].concat(sites.map(([id, n]) => [id, n + " live shows"])) : []).map(([v, l]) =>
+      h("button", { type: "button", class: "chip", "aria-pressed": String(pick === v), text: l, onclick: () => { pick = v; drawChips(); draw(); } })));
+    const row = (d) => {
+      const mine = d.comic_id === me.id;
+      const r = h("div", { class: "drow show-row" }, dateTile(d.date),
+        h("span", { class: "drow-main" }, h("b", { text: d.venue || d.city || "Show" }),
+          h("span", { text: [d.city, DOW[parseISO(d.date).getDay()] + (d.time ? " " + d.time : ""), d.event ? d.site_name + " live show" : "everywhere"].filter(Boolean).join(" · ") })),
+        d.venue_id && near[d.venue_id] != null ? h("span", { class: "near", text: near[d.venue_id] + " fan" + (near[d.venue_id] === 1 ? "" : "s") + " nearby" }) : null,
+        statusPill(d),
+        h("span", { class: "btns" }, d.url ? h("a", { class: "btn sm ghost", href: d.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : null,
+          mine ? h("button", { class: "btn sm", type: "button", text: "Edit", onclick: () => { const open = r.nextElementSibling && r.nextElementSibling.matches("form.newclub"); if (open) r.nextElementSibling.remove(); else r.after(coasterDateForm(me, d)); } })
+            : h("button", { class: "btn sm ghost", type: "button", text: "Edit on " + d.site_name, title: "A live show by the whole " + d.site_name + " crew", onclick: () => switchSite(d.site_id, "shows") })));
+      return r;
+    };
+    const draw = () => {
+      const shown = dates.filter((d) => !pick || (pick === "mine" ? !d.event : d.event && d.site_id === pick));
+      if (!shown.length) { list.replaceChildren(h("section", { class: "card" }, empty(dates.length ? "Nothing here" : "No shows yet", dates.length ? "Try Everywhere." : "Add your next date. It's on your Coaster and every site you're on."))); return; }
+      const months = new Map(); shown.forEach((d) => { const k = d.date.slice(0, 7); if (!months.has(k)) months.set(k, []); months.get(k).push(d); });
+      list.replaceChildren(...[...months].map(([k, ds]) => h("section", { class: "card" }, h("h2", { style: "margin:0 0 6px", text: MONTH_FULL[+k.slice(5) - 1] + (k.slice(0, 4) !== today().slice(0, 4) ? " " + k.slice(0, 4) : "") }),
+        h("div", { class: "drows" }, ds.map(row)))));
+    };
+    drawChips(); draw();
   }
-
 
   // On a site's People page: give a comic their own login (or see that they have one).
   function loginBox(x) {

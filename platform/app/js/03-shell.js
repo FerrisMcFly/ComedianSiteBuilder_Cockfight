@@ -210,7 +210,7 @@
       h("div", { class: "top-left" }, h("nav", { class: "crumbs", "aria-label": "You are here" }, trail)),
       h("div", { class: "top-actions" },
         // the one red button: a comic's next show from anywhere in their own pages; on a site, a new post
-        S.me && S.level === "ct" ? h("button", { class: "btn primary", type: "button", id: "topAddShow", text: "+ Add a show", onclick: () => { goCT("dates"); setTimeout(() => { const b = [...document.querySelectorAll("main button")].find((x) => /Add a date/.test(x.textContent)); if (b) b.click(); }, 60); } })
+        S.me && S.level === "ct" && location.hash !== "#ct/dates" ? h("button", { class: "btn primary", type: "button", id: "topAddShow", text: "+ Add a show", onclick: () => { goCT("dates"); setTimeout(() => { const b = document.getElementById("addDateBtn"); if (b) b.click(); }, 300); } })
           : S.site && S.level === "site" && roleAllows("posts") ? h("button", { class: "btn primary", type: "button", id: "topNewPost", text: "+ New post", onclick: () => go("posts/news") }) : null,
         S.level === "site" && (S.site.domain || !CFG.PLATFORM) ? h("a", { class: "btn ghost sm", href: S.site.domain ? "https://" + S.site.domain : "./", target: "_blank", rel: "noopener", text: "View site ↗" }) : null,
         acctMenu()));

@@ -181,3 +181,9 @@ img.acct-av { object-fit: cover; width: 30px; height: 30px; }
 .cp-status .ok::before { content: "✓ "; }
 .cp-side .cp-save { width: 100%; max-width: 360px; }
 @media (max-width: 1100px) { .cp { grid-template-columns: 1fr; } .cp-side { position: static; order: -1; } .cp-phone { height: 560px; } }
+
+/* ---------- Shows ---------- */
+.show-row .near { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.show-row .btns { flex: none; }
+.drow + form.newclub { margin: 0 0 14px; }
+@media (max-width: 880px) { .show-row { flex-wrap: wrap; } .show-row .drow-main { flex-basis: calc(100% - 70px); } .show-row .near { margin-left: 66px; } }

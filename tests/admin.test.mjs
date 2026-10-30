@@ -514,7 +514,7 @@ test("a comic with their own login gets Coaster and Dates in the sidebar: one Co
   assert.equal(db.comics.find((c) => c.id === "lev-fer").bio, "Lev's own words");
   w.location.hash = "#ct/dates"; await wait(100);
   main = d.querySelector("main");
-  assert.match(main.textContent, /Upcoming \(1\).*Comedy Cellar/s);
+  assert.match(main.textContent, /Shows.*Comedy Cellar.*everywhere/s);
   // nobody without a comic login sees Coaster or Dates
   const other = await open("");
   assert.ok(![...other.d.querySelectorAll(".nav-btn")].some((b) => /Dates$/.test(b.textContent.trim())));
@@ -532,7 +532,7 @@ test("a Coaster with no site: the comic logs in, lands on their dashboard, edits
   assert.ok(d.querySelector("main #coasterForm .looks"), "their Coaster, ready to edit");
   assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /Your sites/.test(b.textContent)), "no sites, no Your sites");
   w.location.hash = "#ct/dates"; await wait(100);
-  btn(d, /Add a date/).click(); await wait();
+  d.getElementById("addDateBtn").click(); await wait();
   const f = d.querySelector("main form.newclub");
   set(w, f.querySelector('input[aria-label="Club"]'), "Comedy Cellar");
   set(w, f.querySelector('input[aria-label="Date"]'), fri);
@@ -578,7 +578,7 @@ test("a comic on a group site: Shows is their Coaster's, and a date is added rig
   assert.ok(nav.includes("Shows") && nav.includes("Live shows"), nav.join(", "));
   [...d.querySelectorAll(".nav-btn")].find((b) => b.dataset.sec === "dates").click(); await wait(100);
   assert.equal(w.location.hash, "#ct/dates");
-  btn(d, /Add a date/).click(); await wait();
+  d.getElementById("addDateBtn").click(); await wait();
   const f = d.querySelector("main form.newclub");
   set(w, f.querySelector('input[aria-label="Club"]'), "Comedy Cellar");
   set(w, f.querySelector('input[aria-label="Date"]'), fri);
