@@ -594,6 +594,38 @@
     tiles: [["tiles", "Tiles"], ["plain", "Plain"]],
     shown: [["3", "Next 3"], ["1", "Next 1"], ["5", "Next 5"], ["all", "All"]]
   };
+  // Name lettering on the coaster's ribbon: [key, name, CSS font, Google font to load]
+  var COASTER_LETTERING = [["block", "Bold block", "Anton, Impact, sans-serif", "Anton"], ["brush", "Brush", "'Permanent Marker', cursive", "Permanent+Marker"],
+    ["script", "Retro script", "Yellowtail, cursive", "Yellowtail"], ["typewriter", "Typewriter", "'Special Elite', monospace", "Special+Elite"],
+    ["neon", "Neon tube", "Monoton, sans-serif", "Monoton"], ["marquee", "Marquee", "'Bungee Shade', sans-serif", "Bungee+Shade"],
+    ["stencil", "Stencil", "'Stardos Stencil', sans-serif", "Stardos+Stencil:wght@700"], ["western", "Western", "Rye, serif", "Rye"], ["comic", "Comic book", "Bangers, sans-serif", "Bangers"]];
+  // Doodles drawn on the coaster around the portrait (a 100 x 100 circle). The comic picks any, or none.
+  var COASTER_DOODLES = [
+    ["crown", "Crown", '<path d="M38 21 41 9l5 7 4-10 4 10 5-7 3 12z"/>'],
+    ["halo", "Halo", '<ellipse cx="50" cy="10" rx="13" ry="3.4" fill="none"/>'],
+    ["horns", "Horns", '<path d="M37 24c-5-6-5-13-2-17 1 6 4 10 8 13zM63 24c5-6 5-13 2-17-1 6-4 10-8 13z"/>'],
+    ["stars", "Stars", '<path d="M17 31q0-3.5 3.5-3.5Q17 27.5 17 24q0 3.5-3.5 3.5Q17 27.5 17 31zM83 25q0-4 4-4-4 0-4-4 0 4-4 4 4 0 4 4zM86 47q0-2.5 2.5-2.5-2.5 0-2.5-2.5 0 2.5-2.5 2.5 2.5 0 2.5 2.5z"/>'],
+    ["sparkles", "Sparkles", '<path d="M20 17v6M17 20h6M80 14v5M77.5 16.5h5M14 42v4M12 44h4M86 36v4M84 38h4" fill="none"/>'],
+    ["lightning", "Lightning", '<path d="M86 25l-7 14h5l-4 12 10-16h-5l4-10z"/>'],
+    ["mic", "Mic", '<rect x="11" y="33" width="7" height="11" rx="3.5"/><path d="M9 41a5.5 5.5 0 0 0 11 0M14.5 47v6M11 53h7" fill="none"/>'],
+    ["beer", "Beer", '<path d="M80 38h9v15h-9z"/><path d="M89 41h3v8h-3M80 38q4.5-4 9 0" fill="none"/>'],
+    ["cigarette", "Cigarette", '<path d="M75 50h14v2.6H75z"/><path d="M89.5 48c1-2-1-3 0-5s-1-3 0-5" fill="none"/>'],
+    ["arrows", "Arrows", '<path d="M6 54q8-12 22-15M24 36l4 3-4 3M94 54q-8-12-22-15M76 36l-4 3 4 3" fill="none"/>'],
+    ["scribble", "Scribble", '<path d="M28 92q6-4 11 0t11 0 11 0 11 0" fill="none"/>']];
+  // Templates set everything at once; the comic changes any part after. look + the page around it + lettering + doodles.
+  var COASTER_TEMPLATES = [
+    ["divebar", "Dive Bar", { look: "classic", letter: "block", doodles: ["stars"], page: { bg: "brick", dates: "tickets", buttons: "status", tiles: "tiles" } }],
+    ["latenight", "Late Night", { look: "night", letter: "script", doodles: ["sparkles"], page: { bg: "neon", dates: "list", buttons: "one", tiles: "tiles" } }],
+    ["theater", "Theater", { look: "custom", style: { pulp: "#EBD9A8", ink: "#4A0F18", band: "#8C1C24", photo: "ink" }, letter: "marquee", doodles: ["stars"], page: { bg: "velvet", dates: "tickets", buttons: "one", tiles: "tiles" } }],
+    ["punk", "Punk Flyer", { look: "custom", style: { pulp: "#F1EEE6", ink: "#141414", band: "#FF2E88", photo: "ink" }, letter: "stencil", doodles: ["scribble", "arrows"], page: { bg: "checker", dates: "list", buttons: "outline", tiles: "plain" } }],
+    ["simple", "Simple", { look: "classic", letter: "block", doodles: [], page: { bg: "solid", dates: "list", buttons: "one", tiles: "plain" } }],
+    ["modern", "Modern", { look: "custom", style: { pulp: "#ECE6DA", ink: "#111111", band: "#111111", photo: "ink" }, letter: "block", doodles: [], page: { bg: "solid", dates: "list", buttons: "outline", tiles: "plain" } }],
+    ["sleek", "Sleek", { look: "night", letter: "block", doodles: [], page: { bg: "solid", dates: "list", buttons: "one", tiles: "tiles" } }],
+    ["vegas", "Vegas", { look: "custom", style: { pulp: "#1A1030", ink: "#FFD23F", band: "#FF2E88", photo: "ink" }, letter: "neon", doodles: ["stars", "sparkles"], page: { bg: "neon", dates: "tickets", buttons: "status", tiles: "tiles" } }],
+    ["openmic", "Open Mic Coffeehouse", { look: "mustard", letter: "typewriter", doodles: ["mic"], page: { bg: "wood", dates: "chalk", buttons: "status", tiles: "plain" } }],
+    ["retrotv", "Retro TV", { look: "redwood", letter: "script", doodles: ["lightning"], page: { bg: "wood", dates: "tickets", buttons: "one", tiles: "tiles" } }],
+    ["comicbook", "Comic Book", { look: "pop", letter: "comic", doodles: ["lightning", "stars"], page: { bg: "checker", dates: "tickets", buttons: "status", tiles: "tiles" } }],
+    ["western", "Honky Tonk", { look: "custom", style: { pulp: "#E8D3A8", ink: "#3B2414", band: "#8A3B12", photo: "ink" }, letter: "western", doodles: ["beer", "stars"], page: { bg: "wood", dates: "tickets", buttons: "status", tiles: "tiles" } }]];
   function coasterPage(c) {
     var p = (c && c.coaster && c.coaster.page && typeof c.coaster.page === "object") ? c.coaster.page : {}, out = {};
     for (var k in COASTER_PAGE) { var ok = COASTER_PAGE[k].map(function (x) { return x[0]; }); out[k] = ok.indexOf(String(p[k])) >= 0 ? String(p[k]) : ok[0]; }
@@ -682,6 +714,6 @@
     return out;
   }
 
-  var CSB = { showView: showView, showList: showList, dedupeShows: dedupeShows, signup: signup, init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, COASTER_PAGE: COASTER_PAGE, coasterPageStyle: coasterPage, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
+  var CSB = { showView: showView, showList: showList, dedupeShows: dedupeShows, signup: signup, init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, COASTER_PAGE: COASTER_PAGE, COASTER_LETTERING: COASTER_LETTERING, COASTER_DOODLES: COASTER_DOODLES, COASTER_TEMPLATES: COASTER_TEMPLATES, coasterPageStyle: coasterPage, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

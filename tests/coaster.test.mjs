@@ -240,3 +240,13 @@ test("the QR code on the back goes where the comic picked", async () => {
   ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { qr: { to: "link", link: "https://linktr.ee/lev" } } }] }));
   assert.match(d.querySelector(".back").textContent, /Scan me.*linktr\.ee\/lev/s);
 });
+
+test("lettering and doodles: the name in the comic's lettering, doodles in the coaster's ink", async () => {
+  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { letter: "western", doodles: ["crown", "mic"], doodle_color: "band" } }] });
+  const name = d.querySelector(".front .ribbon b");
+  assert.match(name.style.fontFamily, /Rye/);
+  assert.ok(d.getElementById("font-western"), "its font loads only when it's used");
+  const svg = d.querySelector(".front .doodles svg");
+  assert.equal(svg.getAttribute("fill"), "var(--ring)");
+  assert.equal(svg.querySelectorAll("path, rect").length >= 3, true);
+});

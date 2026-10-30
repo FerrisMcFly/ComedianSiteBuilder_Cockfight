@@ -96,7 +96,7 @@
     let look = c.look || "classic";
     // Custom (their own colors) comes with a site on ComicTable, or Pro. The database checks this too.
     let onSite = opts.onSite;
-    const canCustom = () => !!c.pro || onSite === true;
+    const canCustom = () => true;  // everything is free for now (founder, Oct 29)
     const style = { pulp: "#F4ECDC", ink: "#1F1F1F", band: "#C4452E", photo: "ink", ...((c.coaster && c.coaster.style) || {}) };
     const preview = h("div", { class: "mini-coaster", "aria-hidden": "true" });
     const colorIn = (k, label) => { const i = h("input", { type: "color", value: /^#[0-9a-f]{6}$/i.test(style[k]) ? style[k] : "#C4452E", "aria-label": label });
@@ -184,10 +184,40 @@
     // The page around the coaster (founder's reference, Oct 30): background, how shows look, buttons, socials, how many shows
     const page = (window.CSB && CSB.coasterPageStyle) ? CSB.coasterPageStyle(c) : { bg: "brick", dates: "tickets", buttons: "status", tiles: "tiles", shown: "3" };
     const PG = (window.CSB && CSB.COASTER_PAGE) || {};
+    const redraws = [];
     const pickBox = (label, key) => { const box = h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: label }));
       const seg = h("div", { class: "chips", role: "group", "aria-label": label }); box.append(seg);
       const draw = () => seg.replaceChildren(...(PG[key] || []).map(([v, t]) => h("button", { type: "button", class: "chip", "data-page": key + ":" + v, "aria-pressed": String(page[key] === v), text: t, onclick: () => { page[key] = v; draw(); } })));
-      draw(); return box; };
+      draw(); redraws.push(draw); return box; };
+    // Name lettering, shown in its own font
+    const cs0 = c.coaster || {};
+    let letter = cs0.letter || "block";
+    const doodleSet = new Set(Array.isArray(cs0.doodles) ? cs0.doodles : []);
+    let doodleColor = cs0.doodle_color || "ink";
+    const LETS = (window.CSB && CSB.COASTER_LETTERING) || [], DOOS = (window.CSB && CSB.COASTER_DOODLES) || [], TPLS = (window.CSB && CSB.COASTER_TEMPLATES) || [];
+    if (LETS.length && !document.getElementById("letFonts")) document.head.append(h("link", { id: "letFonts", rel: "stylesheet", href: "https://fonts.googleapis.com/css2?" + LETS.map((x) => "family=" + x[3]).join("&") + "&display=swap" }));
+    const letRow = h("div", { class: "chips", role: "group", "aria-label": "Name lettering" });
+    const drawLet = () => letRow.replaceChildren(...LETS.map(([k, l, font]) => h("button", { type: "button", class: "chip let-chip", "data-letter": k, "aria-pressed": String(letter === k), style: "font-family:" + font, text: l, onclick: () => { letter = k; drawLet(); } })));
+    drawLet(); redraws.push(drawLet);
+    const doRow = h("div", { class: "chips", role: "group", "aria-label": "Doodles" });
+    const drawDo = () => doRow.replaceChildren(h("button", { type: "button", class: "chip", "data-doodle": "none", "aria-pressed": String(!doodleSet.size), text: "None", onclick: () => { doodleSet.clear(); drawDo(); } }),
+      ...DOOS.map(([k, l]) => h("button", { type: "button", class: "chip doo-chip", "data-doodle": k, "aria-pressed": String(doodleSet.has(k)), text: l, onclick: () => { doodleSet.has(k) ? doodleSet.delete(k) : doodleSet.add(k); drawDo(); } })));
+    drawDo(); redraws.push(drawDo);
+    const doColor = h("div", { class: "chips", role: "group", "aria-label": "Doodle color" });
+    const drawDoC = () => doColor.replaceChildren(...[["ink", "Ink"], ["band", "Band color"]].map(([v, t]) => h("button", { type: "button", class: "chip", "aria-pressed": String(doodleColor === v), text: t, onclick: () => { doodleColor = v; drawDoC(); } })),
+      (() => { const i = h("input", { type: "color", "aria-label": "Your own doodle color", value: /^#/.test(doodleColor) ? doodleColor : "#E0A21A" }); i.addEventListener("input", () => { doodleColor = i.value; }); return h("label", { class: "chip color-chip" }, i, "Your color"); })());
+    drawDoC(); redraws.push(drawDoC);
+    const letterBox = h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Name lettering" }), letRow);
+    const doodleBox = h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Doodles" }), doRow, doColor);
+    // Templates: set everything at once, then change any part
+    const tplRow = h("div", { class: "tpl-grid", role: "group", "aria-label": "Templates" }, TPLS.map(([k, l, t]) => {
+      const L = LOOKS.find((x) => x[0] === t.look), pulp = t.style ? t.style.pulp : L ? L[2] : "#E9D6AF", ring = t.style ? t.style.band : L ? L[3] : "#C4452E";
+      return h("button", { type: "button", class: "tpl", "data-template": k, onclick: () => {
+        look = t.look; if (t.style) Object.assign(style, t.style); letter = t.letter || "block"; doodleSet.clear(); (t.doodles || []).forEach((x) => doodleSet.add(x));
+        Object.assign(page, t.page || {}); redraws.forEach((f) => f()); drawPhoto(); paint(); toast(l + " is on. Change any part below.");
+      } }, h("span", { class: "tpl-sw bg-" + ((t.page || {}).bg || "brick") }, h("i", { style: "background:" + pulp + ";box-shadow:0 0 0 3px " + ring })), h("b", { text: l }));
+    }));
+    const templateBox = h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Start from a template" }), tplRow);
     const pageBox = h("div", { class: "stack", style: "gap:4px" }, pickBox("Background", "bg"), pickBox("Shows look like", "dates"), pickBox("Ticket buttons", "buttons"), pickBox("Socials", "tiles"));
     const shownBox = pickBox("How many shows up front", "shown");
     // Where the QR code on the back goes (default: the fan list)
@@ -228,7 +258,7 @@
     return {
       url,
       // the pieces on their own, for the Coaster page (coasterPage) to lay out
-      parts: { page: pageBox, shown: shownBox, qr: qrBox, preview, looks: h("div", { class: "stack", style: "gap:10px;min-width:0" }, looks, customBox, customNote), wear: h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear" }), wearSeg),
+      parts: { templates: templateBox, letter: letterBox, doodles: doodleBox, page: pageBox, shown: shownBox, qr: qrBox, preview, looks: h("div", { class: "stack", style: "gap:10px;min-width:0" }, looks, customBox, customNote), wear: h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear" }), wearSeg),
         tapeUrl, tapeTitle, linksBox, plan: h("div", { class: "stack", style: "gap:8px" }, h("b", { text: "What's on " + yours + " Coaster" }),
           h("p", { class: "hint", style: "margin:0", text: "Up front, under More, or off. Drag to change the order." }), planRows), socBox, billsRow, proBox },
       // a line under the name: the Coaster's address, with Open
@@ -248,7 +278,7 @@
       patch() {
         const t = tapeUrl.value.trim();
         const out = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
-        if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, wear, links: linkList.length ? linkList.map((x) => x.key) : linkOrder, links_off: [...linkOff], page: { ...page }, qr: { to: qrSel.value, ...(qrSel.value === "link" ? { link: qrLink.value.trim() } : {}) }, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
+        if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, wear, links: linkList.length ? linkList.map((x) => x.key) : linkOrder, links_off: [...linkOff], page: { ...page }, letter, doodles: [...doodleSet], doodle_color: doodleColor, qr: { to: qrSel.value, ...(qrSel.value === "link" ? { link: qrLink.value.trim() } : {}) }, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
         return out;
       }
     };
@@ -333,7 +363,7 @@
         h("div", { class: "stack", style: "gap:8px" }, h("b", { text: "Socials" }),
           filled.length ? h("div", { class: "soc-list" }, filled.map(socRow)) : h("p", { class: "hint", style: "margin:0", text: "Paste the link to each one you use." }),
           empties.length ? h("details", { class: "quiet", open: !filled.length || null }, h("summary", { text: filled.length ? "Add another" : "All networks" }), h("div", { class: "soc-list", style: "margin-top:10px" }, empties.map(socRow))) : null)),
-      P ? part("2", "Look", "The coaster, the wall behind it, how shows and buttons look", opts.open !== "basics", P.looks, P.wear, P.page) : null,
+      P ? part("2", "Look", "Templates, the coaster, lettering, doodles, the wall behind it", opts.open !== "basics", P.templates, h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Coaster colors (Custom: design your own)" }), P.looks), P.letter, P.doodles, P.wear, P.page) : null,
       P ? part("3", "Links & QR", "Your buttons, where the QR code goes, how socials show", false, P.linksBox, P.qr, P.socBox) : null,
       P ? part("4", "What's on it", "Up front, under More or off, and in what order", false, P.plan, P.shown, P.billsRow, P.proBox) : null,
       msg);

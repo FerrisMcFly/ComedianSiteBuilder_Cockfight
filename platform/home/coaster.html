@@ -441,6 +441,15 @@ a.tb:hover { filter: brightness(1.08); }
 .lcard { background: rgba(14, 10, 7, .82); border: 0; }
 .more-btn { background: rgba(10, 8, 7, .74); border: 0; }
 body.preview .coaster { animation: none; }
+/* ---------- lettering and doodles ---------- */
+.print .doodles { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.print .doodles svg { width: 100%; height: 100%; display: block; }
+.print .ribbon b.let-script, .print .ribbon b.let-brush, .print .ribbon b.let-typewriter, .print .ribbon b.let-western { text-transform: none; }
+.print .ribbon b.let-script { font-size: calc(var(--name-fs, 13cqw) * 1.15); transform: skewX(-4deg); }
+.print .ribbon b.let-neon { font-size: calc(var(--name-fs, 13cqw) * .78); color: #fff; text-shadow: 0 0 1cqw #fff, 0 0 2.5cqw var(--band-ink, #FF2E88), 0 0 5cqw var(--band-ink, #FF2E88); }
+.print .ribbon b.let-marquee { font-size: calc(var(--name-fs, 13cqw) * .78); }
+.print .ribbon b.let-comic { letter-spacing: .03em; }
+
 </style>
 </head>
 <body>
@@ -650,10 +659,27 @@ body.preview .coaster { animation: none; }
     var handle = c.handle || c.id;
     var nameEl = el("b", { text: c.name });
     nameEl.style.setProperty("--name-fs", Math.min(13, 92 / Math.max(6, c.name.length * .62)).toFixed(2) + "cqw");
+    // the lettering the comic picked for their name (fonts load only when used)
+    var cs = c.coaster || {}, LET = (CSB.COASTER_LETTERING || []).filter(function (x) { return x[0] === cs.letter; })[0];
+    if (LET && LET[0] !== "block") {
+      var fid = "font-" + LET[0];
+      if (!document.getElementById(fid)) document.head.append(el("link", { id: fid, rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=" + LET[3] + "&display=swap" }));
+      nameEl.style.fontFamily = LET[2]; nameEl.classList.add("let-" + LET[0]);
+    }
+    // doodles around the portrait, in the coaster's ink, its band color, or their own
+    var DOO = (CSB.COASTER_DOODLES || []).filter(function (x) { return Array.isArray(cs.doodles) && cs.doodles.indexOf(x[0]) >= 0; });
+    var doodles = function () {
+      if (!DOO.length) return null;
+      var col = cs.doodle_color === "band" ? "var(--ring)" : /^#[0-9a-f]{6}$/i.test(cs.doodle_color || "") ? cs.doodle_color : "var(--print)";
+      var d = el("div", { class: "doodles", "aria-hidden": "true" });
+      d.innerHTML = '<svg viewBox="0 0 100 100" fill="' + col + '" stroke="' + col + '" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">' + DOO.map(function (x) { return x[2]; }).join("") + "</svg>";
+      return d;
+    };
     var front = el("div", { class: "face front" }, el("div", { class: "print" }, [art()].concat([
       safe(c.photo_url) ? el("img", { class: "portrait", src: c.photo_url, alt: "" }) : el("div", { class: "initials", text: initials(c.name) }),
       safe(c.photo_url) ? el("div", { class: "hatch", "aria-hidden": "true" }) : null,
       el("div", { class: "rim2", "aria-hidden": "true" }),
+      doodles(),
       el("div", { class: "ribbon" }, nameEl),
       el("div", { class: "addr" }, ["comictable.com/", el("br"), handle])]).concat(wearOn(false))));
     var qr = el("div", { class: "qr" });

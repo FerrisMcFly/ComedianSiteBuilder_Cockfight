@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "99_rules.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "99_rules.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -427,12 +427,12 @@ test("Coasters: a Tape and a look, a site's own photo, asking a comic with a log
   await q(`update comics set on_bills = true where id = 'colum-tyrrell'`);
 });
 
-test("Coasters: preset looks for everyone; a Custom look comes with a site or Pro; only ComicTable admins give Pro", async () => {
+test("Coasters: every look is free for now, Custom included; only ComicTable admins give Pro", async () => {
   const LEV = "33333333-3333-3333-3333-333333333333", SOLO = "99999999-9999-9999-9999-999999999999", BOSS = "44444444-4444-4444-4444-444444444444";
   await q(`insert into auth.users values ('${SOLO}', 'solo@x') on conflict do nothing`);
   await q(`insert into comics (id, name, user_id) values ('solo-sam', 'Solo Sam', '${SOLO}') on conflict do nothing`);
   assert.equal(await as(SOLO, `update comics set look = 'mustard' where id = 'solo-sam'`), "ok", "presets are for everyone");
-  assert.match(await as(SOLO, `update comics set look = 'custom', coaster = '{"style":{"pulp":"#ffffff"}}' where id = 'solo-sam'`), /come with a site/);
+  assert.equal(await as(SOLO, `update comics set look = 'custom', coaster = '{"style":{"pulp":"#eeeeee"}}' where id = 'solo-sam'`), "ok", "everything is free for now: no site needed for Custom");
   assert.match(await as(SOLO, `update comics set pro = true where id = 'solo-sam'`), /Only ComicTable admins/);
   assert.equal(await as(BOSS, `update comics set pro = true where id = 'solo-sam'`), "ok");
   assert.equal(await as(SOLO, `update comics set look = 'custom', coaster = '{"style":{"pulp":"#ffffff"}}' where id = 'solo-sam'`), "ok", "Pro gets Custom");
