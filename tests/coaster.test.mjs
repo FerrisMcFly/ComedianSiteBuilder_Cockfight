@@ -250,3 +250,13 @@ test("lettering and doodles: the name in the comic's lettering, doodles in the c
   assert.equal(svg.getAttribute("fill"), "var(--ring)");
   assert.equal(svg.querySelectorAll("path, rect").length >= 3, true);
 });
+
+test("the whole-show podcast player, and Shorts the comic featured or hid", async () => {
+  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { podcast: { name: "Cockfight", spotify: "https://open.spotify.com/show/4rOoJ6Egrf8K2IrywzwOMk" },
+    shorts: { featured: ["BBBBBBBBBBB"], hidden: ["CCCCCCCCCCC"] }, shorts_on: true } }],
+    videos: [{ youtube_id: "AAAAAAAAAAA", title: "One" }, { youtube_id: "BBBBBBBBBBB", title: "Two" }, { youtube_id: "CCCCCCCCCCC", title: "Three" }] });
+  assert.equal(d.querySelector(".pod iframe").getAttribute("src"), "https://open.spotify.com/embed/show/4rOoJ6Egrf8K2IrywzwOMk");
+  const shorts = [...d.querySelectorAll(".short")];
+  assert.deepEqual(shorts.map((b) => b.getAttribute("aria-label")), ["Play: Two", "Play: One"], "featured first, hidden gone");
+  assert.ok(shorts[0].classList.contains("featured"));
+});

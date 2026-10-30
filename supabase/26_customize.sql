@@ -24,3 +24,18 @@ begin
       and jsonb_typeof(coaster) = 'object' and length(coaster::text) <= 8000);
   end if;
 end $$;
+
+-- A comic's own YouTube channel lives on their Coaster, with or without a site (founder, Oct 29):
+-- a channel and its videos can belong to just a comic.
+alter table sources alter column site_id drop not null;
+alter table videos alter column site_id drop not null;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'sources_has_owner') then
+    alter table sources add constraint sources_has_owner check (site_id is not null or comic_id is not null);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'videos_has_owner') then
+    alter table videos add constraint videos_has_owner check (site_id is not null or comic_id is not null);
+  end if;
+end $$;
+create unique index if not exists videos_comic_yt on videos (comic_id, youtube_id) where site_id is null;

@@ -684,6 +684,26 @@ test("My Coaster: a template sets everything at once; lettering and doodles are 
   assert.equal(sam.coaster.page.bg, "velvet");
 });
 
+test("Podcast / YouTube: connect a channel with no site, pick Shorts, and set the whole-show player", async () => {
+  const { w, d, db } = await open("#ct/media", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+    db.videos.push({ id: "v1", comic_id: "solo-sam", site_id: null, youtube_id: "AAAAAAAAAAA", title: "Crowd work", is_short: true, published: "2026-10-20" });
+  });
+  await wait(150);
+  const main = d.querySelector("main");
+  set(w, main.querySelector('input[aria-label="YouTube channel link"]'), "https://www.youtube.com/@solosam");
+  main.querySelector('input[aria-label="YouTube channel link"]').closest("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const src = db.sources.find((x) => x.comic_id === "solo-sam");
+  assert.deepEqual([src.site_id, src.kind, src.url], [null, "youtube", "https://www.youtube.com/@solosam"], "a channel on the Coaster, no site needed");
+  btn(d, /^Featured$/, main.querySelector(".short-pick")).click(); await wait(60);
+  assert.deepEqual(JSON.parse(JSON.stringify(db.comics.find((c) => c.id === "solo-sam").coaster.shorts)), { featured: ["AAAAAAAAAAA"], hidden: [] });
+  set(w, main.querySelector('input[aria-label="Spotify show link"]'), "https://open.spotify.com/show/4rOoJ6Egrf8K2IrywzwOMk");
+  main.querySelector('input[aria-label="Spotify show link"]').closest("form").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  assert.equal(db.comics.find((c) => c.id === "solo-sam").coaster.podcast.spotify, "https://open.spotify.com/show/4rOoJ6Egrf8K2IrywzwOMk");
+  assert.ok(db.comics.find((c) => c.id === "solo-sam").coaster.shorts, "saving the player keeps the Shorts picks");
+});
+
 test("people: give a comic their own login", async () => {
   const { w, d } = await open("#people");
   let sent = null;
@@ -1213,7 +1233,7 @@ test("Coaster settings: reorder what's on it (drag, or arrow keys on the grip); 
   press(w, card.querySelector('[data-drag="tape"] .drag-grip'), "ArrowUp"); await wait();
   card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
   const order = db.comics.find((c) => c.id === "lev-fer").coaster.order;
-  assert.deepEqual(JSON.parse(JSON.stringify(order)).slice(0, 6), ["socials", "dates", "bill", "tape", "links", "join"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(order)).slice(0, 6), ["socials", "dates", "bill", "links", "tape", "join"]);
 });
 
 test("Coaster settings: socials show as logos, logo + name or names; pick which networks show", async () => {

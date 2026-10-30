@@ -244,7 +244,9 @@ async function importYouTube(db, src) {
   const channel = feedTitle(body);
   await nameSource(db, src, channel);
   // A comic's own channel shows on every site they're on, so skip videos they already have anywhere.
-  const mine = src.comic_id ? db.from("videos").select("*").or(`site_id.eq.${src.site_id},comic_id.eq.${src.comic_id}`) : db.from("videos").select("*").eq("site_id", src.site_id);
+  // (a channel can belong to just a comic, on their Coaster, with no site)
+  const mine = src.comic_id && !src.site_id ? db.from("videos").select("*").eq("comic_id", src.comic_id)
+    : src.comic_id ? db.from("videos").select("*").or(`site_id.eq.${src.site_id},comic_id.eq.${src.comic_id}`) : db.from("videos").select("*").eq("site_id", src.site_id);
   const { data: existing, error } = await mine;
   if (error) throw error;
   const have = new Set(existing.map((v) => v.youtube_id));
@@ -256,7 +258,7 @@ async function importYouTube(db, src) {
   // Shorts that aren't in the latest uploads list still come in
   const all = vids.concat(shortVids.filter((v) => !vids.some((x) => x.youtube_id === v.youtube_id)));
   const fresh = all.filter((v) => !have.has(v.youtube_id))
-    .map((v) => ({ ...v, is_short: shorts.has(v.youtube_id), site_id: src.site_id, source_id: src.id, channel: channel || src.label || null, host: src.host || null, comic_id: src.comic_id || null, imported_at: new Date().toISOString() }));
+    .map((v) => ({ ...v, is_short: shorts.has(v.youtube_id), site_id: src.site_id || null, source_id: src.id, channel: channel || src.label || null, host: src.host || null, comic_id: src.comic_id || null, imported_at: new Date().toISOString() }));
   if (fresh.length) {
     let r = await db.from("videos").insert(fresh);
     // a database without 23_media.sql has no is_short column yet: import them as plain videos

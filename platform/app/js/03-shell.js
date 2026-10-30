@@ -85,6 +85,7 @@
     { id: "me", label: "My Coaster", ico: "🎤", meOnly: true, render: viewMe },
     { id: "dates", label: "Shows", ico: "📅", meOnly: true, render: viewMyDates },
     { id: "fans", label: "Fans", meOnly: true, render: viewMyFans },
+    { id: "media", label: "Podcast / YouTube", meOnly: true, render: viewMyMedia },
     { id: "press", label: "Press kit", ico: "📷", meOnly: true, render: (main) => { main.append(head("Your press kit", "Approved photos and bios for clubs. It's the same on every site you're on.")); main.append(pressKitEditor(S.me.id)); } },
     { id: "helping", label: "Coasters you help with", ico: "🤝", helping: true, render: viewHelping },
     { id: "mysites", label: "Your sites", ico: "🧩", notPlatform: true, needsSite: true, render: viewMySites },
@@ -136,6 +137,7 @@
       items.push({ key: "ct/me", id: "me", label: "My Coaster", group: "Coaster", onGo: () => goCT("me") });
       items.push({ key: "ct/dates", id: "shows", label: "Shows", onGo: () => goCT("dates") });
       items.push({ key: "ct/fans", id: "fans", label: "Fans", onGo: () => goCT("fans") });
+      items.push({ key: "ct/media", id: "videos", label: "Podcast / YouTube", onGo: () => goCT("media") });
       items.push({ key: "ct/press", id: "press", label: "Press kit", onGo: () => goCT("press") });
     }
     if (S.helping && S.helping.length) items.push({ key: "ct/helping", id: "helping", label: S.helping.length === 1 ? S.helping[0].name + "'s Coaster" : "Coasters you help with", group: S.me ? null : "Coaster", onGo: () => goCT("helping") });

@@ -440,6 +440,15 @@ test("Coasters: every look is free for now, Custom included; only ComicTable adm
   assert.equal(await as(LEV, `update comics set bio = 'still fine' where id = 'lev-fer'`), "ok");
 });
 
+test("a comic's own YouTube channel lives on their Coaster: no site needed, and only they (or their team) manage it", async () => {
+  const SOLO = "99999999-9999-9999-9999-999999999999", OTHER = "33333333-3333-3333-3333-333333333333";
+  assert.equal(await as(SOLO, `insert into sources (comic_id, site_id, kind, url) values ('solo-sam', null, 'youtube', 'https://www.youtube.com/@solosam')`), "ok");
+  assert.match(await as(OTHER, `insert into sources (comic_id, site_id, kind, url) values ('solo-sam', null, 'youtube', 'https://www.youtube.com/@x')`), /row-level security|violates/);
+  await q(`insert into videos (comic_id, site_id, youtube_id, title) values ('solo-sam', null, 'AAAAAAAAAAA', 'Crowd work')`);
+  await assert.rejects(q(`insert into sources (site_id, comic_id, kind, url) values (null, null, 'youtube', 'https://youtube.com/@nobody')`), /sources_has_owner/, "a channel always belongs to a site or a comic");
+  await q(`delete from videos where comic_id = 'solo-sam'`); await q(`delete from sources where comic_id = 'solo-sam'`);
+});
+
 test("Coaster addresses: one rule for everyone (full name with dashes), made automatically, never clashing", async () => {
   const LEV = "33333333-3333-3333-3333-333333333333", BOSS = "44444444-4444-4444-4444-444444444444";
   assert.equal((await q("select handle from comics where id = 'lev-fer'"))[0].handle, "lev-fer", "existing comics got their address");

@@ -441,6 +441,9 @@ a.tb:hover { filter: brightness(1.08); }
 .lcard { background: rgba(14, 10, 7, .82); border: 0; }
 .more-btn { background: rgba(10, 8, 7, .74); border: 0; }
 body.preview .coaster { animation: none; }
+.pod iframe { width: 100%; border: 0; border-radius: 14px; display: block; background: #000; }
+.pod .pod-sp { height: 232px; } .pod .pod-apple { height: 175px; } .pod .pod-yt { aspect-ratio: 16 / 9; height: auto; }
+.shorts .short.featured { grid-column: span 2; }
 /* ---------- lettering and doodles ---------- */
 .print .doodles { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 .print .doodles svg { width: 100%; height: 100%; display: block; }
@@ -787,10 +790,18 @@ body.preview .coaster { animation: none; }
       put("tape", tapeBox);
     }
 
+    // the comic picks their Shorts: Featured (first, big and upright), Shown, or Hidden
+    var spick = (c.coaster && c.coaster.shorts) || {}, fe = Array.isArray(spick.featured) ? spick.featured : [], hi = Array.isArray(spick.hidden) ? spick.hidden : [];
+    shorts = (shorts || []).filter(function (v) { return hi.indexOf(v.youtube_id) < 0; })
+      .sort(function (a, b) { var i = fe.indexOf(a.youtube_id), j = fe.indexOf(b.youtube_id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
+    // the whole-show podcast player
+    var pod = (c.coaster && c.coaster.podcast) || {}, pemb = CSB.podcastEmbed ? CSB.podcastEmbed(pod[pod.player || "spotify"] || pod.spotify || pod.apple || pod.youtube) : "";
+    if (pemb) put("podcast", el("section", { class: "pod", "aria-label": "Podcast" }, [el("h2", null, [pod.name || "Podcast", el("small", { text: "Listen here" })]),
+      el("iframe", { src: pemb, title: (pod.name || "Podcast") + " player", loading: "lazy", allow: "autoplay; clipboard-write; encrypted-media; picture-in-picture", class: /youtube/.test(pemb) ? "pod-yt" : /apple/.test(pemb) ? "pod-apple" : "pod-sp" })]));
     if (shorts && shorts.length) {
       put("shorts", el("section", { "aria-label": "Shorts" }, [el("h2", null, ["Shorts", el("small", { text: "Swipe" })]),
         el("div", { class: "shorts" }, shorts.map(function (v) {
-          var b = el("button", { type: "button", class: "short", "aria-label": "Play: " + v.title }, [el("img", { src: "https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg", alt: "", loading: "lazy" }), el("small", { text: v.title })]);
+          var b = el("button", { type: "button", class: "short" + (fe.indexOf(v.youtube_id) >= 0 ? " featured" : ""), "aria-label": "Play: " + v.title }, [el("img", { src: "https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg", alt: "", loading: "lazy" }), el("small", { text: v.title })]);
           b.addEventListener("click", function () { b.replaceWith(el("div", { class: "short playing" }, el("iframe", { src: "https://www.youtube-nocookie.com/embed/" + v.youtube_id + "?autoplay=1&playsinline=1", title: v.title, allow: "autoplay; encrypted-media; picture-in-picture", allowfullscreen: true }))); });
           return b;
         }))]));

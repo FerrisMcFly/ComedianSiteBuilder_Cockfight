@@ -584,7 +584,7 @@
   var COASTER_ITEMS = [
     ["socials", "Social links", "front", "Instagram, TikTok and the rest"], ["dates", "Shows", "front", "Your next shows as tickets, then all of them"],
     ["bill", "Also on the bill", "front", "Other comics on your upcoming shows"], ["links", "Your sites", "front", "Buttons to the sites you're on, and your website"],
-    ["join", "Join my list", "front", "Fans sign up to hear when you play near them"], ["tape", "The Tape", "more", "Your best set right now"],
+    ["join", "Join my list", "front", "Fans sign up to hear when you play near them"], ["podcast", "Podcast player", "front", "Your whole show in a player fans can listen to right there"], ["tape", "The Tape", "more", "Your best set right now"],
     ["shorts", "Shorts", "more", "Your newest YouTube Shorts, in a row fans swipe"], ["bio", "Bio", "more", "Your short bio"], ["booking", "Booking", "more", "Your booking email"], ["press", "Press kit", "more", "Photos and bios for clubs"]];
   // How the page around the coaster looks. Saved as coaster.page; every choice has a default.
   var COASTER_PAGE = {
@@ -626,6 +626,14 @@
     ["retrotv", "Retro TV", { look: "redwood", letter: "script", doodles: ["lightning"], page: { bg: "wood", dates: "tickets", buttons: "one", tiles: "tiles" } }],
     ["comicbook", "Comic Book", { look: "pop", letter: "comic", doodles: ["lightning", "stars"], page: { bg: "checker", dates: "tickets", buttons: "status", tiles: "tiles" } }],
     ["western", "Honky Tonk", { look: "custom", style: { pulp: "#E8D3A8", ink: "#3B2414", band: "#8A3B12", photo: "ink" }, letter: "western", doodles: ["beer", "stars"], page: { bg: "wood", dates: "tickets", buttons: "status", tiles: "tiles" } }]];
+  // The whole-show podcast player (Spotify, Apple or YouTube), from the show's link. Returns an embed URL or "".
+  function podcastEmbed(url) {
+    var u = String(url || "").trim(), m;
+    if ((m = u.match(/open\.spotify\.com\/(?:embed\/)?show\/([A-Za-z0-9]{10,})/))) return "https://open.spotify.com/embed/show/" + m[1];
+    if ((m = u.match(/podcasts\.apple\.com\/([a-z]{2})\/podcast\/([^/?#]+)\/id(\d+)/))) return "https://embed.podcasts.apple.com/" + m[1] + "/podcast/" + m[2] + "/id" + m[3];
+    if ((m = u.match(/[?&]list=([\w-]{10,})/))) return "https://www.youtube-nocookie.com/embed/videoseries?list=" + m[1];
+    return "";
+  }
   function coasterPage(c) {
     var p = (c && c.coaster && c.coaster.page && typeof c.coaster.page === "object") ? c.coaster.page : {}, out = {};
     for (var k in COASTER_PAGE) { var ok = COASTER_PAGE[k].map(function (x) { return x[0]; }); out[k] = ok.indexOf(String(p[k])) >= 0 ? String(p[k]) : ok[0]; }
@@ -714,6 +722,6 @@
     return out;
   }
 
-  var CSB = { showView: showView, showList: showList, dedupeShows: dedupeShows, signup: signup, init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, COASTER_PAGE: COASTER_PAGE, COASTER_LETTERING: COASTER_LETTERING, COASTER_DOODLES: COASTER_DOODLES, COASTER_TEMPLATES: COASTER_TEMPLATES, coasterPageStyle: coasterPage, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
+  var CSB = { showView: showView, showList: showList, dedupeShows: dedupeShows, signup: signup, init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, COASTER_PAGE: COASTER_PAGE, COASTER_LETTERING: COASTER_LETTERING, COASTER_DOODLES: COASTER_DOODLES, COASTER_TEMPLATES: COASTER_TEMPLATES, podcastEmbed: podcastEmbed, coasterPageStyle: coasterPage, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);

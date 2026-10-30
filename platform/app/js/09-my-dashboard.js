@@ -92,3 +92,85 @@
     card.replaceChildren(h("div", { class: "toolbar" }, search, h("button", { class: "btn sm", type: "button", text: "Download", onclick: csv })), chips, count, list);
     drawChips(); draw();
   }
+
+  // A comic's Podcast / YouTube (Coaster): their own channel, which Shorts show, and the whole-show podcast player.
+  // Each site decides separately which of these it shows (the site's Videos & podcast page).
+  async function viewMyMedia(main) {
+    const me = S.me;
+    main.append(head("Podcast / YouTube", "Your channel and your show, on your Coaster. Each site you're on picks what it shows."));
+    const saveCoaster = async (patch, msg) => {
+      const coaster = { ...(S.me.coaster || {}), ...patch };
+      try { await q(sb.from("comics").update({ coaster }).eq("id", me.id)); S.me = { ...S.me, coaster }; toast(msg || "Saved."); return true; }
+      catch (e) { toast(errText(e), { bad: true }); return false; }
+    };
+    // ---- the channel ----
+    const chan = h("section", { class: "card stack" }, h("h2", { text: "Your YouTube channel" }), h("p", { class: "hint", text: "Loading…" }));
+    main.append(chan);
+    const drawChan = async () => {
+      let rows = [];
+      try { rows = await q(sb.from("sources").select("*").eq("comic_id", me.id).eq("kind", "youtube")); } catch (e) {}
+      const url = h("input", { type: "url", placeholder: "https://www.youtube.com/@yourname", "aria-label": "YouTube channel link" });
+      const err = h("div", { class: "err" });
+      chan.replaceChildren(h("h2", { text: "Your YouTube channel" }),
+        rows.length ? h("div", { class: "drows" }, rows.map((r) => h("div", { class: "drow" }, h("span", { class: "nbadge", style: "width:38px;height:38px" }, svgIco("videos").firstChild),
+          h("span", { class: "drow-main" }, h("b", { text: r.label || r.url.replace(/^https?:\/\/(www\.)?/, "") }), h("span", { text: r.last_status ? "Last check: " + r.last_status : "New videos come in within the hour." })),
+          sure("Remove", async () => { try { await q(sb.from("sources").delete().eq("id", r.id)); toast("Channel removed."); drawChan(); } catch (e) { toast(errText(e), { bad: true }); } }))))
+          : h("p", { class: "hint", style: "margin:0", text: "Connect it once. New videos and Shorts come in by themselves." }),
+        h("form", { class: "toolbar", onsubmit: async (e) => {
+          e.preventDefault(); err.textContent = "";
+          const u = url.value.trim();
+          if (!/^https:\/\/(www\.|m\.)?youtube\.com\/|^https:\/\/youtu\.be\//i.test(u)) { err.textContent = "Paste your channel's link, like https://www.youtube.com/@yourname"; url.focus(); return; }
+          try { await q(sb.from("sources").insert({ comic_id: me.id, site_id: null, kind: "youtube", url: u })); toast("Connected. Your videos come in within the hour."); drawChan(); }
+          catch (er) { err.textContent = /site_id|not-null|null value/i.test(errText(er)) ? "This needs the latest database upgrade." : errText(er); }
+        } }, url, h("button", { class: "btn primary", type: "submit", text: rows.length ? "Add another" : "Connect" })), err);
+    };
+    drawChan();
+
+    // ---- Shorts: Featured, Shown or Hidden ----
+    const shortsCard = h("section", { class: "card stack" }, h("h2", { text: "Shorts" }), h("p", { class: "hint", text: "Loading…" }));
+    main.append(shortsCard);
+    (async () => {
+      let vids = [];
+      try { vids = await q(sb.from("videos").select("youtube_id,title,published").eq("comic_id", me.id).eq("is_short", true).order("published", { ascending: false }).limit(60)); } catch (e) {}
+      const pick = { featured: [], hidden: [], ...((S.me.coaster || {}).shorts || {}) };
+      const state = (id) => pick.featured.includes(id) ? "featured" : pick.hidden.includes(id) ? "hidden" : "shown";
+      const grid = h("div", { class: "short-grid" });
+      const draw = () => grid.replaceChildren(...vids.map((v) => {
+        const st = state(v.youtube_id);
+        return h("div", { class: "short-pick " + st }, h("img", { src: "https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg", alt: "", loading: "lazy" }), h("small", { text: v.title }),
+          h("div", { class: "seg", role: "group", "aria-label": "Show " + v.title }, [["featured", "Featured"], ["shown", "Shown"], ["hidden", "Hidden"]].map(([k, l]) =>
+            h("button", { type: "button", "aria-pressed": String(st === k), text: l, onclick: async () => {
+              pick.featured = pick.featured.filter((x) => x !== v.youtube_id); pick.hidden = pick.hidden.filter((x) => x !== v.youtube_id);
+              if (k === "featured") pick.featured.push(v.youtube_id); if (k === "hidden") pick.hidden.push(v.youtube_id);
+              draw(); await saveCoaster({ shorts: { featured: pick.featured, hidden: pick.hidden } }, l === "Featured" ? "Featured. It plays big on your Coaster." : l === "Hidden" ? "Hidden from your Coaster." : "Shown.");
+            } }))));
+      }));
+      draw();
+      shortsCard.replaceChildren(h("h2", { text: "Shorts" }), vids.length ? h("p", { class: "hint", style: "margin:0", text: "Featured ones go first and play big. Hidden ones stay off your Coaster." }) : null,
+        vids.length ? grid : h("p", { class: "hint", style: "margin:0", text: "Your Shorts show up here once your channel is connected." }));
+    })();
+
+    // ---- the whole-show podcast player ----
+    const pod = { player: "spotify", ...((S.me.coaster || {}).podcast || {}) };
+    const name = h("input", { value: pod.name || "", maxlength: "80", placeholder: "Your show's name", "aria-label": "Show name" });
+    const links = { spotify: h("input", { type: "url", value: pod.spotify || "", placeholder: "https://open.spotify.com/show/…", "aria-label": "Spotify show link" }),
+      apple: h("input", { type: "url", value: pod.apple || "", placeholder: "https://podcasts.apple.com/…/id…", "aria-label": "Apple Podcasts link" }),
+      youtube: h("input", { type: "url", value: pod.youtube || "", placeholder: "https://www.youtube.com/playlist?list=…", "aria-label": "YouTube playlist link" }) };
+    const playerSeg = h("div", { class: "chips", role: "group", "aria-label": "Player on your Coaster" });
+    const drawSeg = () => playerSeg.replaceChildren(...[["spotify", "Spotify"], ["apple", "Apple"], ["youtube", "YouTube"]].map(([k, l]) => h("button", { type: "button", class: "chip", "aria-pressed": String(pod.player === k), text: l, onclick: () => { pod.player = k; drawSeg(); show(); } })));
+    const prev = h("div");
+    const show = () => { const src = CSB.podcastEmbed ? CSB.podcastEmbed(links[pod.player].value || links.spotify.value || links.apple.value || links.youtube.value) : "";
+      prev.replaceChildren(src ? h("iframe", { src, title: "Podcast player preview", loading: "lazy", style: "width:100%;height:" + (/youtube/.test(src) ? "260px" : "232px") + ";border:0;border-radius:14px" }) : h("p", { class: "hint", style: "margin:0", text: "Paste a link and the player shows here." })); };
+    Object.values(links).forEach((i) => i.addEventListener("change", show));
+    drawSeg(); show();
+    const perr = h("div", { class: "err" });
+    main.append(h("form", { class: "card stack", onsubmit: async (e) => {
+      e.preventDefault(); perr.textContent = "";
+      const vals = Object.fromEntries(Object.entries(links).map(([k, i]) => [k, i.value.trim()]));
+      for (const [k, v] of Object.entries(vals)) if (v && !(CSB.podcastEmbed && CSB.podcastEmbed(v))) { perr.textContent = "That " + ({ spotify: "Spotify", apple: "Apple", youtube: "YouTube" })[k] + " link isn't a show we can play. Copy the show's page link."; links[k].focus(); return; }
+      await saveCoaster({ podcast: { name: name.value.trim(), player: pod.player, ...vals } }, "Podcast player saved. It's on your Coaster.");
+    } }, h("h2", { text: "Podcast player" }), h("p", { class: "hint", style: "margin:0", text: "Your whole show in one player on your Coaster. Fans listen right there." }),
+      field("Show name", name), h("div", { class: "grid" }, field("Spotify", links.spotify, "c4"), field("Apple Podcasts", links.apple, "c4"), field("YouTube playlist", links.youtube, "c4")),
+      h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Which player on your Coaster" }), playerSeg), prev, perr,
+      h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Save player" }))));
+  }
