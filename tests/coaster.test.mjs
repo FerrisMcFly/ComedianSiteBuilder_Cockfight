@@ -69,12 +69,12 @@ test("shows as tickets with a button by status, and who else is on the bill link
   assert.equal(coaster.getAttribute("aria-pressed"), "true");
 });
 
-test("the name is printed on the coaster's band; no big pitch at the bottom, just the menu", async () => {
+test("the name is printed on the coaster's band; no sign-up pitch anywhere", async () => {
   const { d } = await load("/tristan-bowling", { comics: [{ id: "tristan-bowling", name: "Tristan Bowling" }] });
   assert.equal(d.querySelector(".front .ribbon b").textContent, "Tristan Bowling");
   assert.equal(d.querySelector(".front .initials").textContent, "TB");
   assert.doesNotMatch(d.querySelector("main").textContent, /Do comedy\?/, "no Do comedy? block");
-  assert.equal(d.querySelector(".ctmenu a").getAttribute("href"), "/#coaster", "Get your own Coaster lives in the menu");
+  assert.ok(![...d.querySelectorAll("a")].some((a) => /Get your own Coaster/.test(a.textContent)), "no self sign-up anywhere (invite-only for now)");
   assert.ok(d.querySelector(".join .csb-signup"), "every Coaster can collect fans, even with no site");
 });
 

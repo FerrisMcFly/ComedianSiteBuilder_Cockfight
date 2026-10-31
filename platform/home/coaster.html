@@ -552,7 +552,7 @@ body.preview .coaster { animation: none; }
   function notFound() {
     document.title = "Coaster not found · ComicTable";
     app.replaceChildren(el("div", { class: "empty" }, [el("h1", { text: "No one here yet" }), el("p", { text: "Check the link, or ask the comic to send it again." }),
-      el("p", null, el("a", { class: "btn sm", href: "/#coaster", text: "Get your own Coaster" }))]));
+]));
   }
   if (!id || !CFG.SUPABASE_URL) return notFound();
 
@@ -631,7 +631,7 @@ body.preview .coaster { animation: none; }
     document.title = c.name + " · ComicTable";
     var parts = [], next = dates[0];
     // the bar across the top: ComicTable, and a menu
-    var menu = el("div", { class: "ctmenu", hidden: true }, [el("a", { href: "/#coaster", text: "Get your own Coaster" }), el("a", { href: "/press/" + encodeURIComponent(c.id), text: c.name.split(" ")[0] + "'s press kit" }), el("a", { href: "/", text: "What's ComicTable?" })]);
+    var menu = el("div", { class: "ctmenu", hidden: true }, [el("a", { href: "/press/" + encodeURIComponent(c.id), text: c.name.split(" ")[0] + "'s press kit" }), el("a", { href: "/", text: "What's ComicTable?" })]);
     var mbtn = el("button", { class: "ctmenu-btn", type: "button", "aria-label": "Menu", "aria-expanded": "false", onclick: function () { menu.hidden = !menu.hidden; mbtn.setAttribute("aria-expanded", String(!menu.hidden)); } });
     mbtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
     parts.push(el("header", { class: "ctbar" }, [el("a", { class: "ctwm", href: "/", "aria-label": "ComicTable" }, ["Comic", el("span", { text: "Table" })]), mbtn, menu]));
