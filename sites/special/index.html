@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comedian</title>
+<meta name="description" content="Shows, videos and more.">
+<meta property="og:title" content="Comedian" data-ct="title">
+<meta property="og:description" content="Shows, videos and more." data-ct="description">
+<meta property="og:image" content="" data-ct="image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Kaushan+Script&family=Inter:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* Stand-Up Special: a ComicTable template. A 90s late-night special: spotlight, brick wall, title card, crowd.
+   Every word that isn't the comic's own data is a Design setting (theme.json). */
+:root { --bg: #1A0B2E; --deep: #0D0518; --card: #2A1A40; --text: #FFFFFF; --muted: #D2C6E6; --gold: #FFD24A; --accent: #C2186B;
+  --font: "Inter", system-ui, sans-serif; --title: "Bebas Neue", Impact, sans-serif; --script: "Kaushan Script", cursive; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.5 var(--font); }
+a { color: var(--gold); }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.stage { position: relative; overflow: hidden; background: #3A1414; background-image: linear-gradient(0deg, rgba(0,0,0,.35) 2px, transparent 2px), linear-gradient(90deg, rgba(0,0,0,.35) 2px, transparent 2px); background-size: 46px 22px, 46px 44px; padding: 40px 16px 70px; }
+.stage::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 70% at 50% 35%, rgba(255,230,170,.55), transparent 65%), linear-gradient(180deg, rgba(90,30,140,.35), rgba(26,11,46,.95) 92%); }
+.stage > * { position: relative; }
+.arch { width: min(62vw, 300px); aspect-ratio: 23 / 29; margin: 0 auto; border-radius: 50% 50% 0 0; overflow: hidden; box-shadow: 0 0 60px rgba(255,220,150,.45); background: #111; }
+.arch img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%; }
+.stage .ct-coaster { width: min(70vw, 340px); filter: drop-shadow(0 0 40px rgba(255,220,150,.45)); }
+.card { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: -26px; }
+.script { font: 400 clamp(30px, 8vw, 44px)/1 var(--script); color: var(--gold); text-shadow: 0 3px 0 #000; transform: rotate(-6deg); }
+h1 { margin: 6px 0 0; font: 400 clamp(84px, 26vw, 170px)/0.85 var(--title); letter-spacing: .02em; font-style: italic; text-shadow: 5px 5px 0 var(--accent), 10px 10px 0 #000; overflow-wrap: anywhere; }
+.tag { margin-top: 12px; padding: 6px 14px; background: var(--gold); color: var(--bg); font: 800 13px var(--font); letter-spacing: .3em; text-transform: uppercase; }
+.crowd { position: absolute; left: -10px; right: -10px; bottom: -16px; height: 60px; display: flex; gap: 2px; }
+.crowd span { flex: 1; border-radius: 50% 50% 0 0; background: var(--deep); }
+.crowd span:nth-child(even) { margin-top: 10px; }
+.page { max-width: 760px; margin: 0 auto; padding: 0 16px 30px; }
+.bio { margin: 22px 4px 0; text-align: center; color: var(--muted); }
+.h { margin: 30px 0 10px; font: 400 clamp(36px, 8vw, 46px)/1 var(--title); letter-spacing: .06em; color: var(--gold); }
+.date { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 10px; border-radius: 4px; background: linear-gradient(90deg, var(--accent), #5A1E8C); }
+.date.sold { background: var(--card); color: #B4A7C9; }
+.date .d { width: 56px; flex: none; text-align: center; line-height: 1; }
+.date .d small { display: block; font: 800 11px var(--font); letter-spacing: .2em; }
+.date .d b { font: 400 38px var(--title); }
+.date .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.date .w span { font-size: 14px; opacity: .9; }
+.tix { flex: none; background: var(--gold); color: var(--bg); text-decoration: none; padding: 0 14px; min-height: 44px; display: inline-flex; align-items: center; font: 800 14px var(--font); letter-spacing: .08em; text-transform: uppercase; }
+.tix.soon { background: none; color: var(--gold); }
+.gone { flex: none; font-weight: 800; letter-spacing: .08em; }
+.empty { color: var(--muted); }
+.vidbox { padding: 12px; background: var(--deep); border: 3px solid var(--gold); border-radius: 6px; }
+.vid { display: block; position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #000; }
+.vid img { width: 100%; height: 100%; object-fit: cover; opacity: .7; }
+.vid i { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: var(--gold); display: grid; place-items: center; }
+.vid i::before { content: ""; border-left: 18px solid var(--bg); border-top: 11px solid transparent; border-bottom: 11px solid transparent; margin-left: 5px; }
+.vtitle { margin: 10px 2px 0; font: 400 24px var(--title); letter-spacing: .04em; }
+.pod { margin-top: 24px; padding: 12px; display: flex; gap: 12px; align-items: center; background: var(--card); border-radius: 6px; }
+.pod .art { width: 62px; height: 62px; flex: none; background: var(--accent); display: grid; place-items: center; font: 400 30px var(--title); object-fit: cover; }
+.pod b { font: 400 26px var(--title); letter-spacing: .04em; display: block; }
+.pod .links { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.socials { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 8px; }
+.socials a { flex: 1 1 100px; text-align: center; padding: 12px 0; border: 2px solid var(--gold); text-decoration: none; font: 400 20px var(--title); letter-spacing: .1em; }
+.join { margin-top: 28px; padding: 18px; background: linear-gradient(160deg, var(--accent), #5A1E8C); border-radius: 6px; display: flex; flex-direction: column; gap: 10px; }
+.join h2 { margin: 0; font: 400 40px/1 var(--title); letter-spacing: .06em; }
+.join p { margin: 0; }
+.ctt-join { display: grid; gap: 10px; }
+.ctt-join label { display: grid; gap: 4px; font-weight: 700; font-size: 14px; }
+.ctt-join input { height: 46px; border: 0; border-radius: 4px; padding: 0 12px; font: 500 16px var(--font); }
+.ctt-join button { min-height: 50px; border: 0; border-radius: 4px; background: var(--gold); color: var(--bg); font: 400 24px var(--title); letter-spacing: .12em; cursor: pointer; }
+.ctt-msg { font-weight: 700; min-height: 1.2em; } .ctt-fine { font-size: 13px; color: #F1E8FF; } .ctt-fine a { color: #fff; }
+footer { padding: 20px 16px 30px; text-align: center; font-size: 12px; color: #A99BC0; letter-spacing: .15em; text-transform: uppercase; }
+@media (min-width: 900px) { .page { max-width: 1040px; } .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 36px; align-items: start; grid-template-areas: "shows video" "join video" "join pod" "join soc" "join ."; grid-template-rows: auto auto auto auto 1fr; } .a-shows { grid-area: shows; } .a-video { grid-area: video; } .a-pod { grid-area: pod; } .a-soc { grid-area: soc; } .a-join { grid-area: join; } }
+.ctt-down { padding: 60px 20px; text-align: center; }
+</style>
+</head>
+<body>
+<main id="app"><p class="ctt-down">Loading…</p></main>
+<script src="config.js"></script>
+<script src="sdk/csb.js"></script>
+<script src="sdk/templates.js"></script>
+<script>
+CTT.start(function (k, app) {
+  "use strict";
+  var el = k.el;
+  // keep these in step with theme.json (a test checks)
+  var W = { script_line: "Live on stage", tag: "One night only", shows_title: "Tapings near you", watch_title: "Tonight's set",
+    join_title: "Be in the audience", join_line: "Hear first when {name} plays near you.", join_button: "Count me in" };
+  var say = function (key) { return k.t(key, W[key]); };
+  var video = k.video(), pod = k.podcast(), shows = k.shows(), socials = k.socials(), join = k.join({ button: say("join_button") || W.join_button });
+
+  var crowd = el("div", { class: "crowd", "aria-hidden": "true" }); for (var i = 0; i < 10; i++) crowd.append(el("span"));
+  app.append(el("header", { class: "stage" }, [
+    k.coaster ? k.coasterPhoto() : k.photo ? el("div", { class: "arch" }, [el("img", { src: k.photo, alt: k.name })]) : null,
+    el("div", { class: "card" }, [say("script_line") ? el("span", { class: "script", text: say("script_line") }) : null, el("h1", { text: k.name.toUpperCase() }), say("tag") ? el("span", { class: "tag", text: say("tag") }) : null]),
+    crowd]));
+
+  var page = el("div", { class: "page" });
+  if (k.bio) page.append(el("p", { class: "bio", text: k.bio }));
+  var cols = el("div", { class: "cols" });
+  if (k.has("shows")) cols.append(el("section", { class: "a-shows", "aria-label": say("shows_title") || "Shows" }, [say("shows_title") ? el("h2", { class: "h", text: say("shows_title") }) : el("div", { style: "height:30px" })].concat(
+    shows.length ? shows.map(function (s) {
+      return el("div", { class: "date" + (s.sold ? " sold" : "") }, [el("span", { class: "d" }, [el("small", { text: s.mon.toUpperCase() }), el("b", { text: s.dd })]),
+        el("span", { class: "w" }, [el("b", { text: s.venue }), el("span", { text: [s.dow, s.city, s.few && !s.sold ? "a few left" : ""].filter(Boolean).join(" · ") })]),
+        s.sold ? el("span", { class: "gone", text: "SOLD OUT" }) : k.ticket(s, "tix")]);
+    }) : [el("p", { class: "empty", text: "No dates right now." })])));
+  if (video) cols.append(el("section", { class: "a-video", "aria-label": say("watch_title") || "Video" }, [say("watch_title") ? el("h2", { class: "h", text: say("watch_title") }) : el("div", { style: "height:30px" }),
+    el("div", { class: "vidbox" }, [el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
+      el("p", { class: "vtitle", text: video.title })])]));
+  if (pod) cols.append(el("div", { class: "pod a-pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
+    el("div", null, [el("b", { text: pod.name }), el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
+  if (join) cols.append(el("section", { class: "join a-join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
+  if (socials.length) cols.append(el("div", { class: "socials a-soc" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })));
+  page.append(cols);
+  app.append(page, el("footer", { text: "© " + new Date().getFullYear() + " " + k.name + " · Runs on ComicTable" }));
+});
+</script>
+</body>
+</html>

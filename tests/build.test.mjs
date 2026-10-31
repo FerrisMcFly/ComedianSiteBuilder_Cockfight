@@ -22,7 +22,8 @@ test("the ComicTable admin build has the admin at / and every site's theme", () 
   assert.match(readFileSync(join(out, "index.html"), "utf8"), /ComicTable/);
   assert.match(readFileSync(join(out, "app.html"), "utf8"), /Log in to update your site/);
   const r = readFileSync(join(out, "_redirects"), "utf8");
-  assert.match(r, /^\/login\s+\/app\.html\s+200$/m); assert.match(r, /^\/dashboard\s+\/app\.html\s+200$/m); assert.match(r, /^\/admin\s+\/login\s+301$/m);
+  assert.match(r, /^\/login\s+\/app\.html\s+200$/m); assert.match(r, /^\/dashboard\s+\/app\.html\s+200$/m); assert.match(r, /^\/admin\s+\/login\s+301$/m); assert.match(r, /^\/privacy\s+\/privacy\.html\s+200$/m); assert.ok(existsSync(join(out, "privacy.html")));
+  assert.ok(r.indexOf("/privacy") < r.indexOf("/:comic"), "the privacy page wins over Coaster names");
   assert.ok(existsSync(join(out, "themes/cockfight.json")));
   assert.equal(cfg(out).PLATFORM, true);
   assert.equal(cfg(out).SITE_ID, undefined);

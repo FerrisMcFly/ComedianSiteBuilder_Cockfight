@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comedian</title>
+<meta name="description" content="Shows, videos and more.">
+<meta property="og:title" content="Comedian" data-ct="title">
+<meta property="og:description" content="Shows, videos and more." data-ct="description">
+<meta property="og:image" content="" data-ct="image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Courier+Prime:wght@400;700&family=Alfa+Slab+One&display=swap" rel="stylesheet">
+<style>
+/* Diner: a ComicTable template. A late-night diner with a neon sign and a specials menu. Every line that isn't the
+   comic's own data is a Design setting in theme.json. */
+:root { --night: #12201E; --deep: #0B1413; --cream: #FFF6EC; --ink: #1C1C1C; --mint: #8FF0E2; --mint-glow: #2BD9C1; --red: #B3203D; --accent: #FF4F9A; --soft: #B9D9D3;
+  --script: "Pacifico", cursive; --type: "Courier Prime", "Courier New", monospace; --slab: "Alfa Slab One", Georgia, serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--cream); font: 400 17px/1.45 var(--type); }
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 3px solid var(--mint); outline-offset: 2px; }
+.col { max-width: 760px; margin: 0 auto; padding: 0 14px; }
+.sign { text-align: center; padding: 30px 16px 20px; background: radial-gradient(ellipse at 50% 40%, rgba(255,90,150,.18), transparent 70%); }
+.sign h1 { margin: 0; font: 400 clamp(54px, 15vw, 110px)/1.15 var(--script); color: #FFE3EE; text-shadow: 0 0 6px var(--accent), 0 0 16px var(--accent), 0 0 32px var(--accent); overflow-wrap: anywhere; }
+.sign p { margin: 4px 0 0; font: 400 16px var(--slab); letter-spacing: 4px; color: var(--mint); text-shadow: 0 0 8px var(--mint-glow); text-transform: uppercase; }
+.checks { height: 30px; background-image: conic-gradient(var(--cream) 25%, #111 0 50%, var(--cream) 0 75%, #111 0); background-size: 30px 30px; }
+.intro { padding: 22px 0 0; display: flex; gap: 16px; align-items: center; }
+.intro > img { width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 5px solid var(--mint); flex: none; }
+@media (min-width: 700px) { .intro > img { width: 190px; height: 190px; } .intro p { font-size: 19px; } }
+.intro .ct-coaster { flex: none; width: 46%; max-width: 260px; }
+.intro p { margin: 0; }
+.menu { margin: 26px 0 0; padding: 18px 16px; background: var(--cream); color: var(--ink); border-radius: 6px; box-shadow: 0 0 0 4px var(--night), 0 0 0 7px var(--mint); }
+.menu h2 { margin: 0; text-align: center; font: 400 clamp(24px, 6vw, 34px) var(--slab); color: var(--red); }
+.menu .sub { margin: 0 0 10px; text-align: center; font-size: 13px; }
+.item { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px dashed var(--ink); }
+.item .what { display: flex; flex-direction: column; flex: 0 1 auto; min-width: 0; }
+.item .what span { font-size: 13px; }
+.item .dots { flex: 1; border-bottom: 2px dotted var(--ink); margin: 0 4px 6px; align-self: flex-end; min-width: 10px; }
+.item.sold { color: #6F6F6F; } .item.sold .dots { border-color: #999; }
+.tix { background: var(--red); color: var(--cream); text-decoration: none; padding: 0 14px; min-height: 44px; display: flex; align-items: center; border-radius: 999px; font-weight: 700; flex: none; }
+.tix.soon { background: transparent; color: var(--ink); }
+.gone { font-weight: 700; flex: none; }
+.h2 { margin: 0; font: 400 clamp(30px, 7vw, 40px) var(--script); color: var(--mint); text-shadow: 0 0 10px var(--mint-glow); }
+.block { margin-top: 28px; display: flex; flex-direction: column; gap: 10px; }
+.juke { width: 100%; max-width: 560px; padding: 12px; border-radius: 120px 120px 14px 14px; background: linear-gradient(180deg, #C9382F, #7A1C2A); box-shadow: inset 0 0 0 4px #E8C26A; }
+.juke a { display: block; position: relative; aspect-ratio: 16 / 10; border-radius: 110px 110px 8px 8px; overflow: hidden; background: radial-gradient(circle at 50% 45%, #2A3F3B, var(--deep)); }
+.juke img { width: 100%; height: 100%; object-fit: cover; opacity: .55; }
+.juke i { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: #E8C26A; display: grid; place-items: center; }
+.juke i::before { content: ""; border-left: 18px solid #7A1C2A; border-top: 11px solid transparent; border-bottom: 11px solid transparent; margin-left: 5px; }
+.juke p { margin: 10px 4px 2px; text-align: center; font-weight: 700; }
+.pod { margin-top: 24px; display: flex; gap: 12px; align-items: center; padding: 12px; border: 2px solid var(--mint); border-radius: 12px; }
+.pod .art { width: 66px; height: 66px; flex: none; border-radius: 50%; background: repeating-radial-gradient(circle, #111 0 3px, #222 3px 5px); display: grid; place-items: center; object-fit: cover; }
+.pod .art::after { content: ""; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); }
+.pod img.art::after { display: none; }
+.pod b { font-size: 19px; display: block; }
+.pod .muted { font-size: 14px; color: var(--soft); display: block; }
+.pod .links { display: flex; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.socials { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap; }
+.socials a { flex: 1 1 100px; text-align: center; padding: 12px 0; border-radius: 999px; border: 2px solid var(--accent); color: #FFE3EE; text-decoration: none; font-weight: 700; }
+.check { margin: 26px 0 24px; padding: 18px; background: var(--cream); color: var(--ink); border-radius: 6px; display: flex; flex-direction: column; gap: 10px; border-top: 10px solid var(--red); }
+.check .top { display: flex; justify-content: space-between; font-size: 13px; text-transform: uppercase; }
+.check h2 { margin: 0; font: 400 clamp(24px, 6vw, 32px) var(--slab); }
+.check p { margin: 0; font-size: 15px; }
+.ctt-join { display: grid; gap: 10px; }
+.ctt-join label { display: grid; gap: 4px; font-weight: 700; }
+.ctt-join input { height: 46px; border: 2px solid var(--ink); border-radius: 6px; padding: 0 12px; font: 400 16px var(--type); background: #fff; }
+.ctt-join button { min-height: 50px; border: 0; border-radius: 999px; background: var(--red); color: var(--cream); font: 400 18px var(--slab); cursor: pointer; }
+.ctt-msg { font-weight: 700; min-height: 1.2em; } .ctt-fine { font-size: 12px; }
+footer { padding: 12px 14px 16px; text-align: center; font-size: 13px; color: var(--soft); background: var(--deep); }
+.ctt-down { padding: 60px 20px; text-align: center; }
+</style>
+</head>
+<body>
+<main id="app"><p class="ctt-down">Loading…</p></main>
+<script src="config.js"></script>
+<script src="sdk/csb.js"></script>
+<script src="sdk/templates.js"></script>
+<script>
+CTT.start(function (k, app) {
+  "use strict";
+  var el = k.el;
+  // keep these in step with theme.json (a test checks)
+  var W = { sign_line: "Open late", menu_title: "Tonight's Specials", menu_line: "served live · tickets at the counter", sold_label: "86'd",
+    video_title: "On the jukebox", podcast_line: "the podcast", check_left: "Guest check", check_right: "Table 1", join_title: "Save me a booth",
+    join_line: "Hear first when {name} plays near you.", join_button: "Order up", footer: "no shirt, no shoes, still funny" };
+  var say = function (key) { return k.t(key, W[key]).replace(/\s+/g, " ").trim(); };
+  var opt = function (tag, attrs, key) { var s = say(key); return s ? el(tag, Object.assign({ text: s }, attrs || {})) : null; };
+  var video = k.video(), pod = k.podcast(), shows = k.shows(), socials = k.socials(), join = k.join({ button: say("join_button") || W.join_button });
+
+  app.append(el("header", { class: "sign" }, [el("h1", { text: k.name }), opt("p", null, "sign_line")]), el("div", { class: "checks", "aria-hidden": "true" }));
+  var col = el("div", { class: "col" });
+  var pic = k.coaster ? k.coasterPhoto() : k.photo ? el("img", { src: k.photo, alt: k.name }) : null;
+  if (pic || k.bio) col.append(el("div", { class: "intro" }, [pic, k.bio ? el("p", { text: k.bio }) : null]));
+
+  if (k.has("shows")) col.append(el("section", { class: "menu", "aria-label": say("menu_title") || "Shows" }, [opt("h2", null, "menu_title"), opt("p", { class: "sub" }, "menu_line")].concat(
+    shows.length ? shows.map(function (s) {
+      return el("div", { class: "item" + (s.sold ? " sold" : "") }, [el("span", { class: "what" }, [el("b", { text: s.venue }), el("span", { text: [s.label, s.city, s.few ? "a few left" : ""].filter(Boolean).join(" · ") })]),
+        el("span", { class: "dots", "aria-hidden": "true" }), s.sold ? el("span", { class: "gone", text: say("sold_label") || "Sold out" }) : k.ticket(s, "tix")]);
+    }) : [el("p", { text: "No dates on the menu right now." })])));
+
+  if (video) col.append(el("section", { class: "block", "aria-label": say("video_title") || "Video" }, [opt("h2", { class: "h2" }, "video_title"),
+    el("div", { class: "juke" }, [el("a", { href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]), el("p", { text: video.title })])]));
+  if (pod) col.append(el("div", { class: "pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true" }),
+    el("div", null, [el("b", { text: pod.name }), opt("span", { class: "muted" }, "podcast_line"), el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
+  if (socials.length) col.append(el("div", { class: "socials" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })));
+  if (join) { var top = [opt("span", null, "check_left"), opt("span", null, "check_right")].filter(Boolean);
+    col.append(el("section", { class: "check", "aria-label": "Mailing list" }, [top.length ? el("div", { class: "top" }, top) : null, opt("h2", null, "join_title"), opt("p", null, "join_line"), join])); }
+  app.append(col, el("div", { class: "checks", "aria-hidden": "true", style: "height:22px;background-size:22px 22px" }),
+    el("footer", { text: ["© " + new Date().getFullYear() + " " + k.name, "Runs on ComicTable", say("footer")].filter(Boolean).join(" · ") }));
+});
+</script>
+</body>
+</html>

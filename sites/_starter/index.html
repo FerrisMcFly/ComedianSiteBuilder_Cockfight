@@ -114,10 +114,6 @@ section.page { padding: 56px 0 72px; }
 .fans form { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 .fans input, .fans select { font: 400 17px var(--font); padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); width: 100%; }
 .fans .full { grid-column: 1 / -1; }
-.picks { display: grid; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
-.picks:empty { display: none; }
-.picks button { text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; font: 16px var(--font); color: var(--text); cursor: pointer; }
-.picks button:hover, .picks button:focus { background: var(--card); }
 .fans .msg { font-weight: 600; min-height: 1.4em; }
 
 footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
@@ -250,29 +246,25 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
     return el("div", { class: "block" }, [el("div", { class: "block-head" }, [el("h2", { text: title }), link ? el("a", { href: link[0], text: link[1] }) : null]), body]);
   }
 
-  // fan list sign-up: email + city (picked from a list) + how far they'd go
+  // fan list sign-up: name, email and ZIP ("near you" is 50 miles from the ZIP)
   function fanBox() {
     if (!D.features.fans || O().signup_style === "off") return null;
-    var chosen = null, seq = 0, timer;
+    var name = el("input", { placeholder: "Name", "aria-label": "Name", autocomplete: "name", maxlength: 80 });
     var email = el("input", { type: "email", placeholder: "Email", "aria-label": "Email", autocomplete: "email" });
-    var city = el("input", { placeholder: "Your city", "aria-label": "Your city", autocomplete: "off" });
-    var picks = el("div", { class: "picks full", role: "listbox", "aria-label": "Cities" });
-    var radius = el("select", { "aria-label": "How far would you go?" }, [["25", "Within 25 miles"], ["50", "Within 50 miles"], ["100", "Within 100 miles"], ["250", "Within 250 miles"]].map(function (o) { return el("option", { value: o[0], text: o[1], selected: o[0] === "50" }); }));
+    var zip = el("input", { placeholder: "ZIP code", "aria-label": "ZIP code", inputmode: "numeric", autocomplete: "postal-code", maxlength: 5 });
     var msg = el("div", { class: "msg full", role: "status", "aria-live": "polite" });
     var send = el("button", { class: "btn", type: "submit", text: "Sign me up" });
-    city.addEventListener("input", function () {
-      chosen = null; clearTimeout(timer); var my = ++seq, q = city.value;
-      timer = setTimeout(function () { CSB.fans.places(q).then(function (list) { if (my !== seq) return; picks.replaceChildren.apply(picks, list.map(function (p) { return el("button", { type: "button", role: "option", text: p.label, onclick: function () { chosen = p; city.value = p.label; picks.replaceChildren(); } }); })); }); }, 200);
-    });
+    var fine = el("small", { class: "muted full" }, [document.createTextNode("Only emails about shows near you. Unsubscribe anytime. "), el("a", { href: "https://comictable.com/privacy", text: "Privacy" })]);
     var form = el("form", { novalidate: true, onsubmit: function (e) {
       e.preventDefault();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) { msg.textContent = "Add your email."; email.focus(); return; }
-      if (!chosen) { msg.textContent = "Pick your city from the list as you type."; city.focus(); return; }
+      var z = zip.value.replace(/\D/g, "");
+      if (z.length !== 5) { msg.textContent = "Add your 5-digit ZIP code."; zip.focus(); return; }
       send.disabled = true; msg.textContent = "";
-      CSB.fans.join({ email: email.value.trim(), placeId: chosen.id, radius: +radius.value }).then(function () {
-        send.disabled = false; msg.textContent = "You're on the list. You'll hear about shows near " + chosen.label + ".";
+      CSB.fans.join({ email: email.value.trim(), name: name.value.trim(), zip: z }).then(function (r) {
+        send.disabled = false; msg.textContent = r === "updated" ? "You're already on the list. Thanks!" : "You're on the list. You'll hear about shows near you.";
       }, function (er) { send.disabled = false; msg.textContent = er.message; });
-    } }, [email, city, picks, radius, send, msg]);
+    } }, [name, email, zip, send, msg, fine]);
     return el("div", { class: "fans" }, [el("h3", { text: "Get told when I'm in your town" }), el("p", { class: "muted", style: "margin:0", text: "One email when there's a show near you. That's it." }), form]);
   }
 

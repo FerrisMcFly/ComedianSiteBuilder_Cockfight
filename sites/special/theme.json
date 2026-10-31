@@ -1,0 +1,16 @@
+{
+  "name": "Stand-Up Special",
+  "description": "A 90s late-night stand-up special: spotlight on a brick wall, a big italic title card and a crowd. A ComicTable template.",
+  "settings": [
+    { "key": "accent", "label": "Stage color", "help": "The title shadow, the date cards and the sign-up box.", "type": "color", "default": "#C2186B" },
+    { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
+    { "key": "script_line", "label": "Script line above your name", "type": "text", "default": "Live on stage" },
+    { "key": "tag", "label": "Tag under your name", "type": "text", "default": "One night only" },
+    { "key": "shows_title", "label": "Shows heading", "type": "text", "default": "Tapings near you" },
+    { "key": "watch_title", "label": "Video heading", "type": "text", "default": "Tonight's set" },
+    { "key": "join_title", "label": "Sign-up heading", "type": "text", "default": "Be in the audience" },
+    { "key": "join_line", "label": "Sign-up line", "type": "text", "default": "Hear first when {name} plays near you." },
+    { "key": "join_button", "label": "Sign-up button", "type": "text", "default": "Count me in" }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Y2K Chrome",
+  "description": "Glossy early-2000s: chrome lettering, bubble buttons, holographic pastels and sparkles. A ComicTable template.",
+  "settings": [
+    { "key": "accent", "label": "Accent color", "help": "The date tiles, sparkle and sign-up box.", "type": "color", "default": "#FF5FC8" },
+    { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
+    { "key": "status", "label": "Status at the top", "type": "text", "default": "{name} is online" },
+    { "key": "now_playing", "label": "Top-right", "type": "text", "default": "♪ now playing" },
+    { "key": "shows_title", "label": "Shows heading", "type": "text", "default": "upcoming shows" },
+    { "key": "podcast_line", "label": "Under the podcast name", "type": "text", "default": "the podcast" },
+    { "key": "join_title", "label": "Sign-up heading", "type": "text", "default": "add me to ur list ✦" },
+    { "key": "join_line", "label": "Sign-up line", "type": "text", "default": "Hear first when {name} plays near you." },
+    { "key": "join_button", "label": "Sign-up button", "type": "text", "default": "sign me up" },
+    { "key": "footer", "label": "Bottom line", "type": "text", "default": "best viewed on any screen" }
+  ]
+}

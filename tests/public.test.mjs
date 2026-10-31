@@ -210,6 +210,15 @@ test("chat room shows messages, sends, and shows the chat's rules", async () => 
   assert.ok(lines.find((l) => /first!/.test(l.textContent)).querySelector(".ln-report"));
 });
 
+test("a group site shows only its own channel unless it switches the comics' channels on", async () => {
+  const vids = [{ youtube_id: "AAAAAAAAAAA", title: "Show clip", published: "2026-10-20", site_id: "cockfight" },
+    { youtube_id: "CCCCCCCCCCC", title: "Lev's own upload", published: "2026-10-22", comic_id: "lev-fer", site_id: null, host: "lev" }];
+  let { d } = await load({ ...base, videos: vids });
+  assert.deepEqual([...d.querySelectorAll("#videoGrid .vcard span")].map((x) => x.textContent), ["Show clip"], "Lev's channel stays on his Coaster");
+  ({ d } = await load({ ...base, videos: vids, sites: [{ ...base.sites[0], theme: { lineup_videos: "on" } }] }));
+  assert.deepEqual([...d.querySelectorAll("#videoGrid .vcard span")].map((x) => x.textContent).sort(), ["Lev's own upload", "Show clip"]);
+});
+
 test("videos can be filtered by channel, and a person's videos show on their page", async () => {
   const data = { ...base,
     videos: [{ youtube_id: "AAAAAAAAAAA", title: "Show clip", published: "2026-10-20", channel: "Cockfight" }, { youtube_id: "BBBBBBBBBBB", title: "Lev set", published: "2026-10-21", channel: "Lev Fer", host: "lev" }] };
@@ -223,25 +232,21 @@ test("videos can be filtered by channel, and a person's videos show on their pag
   assert.doesNotMatch(d.getElementById("v-lev").textContent, /Show clip/);
 });
 
-test("fans can join the fan list with their city when the site has it on", async () => {
+test("fans can join the fan list with name, email and ZIP when the site has it on", async () => {
   const off = await load(base);
   assert.ok(off.d.getElementById("fanBox").hidden, "no sign-up box unless the fan list is on");
-  const data = { ...base, sites: [{ id: "cockfight", features: { shows: true, fans: true } }],
-    places: [{ id: 4930956, name: "Boston", state: "MA", country: "US", population: 600000 }], rpc: { "rpc/join_fans": "joined" } };
-  const { w, d, calls } = await load(data);
+  const data = { ...base, sites: [{ id: "cockfight", features: { shows: true, fans: true } }], rpc: { "rpc/join_list": "joined" } };
+  const { w, d } = await load(data);
   const box = d.getElementById("fanBox");
   assert.ok(!box.hidden);
+  assert.ok(!d.getElementById("fanRadius") && !d.getElementById("fanCity"), "no city picker or miles question");
   d.getElementById("fanEmail").value = "fan@x.com";
   box.dispatchEvent(new w.Event("submit", { cancelable: true })); await new Promise((r) => setTimeout(r, 30));
-  assert.match(d.getElementById("fanMsg").textContent, /Pick your city/);
-  const city = d.getElementById("fanCity"); city.value = "bos"; city.dispatchEvent(new w.Event("input"));
-  await new Promise((r) => setTimeout(r, 300));
-  assert.ok(calls.some((c) => /^GET places\?.*name=ilike\.bos\*/.test(c)), calls.join("\n"));
-  const pick = d.querySelector("#fanPicks button"); assert.equal(pick.textContent, "Boston, MA"); pick.click();
-  d.getElementById("fanRadius").value = "100";
+  assert.match(d.getElementById("fanMsg").textContent, /ZIP/);
+  d.getElementById("fanName").value = "Sam"; d.getElementById("fanZip").value = "02118";
   box.dispatchEvent(new w.Event("submit", { cancelable: true })); await new Promise((r) => setTimeout(r, 30));
-  assert.deepEqual(data.rpcCalls.find((c) => c[0] === "rpc/join_fans"), ["rpc/join_fans", { p_site: "cockfight", p_email: "fan@x.com", p_place: 4930956, p_radius: 100 }]);
-  assert.match(d.getElementById("fanMsg").textContent, /You're on the list! We'll email you when we're near Boston, MA/);
+  assert.deepEqual(data.rpcCalls.find((c) => c[0] === "rpc/join_list"), ["rpc/join_list", { p_site: "cockfight", p_email: "fan@x.com", p_name: "Sam", p_zip: "02118", p_met: null, p_source: "site" }]);
+  assert.match(d.getElementById("fanMsg").textContent, /You're on the list!/);
 });
 
 test("a live show by the whole crew gets its own spot, and shows on each person's page", async () => {
@@ -267,4 +272,21 @@ test("blog posts come through the data kit, safely formatted", async () => {
   assert.match(html, /<h2>Hi<\/h2>/); assert.match(html, /<strong>bold<\/strong>/); assert.match(html, /&lt;script&gt;/);
   assert.match(html, /<a href="https:\/\/a.com"/); assert.doesNotMatch(html, /href="javascript/);
   assert.match(html, /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+});
+
+test("the lineup comes from each comic's Coaster; a site's own title, bio or photo wins only where it set one", async () => {
+  const data = { ...base,
+    hosts: [
+      { id: "lev", name: "Old copy", title: "Old", bio: "stale copy", photo_url: "https://old/p.jpg", sort: 0, comic_id: "lev-fer",
+        coaster: { id: "lev-fer", handle: "lev-fer", name: "Lev Fer", title: "Comedian", bio: "From the Coaster.", photo_url: "https://coaster/lev.jpg", instagram: "https://instagram.com/lev", socials: {} } },
+      { id: "colum", name: "Colum Tyrrell", title: "Co-host", bio: "Cockfight's own words.", own_bio: true, own_title: true, sort: 1, comic_id: "colum-tyrrell",
+        coaster: { id: "colum-tyrrell", handle: "colum-tyrrell", name: "Colum Tyrrell", title: "Comedian", bio: "His Coaster bio.", photo_url: null, socials: {} } }] };
+  const { w } = await load(data);
+  const fn = new Function("window", "globalThis", "fetch", sdk + "; return window.CSB;");
+  const CSB = fn(w, w, w.fetch);
+  CSB.init({ SITE_ID: "cockfight", SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "k" });
+  const d = await CSB.load();
+  const [lev, colum] = d.people;
+  assert.deepEqual([lev.name, lev.title, lev.bio, lev.photo, lev.socials.instagram, lev.handle], ["Lev Fer", "Comedian", "From the Coaster.", "https://coaster/lev.jpg", "https://instagram.com/lev", "lev-fer"]);
+  assert.deepEqual([colum.title, colum.bio], ["Co-host", "Cockfight's own words."]);
 });

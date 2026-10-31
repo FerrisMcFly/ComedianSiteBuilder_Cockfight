@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#161616">
 <style>
 /* The QR-code sign-up page. Someone scans it at the merch table, so it's one screen, big targets,
-   and only email + city required. Served on every comic's own domain at /join and on comictable.com/join/<site>. */
+   name, email and ZIP (founder, Oct 29). Served on every comic's own domain at /join and on comictable.com/join/<site>. */
 :root { --bg: #161616; --card: #1f1f1f; --line: #333; --text: #f3ead7; --muted: #b8ae9c; --accent: #c4452e; --accent-text: #fff; --bad: #ff8a7a; color-scheme: dark; }
 * { box-sizing: border-box; }
 html, body { min-height: 100%; }
@@ -28,13 +28,6 @@ label { display: grid; gap: 6px; font-size: 15px; font-weight: 600; }
 label small { font-weight: 400; color: var(--muted); }
 input, select { width: 100%; font: 400 18px system-ui, sans-serif; padding: 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
-.places { display: grid; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: -8px; }
-.places:empty { display: none; }
-.places button { all: unset; cursor: pointer; padding: 13px 14px; border-bottom: 1px solid var(--line); background: var(--card); }
-.places button:last-child { border-bottom: 0; }
-.places button:hover, .places button:focus-visible { background: #2b2b2b; }
-.chip { all: unset; cursor: pointer; justify-self: start; font-size: 15px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
-.chip:hover, .chip:focus-visible { border-color: var(--accent); color: var(--text); }
 button.go { font: 700 19px system-ui, sans-serif; padding: 16px; border-radius: 12px; border: 0; background: var(--accent); color: var(--accent-text); cursor: pointer; }
 button.go:disabled { opacity: .6; cursor: default; }
 button.go:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
@@ -53,15 +46,14 @@ button.go:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
       <h1 id="headline">Get told when I'm in your town</h1>
       <p class="lede" id="lede">One email when there's a show near you. That's it.</p>
       <form id="form" novalidate>
+        <label for="fname">Name <input id="fname" autocomplete="name" maxlength="80" placeholder="First name is fine"></label>
         <label for="email">Email <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@email.com" required></label>
-        <label for="city">Your city <input id="city" autocomplete="off" placeholder="Start typing your city" required></label>
-        <button type="button" class="chip" id="cityChip" hidden></button>
-        <div class="places" id="places" role="listbox" aria-label="Cities"></div>
+        <label for="zip">ZIP code <input id="zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="12345" required></label>
         <label for="met">Where did we meet? <small>Optional</small> <input id="met" maxlength="200" placeholder="A show, the merch table, the airport…"></label>
         <button class="go" type="submit" id="go">Join the list</button>
         <div class="msg" id="msg" role="status" aria-live="polite"></div>
       </form>
-      <p class="fine">Every email has a one-tap unsubscribe link.</p>
+      <p class="fine">Only emails about shows near you. Unsubscribe anytime. <a href="https://comictable.com/privacy" style="color:inherit">Privacy</a></p>
     </div>
   </section>
   <section class="done" id="done" hidden>
@@ -81,7 +73,7 @@ button.go:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
   // On a comic's own domain the site comes from config.js; on comictable.com it's /join/<site>.
   var site = cfg.SITE_ID || decodeURIComponent((location.pathname.match(/\/join\/([a-z0-9-]+)/) || [])[1] || "");
   var qs = new URLSearchParams(location.search), showId = qs.get("show"), at = qs.get("at");
-  var chosen = null, seq = 0, timer, name = "";
+  var name = "";
   function fail(text) { $("ask").replaceChildren(Object.assign(document.createElement("h1"), { textContent: text })); }
   if (!site) { fail("This sign-up link is missing the comic's name."); return; }
   CSB.init(Object.assign({}, cfg, { SITE_ID: site }));
@@ -90,7 +82,10 @@ button.go:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
   Promise.all([
     CSB.api("sites?select=name,domain,features,theme,profile&id=eq." + encodeURIComponent(site)),
-    CSB.api("hosts?select=name,title,photo_url&hidden=is.false&order=sort.asc&site_id=eq." + encodeURIComponent(site)).catch(function () { return []; }),
+    CSB.api("hosts?select=name,title,photo_url,own_photo,own_title,coaster:comics(name,title,photo_url)&hidden=is.false&order=sort.asc&site_id=eq." + encodeURIComponent(site))
+      .catch(function () { return CSB.api("hosts?select=name,title,photo_url&hidden=is.false&order=sort.asc&site_id=eq." + encodeURIComponent(site)); })
+      .then(function (rows) { return (rows || []).map(function (h) { var c = h.coaster; return c ? { name: c.name || h.name, title: (h.own_title ? h.title : c.title) || "", photo_url: (h.own_photo && h.photo_url) || c.photo_url } : h; }); })
+      .catch(function () { return []; }),
     showId && /^[0-9a-f-]{36}$/i.test(showId) ? CSB.api("shows?select=venue,city,date&id=eq." + showId).catch(function () { return []; }) : Promise.resolve([])
   ]).then(function (r) {
     var s = r[0][0];
@@ -109,38 +104,22 @@ button.go:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
     if (show) {
       $("lede").textContent = "Thanks for coming out to " + (show.venue || show.city) + ". One email when there's a show near you. That's it.";
       $("met").value = [show.venue, nice(show.date)].filter(Boolean).join(" · ");
-      if (show.city) { $("cityChip").textContent = "I live near " + show.city; $("cityChip").hidden = false; }
     } else if (at) $("met").value = at.slice(0, 200);
     if (s.domain) { $("siteLink").href = "https://" + s.domain; $("siteLink").textContent = "See " + s.name + "'s dates and clips at " + s.domain; }
     window.__ctJoin = { domain: s.domain };
   }, function () { fail("Couldn't connect. Check your signal and try again."); });
 
-  function lookup(q) {
-    chosen = null; clearTimeout(timer); var my = ++seq;
-    timer = setTimeout(function () {
-      CSB.fans.places(q).then(function (list) {
-        if (my !== seq) return;
-        $("places").replaceChildren.apply($("places"), list.map(function (pl) {
-          var b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "option"); b.textContent = pl.label;
-          b.addEventListener("click", function () { chosen = pl; $("city").value = pl.label; $("places").replaceChildren(); $("cityChip").hidden = true; $("msg").textContent = ""; });
-          return b;
-        }));
-      });
-    }, 180);
-  }
-  $("city").addEventListener("input", function () { lookup($("city").value); });
-  $("cityChip").addEventListener("click", function () { var c = this.textContent.replace(/^I live near /, "").split(",")[0]; $("city").value = c; lookup(c); $("city").focus(); });
-
   $("form").addEventListener("submit", function (e) {
     e.preventDefault();
     var email = $("email").value.trim(), msg = $("msg");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = "Add your email."; $("email").focus(); return; }
-    if (!chosen) { msg.textContent = "Pick your city from the list as you type."; $("city").focus(); return; }
+    var zip = $("zip").value.replace(/\D/g, "");
+    if (zip.length !== 5) { msg.textContent = "Add your 5-digit ZIP code."; $("zip").focus(); return; }
     $("go").disabled = true; msg.textContent = "";
-    CSB.fans.join({ email: email, placeId: chosen.id, radius: 50, met: $("met").value.trim(), source: "qr" }).then(function (res) {
+    CSB.fans.join({ email: email, name: $("fname").value.trim(), zip: zip, met: $("met").value.trim(), source: "qr" }).then(function (res) {
       $("ask").hidden = true; $("done").hidden = false;
       $("doneHead").textContent = res === "updated" ? "You're already on the list" : "You're on the list";
-      $("doneLine").textContent = "You'll get an email when " + name + " plays near " + chosen.label + ".";
+      $("doneLine").textContent = "You'll get an email when " + name + " has a show near you.";
       $("siteLink").hidden = !(window.__ctJoin && window.__ctJoin.domain);
     }, function (er) { $("go").disabled = false; msg.textContent = er.message; });
   });

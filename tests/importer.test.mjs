@@ -163,3 +163,20 @@ test("Spotify: with the keys and the site's Spotify show link, episodes get thei
   assert.match(res[0].status, /1 Spotify links/, res[0].status);
   assert.equal(tables.episodes.find((e) => e.title === firstTitle).spotify_url, "https://open.spotify.com/episode/abc");
 });
+
+test("ZIP codes load into the database once, in batches, and never again", async () => {
+  const { ensureZips, zipRows } = await import("../netlify/lib/zips.mjs");
+  const rows = zipRows();
+  assert.ok(rows.length > 40000);
+  assert.deepEqual(rows.find((r) => r.zip === "10001"), { zip: "10001", lat: 40.748, lng: -73.997, city: "New York", state: "NY" });
+  let have = 0, calls = 0;
+  const db = { from: () => ({
+    select: async () => ({ count: have, error: null }),
+    upsert: async (batch) => { calls++; have += batch.length; return { error: null }; } }) };
+  assert.match((await ensureZips(db, 10000)).zips, /^loaded/);
+  assert.equal(calls, Math.ceil(rows.length / 10000));
+  assert.equal((await ensureZips(db)).zips, "ok");
+  assert.equal(calls, Math.ceil(rows.length / 10000), "nothing loads the second time");
+  const old = { from: () => ({ select: async () => ({ error: { message: "relation zips does not exist" } }) }) };
+  assert.match((await ensureZips(old)).zips, /^skipped/);
+});

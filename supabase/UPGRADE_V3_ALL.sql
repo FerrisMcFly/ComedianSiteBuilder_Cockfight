@@ -1,5 +1,5 @@
--- ComicTable v3: every database change since v2 (home screen, photo uploads, press kit, QR fan sign-up, more socials, comictable.com showcase, roles, Coasters, News, media, forum safety) in one file. Paste it all into Supabase → SQL Editor and click Run.
--- Same as running 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 99 in order. Safe to run again, and safe if you already ran some of them.
+-- ComicTable v3: every database change since v2 (home screen, photo uploads, press kit, QR fan sign-up, more socials, comictable.com showcase, roles, Coasters, News, media, forum safety, the Coaster-first foundation) in one file. Paste it all into Supabase → SQL Editor and click Run.
+-- Same as running 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 99 in order. Safe to run again, and safe if you already ran some of them.
 
 -- ============================== 15_home_picks.sql ==============================
 -- Home picks: what a comic wants visitors to see first on their site's home screen.
@@ -476,6 +476,174 @@ grant insert on reports to anon, authenticated;
 grant select, update, delete on reports to authenticated;
 grant select, insert, delete on trusted to authenticated;
 
+-- ============================== 25_foundation.sql ==============================
+-- The foundation (Oct 29): the Coaster is the comic, and sites pull from the Coasters on their lineup.
+--   Coaster teams: a comic's own team (manager, agent, assistant), with the same roles as site teams.
+--   ZIP codes: fans sign up with name, email and ZIP; "near a show" is 50 miles from their ZIP.
+--   Fans live on Coasters: a site sign-up goes to the site's list and to every comic on its lineup.
+--   Podcasts a comic is on stay on their Coaster, even after they leave the show (they can switch one off).
+--   The same show added twice (by a comic and by a site) becomes one.
+-- The rules (who can see and change what) are in 99_rules.sql with everything else.
+-- Run once in Supabase → SQL Editor, after 24_safety.sql. Safe to run again.
+
+/* ---------------- Coaster teams ---------------- */
+-- The comic's own login is always theirs (comics.user_id). Their team: Owner (everything, including the team),
+-- Editor (the Coaster, dates, links, look and fans) or Shows only (dates). Several people can share a role.
+create table if not exists comic_team (
+  comic_id text not null references comics(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text not null default 'editor' check (role in ('owner', 'editor', 'shows')),
+  created_at timestamptz not null default now(),
+  primary key (comic_id, user_id)
+);
+create index if not exists comic_team_user on comic_team (user_id);
+alter table comic_team enable row level security;
+grant select on comic_team to authenticated;
+
+/* ---------------- ZIP codes ---------------- */
+-- Filled in by ComicTable's hourly job the first time it runs (about 42,000 US ZIP codes). Nothing to paste.
+create table if not exists zips (
+  zip text primary key check (zip ~ '^[0-9]{5}$'),
+  lat double precision not null,
+  lng double precision not null,
+  city text,
+  state text
+);
+alter table zips enable row level security;
+drop policy if exists "public read" on zips;
+create policy "public read" on zips for select using (true);
+grant select on zips to anon, authenticated;
+
+alter table fans add column if not exists name text;
+alter table fans add column if not exists zip text;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'fans_name_len') then
+    alter table fans add constraint fans_name_len check (name is null or char_length(name) <= 80);
+  end if;
+end $$;
+
+/* ---------------- fans on Coasters ---------------- */
+create table if not exists comic_fans (
+  id uuid primary key default gen_random_uuid(),
+  comic_id text not null references comics(id) on delete cascade,
+  fan_id uuid references fans(id) on delete cascade,      -- the site sign-up it came from (empty: they joined on the Coaster)
+  site_id text references sites(id) on delete set null,   -- where they signed up
+  email text not null check (email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' and length(email) <= 200),
+  name text check (name is null or char_length(name) <= 80),
+  zip text,
+  city text,
+  state text,
+  lat double precision,
+  lng double precision,
+  met_at text check (met_at is null or char_length(met_at) <= 200),
+  source text not null default 'coaster',
+  token uuid not null default gen_random_uuid() unique,   -- one-click "stop emailing me"
+  created_at timestamptz not null default now()
+);
+create unique index if not exists comic_fans_email on comic_fans (comic_id, lower(email));
+create index if not exists comic_fans_fan on comic_fans (fan_id);
+alter table comic_fans enable row level security;
+grant select, delete on comic_fans to authenticated;
+
+/* ---------------- podcasts on Coasters ---------------- */
+-- Every podcast a comic is on. Added when they're on a site's lineup and that site has the podcast;
+-- kept after they leave. hidden: the comic switched it off on their Coaster.
+create table if not exists comic_podcasts (
+  comic_id text not null references comics(id) on delete cascade,
+  site_id text not null references sites(id) on delete cascade,
+  show_name text not null default '',
+  hidden boolean not null default false,
+  created_at timestamptz not null default now(),
+  primary key (comic_id, site_id, show_name)
+);
+alter table comic_podcasts enable row level security;
+drop policy if exists "public read" on comic_podcasts;
+create policy "public read" on comic_podcasts for select using (true);
+grant select on comic_podcasts to anon, authenticated;
+grant update on comic_podcasts to authenticated;
+
+/* ---------------- looks: Checker and Pop ---------------- */
+do $$
+begin
+  if exists (select 1 from pg_constraint where conname = 'comics_coaster_check' and pg_get_constraintdef(oid) not like '%checker%') then
+    alter table comics drop constraint comics_coaster_check;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'comics_coaster_check') then
+    alter table comics add constraint comics_coaster_check check (
+      look in ('classic', 'night', 'redwood', 'mustard', 'checker', 'pop', 'spooky', 'holiday', 'custom')
+      and (tape_url is null or (tape_url ~* '^https://' and char_length(tape_url) <= 500))
+      and char_length(coalesce(tape_title, '')) <= 120
+      and jsonb_typeof(coaster) = 'object' and length(coaster::text) <= 4000);
+  end if;
+end $$;
+
+-- ============================== 26_customize.sql ==============================
+-- Everything is free for now (founder, Oct 29): every comic gets every customization, Custom colors included.
+-- Only ComicTable admins still switch Pro on or off (it unlocks nothing yet).
+-- The Coaster's settings grew (the page around it, lettering, doodles, templates, the QR code), so it gets more room.
+-- Run once in Supabase → SQL Editor, after 25_foundation.sql. Safe to run again.
+
+create or replace function public.coaster_guard() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and new.pro is distinct from (case when tg_op = 'UPDATE' then old.pro else false end) and not public.is_platform_owner() then
+    raise exception 'Only ComicTable admins can change Pro.' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+
+do $$
+begin
+  if exists (select 1 from pg_constraint where conname = 'comics_coaster_check' and pg_get_constraintdef(oid) like '%4000%') then
+    alter table comics drop constraint comics_coaster_check;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'comics_coaster_check') then
+    alter table comics add constraint comics_coaster_check check (
+      look in ('classic', 'night', 'redwood', 'mustard', 'checker', 'pop', 'spooky', 'holiday', 'custom')
+      and (tape_url is null or (tape_url ~* '^https://' and char_length(tape_url) <= 500))
+      and char_length(coalesce(tape_title, '')) <= 120
+      and jsonb_typeof(coaster) = 'object' and length(coaster::text) <= 8000);
+  end if;
+end $$;
+
+-- A comic's own YouTube channel lives on their Coaster, with or without a site (founder, Oct 29):
+-- a channel and its videos can belong to just a comic.
+alter table sources alter column site_id drop not null;
+alter table videos alter column site_id drop not null;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'sources_has_owner') then
+    alter table sources add constraint sources_has_owner check (site_id is not null or comic_id is not null);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'videos_has_owner') then
+    alter table videos add constraint videos_has_owner check (site_id is not null or comic_id is not null);
+  end if;
+end $$;
+create unique index if not exists videos_comic_yt on videos (comic_id, youtube_id) where site_id is null;
+
+-- ============================== 27_invites.sql ==============================
+-- Invite links (Step 3, founder Oct 29): the dashboard makes a one-time link to text a comic. They tap it, pick a
+-- username and password, and land on their Coaster. No email needed. A link works once and lasts 7 days.
+-- Whoever can edit the Coaster can invite its comic (ComicTable staff, or a site's owners and editors for a comic
+-- on their site who hasn't claimed their Coaster yet). The link is redeemed by the invite function with the
+-- service key; nobody reads invites from the outside.
+-- Run once in Supabase → SQL Editor, after 26_customize.sql. Safe to run again.
+
+create table if not exists invites (
+  token uuid primary key default gen_random_uuid(),
+  comic_id text not null references comics(id) on delete cascade,
+  site_id text references sites(id) on delete cascade,      -- the site they're joining, if any (their role there)
+  site_role text check (site_role is null or site_role in ('owner', 'editor', 'shows', 'moderator')),
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default now() + interval '7 days',
+  used_at timestamptz,
+  used_by uuid references auth.users(id) on delete set null
+);
+create index if not exists invites_comic on invites (comic_id);
+alter table invites enable row level security;
+grant select, insert, delete on invites to authenticated;
+
 -- ============================== 99_rules.sql ==============================
 -- ComicTable's access rules: every function and policy that decides who can do what, in one place.
 -- This file always runs LAST (it's at the end of every UPGRADE bundle), so re-running an older upgrade
@@ -526,19 +694,50 @@ language sql stable security definer set search_path = public as $$
 $$;
 grant execute on function public.is_platform_owner() to anon, authenticated;
 
--- A comic's profile: the comic, ComicTable staff, and owners/editors of any site they're on.
+-- A comic's Coaster (founder, Oct 29): the comic, their Coaster team (owners and editors), and ComicTable staff.
+-- A site's team can't change a comic's Coaster unless they're on that comic's team too. The one exception is a
+-- Coaster nobody has claimed yet (no login, no team): the owners and editors of a site they're on look after it.
+-- (Written so it also works before 25_foundation.sql has made the teams table.)
 create or replace function public.can_edit_comic(c text) returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (select 1 from platform_admins where user_id = auth.uid())
-      or exists (select 1 from comics where id = c and user_id = auth.uid())
-      or exists (select 1 from hosts h join admins a on a.site_id = h.site_id and a.user_id = auth.uid() and a.role in ('owner', 'editor') where h.comic_id = c);
-$$;
--- A comic's dates: the same people, plus "shows" people on any site they're on.
+language plpgsql stable security definer set search_path = public as $$
+declare ok boolean;
+begin
+  if exists (select 1 from platform_admins where user_id = auth.uid()) or exists (select 1 from comics where id = c and user_id = auth.uid()) then return true; end if;
+  if to_regclass('public.comic_team') is not null then
+    execute 'select exists (select 1 from comic_team where comic_id = $1 and user_id = auth.uid() and role in (''owner'', ''editor''))' into ok using c;
+    if ok then return true; end if;
+    execute 'select exists (select 1 from comic_team where comic_id = $1)' into ok using c;
+    if ok then return false; end if;
+  end if;
+  return not exists (select 1 from comics where id = c and user_id is not null)
+     and exists (select 1 from hosts h join admins a on a.site_id = h.site_id and a.user_id = auth.uid() and a.role in ('owner', 'editor') where h.comic_id = c);
+end $$;
+grant execute on function public.can_edit_comic(text) to anon, authenticated;
+-- Who manages a Coaster's team: the comic, their team's owners, and ComicTable staff.
+create or replace function public.can_manage_comic_team(c text) returns boolean
+language plpgsql stable security definer set search_path = public as $$
+declare ok boolean := false;
+begin
+  if exists (select 1 from platform_admins where user_id = auth.uid()) or exists (select 1 from comics where id = c and user_id = auth.uid()) then return true; end if;
+  if to_regclass('public.comic_team') is not null then
+    execute 'select exists (select 1 from comic_team where comic_id = $1 and user_id = auth.uid() and role = ''owner'')' into ok using c;
+  end if;
+  return ok;
+end $$;
+grant execute on function public.can_manage_comic_team(text) to anon, authenticated;
+-- A comic's dates: the same people, their team's "Shows only" people, and the owners, editors and "Shows only"
+-- people of any site they're on (sites add their comics' dates).
 create or replace function public.can_edit_comic_dates(c text) returns boolean
-language sql stable security definer set search_path = public as $$
-  select public.can_edit_comic(c)
-      or exists (select 1 from hosts h join admins a on a.site_id = h.site_id and a.user_id = auth.uid() and a.role = 'shows' where h.comic_id = c);
-$$;
+language plpgsql stable security definer set search_path = public as $$
+declare ok boolean := false;
+begin
+  if public.can_edit_comic(c) then return true; end if;
+  if to_regclass('public.comic_team') is not null then
+    execute 'select exists (select 1 from comic_team where comic_id = $1 and user_id = auth.uid())' into ok using c;
+    if ok then return true; end if;
+  end if;
+  return exists (select 1 from hosts h join admins a on a.site_id = h.site_id and a.user_id = auth.uid() and a.role in ('owner', 'editor', 'shows') where h.comic_id = c);
+end $$;
 grant execute on function public.can_edit_comic_dates(text) to anon, authenticated;
 
 /* ---------------- shows: owners, editors, staff, and "shows" people ---------------- */
@@ -592,6 +791,7 @@ create policy "public read" on chat_messages for select using (not deleted or pu
 create or replace function public.can_upload_photos(folder text) returns boolean
 language sql stable security definer set search_path = public as $$
   select public.is_site_admin(folder)
+      or public.can_edit_comic(folder)   -- a Coaster's own folder: "<comic id>/…"
       or exists (select 1 from hosts h join comics c on c.id = h.comic_id
                  where h.site_id = folder and c.user_id = auth.uid());
 $$;
@@ -962,5 +1162,164 @@ do $$ begin
   if to_regclass('public.reports') is not null then
     execute 'drop trigger if exists reports_guard on reports';
     execute 'create trigger reports_guard before insert on reports for each row execute function public.report_guard()';
+  end if;
+end $$;
+
+
+/* ================= the foundation (25_foundation.sql): Coaster teams, fans and podcasts on Coasters ================= */
+do $$ begin
+  if to_regclass('public.comic_team') is not null then
+    execute 'drop policy if exists "team and managers read" on comic_team';
+    execute 'create policy "team and managers read" on comic_team for select to authenticated using (user_id = auth.uid() or public.can_manage_comic_team(comic_id) or public.can_edit_comic(comic_id))';
+    execute 'drop policy if exists "coaster editors read" on comic_fans';
+    execute 'create policy "coaster editors read" on comic_fans for select to authenticated using (public.can_edit_comic(comic_id))';
+    execute 'drop policy if exists "coaster editors remove" on comic_fans';
+    execute 'create policy "coaster editors remove" on comic_fans for delete to authenticated using (public.can_edit_comic(comic_id))';
+    execute 'drop policy if exists "coaster editors switch" on comic_podcasts';
+    execute 'create policy "coaster editors switch" on comic_podcasts for update to authenticated using (public.can_edit_comic(comic_id)) with check (public.can_edit_comic(comic_id))';
+  end if;
+end $$;
+
+-- A fan who signs up on a site goes on the Coaster of every comic on its lineup right then.
+create or replace function public.fans_to_coasters() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if to_regclass('public.comic_fans') is null then return new; end if;
+  if tg_op = 'UPDATE' then
+    update comic_fans set name = new.name, zip = new.zip, city = new.city, state = new.state, lat = new.lat, lng = new.lng, met_at = coalesce(new.met_at, met_at)
+      where fan_id = new.id;
+    return new;
+  end if;
+  insert into comic_fans (comic_id, fan_id, site_id, email, name, zip, city, state, lat, lng, met_at, source)
+    select h.comic_id, new.id, new.site_id, new.email, new.name, new.zip, new.city, new.state, new.lat, new.lng, new.met_at, coalesce(new.source, 'site')
+    from hosts h where h.site_id = new.site_id and h.comic_id is not null
+  on conflict (comic_id, lower(email)) do nothing;
+  return new;
+end $$;
+do $$ begin
+  if to_regclass('public.comic_fans') is not null then
+    execute 'drop trigger if exists fans_to_coasters on fans';
+    execute 'create trigger fans_to_coasters after insert or update of name, zip, city, state, lat, lng, met_at on fans for each row execute function public.fans_to_coasters()';
+  end if;
+end $$;
+
+-- A comic who joins a lineup gets that site's fans so far, and its podcasts. Leaving takes nothing away.
+create or replace function public.lineup_joins() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if to_regclass('public.comic_fans') is null then return new; end if;
+  if new.comic_id is null or (tg_op = 'UPDATE' and new.comic_id is not distinct from old.comic_id) then return new; end if;
+  insert into comic_fans (comic_id, fan_id, site_id, email, name, zip, city, state, lat, lng, met_at, source)
+    select new.comic_id, f.id, f.site_id, f.email, f.name, f.zip, f.city, f.state, f.lat, f.lng, f.met_at, coalesce(f.source, 'site')
+    from fans f where f.site_id = new.site_id
+  on conflict (comic_id, lower(email)) do nothing;
+  insert into comic_podcasts (comic_id, site_id, show_name)
+    select distinct new.comic_id, new.site_id, coalesce(e.show_name, '') from episodes e where e.site_id = new.site_id
+  on conflict do nothing;
+  return new;
+end $$;
+drop trigger if exists hosts_lineup_joins on hosts;
+create trigger hosts_lineup_joins after insert or update of comic_id on hosts for each row execute function public.lineup_joins();
+
+-- A podcast a site adds shows up on the Coaster of every comic on its lineup.
+create or replace function public.podcast_to_coasters() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if to_regclass('public.comic_fans') is null then return new; end if;
+  insert into comic_podcasts (comic_id, site_id, show_name)
+    select h.comic_id, new.site_id, coalesce(new.show_name, '') from hosts h where h.site_id = new.site_id and h.comic_id is not null
+  on conflict do nothing;
+  return new;
+end $$;
+drop trigger if exists episodes_to_coasters on episodes;
+create trigger episodes_to_coasters after insert on episodes for each row execute function public.podcast_to_coasters();
+
+-- Joining a list with name, email and ZIP (every sign-up form). "Near a show" is 50 miles from the ZIP.
+create or replace function public.join_list(p_site text, p_email text, p_name text, p_zip text, p_met text default null, p_source text default 'site')
+returns text language plpgsql security definer set search_path = public as $$
+declare z record; e text := lower(trim(p_email)); zp text := left(regexp_replace(coalesce(p_zip, ''), '[^0-9]', '', 'g'), 5); existed boolean;
+  src text := case when p_source in ('site', 'qr', 'embed', 'coaster') then p_source else 'site' end;
+begin
+  if not exists (select 1 from sites where id = p_site and coalesce((features->>'fans')::boolean, false)) then
+    raise exception 'This site isn''t taking sign-ups right now.' using errcode = 'P0001';
+  end if;
+  if e !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' or length(e) > 200 then raise exception 'That email doesn''t look right.' using errcode = 'P0001'; end if;
+  select * into z from zips where zip = zp;
+  if not found then raise exception 'That ZIP code doesn''t look right.' using errcode = 'P0001'; end if;
+  existed := exists (select 1 from fans where site_id = p_site and lower(email) = e);
+  insert into fans (site_id, email, name, zip, city, state, lat, lng, radius_mi, met_at, source)
+    values (p_site, e, nullif(left(trim(coalesce(p_name, '')), 80), ''), zp, z.city, z.state, z.lat, z.lng, 50, nullif(left(trim(coalesce(p_met, '')), 200), ''), case when src = 'coaster' then 'site' else src end)
+  on conflict (site_id, lower(email)) do update set name = coalesce(excluded.name, fans.name), zip = excluded.zip, city = excluded.city, state = excluded.state,
+    lat = excluded.lat, lng = excluded.lng, met_at = coalesce(excluded.met_at, fans.met_at);
+  return case when existed then 'updated' else 'joined' end;
+end $$;
+revoke all on function public.join_list(text, text, text, text, text, text) from public;
+grant execute on function public.join_list(text, text, text, text, text, text) to anon, authenticated;
+
+-- Joining a comic's own list from their Coaster (no site needed).
+create or replace function public.join_coaster(p_comic text, p_email text, p_name text, p_zip text, p_met text default null)
+returns text language plpgsql security definer set search_path = public as $$
+declare z record; e text := lower(trim(p_email)); zp text := left(regexp_replace(coalesce(p_zip, ''), '[^0-9]', '', 'g'), 5); existed boolean;
+begin
+  if not exists (select 1 from comics where id = p_comic) then raise exception 'We couldn''t find that comic.' using errcode = 'P0001'; end if;
+  if e !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' or length(e) > 200 then raise exception 'That email doesn''t look right.' using errcode = 'P0001'; end if;
+  select * into z from zips where zip = zp;
+  if not found then raise exception 'That ZIP code doesn''t look right.' using errcode = 'P0001'; end if;
+  existed := exists (select 1 from comic_fans where comic_id = p_comic and lower(email) = e);
+  insert into comic_fans (comic_id, email, name, zip, city, state, lat, lng, met_at, source)
+    values (p_comic, e, nullif(left(trim(coalesce(p_name, '')), 80), ''), zp, z.city, z.state, z.lat, z.lng, nullif(left(trim(coalesce(p_met, '')), 200), ''), 'coaster')
+  on conflict (comic_id, lower(email)) do update set name = coalesce(excluded.name, comic_fans.name), zip = excluded.zip, city = excluded.city,
+    state = excluded.state, lat = excluded.lat, lng = excluded.lng;
+  return case when existed then 'updated' else 'joined' end;
+end $$;
+revoke all on function public.join_coaster(text, text, text, text, text) from public;
+grant execute on function public.join_coaster(text, text, text, text, text) to anon, authenticated;
+
+-- "Stop emailing me": one link takes the fan off everywhere that sign-up reached (the site list and every Coaster
+-- copy), or off one comic's list when they joined on the Coaster.
+create or replace function public.leave_list(p_token uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  delete from fans where token = p_token; get diagnostics n = row_count;  -- the Coaster copies go with it
+  if n = 0 then delete from comic_fans where token = p_token; get diagnostics n = row_count; end if;
+  return n > 0;
+end $$;
+revoke all on function public.leave_list(uuid) from public;
+grant execute on function public.leave_list(uuid) to anon, authenticated;
+
+-- Privacy: ComicTable staff can remove someone's email from every list on ComicTable when they ask.
+create or replace function public.forget_email(p_email text) returns int
+language plpgsql security definer set search_path = public as $$
+declare a int; b int; e text := lower(trim(p_email));
+begin
+  if not public.is_platform_admin() then raise exception 'Only ComicTable staff can do that.' using errcode = 'P0001'; end if;
+  delete from fans where lower(email) = e; get diagnostics a = row_count;
+  delete from comic_fans where lower(email) = e; get diagnostics b = row_count;
+  return a + b;
+end $$;
+revoke all on function public.forget_email(text) from public;
+grant execute on function public.forget_email(text) to authenticated;
+
+-- Everyone already on a lineup gets their sites' fans and podcasts (safe to run again).
+do $$ begin
+  if to_regclass('public.comic_fans') is not null then
+    insert into comic_fans (comic_id, fan_id, site_id, email, name, zip, city, state, lat, lng, met_at, source)
+      select h.comic_id, f.id, f.site_id, f.email, f.name, f.zip, f.city, f.state, f.lat, f.lng, f.met_at, coalesce(f.source, 'site')
+      from fans f join hosts h on h.site_id = f.site_id and h.comic_id is not null
+    on conflict (comic_id, lower(email)) do nothing;
+    insert into comic_podcasts (comic_id, site_id, show_name)
+      select distinct h.comic_id, e.site_id, coalesce(e.show_name, '') from episodes e join hosts h on h.site_id = e.site_id and h.comic_id is not null
+    on conflict do nothing;
+  end if;
+end $$;
+
+/* ---------------- invite links (27_invites.sql) ---------------- */
+do $$
+begin
+  if to_regclass('public.invites') is not null then
+    drop policy if exists "coaster editors invite" on invites;
+    -- make, see and cancel invites for a Coaster you can edit (an unclaimed one: nobody's logged in to it yet)
+    create policy "coaster editors invite" on invites for all to authenticated
+      using (public.can_edit_comic(comic_id))
+      with check (public.can_edit_comic(comic_id) and not exists (select 1 from comics c where c.id = comic_id and c.user_id is not null)
+        and (site_id is null or public.can_site(site_id, 'owner') or public.is_platform_admin()));
   end if;
 end $$;

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comedian</title>
+<meta name="description" content="Shows, videos and more.">
+<meta property="og:title" content="Comedian" data-ct="title">
+<meta property="og:description" content="Shows, videos and more." data-ct="description">
+<meta property="og:image" content="" data-ct="image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Archivo:wght@800;900&display=swap" rel="stylesheet">
+<style>
+/* Streetwear Drop: a ComicTable template. A limited-release product page; shows are picked like sizes. Every word that
+   isn't the comic's own data is a Design setting (theme.json). The countdown is worked out from the next show. */
+:root { --bg: #FFFFFF; --text: #111111; --muted: #5E5E5E; --line: #E5E5E5; --accent: #E2231A;
+  --font: "Archivo Narrow", "Arial Narrow", sans-serif; --heavy: "Archivo", "Arial Black", sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 500 16px/1.5 var(--font); }
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cap { font: 700 13px var(--font); letter-spacing: .14em; text-transform: uppercase; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.top .brand { font: 900 18px var(--heavy); letter-spacing: -.02em; text-transform: uppercase; }
+.top nav { display: flex; gap: 14px; flex-wrap: wrap; }
+.top nav a { text-decoration: none; }
+.bar { background: var(--text); color: #fff; padding: 8px 16px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.page { max-width: 1120px; margin: 0 auto; padding: 16px; }
+.product { display: grid; gap: 18px; }
+@media (min-width: 860px) { .product { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 40px; align-items: start; } .product .shot { position: sticky; top: 16px; } }
+.shot { position: relative; background: #F2F2F2; }
+.shot > img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+.shot.round { background: none; padding: 10px 0; }
+.badge { position: absolute; top: 12px; left: 12px; background: var(--accent); color: #fff; padding: 4px 8px; }
+.shot.round .badge { left: 0; top: 0; }
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+h1 { margin: 0; font: 900 clamp(34px, 6vw, 56px)/0.95 var(--heavy); letter-spacing: -.03em; text-transform: uppercase; overflow-wrap: anywhere; }
+.kind { color: var(--muted); text-align: right; font-weight: 600; font-size: 14px; }
+.bio { margin: 10px 0 0; color: #333; }
+.dates { margin-top: 22px; }
+.tiles { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.tile { border: 1px solid #BDBDBD; padding: 10px 8px; text-decoration: none; display: flex; flex-direction: column; gap: 2px; min-height: 44px; background: #fff; }
+a.tile:hover, a.tile.first { border: 2px solid var(--text); padding: 9px 7px; }
+.tile b { font: 900 18px var(--heavy); }
+.tile span { font-size: 13px; overflow-wrap: anywhere; }
+.tile .low { color: var(--accent); font-weight: 700; font-size: 12px; }
+.tile.sold { color: #8A8A8A; border-color: var(--line); background: repeating-linear-gradient(135deg, transparent 0 8px, #F2F2F2 8px 9px); }
+.tile.sold b { text-decoration: line-through; }
+.cta { margin-top: 12px; display: flex; align-items: center; justify-content: center; min-height: 54px; background: var(--text); color: #fff; text-decoration: none; }
+.empty { color: var(--muted); margin: 10px 0 0; }
+.section { margin-top: 34px; }
+.vid { display: block; position: relative; margin-top: 10px; aspect-ratio: 16 / 9; background: #111; overflow: hidden; }
+.vid img { width: 100%; height: 100%; object-fit: cover; opacity: .85; }
+.vid i { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; border: 2px solid #fff; display: grid; place-items: center; }
+.vid i::before { content: ""; border-left: 16px solid #fff; border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 4px; }
+.vrow { display: flex; justify-content: space-between; gap: 10px; padding-top: 8px; font-size: 14px; }
+@media (min-width: 860px) { .more { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 40px; align-items: start; } .more .side > :first-child { margin-top: 34px; } }
+.pod { margin-top: 26px; display: flex; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--line); }
+.pod .art { width: 60px; height: 60px; flex: none; background: var(--accent); color: #fff; display: grid; place-items: center; font: 900 18px var(--heavy); object-fit: cover; }
+.pod b { font: 900 16px var(--heavy); text-transform: uppercase; display: block; }
+.pod .links { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.join { display: grid; gap: 10px; max-width: 560px; }
+.join h2 { margin: 0; font: 900 26px/1 var(--heavy); letter-spacing: -.02em; text-transform: uppercase; }
+.join p { margin: 0; color: #333; }
+.ctt-join { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 8px; }
+.ctt-join label { display: grid; gap: 4px; font: 700 12px var(--font); letter-spacing: .08em; text-transform: uppercase; }
+.ctt-join input { height: 48px; border: 1px solid var(--text); padding: 0 12px; font: 500 16px var(--font); min-width: 0; }
+.ctt-join button { grid-column: 1 / -1; min-height: 54px; border: 0; background: var(--accent); color: #fff; font: 700 15px var(--font); letter-spacing: .2em; text-transform: uppercase; cursor: pointer; }
+.ctt-msg, .ctt-fine { grid-column: 1 / -1; } .ctt-msg { font-weight: 700; min-height: 1.2em; } .ctt-fine { color: var(--muted); font-size: 13px; }
+.socials { display: flex; flex-wrap: wrap; gap: 20px; padding: 30px 0; }
+.socials a { text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+footer { border-top: 1px solid var(--line); padding: 14px 16px 26px; color: var(--muted); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+.ctt-down { padding: 60px 20px; text-align: center; }
+</style>
+</head>
+<body>
+<main id="app"><p class="ctt-down">Loading…</p></main>
+<script src="config.js"></script>
+<script src="sdk/csb.js"></script>
+<script src="sdk/templates.js"></script>
+<script>
+CTT.start(function (k, app) {
+  "use strict";
+  var el = k.el;
+  // keep these in step with theme.json (a test checks)
+  var W = { drop_bar: "Drop 01 · Fall tour", countdown_label: "Next", badge: "New", name_line2: "On tour", kind: "Stand-up comedy", dates_title: "Select a date",
+    cta_button: "Get tickets", watch_title: "Lookbook", join_title: "Get notified",
+    join_line: "Get first access when {name} drops a date near you.", join_button: "Notify me" };
+  var say = function (key) { return k.t(key, W[key]); };
+  var video = k.video(), pod = k.podcast(), shows = k.shows(), socials = k.socials(), join = k.join({ button: say("join_button") || W.join_button });
+
+  // a real countdown to the next show: its date and start time (8 PM if it has none)
+  function startOf(s) {
+    var m = String(s.time || "").match(/(\d{1,2})(?::(\d{2}))?\s*([ap])?/i), H = 20, M = 0;
+    if (m) { H = +m[1] % 12 + ((m[3] || "p").toLowerCase() === "p" ? 12 : 0); M = +(m[2] || 0); }
+    var d = new Date(s.date + "T00:00:00"); d.setHours(H, M, 0, 0); return d;
+  }
+  var count = el("span");
+  function tick() {
+    var left = k.next ? startOf(k.next) - Date.now() : -1;
+    if (left < 0) { count.textContent = k.next ? "Tonight" : ""; return; }
+    var dd = Math.floor(left / 864e5), hh = Math.floor(left % 864e5 / 36e5), mm = Math.floor(left % 36e5 / 6e4);
+    count.textContent = (say("countdown_label") ? say("countdown_label") + ": " : "") + (dd ? ("0" + dd).slice(-2) + "D " + ("0" + hh).slice(-2) + "H" : ("0" + hh).slice(-2) + "H " + ("0" + mm).slice(-2) + "M");
+  }
+  tick(); if (k.next) setInterval(tick, 60000);
+
+  var links = [k.has("shows") ? ["#dates", "Shows"] : null, video ? ["#watch", "Watch"] : null, pod ? ["#listen", "Listen"] : null].filter(Boolean);
+  app.append(el("header", { class: "top cap" }, [el("span", { class: "brand", text: k.name }), el("nav", { "aria-label": "Sections" }, links.map(function (l) { return el("a", { href: l[0], text: l[1] }); }))]));
+  if (say("drop_bar") || k.next) app.append(el("div", { class: "bar cap" }, [el("span", { text: say("drop_bar") }), k.next ? count : null]));
+
+  var page = el("div", { class: "page" });
+  var shot = el("div", { class: "shot" + (k.coaster ? " round" : "") }, [k.coaster ? k.coasterPhoto() : k.photo ? el("img", { src: k.photo, alt: k.name }) : null,
+    say("badge") && (k.coaster || k.photo) ? el("span", { class: "badge cap", text: say("badge") }) : null]);
+  var info = el("div", null, [el("div", { class: "head" }, [el("h1", null, say("name_line2") ? [k.name, el("br"), say("name_line2")] : k.name), say("kind") ? el("span", { class: "kind", text: say("kind") }) : null]),
+    k.bio ? el("p", { class: "bio", text: k.bio }) : null]);
+
+  if (k.has("shows")) {
+    var first = shows.filter(function (s) { return !s.sold && s.tickets; })[0];
+    info.append(el("section", { class: "dates", id: "dates", "aria-label": say("dates_title") || "Shows" }, [say("dates_title") ? el("h2", { class: "cap", style: "margin:0", text: say("dates_title") }) : null,
+      shows.length ? el("div", { class: "tiles" }, shows.map(function (s) {
+        var kids = [el("b", { text: s.mon.toUpperCase() + " " + s.dd }), el("span", { text: s.venue }), s.sold ? el("span", { text: "Sold out" }) : s.few ? el("span", { class: "low", text: "A few left" }) : el("span", { text: s.city })];
+        return s.sold || !s.tickets ? el("span", { class: "tile" + (s.sold ? " sold" : "") }, kids)
+          : el("a", { class: "tile" + (s === first ? " first" : ""), href: s.tickets, target: "_blank", rel: "noopener", "aria-label": "Tickets: " + s.label + ", " + s.venue }, kids);
+      })) : el("p", { class: "empty", text: "No dates right now." }),
+      first ? el("a", { class: "cta cap", href: first.tickets, target: "_blank", rel: "noopener", text: (say("cta_button") || W.cta_button) + " · " + first.mon + " " + first.dd }) : null]));
+  }
+  page.append(el("div", { class: "product" }, [shot, info]));
+
+  var more = el("div", { class: "more" });
+  if (video) more.append(el("section", { class: "section", id: "watch", "aria-label": say("watch_title") || "Video" }, [say("watch_title") ? el("h2", { class: "cap", style: "margin:0", text: say("watch_title") }) : null,
+    el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
+    el("div", { class: "vrow" }, [el("b", { text: video.title })])]));
+  var side = el("div", { class: "side" });
+  if (pod) side.append(el("div", { class: "pod", id: "listen" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
+    el("div", null, [el("b", { text: pod.name }), el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
+  if (join) side.append(el("section", { class: "section join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
+  if (side.children.length) more.append(side);
+  if (more.children.length) page.append(more);
+  if (socials.length) page.append(el("div", { class: "socials cap" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })));
+  app.append(page, el("footer", { text: "© " + new Date().getFullYear() + " " + k.name + " · Runs on ComicTable" }));
+});
+</script>
+</body>
+</html>

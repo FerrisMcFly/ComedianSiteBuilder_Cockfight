@@ -1,0 +1,25 @@
+{
+  "name": "Tabloid",
+  "description": "A newspaper front page about the comic: masthead, breaking banner, a big headline. A ComicTable template.",
+  "settings": [
+    { "key": "accent", "label": "Banner color", "help": "The breaking-news banner and a few highlights.", "type": "color", "default": "#C8102E" },
+    { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "type": "heading", "label": "Words on the front page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name; {next_venue}, {next_city}, {next_date} and {next_day} fill in your next show." },
+    { "key": "masthead", "label": "Paper name", "type": "text", "default": "The {name} Daily" },
+    { "key": "edition_left", "label": "Top line, left", "type": "text", "default": "Vol. 1 · No. 1" },
+    { "key": "edition_mid", "label": "Top line, middle", "type": "text", "default": "Late Edition" },
+    { "key": "edition_right", "label": "Top line, right", "type": "text", "default": "Free" },
+    { "key": "banner_left", "label": "Banner, left", "type": "text", "default": "Breaking" },
+    { "key": "banner_right", "label": "Banner, right", "type": "text", "default": "Tickets on sale now" },
+    { "key": "headline", "label": "Headline", "type": "text", "default": "Local comic plays {next_venue} {next_date}" },
+    { "key": "subhead", "label": "Under the headline", "type": "text", "default": "Sources confirm: there are still seats." },
+    { "key": "caption", "label": "Photo caption", "type": "text", "default": "{name}, pictured." },
+    { "key": "shows_title", "label": "Shows heading", "type": "text", "default": "Where to catch the act" },
+    { "key": "video_title", "label": "Video heading", "type": "text", "default": "Caught on tape" },
+    { "key": "podcast_title", "label": "Podcast heading", "type": "text", "default": "On the air" },
+    { "key": "join_title", "label": "Sign-up heading", "type": "text", "default": "Subscribe. It's free." },
+    { "key": "join_line", "label": "Sign-up line", "type": "text", "default": "Get word first when {name} plays near you." },
+    { "key": "join_button", "label": "Sign-up button", "type": "text", "default": "Deliver it to me" },
+    { "key": "footer", "label": "Bottom line", "type": "text", "default": "Stop the presses." }
+  ]
+}

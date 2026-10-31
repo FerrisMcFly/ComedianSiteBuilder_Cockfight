@@ -9,7 +9,7 @@
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Permanent+Marker&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/brand/tokens.css">
 <style>
 /* A comic's Coaster: their card on ComicTable, built like the real thing on a bar table.
@@ -26,6 +26,10 @@ body.look-mustard { --bg: #E0A21A; --card: #ECB232; --ink: #1F1F1F; --muted: #4A
   --pulp: #F6E7BF; --print: #1F1F1F; --ring: #E0A21A; --band-ink: #1F1F1F; }
 body.look-spooky { --bg: #120E18; --card: #1C1624; --ink: #F4EBDD; --muted: #B6A9C2; --line: #352A44; --accent: #F07C1F; --on-accent: #120E18; --chip: #271F33;
   --pulp: #1B1622; --print: #F4EBDD; --ring: #F07C1F; --band-ink: #120E18; --photo-blend: screen; }
+body.look-checker { --bg: #151515; --card: #1F1F1F; --ink: #F5EFE4; --muted: #B7AFA2; --line: #333; --accent: #E8432E; --on-accent: #fff; --chip: #262626;
+  --pulp: #F3EAD7; --print: #151515; --ring: #E8432E; }
+body.look-pop { --bg: #FFE14D; --card: #FFF0A0; --ink: #141414; --muted: #4A4320; --line: #E9C935; --accent: #FF2E88; --on-accent: #fff; --chip: #FFE873;
+  --pulp: #FFE14D; --print: #141414; --ring: #FF2E88; --band-ink: #fff; }
 body.look-holiday { --bg: #17321F; --card: #1E3F28; --ink: #FBF3E4; --muted: #C9D8C3; --line: #2F5A3B; --accent: #D9443A; --on-accent: #fff; --chip: #24492F;
   --pulp: #FBF3E4; --print: #17321F; --ring: #1F5A35; }
 * { box-sizing: border-box; }
@@ -218,6 +222,259 @@ footer a { font-weight: 700; text-decoration: none; }
 .empty { text-align: center; padding: 80px 0; }
 .empty p { color: var(--muted); }
 @media (max-width: 380px) { .row2 { grid-template-columns: 1fr; } .stub { grid-template-columns: 62px minmax(0, 1fr); } .stub::before, .stub::after { left: 54px; } }
+
+/* ---------- the 2026 coaster print: engraved portrait, a ribbon with the name, the address under it, and art for each look ---------- */
+.coaster { container-type: inline-size; }
+.print .art { position: absolute; inset: 0; z-index: 0; }
+.print .art svg { width: 100%; height: 100%; display: block; }
+.print img.portrait { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; object-fit: cover; object-position: center 22%;
+  filter: grayscale(1) contrast(1.35) brightness(1.24); mix-blend-mode: var(--photo-blend, multiply);
+  -webkit-mask: radial-gradient(54% 50% at 50% 32%, #000 52%, transparent 97%); mask: radial-gradient(54% 50% at 50% 32%, #000 52%, transparent 97%); }
+/* engraving: fine lines cut through the shadows, like an etched print */
+.print .hatch { position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: .38;
+  background: repeating-linear-gradient(118deg, var(--pulp) 0 .9px, transparent .9px 2.7px);
+  -webkit-mask: radial-gradient(54% 50% at 50% 32%, #000 52%, transparent 97%); mask: radial-gradient(54% 50% at 50% 32%, #000 52%, transparent 97%); }
+.photo-color .print img.portrait, .look-pop .print img.portrait { filter: contrast(1.2) saturate(1.35); mix-blend-mode: normal; }
+.photo-color .print .hatch { display: none; }
+.look-pop .print .hatch { opacity: .22; background: radial-gradient(circle, var(--ring) 28%, transparent 30%) 0 0 / 5px 5px; }
+.look-checker .print img.portrait, .look-checker .print .hatch { inset: 13%; width: 74%; height: 74%; border-radius: 50%; -webkit-mask: radial-gradient(closest-side, #000 86%, transparent 100%); mask: radial-gradient(closest-side, #000 86%, transparent 100%); }
+.look-checker .print .art + img.portrait { background: var(--pulp); }
+.print .initials { z-index: 1; inset: 0 0 38%; }
+/* the printed inner ring */
+.print .rim2 { position: absolute; inset: 3.2%; border-radius: 50%; z-index: 3; pointer-events: none; border: 1.5px solid color-mix(in srgb, var(--print) 55%, transparent); }
+/* the ribbon */
+.print .ribbon { position: absolute; left: 7%; right: 7%; top: 57%; height: 17.5%; z-index: 4; display: grid; place-items: center; transform: rotate(-6deg);
+  background: var(--ring); color: var(--band-ink, #fff);
+  clip-path: polygon(0 0, 100% 0, 95% 50%, 100% 100%, 0 100%, 5% 50%);
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.25)); }
+.print .ribbon b { font: 400 var(--name-fs, 13cqw)/1 Anton, Impact, "Arial Narrow", sans-serif; text-transform: uppercase; letter-spacing: .01em; white-space: nowrap;
+  transform: skewX(-8deg); padding: 0 9%; text-shadow: 0 .4cqw 0 rgba(0,0,0,.18); }
+.print .addr { position: absolute; left: 0; right: 0; top: 76.5%; z-index: 4; text-align: center; transform: rotate(-6deg); color: var(--print);
+  font: 400 4.6cqw/1.08 Anton, Impact, sans-serif; text-transform: uppercase; letter-spacing: .03em; }
+/* a little wear on the ink */
+.print .ribbon, .print .addr { -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -9 7.2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23d)'/%3E%3C/svg%3E"), linear-gradient(#000, #000); -webkit-mask-composite: source-in; }
+.no-band .print .ribbon { background: none; color: var(--print); filter: none; }
+.front .band { display: none; }
+/* the back: hand-lettered, with the QR code */
+.back .print { gap: 2px; padding: 0 12%; }
+.back .print .art { opacity: .45; }
+.back .hand { position: relative; z-index: 2; font: 400 8.6cqw/1.02 "Permanent Marker", "Marker Felt", cursive; transform: rotate(-7deg); color: var(--print); max-width: 92%; margin-bottom: 1cqw; }
+.back .qr { position: relative; z-index: 2; width: 40cqw; padding: 2cqw; background: var(--pulp); border-radius: 3cqw; }
+.back .scan { position: relative; z-index: 2; font: 400 3.4cqw/1.15 "Permanent Marker", cursive; color: var(--print); transform: rotate(-4deg); margin-top: 1.5cqw; }
+.back .url { position: relative; z-index: 2; font: 400 3.6cqw/1.1 Anton, Impact, sans-serif; letter-spacing: .04em; }
+.back .k { display: none; }
+.print .stain { z-index: 5; }
+
+/* ---------- the bar (founder's pick, Oct 29): every Coaster sits on a table in a dark comedy club ---------- */
+:root { --pulp: #E9D6AF; --print: #2A1D14; --ring: #C9412B; }
+body[class*="look-"], body { --bg: #150F0B; --ink: #F5EDE0; --muted: #B5A893; --card: #221913; --line: #3A2C22; --chip: #2A2019; --edge: #3A2C22;
+  --accent: var(--ring); --on-accent: var(--band-ink, #fff); --paper: #F2E6CC; --paper-ink: #22180F; --paper-muted: #6E5D49; --paper-line: #DCCBA8; }
+body.look-mustard, body.look-pop { --on-accent: #1F1F1F; }
+body.look-pop { --on-accent: #fff; }
+html { background: #150F0B; }
+body { background:
+    radial-gradient(70% 46% at 50% 0%, rgba(255, 186, 110, .20), transparent 72%),
+    linear-gradient(rgba(0,0,0,.16) 2px, transparent 2px) 0 0 / 100% 34px,
+    linear-gradient(90deg, rgba(0,0,0,.13) 2px, transparent 2px) 0 0 / 76px 68px,
+    radial-gradient(120% 80% at 50% 30%, #2B1D14, #120C08 75%) fixed; }
+body::before { background: radial-gradient(46% 58% at 50% 0%, rgba(255, 214, 160, .22), transparent 70%), radial-gradient(30% 40% at 50% 8%, rgba(255,255,255,.10), transparent 72%); }
+/* cork board: specks, and a darker edge where hands have held it */
+.face::after { opacity: .75; background:
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .24 0 0 0 0 .14 0 0 0 -2.6 1.55'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23k)'/%3E%3C/svg%3E"); }
+.look-night .face::after, .look-spooky .face::after, .look-checker .face::after { opacity: .35; }
+.print { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--print) 60%, transparent), inset 0 0 12cqw color-mix(in srgb, #6b4320 26%, transparent), 0 0 0 1px rgba(255,255,255,.12); }
+.look-night .print, .look-spooky .print { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--print) 60%, transparent), inset 0 0 12cqw rgba(0,0,0,.45); }
+.print img.portrait { filter: grayscale(1) sepia(.35) contrast(1.25) brightness(1.5);
+  -webkit-mask: radial-gradient(60% 56% at 50% 33%, #000 55%, transparent 97%); mask: radial-gradient(60% 56% at 50% 33%, #000 55%, transparent 97%); }
+.print .hatch { opacity: .42; -webkit-mask: radial-gradient(60% 56% at 50% 33%, #000 55%, transparent 97%); mask: radial-gradient(60% 56% at 50% 33%, #000 55%, transparent 97%); }
+.coaster { width: min(78vw, 320px); }
+.face { box-shadow: 0 3px 0 0 color-mix(in srgb, var(--pulp) 70%, #000), 0 5px 0 0 rgba(0,0,0,.35), 0 24px 36px -8px rgba(0,0,0,.65); }
+.tap { color: var(--muted); }
+/* the name is on the coaster already; keep it for screen readers */
+.who h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { padding-bottom: 140px; }
+/* socials: dark tiles */
+.socials.icons a, .socials a { background: #0E0A07; border-color: #34281F; border-radius: 14px; color: var(--ink); }
+.socials.icons a { width: 54px; height: 54px; }
+.socials a:hover { border-color: var(--ring); }
+.socials.brand svg path[fill="#000000"] { fill: currentColor; }
+/* buttons on the dark page */
+.btn { border-color: color-mix(in srgb, var(--ink) 55%, transparent); border-radius: 14px; }
+.btn:hover { background: rgba(255,255,255,.05); }
+.btn .bi { width: 22px; height: 22px; flex: none; }
+.btn.main .bi { stroke: currentColor; }
+.more-btn { background: #0E0A07; border-color: #34281F; border-radius: 999px; width: auto; margin-left: auto; margin-right: auto; padding: 11px 22px; font-size: 14px; }
+.lcard { background: #1C140F; border-color: #34281F; }
+.lcard .ico { background: #2A2019; }
+/* dates: a printed paper list */
+.dates, section[aria-label="Next show"] .stub { background: var(--paper); }
+.dates { gap: 0; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 26px -10px rgba(0,0,0,.6); }
+.stub { background: var(--paper); color: var(--paper-ink); border: 0; border-radius: 0; border-bottom: 1px solid var(--paper-line); grid-template-columns: 70px minmax(0, 1fr); }
+.dates .stub:last-child { border-bottom: 0; }
+section[aria-label="Next show"] .stub { border-radius: 16px; box-shadow: 0 10px 26px -10px rgba(0,0,0,.6); }
+.stub::before, .stub::after { display: none; }
+.cal { border-right: 1.5px dashed var(--paper-line); padding: 12px 4px; }
+.cal span { color: var(--paper-muted); }
+.cal b { font: 400 30px/1 Anton, Impact, sans-serif; }
+.cal .mo { color: var(--paper-ink); }
+.stub .body { padding: 12px 14px; }
+.stub .where b { font-size: 16px; }
+.stub .where .hint { color: var(--paper-muted); }
+.stub .top { align-items: center; }
+.stub .btn.main.sm { background: var(--ring); border-color: var(--ring); color: var(--on-accent); border-radius: 8px; padding: 8px 14px; }
+.stub .btn.few { background: #E0A21A; border-color: #E0A21A; color: #1F1F1F; }
+.stub .pill { background: #CFC3AA; color: #4A3F33; border-radius: 8px; padding: 8px 12px; }
+.stub .bill, .stub .mini { color: var(--paper-ink); }
+.stub .bill > span { color: var(--paper-muted); }
+.stub .mini i { background: var(--paper-line); }
+h2 { font: 400 28px/1.1 Anton, Impact, var(--ct-display, sans-serif); letter-spacing: .01em; text-transform: uppercase; }
+h1 { font: 400 clamp(36px, 10vw, 54px)/1 Anton, Impact, var(--ct-display, sans-serif); text-transform: uppercase; letter-spacing: .01em; }
+/* the dock: three tabs, Tickets first */
+.dock { background: linear-gradient(transparent, rgba(12,8,6,.92) 40%); }
+.dock .in { background: #0E0A07; border: 1px solid #34281F; border-radius: 20px; padding: 6px; gap: 6px; }
+.dock .tab { flex: 1; display: grid; justify-items: center; gap: 3px; padding: 9px 4px 8px; border-radius: 14px; border: 0; background: none; color: var(--ink); font: 700 12px/1 var(--ct-sans, Inter, sans-serif); text-decoration: none; cursor: pointer; }
+.dock .tab svg { width: 22px; height: 22px; }
+.dock .tab.go { background: var(--ring); color: var(--on-accent); }
+.dock .tab .dot { margin: 0; }
+.join { background: var(--paper); color: var(--paper-ink); border: 0; }
+.join p { color: var(--paper-muted); }
+.join input, .join select { background: #fff; color: var(--paper-ink); border-color: var(--paper-line); }
+.join ul { background: #fff; } .join li button { color: var(--paper-ink); }
+.own { border-top-color: #34281F; }
+.join .csb-signup input { width: 100%; font: 16px/1.3 var(--ct-sans, sans-serif); padding: 12px 13px; border-radius: 10px; border: 1.5px solid var(--paper-line, var(--line)); background: #fff; color: var(--paper-ink, var(--ink)); }
+.join .csb-signup .csb-msg { font-weight: 600; margin: 0; }
+.join .csb-signup .csb-fine { color: var(--paper-muted, var(--muted)); }
+
+/* ============================================================
+   The page around the coaster (founder's phone reference, Oct 30):
+   ComicTable bar, a brick wall, social tiles, dates as torn tickets with a colored button, who else is on the bill,
+   and a Tickets / Join / Share dock. The comic picks the background, the date style, the buttons and the socials.
+   ============================================================ */
+.ctbar { position: relative; z-index: 6; display: flex; align-items: center; justify-content: space-between; padding: 16px 2px 6px; }
+.ctwm { font: 900 26px/1 var(--ct-display, "Encode Sans Condensed", sans-serif); color: #F3EAD7; text-decoration: none; letter-spacing: -.01em; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.ctwm span { color: #E66A4B; }
+.ctmenu-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; color: #F3EAD7; cursor: pointer; border-radius: 10px; }
+.ctmenu-btn svg { width: 26px; height: 26px; }
+.ctmenu { position: absolute; right: 0; top: 58px; min-width: 220px; display: grid; padding: 6px; background: #0E0A07; border: 1px solid #34281F; border-radius: 14px; box-shadow: 0 16px 30px rgba(0,0,0,.5); }
+.ctmenu a { padding: 11px 12px; border-radius: 9px; text-decoration: none; font-weight: 600; color: #F3EAD7; }
+.ctmenu a:hover { background: #2A2019; }
+.table { padding-top: 4px; }
+.tap { margin-top: 6px; font-size: 12px; opacity: .75; }
+.who { margin-top: 6px; } .who .title { margin: 0; font-size: 14px; } .who .status { margin-top: 8px; font-size: 13px; padding: 5px 12px; background: rgba(10,8,7,.6); }
+
+/* ---------- backgrounds ---------- */
+body.bg-brick { background:
+    radial-gradient(60% 40% at 50% 14%, rgba(255, 176, 96, .26), transparent 70%),
+    radial-gradient(130% 90% at 50% 40%, transparent 45%, rgba(0,0,0,.78)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='56'%3E%3Crect width='112' height='56' fill='%232A1610'/%3E%3Crect x='0' y='0' width='54' height='26' rx='1.5' fill='%236B2E1D'/%3E%3Crect x='56' y='0' width='54' height='26' rx='1.5' fill='%235E2717'/%3E%3Crect x='-28' y='28' width='54' height='26' rx='1.5' fill='%23763620'/%3E%3Crect x='28' y='28' width='54' height='26' rx='1.5' fill='%2364291A'/%3E%3Crect x='84' y='28' width='54' height='26' rx='1.5' fill='%236F311E'/%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 -.1'/%3E%3C/filter%3E%3Crect width='112' height='56' filter='url(%23g)' opacity='.55'/%3E%3C/svg%3E") 0 0 / 112px 56px #2A1610; background-attachment: fixed, fixed, scroll; }
+body.bg-velvet { background:
+    radial-gradient(60% 40% at 50% 12%, rgba(255, 196, 130, .22), transparent 70%),
+    radial-gradient(130% 90% at 50% 40%, transparent 40%, rgba(0,0,0,.7)),
+    repeating-linear-gradient(90deg, #4E0C15 0 14px, #6A1420 14px 24px, #3E0910 24px 40px) #4E0C15; background-attachment: fixed; }
+body.bg-neon { background:
+    radial-gradient(40% 30% at 85% 6%, rgba(255, 62, 165, .45), transparent 70%),
+    radial-gradient(40% 30% at 10% 28%, rgba(37, 244, 238, .22), transparent 70%),
+    radial-gradient(120% 80% at 50% 40%, #1A1030, #0B0714 75%); background-attachment: fixed; }
+body.bg-wood { background:
+    radial-gradient(60% 40% at 50% 10%, rgba(255, 190, 120, .2), transparent 70%),
+    radial-gradient(130% 90% at 50% 40%, transparent 45%, rgba(0,0,0,.7)),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 7px, rgba(255,220,170,.04) 7px 9px, transparent 9px 23px),
+    linear-gradient(#3B2414, #2A190E); background-attachment: fixed; }
+body.bg-checker { background:
+    radial-gradient(120% 80% at 50% 40%, transparent 35%, rgba(0,0,0,.65)),
+    repeating-conic-gradient(#141414 0 25%, #262320 0 50%) 0 0 / 44px 44px; background-attachment: fixed, scroll; }
+body.bg-solid { background: radial-gradient(60% 40% at 50% 10%, rgba(255,255,255,.06), transparent 70%), #17120F; }
+body.bg-velvet::before, body.bg-neon::before, body.bg-checker::before, body.bg-solid::before, body.bg-wood::before, body.bg-brick::before { display: none; }
+
+/* ---------- socials: dark tiles, or plain logos ---------- */
+.socials.icons a { width: 50px; height: 50px; border-radius: 13px; background: #0D0B0A; border: 0; box-shadow: 0 3px 8px rgba(0,0,0,.5); }
+.soc-plain .socials a, .soc-plain .socials.icons a { background: none; box-shadow: none; border: 0; }
+.socials { margin-top: 14px; gap: 12px; }
+
+/* ---------- shows ---------- */
+.shows { margin-top: 18px; }
+.tixlist { display: grid; gap: 8px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+.tix { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 15px 14px 15px 16px; color: #2A1A12; }
+.tix .when { display: grid; line-height: 1.05; font-family: var(--ct-display, "Encode Sans Condensed", sans-serif); }
+.tix .when span { font-size: 13px; font-weight: 700; letter-spacing: .03em; }
+.tix .when b { font-size: 18px; font-weight: 900; white-space: nowrap; }
+.tix .where { display: grid; gap: 1px; min-width: 0; padding-left: 12px; border-left: 1.5px dashed rgba(42, 26, 18, .35); font-size: 13px; line-height: 1.3; }
+.tix .where b { font-size: 15px; overflow-wrap: anywhere; }
+.tix .where span { opacity: .78; }
+.tb { min-width: 84px; height: 40px; padding: 0 12px; display: inline-grid; place-items: center; border-radius: 8px; font: 700 14px/1 var(--ct-sans, Inter, sans-serif); text-decoration: none; white-space: nowrap;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.18); }
+.tb.live { background: #D9452B; color: #fff; }
+.tb.few { background: #F2B53A; color: #2A1A0A; }
+.tb.sold { background: #9A948A; color: #fff; }
+a.tb:hover { filter: brightness(1.08); }
+/* torn paper: ragged top and bottom edges */
+.dates-tickets .tix { background: linear-gradient(180deg, #F6ECD6, #E8D8B6);
+  clip-path: polygon(0 3px, 4% 0, 9% 4px, 14% 1px, 19% 4px, 25% 0, 31% 3px, 37% 1px, 43% 4px, 49% 0, 55% 3px, 61% 1px, 67% 4px, 73% 0, 79% 3px, 85% 1px, 91% 4px, 96% 0, 100% 3px,
+    100% calc(100% - 2px), 95% 100%, 90% calc(100% - 4px), 84% calc(100% - 1px), 78% calc(100% - 4px), 72% 100%, 66% calc(100% - 3px), 60% calc(100% - 1px), 54% calc(100% - 4px), 48% 100%, 42% calc(100% - 3px), 36% calc(100% - 1px), 30% calc(100% - 4px), 24% 100%, 18% calc(100% - 3px), 12% calc(100% - 1px), 6% calc(100% - 4px), 0 calc(100% - 1px)); }
+.dates-list .tixlist { filter: none; }
+.dates-list .tix { background: rgba(10, 8, 7, .74); color: #F3EAD7; border-radius: 12px; }
+.dates-list .tix .where { border-left-color: rgba(243, 234, 215, .2); }
+.dates-chalk .tixlist { gap: 0; background: #26332B; border: 6px solid #6E5236; border-radius: 6px; padding: 4px 6px; box-shadow: inset 0 0 30px rgba(0,0,0,.35); }
+.dates-chalk .tix { color: #F1F1E6; font-family: "Permanent Marker", cursive; border-bottom: 1px dashed rgba(241,241,230,.25); }
+.dates-chalk .tix:last-child { border-bottom: 0; }
+.dates-chalk .tix .where { border-left-color: rgba(241,241,230,.3); }
+.dates-chalk .tix .where b { font-weight: 400; }
+.btns-one .tb.live, .btns-one .tb.few { background: var(--ring); color: var(--on-accent); }
+.btns-outline .tb { background: transparent; color: currentColor; box-shadow: inset 0 0 0 2px currentColor; }
+.btns-outline .tix .tb.sold { opacity: .6; }
+.btn.quiet { margin-top: 10px; background: rgba(10, 8, 7, .6); border: 0; color: #F3EAD7; border-radius: 12px; padding: 12px; font-size: 14px; }
+
+/* ---------- also on the bill ---------- */
+.billbar { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: rgba(10, 8, 7, .74); display: grid; gap: 8px; }
+.billbar .bl { font-size: 13px; color: #F3EAD7; }
+.billbar .who-row { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.billbar .mini { color: #F3EAD7; font-size: 14px; }
+.billbar .mini i { width: 32px; height: 32px; padding: 0; background: none; }
+.billbar .mini img, .billbar .mini em { background: #E0A21A; color: #1A140A; }
+
+/* ---------- the dock: flush to the bottom, Tickets in red ---------- */
+.dock { padding: 0; background: none; }
+.dock .in { max-width: 520px; margin: 0 auto; border-radius: 18px 18px 0 0; border: 0; border-top: 1px solid #2A2420; background: #0D0B0A; padding: 0; gap: 0; filter: none; overflow: hidden; }
+.dock .tab { border-radius: 0; padding: 11px 4px calc(12px + env(safe-area-inset-bottom)); gap: 4px; font-size: 12.5px; }
+.dock .tab.go { background: #C4452E; color: #fff; }
+.wrap { padding-bottom: 110px; }
+.lcard { background: rgba(14, 10, 7, .82); border: 0; }
+.more-btn { background: rgba(10, 8, 7, .74); border: 0; }
+body.preview .coaster { animation: none; }
+.back .hand.big { font-size: 13cqw; line-height: 1.02; }
+.back .nx-when { position: relative; z-index: 2; font: 400 14cqw/1 Anton, Impact, sans-serif; color: var(--print); text-transform: uppercase; }
+.back .nx-where { position: relative; z-index: 2; font: 700 5.6cqw/1.15 var(--ct-sans, Inter, sans-serif); color: var(--print); max-width: 80%; }
+.back .print .back-full { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.back.qr-s .qr { width: 32cqw; } .back.qr-l .qr { width: 50cqw; }
+.back .print .back-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .28; filter: grayscale(1) contrast(1.2); mix-blend-mode: var(--photo-blend, multiply); }
+.back .print .doodles { opacity: .7; }
+/* ---------- the banner: lower (default), middle, top or none; ribbon, straight band or just the name; tilted or straight ---------- */
+.front.banner-low .ribbon { top: 63%; } .front.banner-low .addr { top: 81.5%; }
+.front.banner-mid .ribbon { top: 54%; } .front.banner-mid .addr { top: 74%; }
+.front.banner-top .ribbon { top: 8%; } .front.banner-top .addr { top: 82%; }
+.front.banner-none .addr { top: 80%; }
+.front.tilt-straight .ribbon, .front.tilt-straight .addr { transform: none; }
+.front.shape-band .ribbon { left: -2%; right: -2%; clip-path: none; height: 16%; }
+.front.shape-plain .ribbon { background: none; filter: none; clip-path: none; color: var(--print); }
+.front.shape-plain .ribbon b { text-shadow: 0 0 2cqw var(--pulp), 0 0 1cqw var(--pulp); }
+.front.banner-top .print img.portrait, .front.banner-top .print .hatch { -webkit-mask: radial-gradient(60% 56% at 50% 46%, #000 55%, transparent 97%); mask: radial-gradient(60% 56% at 50% 46%, #000 55%, transparent 97%); }
+.print img.portrait { transform-origin: 50% 30%; }
+.front.print-color .print img.portrait { filter: contrast(1.1) saturate(1.2); mix-blend-mode: normal; }
+.front.print-color .print .hatch { display: none; }
+.front.print-ink .print img.portrait { filter: grayscale(1) sepia(.35) contrast(1.25) brightness(1.5); mix-blend-mode: var(--photo-blend, multiply); }
+
+.pod iframe { width: 100%; border: 0; border-radius: 14px; display: block; background: #000; }
+.pod .pod-sp { height: 232px; } .pod .pod-apple { height: 175px; } .pod .pod-yt { aspect-ratio: 16 / 9; height: auto; }
+.shorts .short.featured { grid-column: span 2; }
+/* ---------- lettering and doodles ---------- */
+.print .doodles { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.print .doodles svg { width: 100%; height: 100%; display: block; }
+.print .ribbon b.let-script, .print .ribbon b.let-brush, .print .ribbon b.let-typewriter, .print .ribbon b.let-western { text-transform: none; }
+.print .ribbon b.let-script { font-size: calc(var(--name-fs, 13cqw) * 1.15); transform: skewX(-4deg); }
+.print .ribbon b.let-neon { font-size: calc(var(--name-fs, 13cqw) * .78); color: #fff; text-shadow: 0 0 1cqw #fff, 0 0 2.5cqw var(--band-ink, #FF2E88), 0 0 5cqw var(--band-ink, #FF2E88); }
+.print .ribbon b.let-marquee { font-size: calc(var(--name-fs, 13cqw) * .78); }
+.print .ribbon b.let-comic { letter-spacing: .03em; }
+
 </style>
 </head>
 <body>
@@ -232,7 +489,43 @@ footer a { font-weight: 700; text-decoration: none; }
   var CFG = window.COMICTABLE_CONFIG || {};
   var CSB = window.CSB || {};
   var app = document.getElementById("app");
-  var LOOKS = ["classic", "night", "redwood", "mustard", "spooky", "holiday"];
+  // In the dashboard's live preview the page shows the comic's unsaved changes, sent in as they type.
+  var PREVIEW = /[?&]preview=1/.test(location.search), LAST = null;
+  if (PREVIEW) window.addEventListener("message", function (e) {
+    if (e.origin !== location.origin || !e.data || e.data.type !== "ct-coaster" || !LAST) return;
+    var c = Object.assign({}, LAST.c, e.data.comic || {});
+    draw(c, LAST.dates, LAST.bill, LAST.sites, LAST.shorts);
+  });
+  var LOOKS = ["classic", "night", "redwood", "mustard", "checker", "pop", "spooky", "holiday"];
+  // Art printed on each look, behind the portrait (drawn on a 100 x 100 circle).
+  var rays = function (n, fill, op, cx, cy) { var d = ""; for (var i = 0; i < n; i++) { var a1 = (i / n) * Math.PI * 2, a2 = ((i + .5) / n) * Math.PI * 2;
+    d += "M" + cx + " " + cy + "L" + (cx + Math.cos(a1) * 90).toFixed(1) + " " + (cy + Math.sin(a1) * 90).toFixed(1) + "L" + (cx + Math.cos(a2) * 90).toFixed(1) + " " + (cy + Math.sin(a2) * 90).toFixed(1) + "Z"; }
+    return '<path d="' + d + '" fill="' + fill + '" opacity="' + op + '"/>'; };
+  var star = function (x, y, r, fill) { return '<path d="M' + x + ' ' + (y - r) + 'Q' + x + ' ' + y + ' ' + (x + r) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y + r) + 'Q' + x + ' ' + y + ' ' + (x - r) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y - r) + 'Z" fill="' + fill + '"/>'; };
+  var dots = function (fill, op) { return '<defs><pattern id="ht" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="2" cy="2" r="1.05" fill="' + fill + '"/></pattern></defs><rect width="100" height="100" fill="url(#ht)" opacity="' + op + '"/>'; };
+  var palm = function (x, flip) { var s = flip ? -1 : 1; return '<g transform="translate(' + x + ' 64) scale(' + s + ' 1)" fill="#120B22"><path d="M0 0 C2 -12 3 -22 6 -30 L8 -30 C6 -22 5 -12 4 0 Z"/>' +
+    '<path d="M7 -30 C0 -36 -10 -36 -16 -30 C-9 -33 -2 -32 7 -29Z M7 -30 C12 -38 22 -38 26 -32 C19 -35 13 -33 7 -29Z M7 -31 C3 -40 -4 -44 -10 -44 C-3 -41 2 -37 7 -30Z M7 -31 C10 -41 17 -45 22 -44 C16 -41 11 -37 7 -30Z"/></g>'; };
+  var bat = function (x, y, s) { return '<path transform="translate(' + x + ' ' + y + ') scale(' + s + ')" fill="#F07C1F" d="M0 0 C-3 -3 -7 -3 -10 0 C-8 0 -7 2 -7 3 C-5 1 -3 2 -2 3 C-1 1 1 1 2 3 C3 2 5 1 7 3 C7 2 8 0 10 0 C7 -3 3 -3 0 0Z"/>'; };
+  var flake = function (x, y, r, c) { var d = ""; for (var i = 0; i < 3; i++) { var a = i * Math.PI / 3; d += "M" + (x - Math.cos(a) * r).toFixed(1) + " " + (y - Math.sin(a) * r).toFixed(1) + "L" + (x + Math.cos(a) * r).toFixed(1) + " " + (y + Math.sin(a) * r).toFixed(1); }
+    return '<path d="' + d + '" stroke="' + c + '" stroke-width="1" stroke-linecap="round"/>'; };
+  var ART = {
+    classic: function () { return rays(28, "#1F1F1F", .06, 50, 40) + star(18, 26, 3.2, "#C4452E") + star(83, 22, 2.4, "#1F1F1F") + star(86, 44, 1.8, "#C4452E") + star(14, 46, 1.8, "#1F1F1F"); },
+    night: function () { var lines = ""; for (var i = 0; i < 6; i++) lines += '<rect x="20" y="' + (36 + i * 4.2) + '" width="60" height="' + (0.6 + i * .35) + '" fill="#24221F"/>';
+      var grid = ""; for (var j = 0; j < 9; j++) grid += '<path d="M50 66 L' + (j * 12.5 - 2) + ' 100" stroke="#33E1FF" stroke-width=".5" opacity=".55"/>';
+      for (var k = 0; k < 4; k++) grid += '<path d="M0 ' + (70 + k * k * 3) + 'H100" stroke="#33E1FF" stroke-width=".5" opacity=".55"/>';
+      return '<defs><linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFB13B"/><stop offset="1" stop-color="#FF3F9E"/></linearGradient></defs>' +
+        '<circle cx="50" cy="44" r="26" fill="url(#sun)" opacity=".85"/>' + lines + grid + palm(14) + palm(86, true) + star(22, 18, 1.6, "#33E1FF") + star(78, 14, 2, "#FF3F9E"); },
+    redwood: function () { return rays(18, "#A93A26", .16, 50, 42); },
+    mustard: function () { return dots("#1F1F1F", .14) + rays(22, "#E0A21A", .25, 50, 42); },
+    checker: function () { var q = ""; for (var y = 0; y < 10; y++) for (var x = 0; x < 10; x++) if ((x + y) % 2) q += "M" + x * 10 + " " + y * 10 + "h10v10h-10z";
+      return '<path d="' + q + '" fill="#151515"/><circle cx="50" cy="50" r="38" fill="#F3EAD7"/><circle cx="50" cy="50" r="38" fill="none" stroke="#151515" stroke-width="1.2"/>'; },
+    pop: function () { return dots("#FF2E88", .55) + rays(16, "#fff", .25, 50, 42); },
+    spooky: function () { return '<circle cx="74" cy="22" r="12" fill="#F4EBDD" opacity=".92"/><circle cx="70" cy="19" r="2" fill="#1B1622" opacity=".18"/><circle cx="77" cy="26" r="1.4" fill="#1B1622" opacity=".18"/>' +
+      bat(22, 24, .9) + bat(36, 14, .6) + bat(86, 42, .5) + '<path d="M0 0 L18 18 M0 9 L16 20 M9 0 L20 16 M3 13 Q9 9 13 3 M6 18 Q13 13 18 6" stroke="#B6A9C2" stroke-width=".5" fill="none" opacity=".7"/>'; },
+    holiday: function () { return flake(16, 24, 3, "#17321F") + flake(82, 20, 2.4, "#17321F") + flake(88, 46, 1.8, "#D9443A") + flake(12, 48, 2, "#D9443A") + flake(30, 12, 1.6, "#17321F") + flake(68, 10, 1.6, "#17321F") +
+      '<g opacity=".9"><path d="M12 58 c4 -5 9 -5 12 0 c-3 -1 -5 1 -6 4 c-1 -3 -3 -5 -6 -4z" fill="#1F5A35"/><circle cx="20" cy="60" r="1.6" fill="#D9443A"/><path d="M88 58 c-4 -5 -9 -5 -12 0 c3 -1 5 1 6 4 c1 -3 3 -5 6 -4z" fill="#1F5A35"/><circle cx="80" cy="60" r="1.6" fill="#D9443A"/></g>'; }
+  };
+  var artFor = function (look) { var f = ART[look]; return f ? '<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + f() + "</svg>" : ""; };
   // comictable.com/<id> (or ?c=<id> for testing)
   var id = decodeURIComponent((location.pathname.match(/^\/([a-z0-9][a-z0-9-]*)\/?$/i) || [])[1] || new URLSearchParams(location.search).get("c") || "").toLowerCase();
   var here = location.origin + "/" + id;
@@ -266,7 +559,7 @@ footer a { font-weight: 700; text-decoration: none; }
   function notFound() {
     document.title = "Coaster not found · ComicTable";
     app.replaceChildren(el("div", { class: "empty" }, [el("h1", { text: "No one here yet" }), el("p", { text: "Check the link, or ask the comic to send it again." }),
-      el("p", null, el("a", { class: "btn sm", href: "/#coaster", text: "Get your own Coaster" }))]));
+]));
   }
   if (!id || !CFG.SUPABASE_URL) return notFound();
 
@@ -335,17 +628,34 @@ footer a { font-weight: 700; text-decoration: none; }
     })[0] || null;
   }
   function draw(c, dates, bill, sites, shorts) {
+    if (!LAST || !PREVIEW) LAST = { c: c, dates: dates, bill: bill, sites: sites, shorts: shorts };
     var look = LOOKS.indexOf(c.look) >= 0 ? c.look : "classic";
     document.body.className = "look-" + look;
     if (c.look === "custom") customLook(c);
+    // the page around the coaster: background, how dates and buttons look, socials as tiles or plain
+    var pg = CSB.coasterPageStyle ? CSB.coasterPageStyle(c) : { bg: "brick", dates: "tickets", buttons: "status", tiles: "tiles", shown: "3" };
+    ["bg-" + pg.bg, "dates-" + pg.dates, "btns-" + pg.buttons, "soc-" + pg.tiles].concat(PREVIEW ? ["preview"] : []).forEach(function (k) { document.body.classList.add(k); });
     document.title = c.name + " · ComicTable";
     var parts = [], next = dates[0];
+    // the bar across the top: ComicTable, and a menu
+    var menu = el("div", { class: "ctmenu", hidden: true }, [el("a", { href: "/press/" + encodeURIComponent(c.id), text: c.name.split(" ")[0] + "'s press kit" }), el("a", { href: "/", text: "What's ComicTable?" })]);
+    var mbtn = el("button", { class: "ctmenu-btn", type: "button", "aria-label": "Menu", "aria-expanded": "false", onclick: function () { menu.hidden = !menu.hidden; mbtn.setAttribute("aria-expanded", String(!menu.hidden)); } });
+    mbtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+    parts.push(el("header", { class: "ctbar" }, [el("a", { class: "ctwm", href: "/", "aria-label": "ComicTable" }, ["Comic", el("span", { text: "Table" })]), mbtn, menu]));
 
     // ---- the coaster ----
     // Front: their photo printed in one ink, their name on the band. Back: a QR code to their fan list (or this page).
     var fanSite = sites.filter(function (s) { return s.features && s.features.fans; }).sort(function (a, b) { return (b.name === c.name) - (a.name === c.name); })[0];
     var first = c.name.split(" ")[0];
-    var qrTo = fanSite ? (fanSite.domain ? "https://" + fanSite.domain + "/join" : location.origin + "/join/" + encodeURIComponent(fanSite.id)) : here;
+    // the QR on the back joins the fan list by default: the site's list, or the comic's own (this page, opened to Join)
+    var qrTo = fanSite ? (fanSite.domain ? "https://" + fanSite.domain + "/join" : location.origin + "/join/" + encodeURIComponent(fanSite.id)) : here + "#join";
+    // ...unless the comic picked somewhere else for it (My Coaster → Links & QR)
+    var qrPick = (c.coaster && c.coaster.qr) || {}, qrSay = "Join " + c.name + "'s list";
+    var ownSite = sites.filter(function (s) { return s.domain; }).sort(function (a, b) { return (b.name === c.name) - (a.name === c.name); })[0];
+    if (qrPick.to === "coaster") { qrTo = here; qrSay = "Find " + first + " here"; }
+    else if (qrPick.to === "site" && ownSite) { qrTo = "https://" + ownSite.domain; qrSay = first + "'s website"; }
+    else if (qrPick.to === "tickets" && dates[0] && safe(dates[0].url)) { qrTo = dates[0].url; qrSay = "Tickets: " + (dates[0].venue || "next show"); }
+    else if (qrPick.to === "link" && safe(qrPick.link)) { qrTo = qrPick.link; qrSay = "Scan me"; }
     var wear = ["used", "loved"].indexOf(c.coaster && c.coaster.wear) >= 0 ? c.coaster.wear : "fresh";
     var seed = 0; String(c.id).split("").forEach(function (ch) { seed = (seed * 31 + ch.charCodeAt(0)) >>> 0; });
     var rnd = function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
@@ -370,19 +680,69 @@ footer a { font-weight: 700; text-decoration: none; }
       return out;
     };
     var nick = rnd() * Math.PI * 2;
-    var front = el("div", { class: "face front" }, el("div", { class: "print" }, wearOn(false).concat([
-      safe(c.photo_url) ? el("img", { src: c.photo_url, alt: "" }) : el("div", { class: "initials", text: initials(c.name) }),
-      el("div", { class: "band" }, [el("b", { text: c.name }), el("span", { text: "comictable.com/" + (c.handle || c.id) })])])));
-    var qr = el("div", { class: "qr" });
-    var back = el("div", { class: "face back" }, el("div", { class: "print" }, wearOn(true).concat([
-      el("span", { class: "k", text: fanSite ? "Join " + first + "'s list" : first + "'s Coaster" }), qr,
-      el("span", { class: "url", text: qrTo.replace(/^https?:\/\//, "") })])));
-    var coaster = el("button", { class: "coaster wear-" + wear, style: "--nx:" + (50 + Math.cos(nick) * 48).toFixed(1) + "%;--ny:" + (50 + Math.sin(nick) * 48).toFixed(1) + "%", type: "button", "aria-label": c.name + "'s Coaster. Flip it for a QR code", "aria-pressed": "false", onclick: function () {
-      var f = coaster.classList.toggle("flipped"); coaster.setAttribute("aria-pressed", String(f)); tap.textContent = f ? "Tap to flip back" : "Tap the coaster for a QR code";
+    var art = function () { var a = el("div", { class: "art", "aria-hidden": "true" }); a.innerHTML = artFor(c.look === "custom" ? "" : look); return a; };
+    var handle = c.handle || c.id;
+    var nameEl = el("b", { text: c.name });
+    nameEl.style.setProperty("--name-fs", Math.min(13, 92 / Math.max(6, c.name.length * .62)).toFixed(2) + "cqw");
+    // the lettering the comic picked for their name (fonts load only when used)
+    var cs = c.coaster || {}, LET = (CSB.COASTER_LETTERING || []).filter(function (x) { return x[0] === cs.letter; })[0];
+    if (LET && LET[0] !== "block") {
+      var fid = "font-" + LET[0];
+      if (!document.getElementById(fid)) document.head.append(el("link", { id: fid, rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=" + LET[3] + "&display=swap" }));
+      nameEl.style.fontFamily = LET[2]; nameEl.classList.add("let-" + LET[0]);
+    }
+    // doodles around the portrait, in the coaster's ink, its band color, or their own
+    var DOO = (CSB.COASTER_DOODLES || []).filter(function (x) { return Array.isArray(cs.doodles) && cs.doodles.indexOf(x[0]) >= 0; });
+    var doodles = function () {
+      if (!DOO.length) return null;
+      var col = cs.doodle_color === "band" ? "var(--ring)" : /^#[0-9a-f]{6}$/i.test(cs.doodle_color || "") ? cs.doodle_color : "var(--print)";
+      var d = el("div", { class: "doodles", "aria-hidden": "true" });
+      d.innerHTML = '<svg viewBox="0 0 100 100" fill="' + col + '" stroke="' + col + '" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">' + DOO.map(function (x) { return x[2]; }).join("") + "</svg>";
+      return d;
+    };
+    // the photo on the coaster: their profile photo or one just for the coaster, moved and zoomed, etched or in color
+    var cph = safe(cs.photo) || safe(c.photo_url);
+    var py = Math.max(0, Math.min(100, +cs.photo_y >= 0 ? +cs.photo_y : 22)), pz = Math.max(100, Math.min(200, +cs.photo_zoom || 100));
+    var port = cph ? el("img", { class: "portrait", src: cph, alt: "" }) : null;
+    if (port) { port.style.objectPosition = "center " + py + "%"; if (pz > 100) port.style.transform = "scale(" + (pz / 100) + ")"; }
+    // the banner with their name: where it sits, its shape, and whether it tilts
+    var bn = cs.banner || {}, bpos = ["low", "mid", "top", "none"].indexOf(bn.pos) >= 0 ? bn.pos : "low",
+      bshape = ["ribbon", "band", "plain"].indexOf(bn.shape) >= 0 ? bn.shape : "ribbon", btilt = bn.tilt === "straight" ? "straight" : "tilted";
+    var front = el("div", { class: "face front banner-" + bpos + " shape-" + bshape + " tilt-" + btilt + (cs.print === "color" ? " print-color" : cs.print === "ink" ? " print-ink" : "") }, el("div", { class: "print" }, [art()].concat([
+      port || el("div", { class: "initials", text: initials(c.name) }),
+      port ? el("div", { class: "hatch", "aria-hidden": "true" }) : null,
+      el("div", { class: "rim2", "aria-hidden": "true" }),
+      doodles(),
+      bpos === "none" ? null : el("div", { class: "ribbon" }, nameEl),
+      cs.addr !== true ? null : el("div", { class: "addr" }, ["comictable.com/", el("br"), handle])]).concat(wearOn(false))));
+    var qr = el("div", { class: "qr" }), qrShown = false;
+    // the back is the comic's too: their own words, lettering, what's behind the QR code, and its size
+    var bk = cs.back || {}, bArt = ["look", "plain", "doodles", "image"].indexOf(bk.art) >= 0 ? bk.art : "look";
+    var say = String(bk.say || "").trim().slice(0, 60) || qrSay, line = bk.line === false ? null : String(bk.line || "").trim().slice(0, 60) || (/^Join/.test(qrSay) ? "Scan to join, or visit" : "Scan, or visit");
+    var hand = el("span", { class: "hand", text: say });
+    if (bk.letter === "front" && LET && LET[0] !== "block") hand.style.fontFamily = LET[2];
+    else if (bk.letter === "front") hand.style.fontFamily = "Anton, Impact, sans-serif";
+    var behind = bArt === "plain" ? null : bArt === "doodles" ? doodles() : bArt === "image" && safe(bk.image) ? el("img", { class: "back-img", src: bk.image, alt: "" }) : art();
+    // what's on the back: a QR code (default), their next show, a picture, or just their words
+    var kind = ["qr", "show", "picture", "words"].indexOf(bk.kind) >= 0 ? bk.kind : "qr";
+    if (kind === "picture" && !safe(bk.image)) kind = "qr";
+    var nx = dates[0], nxd = nx ? dayOf(nx) : null;
+    var middle = kind === "qr" ? [hand, qr, line ? el("span", { class: "scan", text: line }) : null, bk.url === false ? null : el("span", { class: "url", text: qrTo.replace(/^https?:\/\//, "") })]
+      : kind === "show" ? (nx ? [el("span", { class: "hand", text: String(bk.say || "").trim().slice(0, 60) || "Next up" }), el("b", { class: "nx-when", text: DAY[nxd.getDay()] + " " + MON[nxd.getMonth()] + " " + nxd.getDate() }),
+          el("span", { class: "nx-where", text: nx.venue || nx.site_name || "Show" }), el("span", { class: "url", text: [nx.city, niceTime(nx.time)].filter(Boolean).join(" · ") })]
+        : [hand, line ? el("span", { class: "scan", text: line }) : null])
+      : kind === "picture" ? [el("img", { class: "back-full", src: bk.image, alt: "" })]
+      : [el("span", { class: "hand big", text: say }), line ? el("span", { class: "scan", text: line }) : null];
+    if (kind === "show" && hand.style.fontFamily) middle[0].style.fontFamily = hand.style.fontFamily;
+    if (kind === "qr") qrShown = true;
+    var back = el("div", { class: "face back kind-" + kind + " qr-" + (["s", "l"].indexOf(bk.qr) >= 0 ? bk.qr : "m") }, el("div", { class: "print" }, [kind === "picture" ? null : behind, el("div", { class: "rim2", "aria-hidden": "true" })].concat(wearOn(true)).concat(middle)));
+    var coaster = el("button", { class: "coaster wear-" + wear, style: "--nx:" + (50 + Math.cos(nick) * 48).toFixed(1) + "%;--ny:" + (50 + Math.sin(nick) * 48).toFixed(1) + "%", type: "button", "aria-label": c.name + "'s Coaster. Flip it" + (kind === "qr" ? " for a QR code" : ""), "aria-pressed": "false", onclick: function () {
+      var f = coaster.classList.toggle("flipped"); coaster.setAttribute("aria-pressed", String(f)); tap.textContent = f ? "Tap to flip back" : tapSay;
       coaster.classList.remove("shine"); void coaster.offsetWidth; coaster.classList.add("shine");
-      if (f && !qr.firstChild) qrInto(qr, qrTo);
+      if (f && qrShown && !qr.firstChild) qrInto(qr, qrTo);
     } }, el("div", { class: "spin" }, [front, back]));
-    var tap = el("div", { class: "tap", text: "Tap the coaster for a QR code" });
+    var tapSay = kind === "qr" ? "Tap the coaster for a QR code" : "Tap the coaster to flip it";
+    var tap = el("div", { class: "tap", text: tapSay });
     var live = liveOf(sites);
     parts.push(el("section", { class: "table" }, [live ? el("a", { class: "live-badge", href: live.url, target: "_blank", rel: "noopener" }, [el("span", { class: "dot", "aria-hidden": "true" }), "LIVE" + (live.title ? " · " + live.title : "")]) : null, coaster, tap]));
 
@@ -411,49 +771,56 @@ footer a { font-weight: 700; text-decoration: none; }
     var links = [];
     var card = function (href, title, sub, ico, ext) {
       var i = el("span", { class: "ico", "aria-hidden": "true" }); i.innerHTML = ico;
-      return el("a", { class: "lcard" + (links.length ? "" : " main"), href: href, target: ext ? "_blank" : null, rel: ext ? "noopener" : null }, [i, el("span", null, [el("b", { text: title }), sub ? el("small", { text: sub }) : null]), el("span", { class: "go", "aria-hidden": "true", text: "›" })]);
+      return el("a", { class: "lcard", href: href, target: ext ? "_blank" : null, rel: ext ? "noopener" : null }, [i, el("span", null, [el("b", { text: title }), sub ? el("small", { text: sub }) : null]), el("span", { class: "go", "aria-hidden": "true", text: "›" })]);
     };
     var globe = CSB.socialIcon ? CSB.socialIcon("website") : "↗";
-    sites.filter(function (s) { return s.domain; }).forEach(function (s) { links.push(card("https://" + s.domain, s.name === c.name ? "My website" : s.name, s.domain, globe)); });
-    if (safe(so.website)) links.push(card(so.website, "Website", so.website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""), globe, true));
+    // The comic arranges these in the dashboard (coaster.links, by key) and can switch any off (coaster.links_off).
+    // Until they do: their own site first, then the others, then their link-in-bio.
+    var setL = (c.coaster && Array.isArray(c.coaster.links)) ? c.coaster.links : [], offL = (c.coaster && Array.isArray(c.coaster.links_off)) ? c.coaster.links_off : [];
+    var cand = sites.filter(function (s) { return s.domain; }).map(function (s) { var mine = s.name === c.name; return { key: "site:" + s.id, rank: mine ? 0 : 1, href: "https://" + s.domain, title: mine ? "My website" : s.name, sub: s.domain }; });
+    if (safe(so.website)) cand.push({ key: "website", rank: 2, href: so.website, title: /linktr\.ee/i.test(so.website) ? "Linktree" : "Website", sub: so.website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""), ext: true });
+    var pos = function (x) { var i = setL.indexOf(x.key); return i < 0 ? 100 + x.rank : i; };
+    cand.filter(function (x) { return offL.indexOf(x.key) < 0; }).sort(function (a, b) { return pos(a) - pos(b); })
+      .forEach(function (x) { links.push(card(x.href, x.title, x.sub, globe, x.ext)); });
     put("links", links.length ? el("nav", { class: "links", "aria-label": "Links" }, links) : null);
 
-    if (fanSite) {
+    if (true) {
       var joinBox = joinForm(c, fanSite);
-      var joinBtn = el("button", { class: "btn", type: "button", text: "Join my list", "aria-expanded": "false", onclick: function () {
+      var joinBtn = el("button", { class: "btn", type: "button", "aria-expanded": "false", onclick: function () {
         joinBox.hidden = !joinBox.hidden; joinBtn.setAttribute("aria-expanded", String(!joinBox.hidden)); if (!joinBox.hidden) joinBox.querySelector("input").focus();
       } });
+      joinBtn.innerHTML = '<svg class="bi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+      joinBtn.append("Join my list");
       put("join", el("div", { class: "links" }, [joinBtn, joinBox]));
     }
 
-    // ---- dates, and who else is on the bill ----
-    var byShow = {}; bill.forEach(function (b) { (byShow[b.show_id] = byShow[b.show_id] || []).push(b); });
-    var stub = function (d) {
-      var dt = dayOf(d), others = byShow[d.id] || [];
-      var act = d.status === "sold_out" ? el("span", { class: "pill", text: "Sold out" })
-        : safe(d.url) ? el("a", { class: "btn main sm", href: d.url, target: "_blank", rel: "noopener", text: d.status === "free" ? "Free · RSVP" : "Tickets" })
-        : d.status === "free" ? el("span", { class: "pill", text: "Free" }) : null;
-      return el("article", { class: "stub" }, [
-        el("div", { class: "cal" }, [el("span", { text: DAY[dt.getDay()] }), el("b", { text: dt.getDate() }), el("span", { class: "mo", text: MON[dt.getMonth()] })]),
-        el("div", { class: "body" }, [el("div", { class: "top" }, [el("div", { class: "where" }, [el("b", { text: d.venue || (d.event ? d.site_name : "") || "Show" }),
-            el("div", { class: "hint", text: [d.city, niceTime(d.time), d.event && d.site_name && d.venue ? d.site_name : ""].filter(Boolean).join(" · ") })]),
-            d.status === "few_left" ? el("span", { class: "pill hot", text: "Few left" }) : null]),
-          others.length ? el("div", { class: "bill" }, [el("span", { text: "Also on the bill" })].concat(others.map(function (o) {
-            return el("a", { class: "mini", href: "/" + encodeURIComponent(o.handle || o.comic_id) }, [el("i", null, safe(o.photo_url) ? el("img", { src: o.photo_url, alt: "" }) : el("em", { text: initials(o.name) })), el("span", { text: o.name })]);
-          }))) : null,
-          act ? el("div", null, act) : null])]);
+    // ---- shows: the next few as tickets (torn paper, a list or a chalkboard), then all of them ----
+    var tix = function (d) {
+      var dt = dayOf(d), sold = d.status === "sold_out";
+      var act = sold ? el("span", { class: "tb sold", text: "Sold out" })
+        : safe(d.url) ? el("a", { class: "tb " + (d.status === "few_left" ? "few" : "live"), href: d.url, target: "_blank", rel: "noopener", text: d.status === "free" ? "RSVP" : d.status === "few_left" ? "Few left" : "Tickets" })
+        : d.status === "free" ? el("span", { class: "tb sold", text: "Free" }) : null;
+      return el("article", { class: "tix" }, [
+        el("div", { class: "when" }, [el("span", { text: DAY[dt.getDay()].toUpperCase() }), el("b", { text: MON[dt.getMonth()].toUpperCase() + " " + dt.getDate() })]),
+        el("div", { class: "where" }, [el("b", { text: d.venue || (d.event ? d.site_name : "") || "Show" }),
+          d.city ? el("span", { text: d.city }) : null, el("span", { text: [niceTime(d.time), d.event && d.site_name && d.venue ? "with " + d.site_name : ""].filter(Boolean).join(" · ") })]),
+        act]);
     };
-    if (next) put("next", el("section", { "aria-label": "Next show" }, [el("h2", null, ["Next up", dates.length > 1 && plan.dates !== "off" ? el("small", { text: dates.length + " shows" }) : null]), stub(next)]));
-    if (dates.length && (plan.next === "off" || dates.length > 1)) {
-      var all = plan.next === "off" ? dates : dates.slice(1);
-      if (all.length) {
-        var list = el("div", { class: "dates" }), shown = 6;
-        var moreDates = el("button", { class: "btn", type: "button", style: "margin-top:12px", text: "All " + all.length + " dates", onclick: function () { shown = all.length; fill(); } });
-        var fill = function () { list.replaceChildren.apply(list, all.slice(0, shown).map(stub)); moreDates.hidden = all.length <= shown; };
-        fill();
-        put("dates", el("section", { "aria-label": "Dates" }, [el("h2", null, [plan.next === "off" ? "Dates" : "After that", el("small", { text: all.length + (all.length === 1 ? " show" : " shows") })]), list, moreDates]));
-      }
+    if (dates.length) {
+      var many = pg.shown === "all" ? dates.length : +pg.shown, shownN = many;
+      var tlist = el("div", { class: "tixlist" });
+      var allBtn = el("button", { class: "btn quiet", type: "button", onclick: function () { shownN = dates.length; fillT(); } });
+      var fillT = function () { tlist.replaceChildren.apply(tlist, dates.slice(0, shownN).map(tix)); allBtn.hidden = dates.length <= shownN; allBtn.textContent = "All " + dates.length + " dates"; };
+      fillT();
+      put("dates", el("section", { class: "shows", "aria-label": "Shows" }, [tlist, allBtn]));
     }
+    // ---- who else is on the bill, across their upcoming shows ----
+    var seen = {}, others = [];
+    bill.forEach(function (b) { var k = b.comic_id || b.handle; if (k && !seen[k]) { seen[k] = 1; others.push(b); } });
+    if (others.length) put("bill", el("section", { class: "billbar", "aria-label": "Also on the bill" }, [el("span", { class: "bl", text: "Also on the bill" }),
+      el("div", { class: "who-row" }, others.slice(0, 6).map(function (o) {
+        return el("a", { class: "mini", href: "/" + encodeURIComponent(o.handle || o.comic_id) }, [el("i", null, safe(o.photo_url) ? el("img", { src: o.photo_url, alt: "" }) : el("em", { text: initials(o.name) })), el("span", { text: o.name })]);
+      }))]));
 
     // ---- the Tape ----
     var tape = safe(c.tape_url);
@@ -470,10 +837,18 @@ footer a { font-weight: 700; text-decoration: none; }
       put("tape", tapeBox);
     }
 
+    // the comic picks their Shorts: Featured (first, big and upright), Shown, or Hidden
+    var spick = (c.coaster && c.coaster.shorts) || {}, fe = Array.isArray(spick.featured) ? spick.featured : [], hi = Array.isArray(spick.hidden) ? spick.hidden : [];
+    shorts = (shorts || []).filter(function (v) { return hi.indexOf(v.youtube_id) < 0; })
+      .sort(function (a, b) { var i = fe.indexOf(a.youtube_id), j = fe.indexOf(b.youtube_id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
+    // the whole-show podcast player
+    var pod = (c.coaster && c.coaster.podcast) || {}, pemb = CSB.podcastEmbed ? CSB.podcastEmbed(pod[pod.player || "spotify"] || pod.spotify || pod.apple || pod.youtube) : "";
+    if (pemb) put("podcast", el("section", { class: "pod", "aria-label": "Podcast" }, [el("h2", null, [pod.name || "Podcast", el("small", { text: "Listen here" })]),
+      el("iframe", { src: pemb, title: (pod.name || "Podcast") + " player", loading: "lazy", allow: "autoplay; clipboard-write; encrypted-media; picture-in-picture", class: /youtube/.test(pemb) ? "pod-yt" : /apple/.test(pemb) ? "pod-apple" : "pod-sp" })]));
     if (shorts && shorts.length) {
       put("shorts", el("section", { "aria-label": "Shorts" }, [el("h2", null, ["Shorts", el("small", { text: "Swipe" })]),
         el("div", { class: "shorts" }, shorts.map(function (v) {
-          var b = el("button", { type: "button", class: "short", "aria-label": "Play: " + v.title }, [el("img", { src: "https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg", alt: "", loading: "lazy" }), el("small", { text: v.title })]);
+          var b = el("button", { type: "button", class: "short" + (fe.indexOf(v.youtube_id) >= 0 ? " featured" : ""), "aria-label": "Play: " + v.title }, [el("img", { src: "https://i.ytimg.com/vi/" + v.youtube_id + "/hqdefault.jpg", alt: "", loading: "lazy" }), el("small", { text: v.title })]);
           b.addEventListener("click", function () { b.replaceWith(el("div", { class: "short playing" }, el("iframe", { src: "https://www.youtube-nocookie.com/embed/" + v.youtube_id + "?autoplay=1&playsinline=1", title: v.title, allow: "autoplay; encrypted-media; picture-in-picture", allowfullscreen: true }))); });
           return b;
         }))]));
@@ -513,63 +888,48 @@ footer a { font-weight: 700; text-decoration: none; }
       parts.push(moreBtn, moreBox);
     }
 
-    // ---- every Coaster is an invitation ----
-    parts.push(el("section", { class: "own" }, [el("b", { text: "Do comedy?" }), el("p", { text: "Get a Coaster of your own: your Tape, dates and links in one place." }),
-      el("a", { class: "btn main", href: "/#coaster", text: "Get your own Coaster" })]));
     parts.push(el("footer", null, ["A Coaster on ", el("a", { href: "/", text: "ComicTable" })]));
     app.replaceChildren.apply(app, parts);
 
-    // ---- the dock: tickets for the next show, or join the list; plus Share ----
+    // ---- the dock: three tabs. Tickets for the next show (or Watch live), Join the list, Share ----
     var old = document.querySelector(".dock"); if (old) old.remove();
-    var go = null;
-    if (live) go = el("a", { class: "btn main", href: live.url, target: "_blank", rel: "noopener" }, [el("span", { class: "dot", "aria-hidden": "true" }), "Watch live"]);
-    else if (next && safe(next.url) && next.status !== "sold_out" && plan.next !== "off") {
+    var ico = function (d) { var sp = el("span", { "aria-hidden": "true" }); sp.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + d + "</svg>"; return sp.firstChild; };
+    var I_TIX = '<path d="M4 7a2 2 0 0 0 2-2h12a2 2 0 0 0 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 0-2 2H6a2 2 0 0 0-2-2v-3a2 2 0 0 0 0-4z"/><path d="M10 5v14" stroke-dasharray="2 2"/>';
+    var I_MAIL = '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>';
+    var I_SHARE = '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/>';
+    var tabs = [];
+    if (live) tabs.push(el("a", { class: "tab go", href: live.url, target: "_blank", rel: "noopener" }, [el("span", { class: "dot", "aria-hidden": "true" }), "Watch live"]));
+    else if (next && safe(next.url) && next.status !== "sold_out" && plan.dates !== "off") {
       var nd = dayOf(next);
-      go = el("a", { class: "btn main", href: next.url, target: "_blank", rel: "noopener", text: (next.status === "free" ? "RSVP" : "Tickets") + " · " + DAY[nd.getDay()] + " " + MON[nd.getMonth()] + " " + nd.getDate() });
-    } else if (fanSite && plan.join !== "off") {
-      go = el("button", { class: "btn main", type: "button", text: "Join " + first + "'s list", onclick: function () {
+      tabs.push(el("a", { class: "tab go", href: next.url, target: "_blank", rel: "noopener", "aria-label": (next.status === "free" ? "RSVP" : "Tickets") + " for " + DAY[nd.getDay()] + " " + MON[nd.getMonth()] + " " + nd.getDate() }, [ico(I_TIX), next.status === "free" ? "RSVP" : "Tickets"]));
+    }
+    if (plan.join !== "off") tabs.push(el("button", { class: "tab" + (tabs.length ? "" : " go"), type: "button", onclick: function () {
         var b = document.querySelector('.links button[aria-expanded]');
         if (b && b.closest("#more") && document.getElementById("more").hidden) document.querySelector(".more-btn").click();
         if (b && b.getAttribute("aria-expanded") !== "true") b.click();
         if (b) b.scrollIntoView({ block: "center", behavior: "smooth" });
-      } });
-    }
-    share.className = go ? "btn icon" : "btn main"; share.setAttribute("aria-label", "Share " + c.name + "'s Coaster");
-    if (go) { share.textContent = ""; share.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>'; }
-    else share.textContent = "Share " + first + "'s Coaster";
-    var dock = el("div", { class: "dock" }, el("div", { class: "in" }, [go, share]));
+      } }, [ico(I_MAIL), "Join"]));
+    share.className = "tab" + (tabs.length ? "" : " go"); share.setAttribute("aria-label", "Share " + c.name + "'s Coaster");
+    share.replaceChildren(ico(I_SHARE), "Share");
+    tabs.push(share);
+    var go = tabs[0];
+    var dock = el("div", { class: "dock" }, el("div", { class: "in" }, tabs));
     document.body.append(dock);
     // out of the way while the fan-list form is open (the phone keyboard needs the room)
     document.addEventListener("focusin", function (e) { dock.classList.toggle("away", !!(e.target.closest && e.target.closest(".join"))); });
+    // from the QR code: open straight to Join
+    if (PREVIEW && window.parent !== window) window.parent.postMessage({ type: "ct-coaster-ready" }, location.origin);
+    if (location.hash === "#join") setTimeout(function () { var b = document.querySelector('.links button[aria-expanded]'); if (b) { if (b.closest("#more") && document.getElementById("more").hidden) document.querySelector(".more-btn").click(); if (b.getAttribute("aria-expanded") !== "true") b.click(); b.scrollIntoView({ block: "center" }); } }, 300);
   }
 
-  // Join the comic's fan list (it lives on their site, so it's the same list they already use).
+  // Join the comic's fan list: the one sign-up form every design uses (name, email, ZIP). With a site that has a
+  // fan list, they join it (and land on the Coaster of everyone on its lineup); otherwise the comic's own list.
   function joinForm(c, site) {
-    var kit = CSB.init ? CSB.init({ url: CFG.SUPABASE_URL, key: CFG.SUPABASE_ANON_KEY, site: site.id }) : null;
-    var email = el("input", { type: "email", placeholder: "you@email.com", autocomplete: "email", "aria-label": "Email", required: true });
-    var city = el("input", { placeholder: "Your city", autocomplete: "off", "aria-label": "Your city", required: true });
-    var pick = null, list = el("ul", { hidden: true }), seq = 0;
-    var radius = el("select", { "aria-label": "How far you'd go" }, [[25, "Within 25 miles"], [50, "Within 50 miles"], [100, "Within 100 miles"], [250, "Within 250 miles"]].map(function (x) { return el("option", { value: x[0], text: x[1], selected: x[0] === 50 || null }); }));
-    var msg = el("div", { class: "msg", role: "status" });
-    city.addEventListener("input", function () {
-      pick = null; var my = ++seq;
-      if (!kit) return;
-      kit.fans.places(city.value).then(function (rows) {
-        if (my !== seq) return;
-        list.replaceChildren.apply(list, rows.map(function (p) { return el("li", null, el("button", { type: "button", text: p.label, onclick: function () { pick = p; city.value = p.label; list.hidden = true; } })); }));
-        list.hidden = !rows.length;
-      }, function () {});
-    });
-    var form = el("form", { class: "join", hidden: true, onsubmit: function (e) {
-      e.preventDefault(); msg.textContent = "";
-      if (!pick) { msg.textContent = "Pick your city from the list."; city.focus(); return; }
-      var b = form.querySelector("button[type=submit]"); b.disabled = true;
-      kit.fans.join({ email: email.value.trim(), placeId: pick.id, radius: +radius.value, met: "Coaster" }).then(function () {
-        form.replaceChildren(el("p", { class: "msg", text: "You're on " + c.name.split(" ")[0] + "'s list. You'll hear when they play near you." }));
-      }, function (er) { msg.textContent = er.message || "Couldn't sign you up. Try again."; b.disabled = false; });
-    } }, [el("p", { text: "Hear when " + c.name.split(" ")[0] + " plays near you. Nothing else." }), email, el("div", { class: "city" }, [city, list]), radius, msg,
-      el("button", { class: "btn main", type: "submit", text: "Join" })]);
-    return form;
+    if (CSB.init) CSB.init({ url: CFG.SUPABASE_URL, key: CFG.SUPABASE_ANON_KEY, site: site ? site.id : "" });
+    var wrap = el("div", { class: "join", hidden: true }, [el("p", { text: "Hear when " + c.name.split(" ")[0] + " plays near you. Nothing else." })]);
+    if (CSB.signup) wrap.append(CSB.signup({ comic: site ? null : c.id, source: site ? "site" : "coaster", buttonClass: "btn main", button: "Join",
+      thanks: "You're on " + c.name.split(" ")[0] + "'s list. You'll hear when they play near you." }));
+    return wrap;
   }
 })();
 </script>

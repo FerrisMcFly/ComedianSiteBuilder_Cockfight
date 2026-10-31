@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { adminPage } from "./admin-page.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const id = process.argv[2] || process.env.SITE || "cockfight";
@@ -19,6 +20,12 @@ const writeConfig = (dir, cfg, label) => writeFileSync(join(dir, "config.js"),
 export const coasterPageModule = () => "// Made by tools/build.mjs from platform/home/coaster.html. Don't edit; edit that file and run the build or the tests.\n" +
   "export default " + JSON.stringify(readFileSync(join(root, "platform", "home", "coaster.html"), "utf8")) + ";\n";
 if (!process.env.VITEST && !process.env.NO_COASTER_SYNC) writeFileSync(join(root, "netlify", "lib", "coaster-page.mjs"), coasterPageModule());
+// The shared site host (netlify/edge-functions/sites.js) carries the database address and the list of designs,
+// so it never fetches its own site. Kept in step here and by a test.
+export const sitesHostModule = () => "// Made by tools/build.mjs from platform/platform.json and sites/. Don't edit.\n" +
+  "export const CFG = " + JSON.stringify({ LOGIN_DOMAIN: platform.login_domain || "comictable.com", SUPABASE_URL: platform.supabase_url, SUPABASE_ANON_KEY: platform.supabase_anon_key }) + ";\n" +
+  "export const DESIGNS = " + JSON.stringify(readdirSync(join(root, "sites")).filter((d) => existsSync(join(root, "sites", d, "index.html"))).map((d) => d === "_starter" ? "starter" : d).sort()) + ";\n";
+if (!process.env.VITEST && !process.env.NO_COASTER_SYNC) writeFileSync(join(root, "netlify", "lib", "sites-host.mjs"), sitesHostModule());
 const logins = { LOGIN_DOMAIN: platform.login_domain || "comictable.com" };
 const db = { SUPABASE_URL: platform.supabase_url, SUPABASE_ANON_KEY: platform.supabase_anon_key };
 
@@ -29,7 +36,7 @@ if (id === "platform") {
   // comictable.com: the front page at /, the admin at /admin
   cpSync(join(root, "platform", "home"), out, { recursive: true });
   // the app is one page, served at /login and /dashboard
-  cpSync(join(root, "platform", "admin.html"), join(out, "app.html"));
+  writeFileSync(join(out, "app.html"), adminPage());  // the dashboard, put together from platform/app/
   cpSync(join(root, "platform", "sdk"), join(out, "sdk"), { recursive: true });
   // Each site's front end says which extras and design settings it has; the admin reads these per site.
   mkdirSync(join(out, "themes"));
@@ -38,13 +45,18 @@ if (id === "platform") {
     if (existsSync(t)) cpSync(t, join(out, "themes", s + ".json"));
   }
   writeConfig(out, { PLATFORM: true, ...logins, ...db }, "the ComicTable admin");
+  // Every comic's site runs from here too (netlify/edge-functions/sites.js): each design is one page,
+  // and the edge function hands it the right site's config.js. sites/_starter is the Starter template.
+  mkdirSync(join(out, "designs"));
+  for (const s of sites) cpSync(join(root, "sites", s, "index.html"), join(out, "designs", (s === "_starter" ? "starter" : s) + ".html"));
+
   // comictable.com/embed.js: the data kit plus small widgets, for comics who keep their own site
   writeFileSync(join(out, "embed.js"), "/* ComicTable embed. See https://comictable.com */\n(function () {\nvar EMBED_CFG = " + JSON.stringify(db) + ";\n" +
     readFileSync(join(root, "platform", "sdk", "csb.js"), "utf8") + "\n" + readFileSync(join(root, "platform", "embed", "widgets.js"), "utf8") + "\n})();\n");
   writeFileSync(join(out, "_headers"), ["/app.html", "/login", "/dashboard"].map((p) => p + "\n  X-Robots-Tag: noindex, nofollow\n").join("") +
     "/embed.js\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=300\n");
   // comictable.com/join/<site>: the QR-code fan sign-up, for any comic (their own domain has /join too)
-  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/press/*  /press.html  200", "/admin  /login  301", "/admin.html  /login  301", "/join/*  /join.html  200",
+  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/press/*  /press.html  200", "/admin  /login  301", "/admin.html  /login  301", "/join/*  /join.html  200", "/privacy  /privacy.html  200", "/invite/*  /invite.html  200",
     // comictable.com/<comic>: their Coaster. Last, so every real page and rule above wins.
     "/:comic  /.netlify/functions/coaster  200"].join("\n") + "\n");
   console.log(`Built the ComicTable admin into ${out} (${sites.length} site${sites.length === 1 ? "" : "s"} known)`);
