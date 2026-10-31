@@ -1,3 +1,3 @@
 // Made by tools/build.mjs from platform/platform.json and sites/. Don't edit.
 export const CFG = {"LOGIN_DOMAIN":"comictable.com","SUPABASE_URL":"https://hzslcnroupkunufbmclw.supabase.co","SUPABASE_ANON_KEY":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6c2xjbnJvdXBrdW51ZmJtY2x3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNzUwMTYsImV4cCI6MjEwODY1MTAxNn0.YuhUQLFJyn5Amhod9oijrhLykEFwFV_CC1XaY_y0SVE"};
-export const DESIGNS = ["cockfight","lev-fer","punk-flyer","spotlight","starter"];
+export const DESIGNS = ["block-party","click-wheel","cockfight","comic-book","diner","drop","late-show","lev-fer","marquee","mixtape","nineties","public-access","punk-flyer","special","spotlight","starter","street","tabloid","web-2000s","web-90s","y2k"];

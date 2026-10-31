@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comedian</title>
+<meta name="description" content="Shows, videos and more.">
+<meta property="og:title" content="Comedian" data-ct="title">
+<meta property="og:description" content="Shows, videos and more." data-ct="description">
+<meta property="og:image" content="" data-ct="image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+/* Block Party: a ComicTable template. A loud summer street-party flyer. Every word that isn't the comic's own data is
+   a Design setting (theme.json), "Pull up. Bring friends." included. */
+:root { --sun: #FFD23F; --ink: #111111; --teal: #29C4C4; --accent: #FF4B2B; --font: "Inter", system-ui, sans-serif; --big: "Bowlby One", Impact, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--sun); color: var(--ink); font: 600 16px/1.5 var(--font); }
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.top { position: relative; background: var(--accent); padding: 26px 16px 36px; overflow: hidden; }
+.top .sunburst { position: absolute; right: -70px; top: -70px; width: 240px; height: 240px; border-radius: 50%; background: repeating-conic-gradient(var(--sun) 0 15deg, transparent 15deg 30deg); opacity: .5; }
+.inner { position: relative; max-width: 1040px; margin: 0 auto; }
+.corners { display: flex; justify-content: space-between; gap: 10px; color: #fff; font: 900 13px var(--font); letter-spacing: .25em; text-transform: uppercase; }
+h1 { margin: 14px 0 0; color: #fff; font: 400 clamp(76px, 22vw, 180px)/0.86 var(--big); letter-spacing: -.01em; text-shadow: 5px 5px 0 var(--ink); text-transform: uppercase; overflow-wrap: anywhere; }
+.strip { display: inline-block; margin-top: 14px; background: var(--ink); color: var(--sun); padding: 6px 12px; font: 900 15px var(--font); letter-spacing: .12em; text-transform: uppercase; transform: rotate(-2deg); }
+.page { max-width: 1040px; margin: 0 auto; padding: 0 16px 30px; }
+.photo { position: relative; margin: -18px 0 0; background: #fff; border: 4px solid var(--ink); padding: 10px; transform: rotate(1.5deg); }
+.photo img { width: 100%; aspect-ratio: 5 / 4; max-height: 520px; object-fit: cover; }
+.round { margin-top: 24px; }
+.bio { margin: 20px 2px 0; font-weight: 800; font-size: 17px; }
+.grid { display: grid; gap: 0 36px; }
+@media (min-width: 900px) { .grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: start; grid-template-areas: "shows video" "join video" "join pod" "join soc" "join ."; grid-template-rows: auto auto auto auto 1fr; } .a-shows { grid-area: shows; } .a-video { grid-area: video; } .a-pod { grid-area: pod; } .a-soc { grid-area: soc; } .a-join { grid-area: join; } .hero-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; align-items: center; } .hero-row .bio { font-size: 22px; } }
+.h { margin: 28px 0 10px; font: 400 clamp(30px, 7vw, 40px)/1 var(--big); text-transform: uppercase; }
+.gig { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 10px; background: var(--ink); color: #fff; }
+.gig .d { width: 78px; flex: none; text-align: center; background: var(--sun); color: var(--ink); padding: 6px 0; line-height: 1; }
+.gig:nth-child(3n) .d { background: var(--teal); }
+.gig .d small { display: block; font: 900 11px var(--font); letter-spacing: .2em; }
+.gig .d b { font: 400 20px var(--big); white-space: nowrap; }
+.gig .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gig .w b { font-size: 17px; }
+.gig .w span { font-size: 14px; color: #D0D0D0; }
+.gig .w .hot { color: var(--sun); font-weight: 800; }
+.gig.sold { background: #2E2E2E; color: #A0A0A0; } .gig.sold .d { background: #777; }
+.tix { flex: none; background: var(--accent); color: #fff; text-decoration: none; padding: 0 14px; min-height: 44px; display: inline-flex; align-items: center; font: 900 14px var(--font); letter-spacing: .08em; }
+.tix.soon { background: none; color: var(--sun); }
+.gone { flex: none; font-weight: 900; letter-spacing: .08em; }
+.empty { margin: 0; }
+.vidbox { margin-top: 28px; border: 4px solid var(--ink); background: var(--teal); padding: 10px; }
+.vid { display: block; position: relative; aspect-ratio: 16 / 9; background: var(--ink); overflow: hidden; }
+.vid img { width: 100%; height: 100%; object-fit: cover; opacity: .8; }
+.vid i { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: var(--sun); display: grid; place-items: center; }
+.vid i::before { content: ""; border-left: 18px solid var(--ink); border-top: 11px solid transparent; border-bottom: 11px solid transparent; margin-left: 5px; }
+.vtitle { margin: 8px 2px 0; font-weight: 900; }
+.pod { margin-top: 24px; padding: 12px; display: flex; gap: 12px; align-items: center; background: #fff; border: 4px solid var(--ink); }
+.pod .art { width: 62px; height: 62px; flex: none; background: var(--accent); color: #fff; display: grid; place-items: center; font: 400 22px var(--big); object-fit: cover; }
+.pod b { font: 400 20px var(--big); text-transform: uppercase; display: block; }
+.pod .links { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.socials { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 8px; }
+.socials a { flex: 1 1 100px; text-align: center; padding: 12px 0; background: var(--ink); color: var(--sun); text-decoration: none; font: 900 14px var(--font); text-transform: uppercase; }
+.join { margin-top: 28px; padding: 18px; background: var(--ink); color: #fff; display: flex; flex-direction: column; gap: 10px; }
+.join h2 { margin: 0; font: 400 clamp(26px, 6vw, 32px)/1 var(--big); color: var(--sun); text-transform: uppercase; }
+.join p { margin: 0; color: #DDD; }
+.ctt-join { display: grid; gap: 10px; }
+.ctt-join label { display: grid; gap: 4px; font-weight: 800; font-size: 14px; }
+.ctt-join input { height: 46px; border: 0; padding: 0 12px; font: 600 16px var(--font); }
+.ctt-join button { min-height: 50px; border: 0; background: var(--accent); color: #fff; font: 400 18px var(--big); text-transform: uppercase; cursor: pointer; }
+.ctt-msg { font-weight: 800; min-height: 1.2em; } .ctt-fine { font-size: 13px; color: #CCC; }
+footer { padding: 20px 16px 30px; text-align: center; font-size: 12px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+.ctt-down { padding: 60px 20px; text-align: center; }
+</style>
+</head>
+<body>
+<main id="app"><p class="ctt-down">Loading…</p></main>
+<script src="config.js"></script>
+<script src="sdk/csb.js"></script>
+<script src="sdk/templates.js"></script>
+<script>
+CTT.start(function (k, app) {
+  "use strict";
+  var el = k.el;
+  // keep these in step with theme.json (a test checks)
+  var W = { top_left: "All week", top_right: "{next_city}", tagline: "Pull up. Bring friends.", shows_title: "Where it's at",
+    join_title: "Get the word first", join_line: "Hear first when {name} plays near you.", join_button: "I'm there" };
+  var say = function (key) { return k.t(key, W[key]); };
+  var video = k.video(), pod = k.podcast(), shows = k.shows(), socials = k.socials(), join = k.join({ button: say("join_button") || W.join_button });
+
+  app.append(el("header", { class: "top" }, [el("span", { class: "sunburst", "aria-hidden": "true" }), el("div", { class: "inner" }, [
+    say("top_left") || say("top_right") ? el("div", { class: "corners" }, [el("span", { text: say("top_left") }), el("span", { text: say("top_right") })]) : null,
+    el("h1", { text: k.name }),
+    say("tagline") ? el("span", { class: "strip", text: say("tagline") }) : null])]));
+
+  var page = el("div", { class: "page" });
+  var pic = k.coaster ? el("div", { class: "round" }, [k.coasterPhoto()]) : k.photo ? el("div", { class: "photo" }, [el("img", { src: k.photo, alt: k.name })]) : null;
+  page.append(el("div", { class: "hero-row" }, [pic, k.bio ? el("p", { class: "bio", text: k.bio }) : null]));
+
+  var grid = el("div", { class: "grid" }), joinBox = null;
+  if (k.has("shows")) grid.append(el("section", { class: "a-shows", "aria-label": say("shows_title") || "Shows" }, [say("shows_title") ? el("h2", { class: "h", text: say("shows_title") }) : el("div", { style: "height:28px" })].concat(
+    shows.length ? shows.map(function (s) {
+      return el("div", { class: "gig" + (s.sold ? " sold" : "") }, [el("span", { class: "d" }, [el("small", { text: s.dow.toUpperCase() }), el("b", { text: (s.mm.replace(/^0/, "")) + "/" + s.day })]),
+        el("span", { class: "w" }, [el("b", { text: s.venue }), s.few && !s.sold ? el("span", { class: "hot", text: "A few left" }) : el("span", { text: s.city })]),
+        s.sold ? el("span", { class: "gone", text: "FULL" }) : k.ticket(s, "tix", "TIX")]);
+    }) : [el("p", { class: "empty", text: "No dates right now." })])));
+  if (join) joinBox = (el("section", { class: "join a-join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
+  if (video) grid.append(el("div", { class: "vidbox a-video" }, [el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
+    el("p", { class: "vtitle", text: video.title })]));
+  if (pod) grid.append(el("div", { class: "pod a-pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
+    el("div", null, [el("b", { text: pod.name }), el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
+  if (socials.length) grid.append(el("div", { class: "socials a-soc" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })));
+  if (joinBox) grid.append(joinBox);
+  page.append(grid);
+  app.append(page, el("footer", { text: "© " + new Date().getFullYear() + " " + k.name + " · Runs on ComicTable" }));
+});
+</script>
+</body>
+</html>

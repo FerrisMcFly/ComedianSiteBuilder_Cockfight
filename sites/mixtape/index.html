@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comedian</title>
+<meta name="description" content="Shows, videos and more.">
+<meta property="og:title" content="Comedian" data-ct="title">
+<meta property="og:description" content="Shows, videos and more." data-ct="description">
+<meta property="og:image" content="" data-ct="image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Pirata+One&family=Inter:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* Mixtape: a ComicTable template. A 2000s mixtape cover; shows are the tracklist. Every word that isn't the comic's
+   own data is a Design setting (theme.json), so nothing is baked in. */
+:root { --bg: #070707; --text: #F2F2F2; --muted: #A8A8A8; --line: #2A2A2A; --gold: #F5D27A; --gold2: #B8892E; --accent: #E8B23A;
+  --font: "Inter", system-ui, sans-serif; --chrome: "Anton", Impact, sans-serif; --goth: "Pirata One", Georgia, serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.5 var(--font); }
+a { color: var(--gold); }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.wrap { max-width: 760px; margin: 0 auto; }
+.cover { position: relative; height: min(132vw, 640px); overflow: hidden; background: #111; }
+.cover > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%; filter: contrast(1.15) saturate(1.1); }
+.cover::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 70% 20%, rgba(255,190,90,.35), transparent 50%), linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.05) 40%, var(--bg) 97%); }
+.cover.round { height: auto; display: flex; flex-direction: column; align-items: center; padding: 56px 18px 24px; background: radial-gradient(ellipse at 50% 30%, rgba(255,190,90,.25), transparent 60%), var(--bg); }
+.cover.round::after { display: none; }
+.cover.round .cv-coaster { width: min(78%, 380px); filter: drop-shadow(0 0 30px rgba(245,210,122,.35)); }
+.cover.round .title { position: relative; left: auto; right: auto; bottom: auto; margin-top: 22px; }
+@media (min-width: 800px) { .cover:not(.round)::after { background: radial-gradient(ellipse at 70% 20%, rgba(255,190,90,.35), transparent 50%), linear-gradient(90deg, var(--bg), transparent 14%, transparent 86%, var(--bg)), linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.05) 40%, var(--bg) 97%); } }
+.corner { position: absolute; z-index: 2; top: 16px; left: 16px; font: 800 12px var(--font); letter-spacing: .25em; color: var(--gold); text-transform: uppercase; }
+.title { position: absolute; z-index: 2; left: 14px; right: 14px; bottom: 22px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.sub { font: 400 clamp(28px, 7vw, 38px)/1 var(--goth); color: var(--gold); text-shadow: 0 0 14px rgba(245,210,122,.7); }
+h1 { margin: 0; font: 400 clamp(76px, 22vw, 150px)/0.9 var(--chrome); letter-spacing: .01em; text-transform: uppercase; overflow-wrap: anywhere;
+  background: linear-gradient(180deg, #fff 0%, #d8d8d8 40%, #6e6e6e 52%, #f0f0f0 70%, #9a9a9a 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 0 #000) drop-shadow(0 0 18px var(--accent)); }
+.tag { margin-top: 8px; padding: 4px 12px; border: 2px solid var(--gold); font: 800 12px var(--font); letter-spacing: .3em; color: var(--gold); text-transform: uppercase; }
+.bio { margin: 8px 20px 0; text-align: center; color: var(--muted); }
+.box { margin: 28px 16px 0; padding: 16px; border: 1px solid var(--line); background: linear-gradient(180deg, #121212, #0b0b0b); }
+.box-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.box-head h2 { margin: 0; font: 400 32px/1 var(--goth); color: var(--gold); }
+.box-head span { font: 800 11px var(--font); letter-spacing: .25em; color: #8A8A8A; text-transform: uppercase; }
+.track { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.track .n { font: 400 24px var(--chrome); color: var(--accent); width: 32px; flex: none; }
+.track .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.track .w span { font-size: 13px; color: var(--muted); }
+.track.sold { color: #6A6A6A; } .track.sold .n, .track.sold .w span { color: inherit; }
+.gold { flex: none; background: linear-gradient(180deg, var(--gold), var(--gold2)); color: #111; text-decoration: none; padding: 0 14px; min-height: 44px; display: inline-flex; align-items: center; font: 800 13px var(--font); letter-spacing: .08em; text-transform: uppercase; }
+.gold.soon { background: none; color: var(--muted); }
+.gone { flex: none; font-weight: 800; letter-spacing: .08em; font-size: 13px; }
+.empty { margin: 8px 0 0; color: var(--muted); }
+.vid { display: block; position: relative; margin: 24px 16px 0; aspect-ratio: 16 / 9; border: 1px solid var(--line); background: #000; overflow: hidden; }
+.vid img { width: 100%; height: 100%; object-fit: cover; opacity: .75; }
+.vid i { position: absolute; left: 50%; top: 50%; width: 66px; height: 66px; margin: -33px 0 0 -33px; border-radius: 50%; border: 2px solid var(--gold); background: rgba(0,0,0,.5); display: grid; place-items: center; }
+.vid i::before { content: ""; border-left: 18px solid var(--gold); border-top: 11px solid transparent; border-bottom: 11px solid transparent; margin-left: 5px; }
+.vtitle { margin: 8px 16px 0; font-weight: 700; }
+.pod { margin: 24px 16px 0; padding: 12px; display: flex; gap: 12px; align-items: center; border: 1px solid var(--line); }
+.pod .art { width: 62px; height: 62px; flex: none; background: linear-gradient(135deg, var(--gold), #8C6420); color: #111; display: grid; place-items: center; font: 400 26px var(--chrome); object-fit: cover; }
+.pod .links { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.socials { margin: 22px 16px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.socials a { flex: 1 1 100px; text-align: center; padding: 12px 0; border: 1px solid var(--gold); text-decoration: none; font: 800 13px var(--font); letter-spacing: .15em; text-transform: uppercase; }
+.join { margin: 28px 16px 0; padding: 18px; border: 1px solid var(--gold); background: linear-gradient(180deg, #161616, #0b0b0b); display: flex; flex-direction: column; gap: 10px; }
+.join h2 { margin: 0; font: 400 34px/1 var(--goth); color: var(--gold); }
+.join p { margin: 0; color: var(--muted); }
+.ctt-join { display: grid; gap: 10px; }
+.ctt-join label { display: grid; gap: 4px; font-weight: 700; font-size: 14px; }
+.ctt-join input { height: 46px; border: 1px solid #3A3A3A; background: #000; color: var(--text); padding: 0 12px; font: 500 16px var(--font); }
+.ctt-join button { min-height: 50px; border: 0; background: linear-gradient(180deg, var(--gold), var(--gold2)); color: #111; font: 800 15px var(--font); letter-spacing: .2em; text-transform: uppercase; cursor: pointer; }
+.ctt-msg { font-weight: 700; min-height: 1.2em; } .ctt-fine { color: #8A8A8A; font-size: 13px; }
+footer { padding: 28px 16px; text-align: center; font-size: 12px; color: #6A6A6A; letter-spacing: .15em; text-transform: uppercase; }
+.ctt-down { padding: 60px 20px; text-align: center; }
+</style>
+</head>
+<body>
+<main id="app"><p class="ctt-down">Loading…</p></main>
+<script src="config.js"></script>
+<script src="sdk/csb.js"></script>
+<script src="sdk/templates.js"></script>
+<script>
+CTT.start(function (k, app) {
+  "use strict";
+  var el = k.el;
+  // keep these in step with theme.json (a test checks)
+  var W = { volume: "VOL. 1", subtitle: "Live From The Stage", tag: "No skips", shows_title: "Tracklist", shows_note: "Live dates",
+    join_title: "Get the next one first", join_line: "Hear first when {name} plays near you.", join_button: "Sign me up" };
+  var say = function (key) { return k.t(key, W[key]); };
+  var video = k.video(), pod = k.podcast(), shows = k.shows(), socials = k.socials(), join = k.join({ button: say("join_button") || W.join_button });
+  var wrap = el("div", { class: "wrap" });
+
+  wrap.append(el("header", { class: "cover" + (k.coaster ? " round" : "") }, [
+    k.coaster ? k.coasterPhoto("cv-coaster") : k.photo ? el("img", { src: k.photo, alt: k.name }) : null,
+    say("volume") ? el("span", { class: "corner", text: say("volume") }) : null,
+    el("div", { class: "title" }, [say("subtitle") ? el("span", { class: "sub", text: say("subtitle") }) : null, el("h1", { text: k.name }), say("tag") ? el("span", { class: "tag", text: say("tag") }) : null])]));
+  if (k.bio) wrap.append(el("p", { class: "bio", text: k.bio }));
+
+  if (k.has("shows")) wrap.append(el("section", { class: "box", "aria-label": say("shows_title") || "Shows" }, [
+    say("shows_title") || say("shows_note") ? el("div", { class: "box-head" }, [say("shows_title") ? el("h2", { text: say("shows_title") }) : el("span"), say("shows_note") ? el("span", { text: say("shows_note") }) : null]) : null]
+    .concat(shows.length ? shows.map(function (s, i) {
+      return el("div", { class: "track" + (s.sold ? " sold" : "") }, [el("span", { class: "n", text: (i < 9 ? "0" : "") + (i + 1) }),
+        el("span", { class: "w" }, [el("b", { text: s.venue }), el("span", { text: [s.label, s.city, s.few && !s.sold ? "a few left" : ""].filter(Boolean).join(" · ") })]),
+        s.sold ? el("span", { class: "gone", text: "SOLD OUT" }) : k.ticket(s, "gold")]);
+    }) : [el("p", { class: "empty", text: "No dates right now." })])));
+
+  if (video) wrap.append(el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
+    el("p", { class: "vtitle", text: video.title }));
+  if (pod) wrap.append(el("div", { class: "pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
+    el("div", null, [el("b", { text: pod.name }), el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
+  if (socials.length) wrap.append(el("div", { class: "socials" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })));
+  if (join) wrap.append(el("section", { class: "join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
+  wrap.append(el("footer", { text: "© " + new Date().getFullYear() + " " + k.name + " · Runs on ComicTable" }));
+  app.append(wrap);
+});
+</script>
+</body>
+</html>
