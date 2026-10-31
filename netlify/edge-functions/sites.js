@@ -1,3 +1,4 @@
+import { CFG as platformCfg, DESIGNS } from "../lib/sites-host.mjs";
 // One ComicTable project runs every comic's site (founder, Oct 31): instead of a Netlify project per comic, a comic's
 // own address points here, and this looks up which site it belongs to and serves that site's design.
 //   ritaramoscomedy.com/            → Rita's site, in her design
@@ -9,7 +10,7 @@ const PLATFORM_HOSTS = /^(comictable\.com|www\.comictable\.com|localhost|127\.0\
 const SITE_ID = /^[a-z0-9][a-z0-9-]{1,40}$/;
 const CACHE_MS = 60 * 1000;
 const cache = new Map();
-let platformCfg = null;
+
 
 export const cleanHost = (h) => String(h || "").toLowerCase().replace(/:\d+$/, "").replace(/^www\./, "");
 
@@ -25,7 +26,7 @@ export function siteRequest(url) {
 // The design a site uses: one picked for it, its template, or one made just for it, else Starter.
 export function designsFor(site) {
   const t = (site && site.theme) || {};
-  const list = [t.design, t.way === "template" ? t.template : null, site && site.id, "starter"].filter((x) => x && SITE_ID.test(String(x)));
+  const list = [t.design, t.way === "template" ? t.template : null, site && site.id].filter((x) => DESIGNS.includes(x)).concat("starter").filter((x) => x && SITE_ID.test(String(x)));
   return [...new Set(list)];
 }
 
@@ -35,10 +36,9 @@ const page = (status, title, line) => new Response(`<!doctype html><html lang="e
 <style>body{margin:0;min-height:100vh;display:grid;place-content:center;gap:8px;padding:24px;text-align:center;background:#13100E;color:#F3EAD7;font:16px/1.5 system-ui,sans-serif}h1{margin:0;font:900 34px/1 system-ui,sans-serif;text-transform:uppercase}p{margin:0;color:#A89F92}a{color:#E66A4B}</style></head>
 <body><h1>${title}</h1><p>${line}</p><p><a href="https://comictable.com">ComicTable</a></p></body></html>`, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 
-async function lookup(req, by, key) {
+async function lookup(by, key) {
   const k = by + ":" + key, hit = cache.get(k);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.site;
-  if (!platformCfg) platformCfg = await fetch(new URL("/ct-config.json", req.url)).then((r) => r.json());
   const q = by === "id" ? "id=eq." + encodeURIComponent(key) : "domain=in.(" + [key, "www." + key].map(encodeURIComponent).join(",") + ")";
   const rows = await fetch(platformCfg.SUPABASE_URL.replace(/\/$/, "") + "/rest/v1/sites?select=id,name,domain,theme&limit=1&" + q, {
     headers: { apikey: platformCfg.SUPABASE_ANON_KEY, Authorization: "Bearer " + platformCfg.SUPABASE_ANON_KEY } }).then((r) => r.ok ? r.json() : []);
@@ -53,7 +53,7 @@ export default async (req, context) => {
   // comictable.com/s/<id> → /s/<id>/, so the design's relative config.js and sdk/ resolve under it
   if (r.by === "id" && r.path === "") return Response.redirect(new URL(r.base, req.url), 301);
   let site;
-  try { site = await lookup(req, r.by, r.key); } catch (e) { return page(503, "Back in a minute", "This site couldn't load. Try again shortly."); }
+  try { site = await lookup(r.by, r.key); } catch (e) { console.log("sites: lookup failed", r.by, r.key, String(e && e.message || e)); return page(503, "Back in a minute", "This site couldn't load. Try again shortly."); }
   if (!site) return page(404, "Nothing here yet", r.by === "domain" ? "This address isn't set up on ComicTable yet." : "There's no site with that name.");
   const path = r.path.replace(/^\/?/, "/");
   if (path === "/config.js") return new Response(configFor(site, platformCfg), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=0, must-revalidate", "netlify-cdn-cache-control": "public, max-age=60" } });
@@ -62,12 +62,9 @@ export default async (req, context) => {
   if (path === "/admin" || path === "/admin.html" || path === "/login" || path === "/dashboard") return Response.redirect("https://comictable.com/login", 302);
   if (path === "/robots.txt") return new Response("User-agent: *\nAllow: /\n", { headers: { "content-type": "text/plain" } });
   if (path !== "/" && path !== "/index.html") return page(404, "Page not found", "Try the home page.");
-  for (const d of designsFor(site)) {
-    const res = await fetch(new URL("/designs/" + d + ".html", req.url));
-    if (res.ok) return new Response(await res.text(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=0, must-revalidate", "netlify-cdn-cache-control": "public, max-age=60" } });
-  }
-  return page(500, "Something's off", "This site's design is missing.");
+  // the design page itself is a plain file on this project; hand it over without fetching
+  return new URL("/designs/" + designsFor(site)[0] + ".html", req.url);
 };
 
 // comictable.com's own files skip this entirely
-export const config = { path: "/*", excludedPath: ["/sdk/*", "/designs/*", "/fonts/*", "/brand/*", "/themes/*", "/ct-config.json", "/.netlify/*", "/embed.js"] };
+export const config = { path: "/*", excludedPath: ["/sdk/*", "/designs/*", "/fonts/*", "/brand/*", "/themes/*", "/.netlify/*", "/embed.js"] };

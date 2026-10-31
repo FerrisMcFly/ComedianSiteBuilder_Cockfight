@@ -20,6 +20,12 @@ const writeConfig = (dir, cfg, label) => writeFileSync(join(dir, "config.js"),
 export const coasterPageModule = () => "// Made by tools/build.mjs from platform/home/coaster.html. Don't edit; edit that file and run the build or the tests.\n" +
   "export default " + JSON.stringify(readFileSync(join(root, "platform", "home", "coaster.html"), "utf8")) + ";\n";
 if (!process.env.VITEST && !process.env.NO_COASTER_SYNC) writeFileSync(join(root, "netlify", "lib", "coaster-page.mjs"), coasterPageModule());
+// The shared site host (netlify/edge-functions/sites.js) carries the database address and the list of designs,
+// so it never fetches its own site. Kept in step here and by a test.
+export const sitesHostModule = () => "// Made by tools/build.mjs from platform/platform.json and sites/. Don't edit.\n" +
+  "export const CFG = " + JSON.stringify({ LOGIN_DOMAIN: platform.login_domain || "comictable.com", SUPABASE_URL: platform.supabase_url, SUPABASE_ANON_KEY: platform.supabase_anon_key }) + ";\n" +
+  "export const DESIGNS = " + JSON.stringify(readdirSync(join(root, "sites")).filter((d) => existsSync(join(root, "sites", d, "index.html"))).map((d) => d === "_starter" ? "starter" : d).sort()) + ";\n";
+if (!process.env.VITEST && !process.env.NO_COASTER_SYNC) writeFileSync(join(root, "netlify", "lib", "sites-host.mjs"), sitesHostModule());
 const logins = { LOGIN_DOMAIN: platform.login_domain || "comictable.com" };
 const db = { SUPABASE_URL: platform.supabase_url, SUPABASE_ANON_KEY: platform.supabase_anon_key };
 
@@ -43,7 +49,7 @@ if (id === "platform") {
   // and the edge function hands it the right site's config.js. sites/_starter is the Starter template.
   mkdirSync(join(out, "designs"));
   for (const s of sites) cpSync(join(root, "sites", s, "index.html"), join(out, "designs", (s === "_starter" ? "starter" : s) + ".html"));
-  writeFileSync(join(out, "ct-config.json"), JSON.stringify({ ...logins, ...db }) + "\n");
+
   // comictable.com/embed.js: the data kit plus small widgets, for comics who keep their own site
   writeFileSync(join(out, "embed.js"), "/* ComicTable embed. See https://comictable.com */\n(function () {\nvar EMBED_CFG = " + JSON.stringify(db) + ";\n" +
     readFileSync(join(root, "platform", "sdk", "csb.js"), "utf8") + "\n" + readFileSync(join(root, "platform", "embed", "widgets.js"), "utf8") + "\n})();\n");
