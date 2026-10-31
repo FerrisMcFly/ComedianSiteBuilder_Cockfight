@@ -40,7 +40,7 @@
     return card;
   }
   async function viewSites(main) {
-    main.append(head("All sites"));
+    main.append(head("All sites", "", S.isOwner ? h("button", { class: "btn primary", type: "button", id: "addComicFromSites", text: "+ Add a comic", onclick: () => goCT("comics") }) : null));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
 
     // ---- list of sites with a launch checklist ----
@@ -57,7 +57,7 @@
             h("div", null, h("a", { href: "mailto:" + r.email, text: r.email })),
             r.act ? h("div", { class: "hint", text: r.act }) : null, r.links ? h("div", { class: "hint", text: r.links }) : null, r.note ? h("div", { style: "margin-top:4px;white-space:pre-wrap", text: r.note }) : null),
           h("div", { class: "btns" },
-            h("button", { class: "btn sm", type: "button", text: "Start their site", onclick: () => { startSetup(r.name); setupSlot.scrollIntoView({ behavior: "smooth" }); } }),
+            h("button", { class: "btn sm", type: "button", text: "Start their site", onclick: () => { ADD_COMIC_NAME = r.name; goCT("comics"); } }),
             h("button", { class: "btn sm ghost", type: "button", text: "Mark handled", onclick: async () => { try { await q(sb.from("site_requests").update({ handled: true }).eq("id", r.id)); drawRequests(); } catch (e) { toast(errText(e), { bad: true }); } } })))))
           : empty("No new requests", "When a comic fills in the form on comictable.com, it shows up here."));
     }
@@ -93,7 +93,7 @@
     })();
     let setup = null;
     const setupSlot = h("div");
-    const startSetup = (n) => { setup = setupSiteCard(() => startSetup()); setupSlot.replaceChildren(setup.el); if (n) setup.prefill(n); };
+    const startSetup = () => { setup = setupSiteCard(() => startSetup()); setupSlot.replaceChildren(setup.el); };
     if (S.isOwner) startSetup();
     wrap.append(...[S.isOwner ? setupSlot : null, reqCard, listCard, S.isOwner ? showcaseCard() : null, supCard].filter(Boolean));
     try {

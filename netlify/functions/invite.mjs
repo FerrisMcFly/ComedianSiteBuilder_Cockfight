@@ -54,6 +54,9 @@ export default async (req) => {
   const { data: claimed, error: cErr } = await db.from("comics").update({ user_id: uid }).eq("id", comic.id).is("user_id", null).select("id");
   if (cErr || !claimed || !claimed.length) { await db.auth.admin.deleteUser(uid); return json(400, { error: "Someone already set up this Coaster. Ask for a new link." }); }
   if (inv.site_id) await db.from("admins").upsert({ user_id: uid, site_id: inv.site_id, role: inv.site_role || "editor" }, { onConflict: "user_id,site_id" });
+  // their own site, if one was made for them after the invite went out ("+ Add a comic" → "A website too?"): they run it
+  const { data: own } = await db.from("sites").select("id").eq("theme->>owner_comic", comic.id);
+  for (const site of own || []) if (site.id !== inv.site_id) await db.from("admins").upsert({ user_id: uid, site_id: site.id, role: "owner" }, { onConflict: "user_id,site_id" });
   await db.from("invites").update({ used_at: new Date().toISOString(), used_by: uid }).eq("token", token);
   return json(200, { ok: true, email });
 };

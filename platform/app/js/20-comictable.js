@@ -125,18 +125,10 @@
 
     const addBox = h("div");
     main.append(head("Coasters", "Every comic on ComicTable has a Coaster: their card at comictable.com/<name>. Their profile, dates and YouTube follow them to every site they're on.",
-      h("button", { class: "btn primary", type: "button", id: "addComic", text: "+ Add a Coaster", onclick: () => {
-        const name = h("input", { id: "newComicName", placeholder: "Full name", maxlength: "60" });
-        const msg = h("div", { class: "err" });
-        addBox.replaceChildren(h("form", { class: "card stack", onsubmit: async (e) => {
-          e.preventDefault(); const n = name.value.trim(); if (!n) { name.focus(); return; }
-          if (comics.some((c) => c.name.toLowerCase() === n.toLowerCase()) && !msg.dataset.ok) { msg.dataset.ok = "1"; msg.textContent = "There's already a comic called " + n + ". Click Add Coaster again if this is someone else."; return; }
-          try { const id = await newComicId(n); await q(sb.from("comics").insert({ id, name: n, title: "Comedian", bio: "" })); comicOpen = id; toast(n + " added. Fill in their profile, then put them on a site."); route(); }
-          catch (er) { msg.textContent = errText(er); }
-        } }, h("h2", { text: "Add a Coaster" }), h("p", { class: "sub", text: "Any comic can have one. They don't need a site: put them on one, or several, any time." }), field("Name", name), msg,
-          h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Add Coaster" }), h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => addBox.replaceChildren() }))));
-        name.focus();
-      } })), addBox, wrap);
+      h("button", { class: "btn primary", type: "button", id: "addComic", text: "+ Add a comic", onclick: () => startAdd() })), addBox, wrap);
+    // + Add a comic: their Coaster first, then the invite, then a website if they want one (founder, Oct 31)
+    function startAdd(name) { addBox.replaceChildren(addComicCard({ name, onDone: () => startAdd() })); addBox.scrollIntoView({ behavior: "smooth" }); }
+    if (ADD_COMIC_NAME) { const n = ADD_COMIC_NAME; ADD_COMIC_NAME = ""; startAdd(n); }
 
     const withLogin = comics.filter((c) => c.user_id).length, noSite = comics.filter((c) => !onSites(c).length).length;
     const stats = h("div", { class: "stats" }, [["Coasters", comics.length, "all"], ["With their own login", withLogin, "login"], ["Not on a site yet", noSite, "nosite"], ["Upcoming dates", shows.length, null]]

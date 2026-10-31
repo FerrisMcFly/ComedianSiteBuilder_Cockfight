@@ -11,7 +11,7 @@ function reset() {
   const soon = new Date(Date.now() + 864e5).toISOString(), past = new Date(Date.now() - 864e5).toISOString();
   tables = {
     comics: [{ id: "rita-r", name: "Rita Ramos", handle: "rita-ramos", photo_url: "https://p/rita.jpg", user_id: null }],
-    sites: [{ id: "cockfight", name: "Cockfight" }],
+    sites: [{ id: "cockfight", name: "Cockfight" }, { id: "rita-ramos", name: "Rita Ramos", theme: { way: "template", owner_comic: "rita-r" } }],
     invites: [{ token: T1, comic_id: "rita-r", site_id: "cockfight", site_role: "editor", expires_at: soon, used_at: null },
       { token: T2, comic_id: "rita-r", site_id: null, expires_at: past, used_at: null },
       { token: T3, comic_id: "rita-r", site_id: null, expires_at: soon, used_at: null }],
@@ -22,7 +22,8 @@ const send = (status, body) => new Response(body === undefined ? null : JSON.str
 function filters(u) {
   const f = [];
   for (const [k, v] of u.searchParams) if (/^(eq|is)\./.test(v)) f.push([k, v.split(".")[0], v.slice(v.indexOf(".") + 1)]);
-  return (r) => f.every(([k, op, v]) => op === "eq" ? String(r[k]) === v : (r[k] ?? null) === null && v === "null");
+  const val = (r, k) => k.includes("->>") ? ((r[k.split("->>")[0]] || {})[k.split("->>")[1]]) : r[k];
+  return (r) => f.every(([k, op, v]) => op === "eq" ? String(val(r, k)) === v : (val(r, k) ?? null) === null && v === "null");
 }
 async function fakeFetch(input, init = {}) {
   const u = new URL(typeof input === "string" ? input : input.url), method = (init.method || "GET").toUpperCase(), headers = new Headers(init.headers || {});
@@ -59,7 +60,7 @@ test("the link shows who it's for; it makes their login, claims their Coaster, a
   assert.equal(r.body.email, "rita@comictable.com", "a username becomes a login with no email needed");
   const uid = users.find((u) => u.email === "rita@comictable.com").id;
   assert.equal(tables.comics[0].user_id, uid, "their Coaster is theirs now");
-  assert.deepEqual(tables.admins, [{ user_id: uid, site_id: "cockfight", role: "editor" }]);
+  assert.deepEqual(tables.admins, [{ user_id: uid, site_id: "cockfight", role: "editor" }, { user_id: uid, site_id: "rita-ramos", role: "owner" }], "and they run the site made for them");
   assert.ok(tables.invites[0].used_at);
   assert.equal((await get(T1)).body.state, "used");
   assert.match((await post({ token: T1, username: "rita2", password: "longenough" })).body.error, /already used/);
