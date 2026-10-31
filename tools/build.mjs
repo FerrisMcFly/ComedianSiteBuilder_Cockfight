@@ -39,6 +39,11 @@ if (id === "platform") {
     if (existsSync(t)) cpSync(t, join(out, "themes", s + ".json"));
   }
   writeConfig(out, { PLATFORM: true, ...logins, ...db }, "the ComicTable admin");
+  // Every comic's site runs from here too (netlify/edge-functions/sites.js): each design is one page,
+  // and the edge function hands it the right site's config.js. sites/_starter is the Starter template.
+  mkdirSync(join(out, "designs"));
+  for (const s of sites) cpSync(join(root, "sites", s, "index.html"), join(out, "designs", (s === "_starter" ? "starter" : s) + ".html"));
+  writeFileSync(join(out, "ct-config.json"), JSON.stringify({ ...logins, ...db }) + "\n");
   // comictable.com/embed.js: the data kit plus small widgets, for comics who keep their own site
   writeFileSync(join(out, "embed.js"), "/* ComicTable embed. See https://comictable.com */\n(function () {\nvar EMBED_CFG = " + JSON.stringify(db) + ";\n" +
     readFileSync(join(root, "platform", "sdk", "csb.js"), "utf8") + "\n" + readFileSync(join(root, "platform", "embed", "widgets.js"), "utf8") + "\n})();\n");

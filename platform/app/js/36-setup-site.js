@@ -131,6 +131,7 @@
         h("div", { class: "stack" }, cards),
         h("div", { class: "btns" },
           h("button", { class: "btn primary", type: "button", id: "suOpen", text: "Open " + site.name, onclick: () => switchSite(site.id, "people") }),
+          h("a", { class: "btn", id: "suSee", href: PRESS_HOST + "/s/" + site.id + "/", target: "_blank", rel: "noopener", text: "See their site ↗" }),
           h("button", { class: "btn ghost", type: "button", text: "Set up another", onclick: () => { onDone && onDone(); } }))];
     }
 

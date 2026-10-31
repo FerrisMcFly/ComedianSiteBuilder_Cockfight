@@ -108,7 +108,7 @@
             h("div", { class: "btns", style: "margin-top:6px;gap:6px" }, steps.map(([t, ok]) => h("span", { class: "pill" + (ok ? "" : " warn"), text: (ok ? "✓ " : "○ ") + t })))),
           h("div", { class: "btns" },
             st.id === sid() ? null : h("button", { class: "btn sm", type: "button", text: "Open", onclick: () => switchSite(st.id, "home") }),
-            st.domain ? h("a", { class: "btn sm ghost", href: "https://" + st.domain, target: "_blank", rel: "noopener", text: "Visit ↗" }) : null));
+            h("a", { class: "btn sm ghost", href: st.domain ? "https://" + st.domain : PRESS_HOST + "/s/" + st.id + "/", target: "_blank", rel: "noopener", text: st.domain ? "Visit ↗" : "See it ↗" })));
       }));
       listCard.replaceChildren(h("h2", { text: "Sites (" + sites.length + ")" }), h("div", null, rows));
     } catch (e) { listCard.replaceChildren(h("h2", { text: "Sites" }), h("p", { class: "err", text: errText(e) })); }
