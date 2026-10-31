@@ -377,12 +377,13 @@ test("set up a site for a comic: who it's for, the site, how they'll get it, the
   d.querySelector('[data-feat="forum"]').click();
   d.getElementById("suNext2").click(); await wait(20);
   assert.equal(d.querySelector('[data-way="template"]').getAttribute("aria-pressed"), "true");
+  assert.equal(d.querySelector('[data-site-template="spotlight"]').getAttribute("aria-pressed"), "true", "Clean Spotlight is the first pick");
   assert.ok(d.querySelector('[data-site-template="starter"]'));
   d.getElementById("suCreate").click(); await wait(200);
   const site = db.sites.find((x) => x.id === "rita-ramos");
   assert.equal(site.domain, "ritaramoscomedy.com");
   assert.equal(site.features.forum, true); assert.equal(site.features.chat, false);
-  assert.deepEqual(JSON.parse(JSON.stringify(site.theme)), { way: "template", template: "starter" });
+  assert.deepEqual(JSON.parse(JSON.stringify(site.theme)), { way: "template", template: "spotlight" });
   const comic = db.comics.find((c) => c.name === "Rita Ramos");
   assert.ok(comic, "her Coaster was made");
   assert.ok(db.hosts.some((x) => x.site_id === "rita-ramos" && x.comic_id === comic.id), "she's on the site's lineup");

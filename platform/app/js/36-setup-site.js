@@ -9,11 +9,11 @@
     ["custom", "Custom-built", "A design made just for them, running on ComicTable."],
     ["embed", "Keep their site", "They keep the site they have and add ComicTable to it."]];
   // Site templates (their own gallery, not the Coaster's). More join as they're built.
-  const SITE_TEMPLATES = [["starter", "Starter", "Plain and complete: shows, podcast, videos and fans."]];
+  const SITE_TEMPLATES = [["spotlight", "Clean Spotlight", "A big photo, a bold name, nothing extra."], ["starter", "Starter", "Plain and complete: shows, podcast, videos and fans."]];
   const SITE_FEATURES = [["shows", "Live shows"], ["podcast", "Podcast"], ["videos", "YouTube"], ["merch", "Merch"], ["forum", "Forum"], ["chat", "Chat room"]];
 
   function setupSiteCard(onDone) {
-    const st = { step: 1, group: false, comics: [], name: "", id: "", idTouched: false, domain: "", way: "template", template: "starter",
+    const st = { step: 1, group: false, comics: [], name: "", id: "", idTouched: false, domain: "", way: "template", template: "spotlight",
       features: { shows: true, podcast: false, videos: true, merch: false, forum: false, chat: false }, made: null };
     const box = h("section", { class: "card setup stack", id: "setupSite" });
     const STEPS = ["Who it's for", "The site", "How they'll get it", "Invite"];

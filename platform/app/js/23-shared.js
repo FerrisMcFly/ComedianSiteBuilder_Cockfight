@@ -22,7 +22,9 @@
     if (THEME !== null && THEME_FOR === sid()) return THEME;
     THEME_FOR = sid();
     // The dashboard (comictable.com) keeps every site's theme.json in themes/
-    const tries = ["themes/" + sid() + ".json"];
+    // a site on a template uses that template's settings (sites/<template>/theme.json); a custom site has its own
+    const th = (S.site && S.site.theme) || {};
+    const tries = [th.design, th.way === "template" ? th.template : null, sid()].filter((x) => x && /^[a-z0-9][a-z0-9_-]*$/.test(x)).map((x) => "themes/" + x + ".json");
     THEME = false;
     for (const u of tries) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) { THEME = await r.json(); break; } } catch (e) {} }
     return THEME;
