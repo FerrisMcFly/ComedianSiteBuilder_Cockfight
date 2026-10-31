@@ -9,7 +9,7 @@
     ["custom", "Custom-built", "A design made just for them, running on ComicTable."],
     ["embed", "Keep their site", "They keep the site they have and add ComicTable to it."]];
   // Site templates (their own gallery, not the Coaster's). More join as they're built.
-  const SITE_TEMPLATES = [["spotlight", "Clean Spotlight", "A big photo, a bold name, nothing extra."], ["punk-flyer", "Punk Flyer", "A photocopied gig flyer: ransom-note name, tape and one loud color."], ["starter", "Starter", "Plain and complete: shows, podcast, videos and fans."]];
+  const SITE_TEMPLATES = [["spotlight", "Clean Spotlight", "A big photo, a bold name, nothing extra."], ["punk-flyer", "Punk Flyer", "A photocopied gig flyer: ransom-note name, tape and one loud color."], ["late-show", "Late Show", "A 70s talk-show set: wood paneling, a city skyline and cue-card dates."], ["public-access", "Public Access", "80s public-access TV: VHS scanlines, neon pink and cyan, and a channel guide for dates."], ["marquee", "Comedy Club Marquee", "The classic club night: a light-bulb marquee, red velvet and a letterboard of dates."], ["y2k", "Y2K Chrome", "Glossy early 2000s: chrome lettering, bubble buttons, holographic pastels and sparkles."], ["starter", "Starter", "Plain and complete: shows, podcast, videos and fans."]];
   const SITE_FEATURES = [["shows", "Live shows"], ["podcast", "Podcast"], ["videos", "YouTube"], ["merch", "Merch"], ["forum", "Forum"], ["chat", "Chat room"]];
 
   function setupSiteCard(onDone) {

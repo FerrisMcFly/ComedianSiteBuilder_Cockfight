@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comedian</title>
+<meta name="description" content="Shows, videos and more.">
+<meta property="og:title" content="Comedian" data-ct="title">
+<meta property="og:description" content="Shows, videos and more." data-ct="description">
+<meta property="og:image" content="" data-ct="image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Limelight&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Comedy Club Marquee: a ComicTable template. Light bulbs, red velvet and a letterboard. Every word that isn't the
+   comic's own data is a Design setting (theme.json), so nothing jokey is baked in. */
+:root { --velvet: #4A0A0F; --cream: #FFF3DC; --gold: #FFD86B; --brass: #C9962E; --ink: #120C0B; --wine: #8E1B22; --accent: #FFD86B;
+  --deco: "Limelight", Georgia, serif; --font: "Oswald", "Arial Narrow", sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--velvet); background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.35) 0 6px, rgba(255,255,255,.04) 6px 16px, rgba(0,0,0,.2) 16px 26px); color: var(--cream); font: 400 18px/1.45 var(--font); }
+a { color: var(--gold); }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.club { max-width: 640px; margin: 0 auto; padding: 22px 16px 0; }
+.sign { padding: 14px; background: #1A1210; border-radius: 10px; background-image: radial-gradient(circle, #FFE7A0 0 4px, var(--brass) 5px, transparent 6px); background-size: 22px 22px; }
+.sign-in { background: var(--ink); border-radius: 6px; padding: 18px 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: inset 0 0 0 2px var(--brass); text-align: center; }
+.sign-in .top { font: 600 15px var(--font); letter-spacing: 6px; color: var(--gold); }
+.sign-in h1 { margin: 0; font: 400 clamp(46px, 13vw, 76px)/1 var(--deco); color: var(--cream); text-shadow: 0 0 14px rgba(255,216,107,.65); overflow-wrap: anywhere; }
+.sign-in .sub { font: 400 15px var(--font); letter-spacing: 3px; color: #E7C9A0; text-transform: uppercase; }
+.spot { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 26px 6px 0; text-align: center; }
+.spot .glow { position: relative; width: min(64vw, 260px); aspect-ratio: 1; }
+.spot .glow::before { content: ""; position: absolute; inset: -18px; border-radius: 50%; background: radial-gradient(circle, rgba(255,231,160,.45), transparent 70%); }
+.spot .glow img { position: relative; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 5px solid var(--brass); }
+.spot .ct-coaster { width: min(80%, 320px); }
+.spot p { margin: 0; color: #F7DFC0; max-width: 420px; }
+.board { margin-top: 30px; padding: 14px; background: #0E0E0E; border: 10px solid #2A2421; border-radius: 4px; background-image: repeating-linear-gradient(0deg, #0E0E0E 0 22px, #1B1B1B 22px 24px); }
+.board h2 { margin: 0 0 10px; text-align: center; font: 700 22px var(--font); letter-spacing: 5px; color: #fff; }
+.line { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid #333; color: #fff; text-transform: uppercase; }
+.line .d { font: 700 20px/1 var(--font); letter-spacing: 2px; }
+.line .d span, .line .w span { font-weight: 400; font-size: 14px; color: #BBB; display: block; }
+.line .w { font: 400 16px/1.2 var(--font); letter-spacing: 1px; min-width: 0; }
+.line .w .hot { color: var(--gold); }
+.tix { background: var(--accent); color: #1A1210; text-decoration: none; padding: 0 14px; min-height: 44px; display: flex; align-items: center; border-radius: 4px; font: 700 16px var(--font); letter-spacing: 2px; text-transform: uppercase; }
+.tix.soon { background: transparent; color: #fff; border: 1px solid #777; }
+.gone { color: #BBB; border: 1px solid #777; padding: 10px; border-radius: 4px; font: 700 14px var(--font); letter-spacing: 2px; }
+.empty { color: #fff; text-align: center; margin: 0; }
+.set { margin-top: 30px; display: flex; flex-direction: column; gap: 12px; }
+.set h2 { margin: 0; text-align: center; font: 400 32px var(--deco); color: var(--gold); }
+.stage { padding: 10px; background: #2A0408; border: 2px solid var(--brass); }
+.stage a.screen { display: block; position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: radial-gradient(ellipse at 50% 30%, #F4C77A 0%, #6E2A12 45%, #120808 80%); }
+.stage img { width: 100%; height: 100%; object-fit: cover; opacity: .9; }
+.stage i { position: absolute; left: 50%; bottom: 14px; width: 60px; height: 60px; margin-left: -30px; border-radius: 50%; background: rgba(0,0,0,.6); border: 2px solid var(--gold); display: grid; place-items: center; }
+.stage i::before { content: ""; border-left: 16px solid var(--gold); border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 4px; }
+.stage .cap { padding: 10px 4px 2px; letter-spacing: 1px; text-transform: uppercase; }
+.pod { margin-top: 26px; padding: 16px; display: flex; gap: 14px; align-items: center; background: rgba(0,0,0,.35); border-radius: 8px; }
+.pod .art { width: 70px; height: 70px; flex: none; border-radius: 8px; background: var(--brass); color: #1A1210; display: grid; place-items: center; font: 400 26px var(--deco); object-fit: cover; }
+.pod .k { font: 600 13px var(--font); letter-spacing: 3px; color: var(--gold); display: block; }
+.pod b { font: 600 22px var(--font); display: block; }
+.pod .links { display: flex; gap: 12px; flex-wrap: wrap; font-size: 15px; }
+.socials { margin-top: 26px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.socials a { width: 52px; height: 52px; border-radius: 50%; border: 3px solid var(--brass); background: var(--cream); display: grid; place-items: center; color: var(--ink); }
+.socials svg { width: 22px; height: 22px; }
+.ticket { margin: 30px 0 24px; padding: 20px 18px; background: #F3E6CC; color: #2A0408; border-radius: 4px; border: 2px dashed var(--wine); display: flex; flex-direction: column; gap: 10px; }
+.ticket .stub { display: flex; justify-content: space-between; gap: 10px; font: 700 13px var(--font); letter-spacing: 3px; color: var(--wine); }
+.ticket h2 { margin: 0; font: 400 30px var(--deco); }
+.ticket p { margin: 0; font-size: 16px; }
+.ctt-join { display: grid; gap: 10px; }
+.ctt-join label { display: grid; gap: 4px; font-weight: 600; }
+.ctt-join input { height: 46px; border: 2px solid #2A0408; border-radius: 4px; padding: 0 12px; font: 400 16px var(--font); background: #fff; }
+.ctt-join button { min-height: 50px; border: 0; border-radius: 4px; background: var(--wine); color: var(--cream); font: 700 18px var(--font); letter-spacing: 3px; text-transform: uppercase; cursor: pointer; }
+.ctt-msg { font-weight: 700; min-height: 1.2em; }
+.ctt-fine { font-size: 13px; } .ctt-fine a { color: var(--wine); }
+footer { padding: 16px; text-align: center; font: 400 14px var(--font); letter-spacing: 3px; color: #E7C9A0; background: rgba(0,0,0,.4); text-transform: uppercase; }
+.ctt-down { padding: 60px 20px; text-align: center; }
+</style>
+</head>
+<body>
+<main id="app"><p class="ctt-down">Loading…</p></main>
+<script src="config.js"></script>
+<script src="sdk/csb.js"></script>
+<script src="sdk/templates.js"></script>
+<script>
+CTT.start(function (k, app) {
+  "use strict";
+  var el = k.el;
+  // keep these in step with theme.json (a test checks)
+  var W = { now_appearing: "NOW APPEARING", shows_title: "COMING UP", watch_title: "Tonight's Set", podcast_label: "THE PODCAST", ticket_top: "ADMIT ONE", ticket_number: "Nº 0001",
+    join_title: "Save me a seat", join_line: "Hear first when {name} plays near you.", join_button: "GET ON THE LIST" };
+  var say = function (key) { return k.t(key, W[key]); };
+  var video = k.video(), pod = k.podcast(), shows = k.shows(), socials = k.socials(), join = k.join({ button: say("join_button") || W.join_button });
+  var club = el("div", { class: "club" });
+
+  club.append(el("header", { class: "sign" }, el("div", { class: "sign-in" }, [say("now_appearing") ? el("span", { class: "top", text: say("now_appearing") }) : null,
+    el("h1", { text: k.name }), k.tagline ? el("span", { class: "sub", text: k.tagline }) : null])));
+  var pic = k.coaster ? k.coasterPhoto() : k.photo ? el("div", { class: "glow" }, el("img", { src: k.photo, alt: k.name })) : null;
+  if (pic || k.bio) club.append(el("div", { class: "spot" }, [pic, k.bio ? el("p", { text: k.bio }) : null]));
+
+  if (k.has("shows")) club.append(el("section", { class: "board", "aria-label": say("shows_title") || "Shows" }, [say("shows_title") ? el("h2", { text: say("shows_title") }) : null].concat(
+    shows.length ? shows.map(function (s) {
+      return el("div", { class: "line" }, [el("span", { class: "d" }, [s.mon.toUpperCase() + " " + s.day, el("span", { text: s.dow })]),
+        el("span", { class: "w" }, [s.venue, s.few ? el("span", { class: "hot", text: "A few left" }) : el("span", { text: s.city })]),
+        s.sold ? el("span", { class: "gone", text: "SOLD OUT" }) : k.ticket(s, "tix")]);
+    }) : [el("p", { class: "empty", text: "No dates right now." })])));
+
+  if (video) club.append(el("section", { class: "set", "aria-label": say("watch_title") || "Video" }, [say("watch_title") ? el("h2", { text: say("watch_title") }) : null,
+    el("div", { class: "stage" }, [el("a", { class: "screen", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
+      el("div", { class: "cap", text: video.title })])]));
+
+  if (pod) club.append(el("div", { class: "pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
+    el("div", null, [say("podcast_label") ? el("span", { class: "k", text: say("podcast_label") }) : null, el("b", { text: pod.name }), el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
+
+  if (socials.length) club.append(el("div", { class: "socials" }, socials.map(function (x) { var a = el("a", { href: x.url, target: "_blank", rel: "noopener", "aria-label": x.label }); a.insertAdjacentHTML("beforeend", x.svg); return a; })));
+  if (join) club.append(el("section", { class: "ticket", "aria-label": "Mailing list" }, [(say("ticket_top") || say("ticket_number")) ? el("div", { class: "stub" }, [el("span", { text: say("ticket_top") }), el("span", { text: say("ticket_number") })]) : null,
+    say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
+  app.append(club, el("footer", { text: "© " + new Date().getFullYear() + " " + k.name + " · Runs on ComicTable" }));
+});
+</script>
+</body>
+</html>
