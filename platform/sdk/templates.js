@@ -5,7 +5,8 @@
                                        k.socials(), k.join({ ... }), k.has(feature)
    Flavor text (a tabloid's headline, a VHS label's joke) is never baked in: every line comes from k.t(key, default),
    which reads the site's Design settings (the template's theme.json lists them), so the comic can retype it.
-   Lines can use {name}, {next_venue}, {next_city}, {next_date} and {next_day}.
+   Lines can use {name}, {next_venue}, {next_city}, {next_date} and {next_day}; a line that uses a {next_…} word
+   is left off while there's no upcoming show.
    Photo shape (founder, Oct 31): every template offers the comic's photo in the template's own shape or as a round
    Coaster. k.coaster says which; k.coasterPhoto() is the round one, the same everywhere. */
 (function (root) {
@@ -34,6 +35,8 @@
     });
     var next = showsList[0];
     var fill = function (txt) {
+      // a line about the next show makes no sense without one: it's left off
+      if (!next && /\{next_\w+\}/.test(String(txt))) return "";
       return String(txt).replace(/\{(\w+)\}/g, function (m, k) {
         var v = { name: D.site.name, next_venue: next ? next.venue : "", next_city: next ? next.city : "", next_date: next ? next.mon + " " + next.day : "", next_day: next ? next.dow : "" }[k];
         return v === undefined ? m : v;
