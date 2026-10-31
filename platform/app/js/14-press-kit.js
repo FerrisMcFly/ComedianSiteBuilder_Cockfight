@@ -243,10 +243,13 @@
     const bannerRow = (label, key, opts) => { const row = h("div", { class: "chips", role: "group", "aria-label": label });
       const draw = () => row.replaceChildren(...opts.map(([v, t]) => h("button", { type: "button", class: "chip", "data-banner": key + ":" + v, "aria-pressed": String(banner[key] === v), text: t, onclick: () => { banner[key] = v; draw(); } })));
       draw(); redraws.push(draw); return row; };
+    // the address printed on the coaster (comictable.com/name): on or off
+    const addrOn = h("input", { type: "checkbox", role: "switch", checked: cs0.addr !== false, "aria-label": "Print my address on the coaster" });
+    const addrRow = h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Address on the coaster" }), h("div", { class: "hint", text: "comictable.com/" + (c.handle || c.id) + " printed under your name." })), h("label", { class: "switch" }, addrOn, h("span")));
     const bannerBox = h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Name banner" }),
       bannerRow("Where the banner sits", "pos", [["low", "Lower"], ["mid", "Middle"], ["top", "Top"], ["none", "No banner"]]),
       bannerRow("Banner style", "shape", [["ribbon", "Ribbon"], ["band", "Straight band"], ["plain", "Just the name"]]),
-      bannerRow("Banner angle", "tilt", [["tilted", "Tilted"], ["straight", "Straight"]]));
+      bannerRow("Banner angle", "tilt", [["tilted", "Tilted"], ["straight", "Straight"]]), addrRow);
     const pageBox = h("div", { class: "stack", style: "gap:4px" }, pickBox("Background", "bg"), pickBox("Shows look like", "dates"), pickBox("Ticket buttons", "buttons"), pickBox("Socials", "tiles"));
     const shownBox = pickBox("How many shows up front", "shown");
     // Where the QR code on the back goes (default: the fan list)
@@ -308,7 +311,7 @@
         const t = tapeUrl.value.trim();
         const out = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
         if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, wear, links: linkList.length ? linkList.map((x) => x.key) : linkOrder, links_off: [...linkOff], page: { ...page }, letter, doodles: [...doodleSet], doodle_color: doodleColor,
-          banner: { ...banner }, photo_y: +photoY.value, photo_zoom: +photoZ.value, ...(cPhoto ? { photo: cPhoto } : {}), ...(printMode !== "auto" ? { print: printMode } : {}), qr: { to: qrSel.value, ...(qrSel.value === "link" ? { link: qrLink.value.trim() } : {}) }, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
+          banner: { ...banner }, addr: addrOn.checked, photo_y: +photoY.value, photo_zoom: +photoZ.value, ...(cPhoto ? { photo: cPhoto } : {}), ...(printMode !== "auto" ? { print: printMode } : {}), qr: { to: qrSel.value, ...(qrSel.value === "link" ? { link: qrLink.value.trim() } : {}) }, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
         return out;
       }
     };

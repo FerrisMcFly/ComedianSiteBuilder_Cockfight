@@ -707,7 +707,7 @@ body.preview .coaster { animation: none; }
       el("div", { class: "rim2", "aria-hidden": "true" }),
       doodles(),
       bpos === "none" ? null : el("div", { class: "ribbon" }, nameEl),
-      el("div", { class: "addr" }, ["comictable.com/", el("br"), handle])]).concat(wearOn(false))));
+      cs.addr === false ? null : el("div", { class: "addr" }, ["comictable.com/", el("br"), handle])]).concat(wearOn(false))));
     var qr = el("div", { class: "qr" });
     var back = el("div", { class: "face back" }, el("div", { class: "print" }, [art(), el("div", { class: "rim2", "aria-hidden": "true" })].concat(wearOn(true)).concat([
       el("span", { class: "hand", text: qrSay }), qr,

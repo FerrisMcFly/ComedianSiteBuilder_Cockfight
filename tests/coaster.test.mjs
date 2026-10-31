@@ -273,4 +273,6 @@ test("the coaster photo and the name banner follow the comic's choices", async (
   for (const k of ["banner-top", "shape-plain", "tilt-straight", "print-color"]) assert.ok(front.classList.contains(k), k);
   const none = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { banner: { pos: "none" } } }] });
   assert.equal(none.d.querySelector(".front .ribbon"), null, "no banner at all");
+  const bare = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { addr: false } }] });
+  assert.equal(bare.d.querySelector(".front .addr"), null, "the address on the coaster can be switched off");
 });
