@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comedian</title>
+<meta name="description" content="Shows, videos and more.">
+<meta property="og:title" content="Comedian" data-ct="title">
+<meta property="og:description" content="Shows, videos and more." data-ct="description">
+<meta property="og:image" content="" data-ct="image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Click Wheel: a ComicTable template. A pocket music player from the 2000s (no real product's design, name or logo).
+   Every word that isn't the comic's own data is a Design setting (theme.json). */
+:root { --accent: #D6336C; --text: #1C1C1E; --muted: #6E7076; --card: #FFFFFF; --line: #E5E5EA; --font: "Inter", Helvetica, Arial, sans-serif; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #F2F3F5, #D9DCE1 900px) no-repeat #D9DCE1; color: var(--text); font: 400 16px/1.5 var(--font); }
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.page { max-width: 1040px; margin: 0 auto; padding: 28px 16px 0; display: grid; gap: 22px; justify-items: center; }
+@media (min-width: 900px) { .page { grid-template-columns: 340px minmax(0, 1fr); align-items: start; gap: 48px; padding-top: 48px; } .side { position: sticky; top: 32px; } }
+.side .ct-coaster { width: min(100%, 280px); }
+.side { display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
+.player { width: 300px; max-width: 100%; padding: 22px 22px 30px; border-radius: 34px; background: linear-gradient(160deg, var(--accent), #2A2A2E 140%); box-shadow: inset 0 2px 0 rgba(255,255,255,.35), 0 24px 44px rgba(0,0,0,.28); display: flex; flex-direction: column; align-items: center; gap: 26px; }
+.screen { width: 100%; border-radius: 8px; background: #fff; border: 3px solid var(--text); overflow: hidden; }
+.screen .bar { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: linear-gradient(180deg, #F7F7F7, #D9D9D9); border-bottom: 1px solid #A0A0A0; font: 700 12px var(--font); }
+.screen .bar span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.batt { width: 22px; height: 10px; border: 1px solid #333; border-radius: 2px; position: relative; flex: none; }
+.batt::after { content: ""; position: absolute; inset: 1px 6px 1px 1px; background: #34C759; }
+.screen .in { display: flex; min-height: 170px; }
+.screen nav { flex: 1; display: flex; flex-direction: column; font: 600 13px var(--font); min-width: 0; }
+.screen nav a { display: flex; justify-content: space-between; align-items: center; min-height: 32px; padding: 0 8px; text-decoration: none; }
+.screen nav a::after { content: "›"; }
+.screen nav a:first-child, .screen nav a:hover, .screen nav a:focus-visible { background: linear-gradient(180deg, #5EA2F5, #1F6FD8); color: #fff; outline: 0; }
+.screen nav a:first-child:not(:hover):not(:focus-visible) { background: linear-gradient(180deg, #5EA2F5, #1F6FD8); }
+.screen .pic { width: 104px; flex: none; object-fit: cover; }
+.wheel { position: relative; width: 196px; height: 196px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #FBFBFB, #E3E4E8); box-shadow: inset 0 -3px 6px rgba(0,0,0,.12), 0 2px 0 rgba(255,255,255,.4); font: 800 12px var(--font); color: #74777D; }
+.wheel span { position: absolute; }
+.wheel .m { top: 16px; left: 0; right: 0; text-align: center; letter-spacing: 1px; }
+.wheel .l { left: 16px; top: 88px; } .wheel .r { right: 16px; top: 88px; } .wheel .p { bottom: 16px; left: 0; right: 0; text-align: center; }
+.wheel .c { left: 66px; top: 66px; width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(180deg, #E6E7EA, #FFFFFF); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+h1 { margin: 0; font: 800 clamp(36px, 8vw, 44px)/1 var(--font); letter-spacing: -1px; text-align: center; }
+.bio { margin: 0; text-align: center; color: #55575C; max-width: 340px; }
+.main { width: 100%; max-width: 560px; display: grid; gap: 18px; }
+.card { border-radius: 14px; background: var(--card); overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+.card > h2 { margin: 0; padding: 10px 14px; background: linear-gradient(180deg, #F7F7F7, #DCDCDC); border-bottom: 1px solid #B5B5B5; font: 800 14px var(--font); text-align: center; }
+.row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.row .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.row .w span { font-size: 13px; color: var(--muted); }
+.row.sold { color: #A0A2A8; } .row.sold .w span { color: inherit; }
+.tix { background: var(--accent); color: #fff; text-decoration: none; padding: 0 14px; min-height: 44px; display: flex; align-items: center; border-radius: 999px; font-weight: 700; font-size: 14px; flex: none; }
+.tix.soon { background: transparent; color: var(--muted); }
+.gone { font-weight: 700; font-size: 14px; }
+.empty { margin: 0; padding: 14px; color: var(--muted); }
+.np { padding: 14px; display: grid; gap: 10px; }
+.vid { display: block; position: relative; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: linear-gradient(135deg, #2A2A2E, #4A4D55); }
+.vid img { width: 100%; height: 100%; object-fit: cover; }
+.vid i { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(255,255,255,.92); display: grid; place-items: center; }
+.vid i::before { content: ""; border-left: 16px solid var(--text); border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 4px; }
+.np b { text-align: center; }
+.prog { height: 6px; border-radius: 3px; background: var(--line); } .prog i { display: block; width: 30%; height: 6px; border-radius: 3px; background: var(--accent); }
+.pod { display: flex; gap: 12px; align-items: center; padding: 12px 14px; }
+.pod .art { width: 62px; height: 62px; flex: none; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #2A2A2E); color: #fff; display: grid; place-items: center; font-weight: 800; object-fit: cover; }
+.pod .links { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.pod span { font-size: 13px; color: var(--muted); }
+.socials { display: flex; gap: 8px; flex-wrap: wrap; }
+.socials a { flex: 1 1 100px; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border-radius: 12px; background: #fff; text-decoration: none; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+.socials svg { width: 18px; height: 18px; }
+.join { padding: 18px; border-radius: 18px; background: #1C1C1E; color: #fff; display: grid; gap: 10px; }
+.join h2 { margin: 0; font: 800 24px var(--font); }
+.join p { margin: 0; color: #C7C7CC; font-size: 15px; }
+.ctt-join { display: grid; gap: 10px; }
+.ctt-join label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
+.ctt-join input { height: 46px; border: 0; border-radius: 10px; padding: 0 12px; font: 400 16px var(--font); }
+.ctt-join button { min-height: 50px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; font: 700 16px var(--font); cursor: pointer; }
+.ctt-msg { font-weight: 700; min-height: 1.2em; }
+.ctt-fine { color: #AEAEB2; } .ctt-fine a { color: #fff; }
+footer { grid-column: 1 / -1; padding: 22px 0 18px; font-size: 12px; color: var(--muted); text-align: center; }
+.ctt-down { padding: 60px 20px; text-align: center; }
+</style>
+</head>
+<body>
+<main id="app"><p class="ctt-down">Loading…</p></main>
+<script src="config.js"></script>
+<script src="sdk/csb.js"></script>
+<script src="sdk/templates.js"></script>
+<script>
+CTT.start(function (k, app) {
+  "use strict";
+  var el = k.el;
+  // keep these in step with theme.json (a test checks)
+  var W = { shows_title: "Shows", watch_title: "Now Playing", podcast_line: "the podcast", join_title: "Add to your library",
+    join_line: "Hear first when {name} plays near you.", join_button: "Sign me up" };
+  var say = function (key) { return k.t(key, W[key]); };
+  var video = k.video(), pod = k.podcast(), shows = k.shows(), socials = k.socials(), join = k.join({ button: say("join_button") || W.join_button });
+  var card = function (key, id, body) { var t = say(key); return el("section", { class: "card", id: id, "aria-label": t || null }, [t ? el("h2", { text: t }) : null].concat(body)); };
+
+  // the little screen: a real menu of this page's sections
+  var menu = [k.has("shows") ? ["#shows", say("shows_title") || "Shows"] : null, video ? ["#watch", say("watch_title") || "Video"] : null, pod ? ["#listen", "Podcast"] : null,
+    socials.length ? ["#socials", "Socials"] : null, join ? ["#join", "Join the list"] : null].filter(Boolean);
+  var player = el("div", { class: "player" }, [
+    el("div", { class: "screen" }, [el("div", { class: "bar" }, [el("span", { text: k.name }), el("span", { class: "batt", "aria-hidden": "true" })]),
+      el("div", { class: "in" }, [el("nav", { "aria-label": "Sections" }, menu.map(function (m) { return el("a", { href: m[0], text: m[1] }); })),
+        !k.coaster && k.photo ? el("img", { class: "pic", src: k.photo, alt: k.name }) : null])]),
+    el("div", { class: "wheel", "aria-hidden": "true" }, [el("span", { class: "m", text: "MENU" }), el("span", { class: "l", text: "◀◀" }), el("span", { class: "r", text: "▶▶" }), el("span", { class: "p", text: "▶ ❙❙" }), el("span", { class: "c" })])]);
+  var side = el("div", { class: "side" }, [player, k.coaster ? k.coasterPhoto() : null, el("h1", { text: k.name }), k.bio ? el("p", { class: "bio", text: k.bio }) : null]);
+
+  var main = el("div", { class: "main" });
+  if (k.has("shows")) main.append(card("shows_title", "shows", shows.length ? shows.map(function (s) {
+    return el("div", { class: "row" + (s.sold ? " sold" : "") }, [el("span", { class: "w" }, [el("b", { text: s.venue }), el("span", { text: [s.label, s.city, s.few ? "a few left" : ""].filter(Boolean).join(" · ") })]),
+      s.sold ? el("span", { class: "gone", text: "Sold out" }) : k.ticket(s, "tix")]);
+  }) : [el("p", { class: "empty", text: "No dates right now." })]));
+  if (video) main.append(card("watch_title", "watch", [el("div", { class: "np" }, [
+    el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
+    el("b", { text: video.title }), el("div", { class: "prog", "aria-hidden": "true" }, el("i"))])]));
+  if (pod) main.append(el("section", { class: "card", id: "listen", "aria-label": pod.name }, el("div", { class: "pod" }, [
+    pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
+    el("div", null, [el("b", { text: pod.name }), say("podcast_line") ? el("span", { text: " · " + say("podcast_line") }) : null,
+      el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])])));
+  if (socials.length) main.append(el("div", { class: "socials", id: "socials" }, socials.map(function (x) { var a = el("a", { href: x.url, target: "_blank", rel: "noopener" }); a.insertAdjacentHTML("beforeend", x.svg); a.append(x.label); return a; })));
+  if (join) main.append(el("section", { class: "join", id: "join", "aria-label": say("join_title") || "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
+
+  app.append(el("div", { class: "page" }, [side, main, el("footer", { text: "© " + new Date().getFullYear() + " " + k.name + " · Runs on ComicTable" })]));
+});
+</script>
+</body>
+</html>
