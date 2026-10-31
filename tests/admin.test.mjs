@@ -789,6 +789,26 @@ test("My Coaster: a photo just for the coaster (with the best size), moved and z
   assert.deepEqual([cs.photo_y, cs.photo_zoom, cs.print], [40, 130, "color"]);
 });
 
+test("My Coaster: the back is theirs: what's on it, their words, and the code's size", async () => {
+  const { w, d, db } = await open("#ct/me", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+  });
+  await wait(120);
+  const form = d.querySelector("main #coasterForm");
+  set(w, form.querySelector('input[aria-label="Big words on the back"]'), "Find me after the show");
+  form.querySelector('[data-back="qr:l"]').click();
+  form.querySelector('[data-back="art:plain"]').click();
+  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  let back = db.comics.find((c) => c.id === "solo-sam").coaster.back;
+  assert.deepEqual([back.kind, back.say, back.qr, back.art], ["qr", "Find me after the show", "l", "plain"]);
+  const f2 = d.querySelector("main #coasterForm");
+  f2.querySelector('[data-back="kind:show"]').click();
+  assert.ok(f2.querySelector('[data-back="qr:l"]').closest(".pick-row").hidden, "the code size goes away when there's no code");
+  f2.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  assert.equal(db.comics.find((c) => c.id === "solo-sam").coaster.back.kind, "show");
+});
+
 test("people: give a comic their own login", async () => {
   const { w, d } = await open("#people");
   let sent = null;

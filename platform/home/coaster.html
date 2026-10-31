@@ -441,6 +441,13 @@ a.tb:hover { filter: brightness(1.08); }
 .lcard { background: rgba(14, 10, 7, .82); border: 0; }
 .more-btn { background: rgba(10, 8, 7, .74); border: 0; }
 body.preview .coaster { animation: none; }
+.back .hand.big { font-size: 13cqw; line-height: 1.02; }
+.back .nx-when { position: relative; z-index: 2; font: 400 14cqw/1 Anton, Impact, sans-serif; color: var(--print); text-transform: uppercase; }
+.back .nx-where { position: relative; z-index: 2; font: 700 5.6cqw/1.15 var(--ct-sans, Inter, sans-serif); color: var(--print); max-width: 80%; }
+.back .print .back-full { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.back.qr-s .qr { width: 32cqw; } .back.qr-l .qr { width: 50cqw; }
+.back .print .back-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .28; filter: grayscale(1) contrast(1.2); mix-blend-mode: var(--photo-blend, multiply); }
+.back .print .doodles { opacity: .7; }
 /* ---------- the banner: lower (default), middle, top or none; ribbon, straight band or just the name; tilted or straight ---------- */
 .front.banner-low .ribbon { top: 63%; } .front.banner-low .addr { top: 81.5%; }
 .front.banner-mid .ribbon { top: 54%; } .front.banner-mid .addr { top: 74%; }
@@ -708,17 +715,34 @@ body.preview .coaster { animation: none; }
       doodles(),
       bpos === "none" ? null : el("div", { class: "ribbon" }, nameEl),
       cs.addr === false ? null : el("div", { class: "addr" }, ["comictable.com/", el("br"), handle])]).concat(wearOn(false))));
-    var qr = el("div", { class: "qr" });
-    var back = el("div", { class: "face back" }, el("div", { class: "print" }, [art(), el("div", { class: "rim2", "aria-hidden": "true" })].concat(wearOn(true)).concat([
-      el("span", { class: "hand", text: qrSay }), qr,
-      el("span", { class: "scan", text: /^Join/.test(qrSay) ? "Scan to join, or visit" : "Scan, or visit" }),
-      el("span", { class: "url", text: qrTo.replace(/^https?:\/\//, "") })])));
-    var coaster = el("button", { class: "coaster wear-" + wear, style: "--nx:" + (50 + Math.cos(nick) * 48).toFixed(1) + "%;--ny:" + (50 + Math.sin(nick) * 48).toFixed(1) + "%", type: "button", "aria-label": c.name + "'s Coaster. Flip it for a QR code", "aria-pressed": "false", onclick: function () {
-      var f = coaster.classList.toggle("flipped"); coaster.setAttribute("aria-pressed", String(f)); tap.textContent = f ? "Tap to flip back" : "Tap the coaster for a QR code";
+    var qr = el("div", { class: "qr" }), qrShown = false;
+    // the back is the comic's too: their own words, lettering, what's behind the QR code, and its size
+    var bk = cs.back || {}, bArt = ["look", "plain", "doodles", "image"].indexOf(bk.art) >= 0 ? bk.art : "look";
+    var say = String(bk.say || "").trim().slice(0, 60) || qrSay, line = bk.line === false ? null : String(bk.line || "").trim().slice(0, 60) || (/^Join/.test(qrSay) ? "Scan to join, or visit" : "Scan, or visit");
+    var hand = el("span", { class: "hand", text: say });
+    if (bk.letter === "front" && LET && LET[0] !== "block") hand.style.fontFamily = LET[2];
+    else if (bk.letter === "front") hand.style.fontFamily = "Anton, Impact, sans-serif";
+    var behind = bArt === "plain" ? null : bArt === "doodles" ? doodles() : bArt === "image" && safe(bk.image) ? el("img", { class: "back-img", src: bk.image, alt: "" }) : art();
+    // what's on the back: a QR code (default), their next show, a picture, or just their words
+    var kind = ["qr", "show", "picture", "words"].indexOf(bk.kind) >= 0 ? bk.kind : "qr";
+    if (kind === "picture" && !safe(bk.image)) kind = "qr";
+    var nx = dates[0], nxd = nx ? dayOf(nx) : null;
+    var middle = kind === "qr" ? [hand, qr, line ? el("span", { class: "scan", text: line }) : null, bk.url === false ? null : el("span", { class: "url", text: qrTo.replace(/^https?:\/\//, "") })]
+      : kind === "show" ? (nx ? [el("span", { class: "hand", text: String(bk.say || "").trim().slice(0, 60) || "Next up" }), el("b", { class: "nx-when", text: DAY[nxd.getDay()] + " " + MON[nxd.getMonth()] + " " + nxd.getDate() }),
+          el("span", { class: "nx-where", text: nx.venue || nx.site_name || "Show" }), el("span", { class: "url", text: [nx.city, niceTime(nx.time)].filter(Boolean).join(" · ") })]
+        : [hand, line ? el("span", { class: "scan", text: line }) : null])
+      : kind === "picture" ? [el("img", { class: "back-full", src: bk.image, alt: "" })]
+      : [el("span", { class: "hand big", text: say }), line ? el("span", { class: "scan", text: line }) : null];
+    if (kind === "show" && hand.style.fontFamily) middle[0].style.fontFamily = hand.style.fontFamily;
+    if (kind === "qr") qrShown = true;
+    var back = el("div", { class: "face back kind-" + kind + " qr-" + (["s", "l"].indexOf(bk.qr) >= 0 ? bk.qr : "m") }, el("div", { class: "print" }, [kind === "picture" ? null : behind, el("div", { class: "rim2", "aria-hidden": "true" })].concat(wearOn(true)).concat(middle)));
+    var coaster = el("button", { class: "coaster wear-" + wear, style: "--nx:" + (50 + Math.cos(nick) * 48).toFixed(1) + "%;--ny:" + (50 + Math.sin(nick) * 48).toFixed(1) + "%", type: "button", "aria-label": c.name + "'s Coaster. Flip it" + (kind === "qr" ? " for a QR code" : ""), "aria-pressed": "false", onclick: function () {
+      var f = coaster.classList.toggle("flipped"); coaster.setAttribute("aria-pressed", String(f)); tap.textContent = f ? "Tap to flip back" : tapSay;
       coaster.classList.remove("shine"); void coaster.offsetWidth; coaster.classList.add("shine");
-      if (f && !qr.firstChild) qrInto(qr, qrTo);
+      if (f && qrShown && !qr.firstChild) qrInto(qr, qrTo);
     } }, el("div", { class: "spin" }, [front, back]));
-    var tap = el("div", { class: "tap", text: "Tap the coaster for a QR code" });
+    var tapSay = kind === "qr" ? "Tap the coaster for a QR code" : "Tap the coaster to flip it";
+    var tap = el("div", { class: "tap", text: tapSay });
     var live = liveOf(sites);
     parts.push(el("section", { class: "table" }, [live ? el("a", { class: "live-badge", href: live.url, target: "_blank", rel: "noopener" }, [el("span", { class: "dot", "aria-hidden": "true" }), "LIVE" + (live.title ? " · " + live.title : "")]) : null, coaster, tap]));
 

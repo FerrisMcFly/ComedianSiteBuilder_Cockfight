@@ -276,3 +276,20 @@ test("the coaster photo and the name banner follow the comic's choices", async (
   const bare = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { addr: false } }] });
   assert.equal(bare.d.querySelector(".front .addr"), null, "the address on the coaster can be switched off");
 });
+
+test("the back is the comic's: their words and lettering, what's behind the code, or no code at all", async () => {
+  let { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { back: { kind: "qr", say: "Find me after the show", line: false, url: false, qr: "l", art: "plain" } } }] });
+  let back = d.querySelector(".back");
+  assert.match(back.querySelector(".hand").textContent, /Find me after the show/);
+  assert.equal(back.querySelector(".scan"), null); assert.equal(back.querySelector(".url"), null);
+  assert.ok(back.classList.contains("qr-l"));
+  assert.equal(back.querySelector(".art"), null, "plain behind the code");
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { back: { kind: "show" } } }], "rpc/comic_shows": [{ id: "s1", date: day(3), time: "20:00", venue: "Comedy Cellar", city: "New York" }] }));
+  back = d.querySelector(".back");
+  assert.match(back.textContent, /Next up.*Comedy Cellar/s);
+  assert.equal(back.querySelector(".qr"), null, "no QR code on this back");
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { back: { kind: "picture", image: "https://p/logo.png" } } }] }));
+  assert.equal(d.querySelector(".back .back-full").getAttribute("src"), "https://p/logo.png");
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { back: { kind: "words", say: "Tip your bartender" } } }] }));
+  assert.match(d.querySelector(".back .hand.big").textContent, /Tip your bartender/);
+});

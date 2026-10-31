@@ -259,6 +259,30 @@
     const qrLink = h("input", { type: "url", placeholder: "https://…", value: qr.link || "", "aria-label": "QR link" });
     const qrBox = h("div", { class: "stack", style: "gap:8px" }, field("The QR code on the back goes to", qrSel), qrLink);
     const qrShow = () => { qrLink.hidden = qrSel.value !== "link"; }; qrSel.addEventListener("change", qrShow); qrShow();
+    // The back of the coaster, around the QR code: their words, lettering, what's behind it, how big the code is
+    const bk = { kind: "qr", letter: "marker", art: "look", qr: "m", ...((c.coaster && c.coaster.back && typeof c.coaster.back === "object") ? c.coaster.back : {}) };
+    const bSay = h("input", { maxlength: "60", value: bk.say || "", placeholder: "Join " + (c.name || "my") + "'s list", "aria-label": "Big words on the back" });
+    const bLine = h("input", { maxlength: "60", value: typeof bk.line === "string" ? bk.line : "", placeholder: "Scan to join, or visit", "aria-label": "Small line under the QR code" });
+    const bLineOn = h("input", { type: "checkbox", role: "switch", checked: bk.line !== false, "aria-label": "Show the small line" });
+    const bUrlOn = h("input", { type: "checkbox", role: "switch", checked: bk.url !== false, "aria-label": "Show where the QR code goes" });
+    const bChips = (label, key, opts) => { const row = h("div", { class: "chips", role: "group", "aria-label": label });
+      const draw = () => row.replaceChildren(...opts.map(([v, t]) => h("button", { type: "button", class: "chip", "data-back": key + ":" + v, "aria-pressed": String(bk[key] === v), text: t, onclick: () => { bk[key] = v; draw(); bImgRow.hidden = !(bk.art === "image" || bk.kind === "picture"); qrOnly.forEach((x) => { x.hidden = bk.kind !== "qr"; }); } })));
+      draw(); return h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: label }), row); };
+    const bFile = h("input", { type: "file", accept: "image/*", style: "display:none", "aria-label": "Picture behind the QR code" });
+    const bImgNote = h("span", { class: "hint", text: bk.image ? "Your picture is on the back." : "A logo or photo, printed faded behind the code. Square works best." });
+    bFile.addEventListener("change", async () => { if (!bFile.files[0]) return;
+      try { toast("Uploading…"); bk.image = await uploadImage(bFile.files[0], c.id + "-back", { folder: c.id }); bFile.value = ""; bImgNote.textContent = "Your picture is on the back."; bFile.dispatchEvent(new Event("input", { bubbles: true })); }
+      catch (e) { toast(errText(e), { bad: true }); } });
+    const bImgRow = h("div", { class: "chips" }, h("label", { class: "chip" }, "Upload a picture", bFile), bImgNote); bImgRow.hidden = !(bk.art === "image" || bk.kind === "picture");
+    const qrOnly = [];
+    const keepQr = (el) => { qrOnly.push(el); el.hidden = bk.kind !== "qr"; return el; };
+    const backBox = h("div", { class: "stack back-box", style: "gap:10px" }, h("b", { text: "The back of the coaster" }),
+      bChips("What's on the back", "kind", [["qr", "QR code"], ["show", "My next show"], ["picture", "A picture"], ["words", "Just words"]]),
+      field("Big words", bSay), h("div", { class: "switch-row" }, h("div", { style: "flex:1;min-width:0" }, field("Small line under the code", bLine)), h("label", { class: "switch" }, bLineOn, h("span"))),
+      keepQr(h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Show where the code goes" }), h("div", { class: "hint", text: "The web address, printed small at the bottom." })), h("label", { class: "switch" }, bUrlOn, h("span")))),
+      bChips("Lettering on the back", "letter", [["marker", "Marker"], ["front", "Same as the front"]]),
+      bChips("Behind the code", "art", [["look", "The look's art"], ["plain", "Plain"], ["doodles", "My doodles"], ["image", "My picture"]]), bImgRow,
+      keepQr(bChips("Code size", "qr", [["s", "Small"], ["m", "Medium"], ["l", "Big"]])));
     // The link buttons on the Coaster (the sites they're on, and their link-in-bio): drag to order, switch any off
     const linkOrder = (c.coaster && Array.isArray(c.coaster.links)) ? [...c.coaster.links] : [];
     const linkOff = new Set((c.coaster && Array.isArray(c.coaster.links_off)) ? c.coaster.links_off : []);
@@ -290,7 +314,7 @@
     return {
       url,
       // the pieces on their own, for the Coaster page (coasterPage) to lay out
-      parts: { photo: photoBox, banner: bannerBox, templates: templateBox, letter: letterBox, doodles: doodleBox, page: pageBox, shown: shownBox, qr: qrBox, preview, looks: h("div", { class: "stack", style: "gap:10px;min-width:0" }, looks, customBox, customNote), wear: h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear" }), wearSeg),
+      parts: { photo: photoBox, banner: bannerBox, templates: templateBox, letter: letterBox, doodles: doodleBox, page: pageBox, shown: shownBox, qr: h("div", { class: "stack", style: "gap:14px" }, qrBox, backBox), preview, looks: h("div", { class: "stack", style: "gap:10px;min-width:0" }, looks, customBox, customNote), wear: h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear" }), wearSeg),
         tapeUrl, tapeTitle, linksBox, plan: h("div", { class: "stack", style: "gap:8px" }, h("b", { text: "What's on " + yours + " Coaster" }),
           h("p", { class: "hint", style: "margin:0", text: "Up front, under More, or off. Drag to change the order." }), planRows), socBox, billsRow, proBox },
       // a line under the name: the Coaster's address, with Open
@@ -311,7 +335,7 @@
         const t = tapeUrl.value.trim();
         const out = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
         if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, wear, links: linkList.length ? linkList.map((x) => x.key) : linkOrder, links_off: [...linkOff], page: { ...page }, letter, doodles: [...doodleSet], doodle_color: doodleColor,
-          banner: { ...banner }, addr: addrOn.checked, photo_y: +photoY.value, photo_zoom: +photoZ.value, ...(cPhoto ? { photo: cPhoto } : {}), ...(printMode !== "auto" ? { print: printMode } : {}), qr: { to: qrSel.value, ...(qrSel.value === "link" ? { link: qrLink.value.trim() } : {}) }, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
+          banner: { ...banner }, addr: addrOn.checked, photo_y: +photoY.value, photo_zoom: +photoZ.value, ...(cPhoto ? { photo: cPhoto } : {}), ...(printMode !== "auto" ? { print: printMode } : {}), back: { kind: bk.kind, letter: bk.letter, art: bk.art, qr: bk.qr, ...(bSay.value.trim() ? { say: bSay.value.trim() } : {}), line: bLineOn.checked ? (bLine.value.trim() || "") : false, url: bUrlOn.checked, ...(bk.image ? { image: bk.image } : {}) }, qr: { to: qrSel.value, ...(qrSel.value === "link" ? { link: qrLink.value.trim() } : {}) }, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
         return out;
       }
     };
