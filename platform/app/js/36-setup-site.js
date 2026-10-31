@@ -9,7 +9,7 @@
     ["custom", "Custom-built", "A design made just for them, running on ComicTable."],
     ["embed", "Keep their site", "They keep the site they have and add ComicTable to it."]];
   // Site templates (their own gallery, not the Coaster's). More join as they're built.
-  const SITE_TEMPLATES = [["spotlight", "Clean Spotlight", "A big photo, a bold name, nothing extra."], ["starter", "Starter", "Plain and complete: shows, podcast, videos and fans."]];
+  const SITE_TEMPLATES = [["spotlight", "Clean Spotlight", "A big photo, a bold name, nothing extra."], ["punk-flyer", "Punk Flyer", "A photocopied gig flyer: ransom-note name, tape and one loud color."], ["starter", "Starter", "Plain and complete: shows, podcast, videos and fans."]];
   const SITE_FEATURES = [["shows", "Live shows"], ["podcast", "Podcast"], ["videos", "YouTube"], ["merch", "Merch"], ["forum", "Forum"], ["chat", "Chat room"]];
 
   function setupSiteCard(onDone) {

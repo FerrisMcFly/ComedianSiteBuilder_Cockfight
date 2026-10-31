@@ -1,0 +1,16 @@
+{
+  "name": "Punk Flyer",
+  "description": "A photocopied gig flyer: ransom-note name, tape, stamps and one loud color. A ComicTable template.",
+  "settings": [
+    { "key": "accent", "label": "Loud color", "help": "The tape, stickers and ticket buttons.", "type": "color", "default": "#FF5CA8" },
+    { "type": "heading", "label": "Words on the flyer", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
+    { "key": "sticker", "label": "Sticker on your photo", "type": "text", "default": "LIVE! LOUD!" },
+    { "key": "shows_title", "label": "Shows heading", "type": "text", "default": "Gigs" },
+    { "key": "watch_title", "label": "Video heading", "type": "text", "default": "Watch" },
+    { "key": "podcast_line", "label": "Under the podcast name", "type": "text", "default": "the podcast" },
+    { "key": "join_title", "label": "Sign-up heading", "type": "text", "default": "Join the mailing list" },
+    { "key": "join_line", "label": "Sign-up line", "type": "text", "default": "Hear first when {name} plays near you. No spam, just gigs." },
+    { "key": "join_button", "label": "Sign-up button", "type": "text", "default": "Sign up" },
+    { "key": "footer", "label": "Bottom line", "type": "text", "default": "photocopy & staple everywhere" }
+  ]
+}

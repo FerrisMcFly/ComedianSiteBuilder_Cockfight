@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comedian</title>
+<meta name="description" content="Gigs, videos and more.">
+<meta property="og:title" content="Comedian" data-ct="title">
+<meta property="og:description" content="Gigs, videos and more." data-ct="description">
+<meta property="og:image" content="" data-ct="image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Special+Elite&family=Anton&display=swap" rel="stylesheet">
+<style>
+/* Punk Flyer: a ComicTable template. A photocopied gig flyer stapled to a wall. Every word that isn't the comic's own
+   data is a Design setting (theme.json), so nothing jokey is baked in. */
+:root { --paper: #EDEAE2; --ink: #111111; --accent: #FF5CA8; --tape: rgba(255, 243, 92, .78); --hi: #FFF35C; --stamp: #C4161C;
+  --type: "Special Elite", "Courier New", monospace; --block: "Anton", Impact, sans-serif; --mono: "Rubik Mono One", "Arial Black", sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #2B2A28; background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.4px); background-size: 5px 5px; color: var(--ink); font: 400 17px/1.45 var(--type); }
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.flyer { max-width: 760px; margin: 0 auto; min-height: 100vh; background: var(--paper); background-image: radial-gradient(rgba(0,0,0,.08) 1px, transparent 1.4px); background-size: 6px 6px; padding: 22px 16px 10px; overflow: hidden; }
+@media (min-width: 800px) { .flyer { margin: 40px auto; min-height: 0; transform: rotate(-.6deg); box-shadow: 0 30px 60px rgba(0,0,0,.5); padding: 36px 44px 20px; } }
+.name { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; transform: rotate(-2deg); line-height: 1; font-weight: 400; }
+.name span { padding: 2px 8px; font-size: clamp(44px, 12vw, 84px); }
+.name .gap { width: 18px; padding: 0; }
+.name .s0 { background: var(--ink); color: var(--paper); font-family: var(--block); }
+.name .s1 { background: var(--accent); font-family: var(--mono); transform: rotate(4deg); padding: 2px 6px; }
+.name .s2 { background: #fff; border: 3px solid var(--ink); font-family: var(--type); transform: rotate(-5deg); padding: 0 6px; }
+.name .s3 { background: var(--hi); font-family: var(--block); transform: rotate(3deg); }
+.name .s4 { background: var(--ink); color: var(--paper); font-family: var(--mono); transform: rotate(-3deg); padding: 2px 6px; }
+.photo { position: relative; margin: 28px 10px 0; }
+.photo img { width: 100%; aspect-ratio: 4 / 5; max-height: 560px; object-fit: cover; filter: grayscale(1) contrast(1.8) brightness(1.05); transform: rotate(1.5deg); border: 3px solid var(--ink); }
+.photo .tape { position: absolute; top: -12px; left: 40%; width: 96px; height: 28px; background: var(--tape); transform: rotate(-6deg); }
+.photo .sticker { position: absolute; right: -6px; bottom: -16px; max-width: 46%; background: var(--accent); padding: 10px 14px; transform: rotate(-8deg); font: 400 clamp(16px, 4vw, 22px)/1.1 var(--mono); border: 3px solid var(--ink); text-transform: uppercase; }
+.bio { margin: 34px 2px 0; background: #fff; padding: 10px 12px; border: 2px solid var(--ink); transform: rotate(-1deg); }
+.block { margin-top: 30px; display: flex; flex-direction: column; gap: 12px; }
+.h { margin: 0; font: 400 clamp(36px, 9vw, 52px)/1 var(--block); text-transform: uppercase; background: var(--ink); color: var(--paper); padding: 4px 10px; align-self: flex-start; transform: rotate(1deg); }
+.h.alt { background: var(--accent); color: var(--ink); align-self: flex-end; transform: rotate(-1.5deg); border: 3px solid var(--ink); }
+.gig { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border: 3px solid var(--ink); background: #fff; }
+.gig:nth-child(odd) { transform: rotate(-.8deg); }
+.gig .when { display: flex; flex-direction: column; min-width: 0; }
+.gig b { font: 400 26px/1 var(--block); }
+.gig .hot { background: var(--hi); align-self: flex-start; padding: 0 4px; }
+.tix { flex: none; background: var(--accent); color: var(--ink); text-decoration: none; border: 3px solid var(--ink); padding: 0 12px; min-height: 44px; display: flex; align-items: center; font: 400 14px var(--mono); }
+.tix.soon { background: transparent; }
+.stamp { flex: none; font: 400 22px var(--block); color: var(--stamp); border: 3px solid var(--stamp); padding: 2px 8px; transform: rotate(-10deg); }
+.empty { margin: 0; }
+.vid { display: block; position: relative; aspect-ratio: 16 / 9; border: 3px solid var(--ink); background: var(--ink); overflow: hidden; }
+.vid img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.5); opacity: .8; }
+.vid i { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; background: var(--paper); border: 3px solid var(--ink); display: grid; place-items: center; }
+.vid i::before { content: ""; border-left: 18px solid var(--ink); border-top: 11px solid transparent; border-bottom: 11px solid transparent; margin-left: 5px; }
+.pod { margin-top: 30px; padding: 14px; border: 3px dashed var(--ink); display: flex; gap: 12px; align-items: center; background: #fff; transform: rotate(1deg); }
+.pod .art { width: 68px; height: 68px; flex: none; background: var(--ink); color: var(--hi); display: grid; place-items: center; font: 400 22px var(--mono); object-fit: cover; }
+.pod b { font: 400 26px/1 var(--block); text-transform: uppercase; display: block; }
+.pod .links { display: flex; gap: 10px; flex-wrap: wrap; }
+.socials { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 8px; }
+.socials a { flex: 1 1 100px; text-align: center; padding: 12px 0; background: var(--ink); color: var(--paper); text-decoration: none; font: 400 13px var(--mono); text-transform: uppercase; }
+.join { margin: 30px 0 24px; padding: 18px; background: var(--hi); border: 3px solid var(--ink); display: flex; flex-direction: column; gap: 10px; transform: rotate(-1deg); }
+.join h2 { margin: 0; font: 400 clamp(30px, 8vw, 44px)/1 var(--block); text-transform: uppercase; }
+.join p { margin: 0; }
+.ctt-join { display: grid; gap: 10px; }
+.ctt-join label { display: grid; gap: 4px; }
+.ctt-join input { height: 46px; border: 3px solid var(--ink); padding: 0 12px; font: 400 16px var(--type); background: #fff; }
+.ctt-join button { min-height: 50px; border: 3px solid var(--ink); background: var(--ink); color: var(--hi); font: 400 16px var(--mono); text-transform: uppercase; cursor: pointer; }
+.ctt-msg { font-weight: 700; min-height: 1.2em; }
+.ctt-fine { font-size: 13px; }
+footer { padding: 14px 0 6px; text-align: center; font-size: 14px; }
+.ctt-down { padding: 60px 20px; text-align: center; color: #fff; }
+</style>
+</head>
+<body>
+<main id="app"><p class="ctt-down">Loading…</p></main>
+<script src="config.js"></script>
+<script src="sdk/csb.js"></script>
+<script src="sdk/templates.js"></script>
+<script>
+CTT.start(function (k, app) {
+  "use strict";
+  var el = k.el;
+  // keep these in step with theme.json (a test checks)
+  var W = { sticker: "LIVE! LOUD!", shows_title: "Gigs", watch_title: "Watch", podcast_line: "the podcast", join_title: "Join the mailing list",
+    join_line: "Hear first when {name} plays near you. No spam, just gigs.", join_button: "Sign up", footer: "photocopy & staple everywhere" };
+  var say = function (key) { return k.t(key, W[key]); };
+  var video = k.video(), pod = k.podcast(), shows = k.shows(), socials = k.socials(), join = k.join({ button: say("join_button") || W.join_button });
+  var flyer = el("div", { class: "flyer" });
+
+  // the name as a ransom note: each letter cut from a different page
+  var n = 0, letters = [];
+  k.name.toUpperCase().split("").forEach(function (ch) {
+    if (ch === " ") { letters.push(el("span", { class: "gap", "aria-hidden": "true" })); return; }
+    letters.push(el("span", { class: "s" + (n++ % 5), "aria-hidden": "true", text: ch }));
+  });
+  flyer.append(el("h1", { class: "name", "aria-label": k.name }, letters));
+  if (k.photo) flyer.append(el("div", { class: "photo" }, [el("img", { src: k.photo, alt: k.name }), el("span", { class: "tape", "aria-hidden": "true" }),
+    say("sticker") ? el("span", { class: "sticker", text: say("sticker") }) : null]));
+  if (k.bio) flyer.append(el("p", { class: "bio", text: k.bio }));
+
+  if (k.has("shows")) flyer.append(el("section", { class: "block", "aria-label": say("shows_title") || "Shows" }, [say("shows_title") ? el("h2", { class: "h", text: say("shows_title") }) : null].concat(
+    shows.length ? shows.map(function (s) {
+      return el("div", { class: "gig" }, [el("div", { class: "when" }, [el("b", { text: s.dow.toUpperCase() + " " + s.mm + "." + s.dd }), el("span", { text: [s.venue, s.city].filter(Boolean).join(" — ") }), s.few ? el("span", { class: "hot", text: "a few left" }) : null]),
+        s.sold ? el("span", { class: "stamp", text: "SOLD OUT" }) : k.ticket(s, "tix", "TIX")]);
+    }) : [el("p", { class: "empty", text: "No gigs right now." })])));
+
+  if (video) flyer.append(el("section", { class: "block", "aria-label": say("watch_title") || "Video" }, [say("watch_title") ? el("h2", { class: "h alt", text: say("watch_title") }) : null,
+    el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
+    el("span", { text: video.title })]));
+
+  if (pod) flyer.append(el("div", { class: "pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
+    el("div", null, [el("b", { text: pod.name }), say("podcast_line") ? el("span", { text: say("podcast_line") }) : null, el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
+
+  if (socials.length) flyer.append(el("div", { class: "socials" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })));
+  if (join) flyer.append(el("section", { class: "join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
+  flyer.append(el("footer", { text: ["© " + new Date().getFullYear() + " " + k.name, "runs on ComicTable", say("footer")].filter(Boolean).join(" · ") }));
+  app.append(flyer);
+});
+</script>
+</body>
+</html>
