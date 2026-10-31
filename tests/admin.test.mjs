@@ -809,6 +809,18 @@ test("My Coaster: the back is theirs: what's on it, their words, and the code's 
   assert.equal(db.comics.find((c) => c.id === "solo-sam").coaster.back.kind, "show");
 });
 
+test("invite link: staff make one for a comic with no login, ready to text", async () => {
+  const { d, db } = await open("#ct/comics", (db) => { db.comics.forEach((c) => Object.assign(c, { look: "classic", coaster: {}, handle: c.id })); db.invites = []; });
+  await wait(80);
+  [...d.querySelectorAll(".comic-card")].find((b) => /Daniel/.test(b.textContent)).click(); await wait(120);
+  d.getElementById("inviteBtn").click(); await wait(80);
+  assert.equal(db.invites.length, 1);
+  assert.equal(db.invites[0].comic_id, "daniel-bridge-gadd");
+  const card = d.querySelector(".invite-card");
+  assert.match(card.textContent, /Invite Daniel.*Works once · 7 days/s);
+  assert.match(card.querySelector('a[href^="sms:"]').getAttribute("href"), /Your%20Coaster%20on%20ComicTable%20is%20ready/);
+});
+
 test("people: give a comic their own login", async () => {
   const { w, d } = await open("#people");
   let sent = null;

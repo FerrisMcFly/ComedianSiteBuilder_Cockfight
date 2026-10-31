@@ -173,7 +173,9 @@
     const sites = onSites(c);
     const back = h("button", { class: "btn ghost sm", type: "button", text: "← All Coasters", onclick: () => { comicOpen = null; route(); } });
     const viewAs = h("button", { class: "btn sm", type: "button", id: "viewAsBtn", text: "View as " + c.name.split(" ")[0], title: "See exactly what " + c.name + " sees", onclick: () => startViewAs(c) });
-    main.append(h("div", { class: "btns", style: "margin-bottom:8px;justify-content:space-between" }, back, viewAs),
+    const inviteSlot = h("div");
+    const invite = c.user_id ? null : h("button", { class: "btn sm primary", type: "button", id: "inviteBtn", text: "Invite link", title: "A link to text " + c.name + " so they can set up their own login", onclick: () => inviteSlot.replaceChildren(inviteCard(c, null)) });
+    main.append(h("div", { class: "btns", style: "margin-bottom:8px;justify-content:space-between" }, back, h("div", { class: "btns" }, invite, viewAs)), inviteSlot,
       h("div", { class: "page-head" }, h("div", { class: "person-top", style: "margin:0" },
         c.photo_url ? h("img", { class: "avatar", src: c.photo_url, alt: "" }) : h("div", { class: "avatar initials", text: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() }),
         h("div", null, h("h1", { text: c.name }), h("p", { class: "sub", text: (c.title || "Comedian") + " · " + (sites.length ? "on " + sites.map((x) => x.site.name).join(", ") : "not on a site yet") + (c.user_id ? " · has a login" : "") })))));

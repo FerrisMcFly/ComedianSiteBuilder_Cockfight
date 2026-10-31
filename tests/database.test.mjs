@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "99_rules.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "27_invites.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "27_invites.sql", "99_rules.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -523,6 +523,20 @@ test("forum and chat safety: no links by default, approved fans can, reports hid
   // chat: the same link rule
   assert.match(await as(null, `insert into chat_messages (site_id, author, body, device) values ('cockfight', 'Spam2', 'go to spam.xyz', 'c1')`), /approved fans/);
   await db.exec(`update sites set community = community || '{"hold_first_posts": false, "links_from": "nobody"}' where id = 'cockfight'`);
+});
+
+test("invite links: a site's owner can invite an unclaimed comic on their site; nobody can invite to a claimed Coaster or a stranger's", async () => {
+  const SITE = "77777777-7777-7777-7777-777777777774", OTHER = "33333333-3333-3333-3333-333333333333";
+  await q(`insert into auth.users values ('${SITE}', 'siteowner@x') on conflict do nothing`);
+  await q(`insert into admins (user_id, site_id, role) values ('${SITE}', 'cockfight', 'owner') on conflict do nothing`);
+  await q(`insert into comics (id, name) values ('nia-new', 'Nia New') on conflict do nothing`);
+  await q(`insert into hosts (id, site_id, comic_id, name, sort) values ('cockfight-nia', 'cockfight', 'nia-new', 'Nia New', 10) on conflict do nothing`);
+  assert.equal(await as(SITE, `insert into invites (comic_id, site_id, site_role) values ('nia-new', 'cockfight', 'editor')`), "ok");
+  assert.match(await as(OTHER, `insert into invites (comic_id) values ('nia-new')`), /row-level security|violates/, "not someone who can't edit her Coaster");
+  assert.match(await as(null, `select * from invites`), /permission denied/, "nobody reads invites from outside");
+  await q(`update comics set user_id = '${OTHER}' where id = 'nia-new'`);
+  assert.match(await as(SITE, `insert into invites (comic_id, site_id) values ('nia-new', 'cockfight')`), /row-level security|violates/, "a claimed Coaster can't be invited again");
+  await q(`delete from invites where comic_id = 'nia-new'`); await q(`delete from hosts where id = 'cockfight-nia'`); await q(`delete from comics where id = 'nia-new'`);
 });
 
 test("Coaster teams: the comic and their team change the Coaster; a site's team only looks after Coasters nobody has claimed", async () => {

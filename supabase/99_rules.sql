@@ -663,3 +663,16 @@ do $$ begin
     on conflict do nothing;
   end if;
 end $$;
+
+/* ---------------- invite links (27_invites.sql) ---------------- */
+do $$
+begin
+  if to_regclass('public.invites') is not null then
+    drop policy if exists "coaster editors invite" on invites;
+    -- make, see and cancel invites for a Coaster you can edit (an unclaimed one: nobody's logged in to it yet)
+    create policy "coaster editors invite" on invites for all to authenticated
+      using (public.can_edit_comic(comic_id))
+      with check (public.can_edit_comic(comic_id) and not exists (select 1 from comics c where c.id = comic_id and c.user_id is not null)
+        and (site_id is null or public.can_site(site_id, 'owner') or public.is_platform_admin()));
+  end if;
+end $$;

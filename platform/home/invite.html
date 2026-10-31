@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Your Coaster · ComicTable</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand/tokens.css">
+<style>
+/* The invite link a comic gets by text: their Coaster, a username and a password, and they're in. */
+:root { --bg: #13100E; --panel: #1C1815; --raised: #26201C; --line: #332C27; --text: #F3EAD7; --muted: #A89F92; --red: #E66A4B; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { min-height: 100vh; background: radial-gradient(60% 40% at 50% 0%, rgba(255, 176, 96, .16), transparent 70%), var(--bg); color: var(--text); font: 400 16px/1.5 var(--ct-sans, Inter, system-ui, sans-serif); display: grid; place-items: start center; padding: 28px 16px 48px; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+.wm { font: 900 26px/1 var(--ct-display, "Encode Sans Condensed", sans-serif); color: var(--text); text-decoration: none; }
+.wm span { color: var(--red); }
+main { width: 100%; max-width: 420px; display: grid; gap: 22px; }
+.card { background: var(--panel); border-radius: 18px; padding: 26px 22px; display: grid; gap: 16px; }
+.who { display: grid; justify-items: center; gap: 10px; text-align: center; }
+.who img, .who .ph { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; border: 4px solid #E9D6AF; box-shadow: 0 10px 24px rgba(0,0,0,.5); }
+.who .ph { display: grid; place-items: center; background: #E9D6AF; color: #2A1D14; font: 900 40px var(--ct-display, sans-serif); }
+h1 { margin: 0; font: 900 clamp(34px, 9vw, 44px)/.95 var(--ct-display, "Encode Sans Condensed", sans-serif); text-transform: uppercase; }
+h1 em { color: var(--red); font-style: normal; }
+p { margin: 0; color: var(--muted); }
+form { display: grid; gap: 14px; }
+label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+.field { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); }
+.field:focus-within { border-color: var(--red); }
+.field input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: 400 17px var(--ct-sans, Inter, sans-serif); padding: 14px; outline: none; }
+.field span { color: var(--muted); padding-right: 14px; font-size: 14px; white-space: nowrap; }
+.hint { font-size: 13px; color: var(--muted); font-weight: 400; }
+button { height: 52px; border: 0; border-radius: 12px; background: var(--red); color: #1A0E0A; font: 700 17px var(--ct-sans, Inter, sans-serif); cursor: pointer; }
+button:disabled { opacity: .6; cursor: default; }
+.msg { min-height: 1.4em; color: #F59A82; font-weight: 600; font-size: 14px; }
+.done a { color: var(--red); font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <a class="wm" href="/" aria-label="ComicTable">Comic<span>Table</span></a>
+  <section class="card" id="card" aria-live="polite"><p>Loading…</p></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CFG = window.COMICTABLE_CONFIG || {}, card = document.getElementById("card");
+  var token = decodeURIComponent((location.pathname.match(/\/invite\/([0-9a-f-]{36})/i) || [])[1] || new URLSearchParams(location.search).get("token") || "");
+  var domain = CFG.LOGIN_DOMAIN || "comictable.com";
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    for (var k in attrs || {}) { var v = attrs[k]; if (v == null || v === false) continue; if (k === "text") e.textContent = v; else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v); else e.setAttribute(k, v); }
+    [].concat(kids || []).forEach(function (c) { if (c != null && c !== false) e.append(c.nodeType ? c : String(c)); });
+    return e;
+  }
+  var say = function (title, line) { card.replaceChildren(el("h1", { text: title }), el("p", { text: line }), el("p", null, el("a", { href: "/login", text: "Log in" }))); };
+  var call = function (opts) { return fetch("/.netlify/functions/invite" + (opts ? "" : "?token=" + encodeURIComponent(token)), opts || {}).then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { if (!r.ok) throw new Error(b.error || "Something went wrong."); return b; }); }); };
+  if (!token) return say("That link isn't complete", "Ask for a new one.");
+  call().then(function (inv) {
+    if (inv.state === "used") return say("You're already set up", "This link was used. Log in with your username and password.");
+    if (inv.state === "expired") return say("This link expired", "Ask for a new one. They last 7 days.");
+    var first = String(inv.name || "").split(" ")[0];
+    var user = el("input", { id: "user", autocomplete: "username", autocapitalize: "none", spellcheck: "false", maxlength: "60", value: String(inv.handle || "").replace(/[^a-z0-9._-]/g, "").slice(0, 30), "aria-label": "Username" });
+    var pass = el("input", { id: "pass", type: "password", autocomplete: "new-password", minlength: "8", "aria-label": "Password" });
+    var suffix = el("span", { text: "@" + domain });
+    user.addEventListener("input", function () { suffix.hidden = user.value.indexOf("@") >= 0; });
+    var msg = el("div", { class: "msg", role: "status" }), go = el("button", { type: "submit", text: "Open my Coaster" });
+    card.replaceChildren(
+      el("div", { class: "who" }, [inv.photo ? el("img", { src: inv.photo, alt: "" }) : el("div", { class: "ph", text: (inv.name || "?").split(/\s+/).map(function (w) { return w[0]; }).join("").slice(0, 2).toUpperCase() }),
+        el("h1", null, [first + ", your ", el("em", { text: "Coaster" }), "'s ready."]),
+        el("p", { text: inv.site ? "Pick a username and password. You'll also be on " + inv.site + "'s team." : "Pick a username and password, and it's yours to make your own." })]),
+      el("form", { novalidate: "novalidate", onsubmit: function (e) {
+        e.preventDefault(); msg.textContent = "";
+        if (user.value.trim().length < 3) { msg.textContent = "Pick a username."; user.focus(); return; }
+        if (pass.value.length < 8) { msg.textContent = "Your password needs at least 8 characters."; pass.focus(); return; }
+        go.disabled = true; go.textContent = "Setting it up…";
+        call({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token, username: user.value.trim(), password: pass.value }) })
+          .then(function (res) {
+            var sb = window.supabase && CFG.SUPABASE_URL ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
+            return (sb ? sb.auth.signInWithPassword({ email: res.email, password: pass.value }) : Promise.resolve()).then(function () {
+              card.replaceChildren(el("div", { class: "done" }, [el("h1", { text: "You're in." }), el("p", { text: "Your login is " + res.email.replace("@" + domain, "") + ". Taking you to your Coaster…" })]));
+              setTimeout(function () { location.href = "/dashboard#ct/home"; }, 900);
+            });
+          }, function (er) { msg.textContent = er.message; go.disabled = false; go.textContent = "Open my Coaster"; });
+      } }, [
+        el("label", { for: "user" }, ["Username", el("div", { class: "field" }, [user, suffix]), el("span", { class: "hint", text: "This is how you log in. You can use your email instead." })]),
+        el("label", { for: "pass" }, ["Password", el("div", { class: "field" }, [pass]), el("span", { class: "hint", text: "At least 8 characters." })]),
+        msg, go]));
+    user.focus();
+  }, function (er) { say("That link doesn't work", er.message); });
+})();
+</script>
+</body>
+</html>

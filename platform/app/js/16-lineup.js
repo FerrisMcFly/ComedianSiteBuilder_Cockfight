@@ -32,7 +32,7 @@
   // Comics live on ComicTable, not on one site. A site's People are its lineup: each card edits the comic's
   // shared profile (seen on every site they're on), and a site can keep its own title and bio for them.
   // comictable.com/<id> is the comic's Coaster, so these stay ComicTable's own addresses (same list as 21_coasters.sql)
-  const RESERVED_IDS = ["login", "dashboard", "admin", "press", "join", "brand", "fonts", "themes", "embed", "sdk", "api", "app", "about", "pricing", "help", "privacy", "terms", "coaster", "coasters", "c", "u", "www", "index"];
+  const RESERVED_IDS = ["login", "dashboard", "admin", "press", "join", "brand", "fonts", "themes", "embed", "sdk", "api", "app", "about", "pricing", "help", "privacy", "invite", "terms", "coaster", "coasters", "c", "u", "www", "index"];
   async function newComicId(name) {
     let base = slug(name) || "comic";
     if (RESERVED_IDS.includes(base)) base += "-comic";
@@ -128,8 +128,11 @@
           h("span", { class: "drow-main" }, h("b", { text: x.name }), h("span", { text: [x.title || "Comedian", n ? n + " upcoming show" + (n > 1 ? "s" : "") : "No shows yet", role].filter(Boolean).join(" · ") })),
           x.hidden ? h("span", { class: "spill muted" }, h("i"), "Hidden") : null,
           x.comic_id ? h("span", { class: "spill " + (custom.length ? "soon" : "live") }, h("i"), custom.length ? "Own " + custom.join(", ") + " here" : "Using their Coaster") : null,
+          x.comic_id && !(S.logins && S.logins[x.comic_id]) && roleAllows("people") ? h("button", { class: "btn sm", type: "button", text: "Invite", title: "A link to text " + x.name + " so they can log in", onclick: (e) => {
+            e.preventDefault(); e.stopPropagation(); row.open = true;
+            const c = { id: x.comic_id, name: x.name }; const slot = row.querySelector(".invite-slot"); slot.replaceChildren(inviteCard(c, sid())); } }) : null,
           h("span", { class: "btn sm lrow-open", "aria-hidden": "true", text: "Change for this site" })),
-        card);
+        h("div", { class: "invite-slot" }), card);
       grid.append(row);
     });
   }

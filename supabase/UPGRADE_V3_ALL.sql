@@ -1,5 +1,5 @@
 -- ComicTable v3: every database change since v2 (home screen, photo uploads, press kit, QR fan sign-up, more socials, comictable.com showcase, roles, Coasters, News, media, forum safety, the Coaster-first foundation) in one file. Paste it all into Supabase → SQL Editor and click Run.
--- Same as running 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 99 in order. Safe to run again, and safe if you already ran some of them.
+-- Same as running 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 99 in order. Safe to run again, and safe if you already ran some of them.
 
 -- ============================== 15_home_picks.sql ==============================
 -- Home picks: what a comic wants visitors to see first on their site's home screen.
@@ -620,6 +620,29 @@ begin
   end if;
 end $$;
 create unique index if not exists videos_comic_yt on videos (comic_id, youtube_id) where site_id is null;
+
+-- ============================== 27_invites.sql ==============================
+-- Invite links (Step 3, founder Oct 29): the dashboard makes a one-time link to text a comic. They tap it, pick a
+-- username and password, and land on their Coaster. No email needed. A link works once and lasts 7 days.
+-- Whoever can edit the Coaster can invite its comic (ComicTable staff, or a site's owners and editors for a comic
+-- on their site who hasn't claimed their Coaster yet). The link is redeemed by the invite function with the
+-- service key; nobody reads invites from the outside.
+-- Run once in Supabase → SQL Editor, after 26_customize.sql. Safe to run again.
+
+create table if not exists invites (
+  token uuid primary key default gen_random_uuid(),
+  comic_id text not null references comics(id) on delete cascade,
+  site_id text references sites(id) on delete cascade,      -- the site they're joining, if any (their role there)
+  site_role text check (site_role is null or site_role in ('owner', 'editor', 'shows', 'moderator')),
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default now() + interval '7 days',
+  used_at timestamptz,
+  used_by uuid references auth.users(id) on delete set null
+);
+create index if not exists invites_comic on invites (comic_id);
+alter table invites enable row level security;
+grant select, insert, delete on invites to authenticated;
 
 -- ============================== 99_rules.sql ==============================
 -- ComicTable's access rules: every function and policy that decides who can do what, in one place.
@@ -1285,5 +1308,18 @@ do $$ begin
     insert into comic_podcasts (comic_id, site_id, show_name)
       select distinct h.comic_id, e.site_id, coalesce(e.show_name, '') from episodes e join hosts h on h.site_id = e.site_id and h.comic_id is not null
     on conflict do nothing;
+  end if;
+end $$;
+
+/* ---------------- invite links (27_invites.sql) ---------------- */
+do $$
+begin
+  if to_regclass('public.invites') is not null then
+    drop policy if exists "coaster editors invite" on invites;
+    -- make, see and cancel invites for a Coaster you can edit (an unclaimed one: nobody's logged in to it yet)
+    create policy "coaster editors invite" on invites for all to authenticated
+      using (public.can_edit_comic(comic_id))
+      with check (public.can_edit_comic(comic_id) and not exists (select 1 from comics c where c.id = comic_id and c.user_id is not null)
+        and (site_id is null or public.can_site(site_id, 'owner') or public.is_platform_admin()));
   end if;
 end $$;
