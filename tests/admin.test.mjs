@@ -360,22 +360,62 @@ test("videos can be removed, undone, and put back", async () => {
   assert.equal(db.videos.find((v) => v.id === "v2").hidden, false);
 });
 
-test("platform admins can start a new comic's site and land on it ready to set up", async () => {
-  const { w, d, db } = await open("#ct/sites");
+test("set up a site for a comic: who it's for, the site, how they'll get it, then their invite link", async () => {
+  const { w, d, db } = await open("#ct/sites", (db) => { db.invites = []; });
   await wait(60);
   assert.match(d.querySelector("main").textContent, /Sites \(1\)/);
   assert.match(d.querySelector("main").textContent, /○ Podcast or YouTube connected/);
-  set(w, d.getElementById("nsName"), "Rita Ramos");
-  assert.equal(d.getElementById("nsId").value, "rita-ramos");
-  set(w, d.getElementById("nsDomain"), "https://www.RitaRamosComedy.com/");
-  d.getElementById("nsF_forum").checked = true;
-  btn(d, /^Create site$/).click(); await wait(120);
+  assert.match(d.getElementById("setupSite").textContent, /Step 1 of 4/);
+  assert.ok(d.getElementById("suNext1").disabled, "can't go on without a comic");
+  set(w, d.getElementById("suWho"), "Rita Ramos"); await wait(260);
+  d.getElementById("suNew").click(); await wait(20);
+  assert.match(d.getElementById("setupSite").textContent, /New Coaster, made when you create the site/);
+  d.getElementById("suNext1").click(); await wait(20);
+  assert.equal(d.getElementById("suName").value, "Rita Ramos");
+  assert.equal(d.getElementById("suId").value, "rita-ramos");
+  set(w, d.getElementById("suDomain"), "https://www.RitaRamosComedy.com/");
+  d.querySelector('[data-feat="forum"]').click();
+  d.getElementById("suNext2").click(); await wait(20);
+  assert.equal(d.querySelector('[data-way="template"]').getAttribute("aria-pressed"), "true");
+  assert.ok(d.querySelector('[data-site-template="starter"]'));
+  d.getElementById("suCreate").click(); await wait(200);
   const site = db.sites.find((x) => x.id === "rita-ramos");
   assert.equal(site.domain, "ritaramoscomedy.com");
   assert.equal(site.features.forum, true); assert.equal(site.features.chat, false);
+  assert.deepEqual(JSON.parse(JSON.stringify(site.theme)), { way: "template", template: "starter" });
+  const comic = db.comics.find((c) => c.name === "Rita Ramos");
+  assert.ok(comic, "her Coaster was made");
+  assert.ok(db.hosts.some((x) => x.site_id === "rita-ramos" && x.comic_id === comic.id), "she's on the site's lineup");
+  assert.match(d.getElementById("setupSite").textContent, /Step 4 of 4/);
+  assert.deepEqual(db.invites.map((x) => [x.comic_id, x.site_id, x.site_role]), [[comic.id, "rita-ramos", "owner"]]);
+  assert.match(d.getElementById("setupSite").textContent, /They'll be an Owner on Rita Ramos/);
+  d.getElementById("suOpen").click(); await wait(120);
   assert.equal(openSite(d).textContent, "Rita Ramos");
   assert.equal(w.location.hash, "#people");
   assert.ok(d.getElementById("sitePick"), "site switcher appears once you have two sites");
+});
+
+test("set up a site for a group: several existing Coasters on one site", async () => {
+  const { w, d, db } = await open("#ct/sites", (db) => { db.invites = []; });
+  await wait(60);
+  d.querySelector('[data-kind="group"]').click(); await wait(10);
+  const first = db.comics[0];
+  set(w, d.getElementById("suWho"), first.name.slice(0, 3)); await wait(260);
+  [...d.querySelectorAll(".su-hit")].find((b) => b.textContent.includes(first.name)).click(); await wait(10);
+  set(w, d.getElementById("suWho"), "Dana Fox"); await wait(260);
+  d.getElementById("suNew").click(); await wait(10);
+  assert.equal(d.querySelectorAll(".su-picked").length, 2);
+  d.getElementById("suNext1").click(); await wait(10);
+  assert.equal(d.getElementById("suName").value, "", "a group names its own site");
+  set(w, d.getElementById("suName"), "Night Shift Pod");
+  d.getElementById("suNext2").click(); await wait(10);
+  d.querySelector('[data-way="embed"]').click(); await wait(10);
+  assert.equal(d.querySelector("[data-site-template]"), null, "no template for a site they keep");
+  d.getElementById("suCreate").click(); await wait(200);
+  const site = db.sites.find((x) => x.id === "night-shift-pod");
+  assert.equal(site.features.podcast, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(site.theme)), { way: "embed" });
+  assert.equal(db.hosts.filter((x) => x.site_id === "night-shift-pod").length, 2);
 });
 
 test("people who aren't platform admins never see All sites", async () => {

@@ -64,16 +64,17 @@
 
   // An invite link to text a comic (Step 3): one tap, they pick a username and password, and their Coaster is theirs.
   // With a site, they also join its team (Editor unless you pick another role).
-  function inviteCard(c, siteId) {
+  function inviteCard(c, siteId, opts) {
+    const role = (opts && opts.role) || "editor", siteName = (opts && opts.siteName) || (S.site ? S.site.name : "this site");
     const box = h("section", { class: "card invite-card stack" }, h("p", { class: "hint", text: "Making a link…" }));
     (async () => {
       let inv;
-      try { inv = (await q(sb.from("invites").insert({ comic_id: c.id, site_id: siteId || null, site_role: siteId ? "editor" : null, created_by: S.uid }).select("token")))[0]; }
+      try { inv = (await q(sb.from("invites").insert({ comic_id: c.id, site_id: siteId || null, site_role: siteId ? role : null, created_by: S.uid }).select("token")))[0]; }
       catch (e) { box.replaceChildren(h("p", { class: "err", text: /invites/.test(errText(e)) ? "Invite links need the latest database upgrade (UPGRADE_V3_ALL.sql)." : /row-level|policy/i.test(errText(e)) ? c.name.split(" ")[0] + " already has a login, or you can't invite them." : errText(e) })); return; }
       const link = PRESS_HOST + "/invite/" + inv.token, first = c.name.split(" ")[0];
       const text = "Hey " + first + "! Your Coaster on ComicTable is ready. Tap to set it up: " + link;
       box.replaceChildren(h("div", { class: "card-head" }, h("h2", { text: "Invite " + first }), h("span", { class: "hint", text: "Works once · 7 days" })),
-        h("p", { class: "hint", style: "margin:0", text: "Text this to " + first + ". They tap it, pick a username and password, and their Coaster is theirs." + (siteId ? " They'll be an Editor on " + (S.site ? S.site.name : "this site") + "." : "") }),
+        h("p", { class: "hint", style: "margin:0", text: "Text this to " + first + ". They tap it, pick a username and password, and their Coaster is theirs." + (siteId ? " They'll be " + (role === "owner" ? "an Owner" : "an Editor") + " on " + siteName + "." : "") }),
         h("code", { class: "press-link", text: link }),
         h("div", { class: "btns" },
           h("a", { class: "btn primary", href: "sms:?&body=" + encodeURIComponent(text), text: "Text it" }),

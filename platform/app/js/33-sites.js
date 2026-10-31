@@ -40,44 +40,8 @@
     return card;
   }
   async function viewSites(main) {
-    main.append(head("All sites", "Every comic running on ComicTable. Start a new one here, then build their front end and launch it."));
+    main.append(head("All sites"));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
-
-    // ---- new site form ----
-    const name = h("input", { id: "nsName", placeholder: "Comic or show name", autocomplete: "off" });
-    const id = h("input", { id: "nsId", placeholder: "short-name", autocapitalize: "none", spellcheck: "false" });
-    const dom = h("input", { id: "nsDomain", placeholder: "theirname.com (optional, add later)", autocapitalize: "none", spellcheck: "false" });
-    const kinds = [["shows", "Stand-up shows", true], ["podcast", "Podcast", true], ["videos", "YouTube", true], ["merch", "Merch", false], ["forum", "Forum", false], ["chat", "Chat room", false]];
-    const boxes = Object.fromEntries(kinds.map(([k, , on]) => [k, h("input", { type: "checkbox", checked: on, id: "nsF_" + k })]));
-    let idTouched = false;
-    name.addEventListener("input", () => { if (!idTouched) id.value = siteSlug(name.value); });
-    id.addEventListener("input", () => { idTouched = true; });
-    const msg = h("div", { class: "err" });
-    const btn = h("button", { class: "btn primary", type: "submit", text: "Create site" });
-    const form = h("form", { class: "card stack", onsubmit: async (e) => {
-      e.preventDefault(); msg.textContent = "";
-      const nm = name.value.trim(), sl = siteSlug(id.value || nm);
-      if (!nm) { name.classList.add("bad"); name.focus(); return; }
-      if (sl.length < 2) { msg.textContent = "Give the site a short id, like their-name."; id.focus(); return; }
-      btn.disabled = true;
-      try {
-        const r = await sb.rpc("create_site", { p_id: sl, p_name: nm, p_domain: cleanDomain(dom.value) || null });
-        if (r.error) throw r.error;
-        const features = Object.fromEntries(kinds.map(([k]) => [k, boxes[k].checked]));
-        await q(sb.from("sites").update({ features }).eq("id", sl));
-        S.sites = await q(sb.from("sites").select("*").order("name", { ascending: true }));
-        toast(nm + " is set up. Add the comics next.");
-        await switchSite(sl, "people");
-      } catch (er) {
-        msg.textContent = /create_site/.test(errText(er)) && /function|schema cache/i.test(errText(er)) ? "The database needs 08_create_sites.sql first. Paste it into the Supabase SQL Editor and run it." : errText(er);
-        btn.disabled = false;
-      }
-    } },
-      h("h2", { text: "Start a new site" }),
-      h("p", { class: "sub", text: "Makes the comic's space on ComicTable: their shows, podcast, videos and fans, kept separate from everyone else's. Then add the comic in that site's Lineup, and give them a login there. As a super admin you can manage every site without being on its team." }),
-      h("div", { class: "grid" }, field("Comic or show name", name, "c6"), field("Site id (used in the launch settings)", id, "c6"), field("Their web address", dom, "c12")),
-      h("div", null, h("b", { text: "What's on their site" }), h("div", { class: "btns", style: "margin-top:8px" }, kinds.map(([k, l]) => h("label", { class: "pill", style: "cursor:pointer;gap:6px;display:inline-flex;align-items:center" }, boxes[k], l)))),
-      h("div", { class: "hint", text: "You can change any of this later in that site's Settings." }), msg, h("div", { class: "btns" }, btn));
 
     // ---- list of sites with a launch checklist ----
     const listCard = h("section", { class: "card" }, h("h2", { text: "Sites" }), h("p", { class: "hint", text: "Loading…" }));
@@ -93,11 +57,10 @@
             h("div", null, h("a", { href: "mailto:" + r.email, text: r.email })),
             r.act ? h("div", { class: "hint", text: r.act }) : null, r.links ? h("div", { class: "hint", text: r.links }) : null, r.note ? h("div", { style: "margin-top:4px;white-space:pre-wrap", text: r.note }) : null),
           h("div", { class: "btns" },
-            h("button", { class: "btn sm", type: "button", text: "Start their site", onclick: () => { set(name, r.name); form.scrollIntoView({ behavior: "smooth" }); name.focus(); } }),
+            h("button", { class: "btn sm", type: "button", text: "Start their site", onclick: () => { startSetup(r.name); setupSlot.scrollIntoView({ behavior: "smooth" }); } }),
             h("button", { class: "btn sm ghost", type: "button", text: "Mark handled", onclick: async () => { try { await q(sb.from("site_requests").update({ handled: true }).eq("id", r.id)); drawRequests(); } catch (e) { toast(errText(e), { bad: true }); } } })))))
           : empty("No new requests", "When a comic fills in the form on comictable.com, it shows up here."));
     }
-    const set = (el, v) => { el.value = v; el.dispatchEvent(new Event("input")); };
     drawRequests();
     const supCard = h("section", { class: "card" });
     (async () => {
@@ -128,7 +91,11 @@
             catch (er) { msg.textContent = er.message; b.disabled = false; }
           } }))) : null);
     })();
-    wrap.append(...[reqCard, listCard, S.isOwner ? showcaseCard() : null, S.isOwner ? form : null, supCard].filter(Boolean));
+    let setup = null;
+    const setupSlot = h("div");
+    const startSetup = (n) => { setup = setupSiteCard(() => startSetup()); setupSlot.replaceChildren(setup.el); if (n) setup.prefill(n); };
+    if (S.isOwner) startSetup();
+    wrap.append(...[S.isOwner ? setupSlot : null, reqCard, listCard, S.isOwner ? showcaseCard() : null, supCard].filter(Boolean));
     try {
       const sites = await q(sb.from("sites").select("*").order("created_at", { ascending: true }));
       const counts = async (t, sidv, extra) => { let qq = sb.from(t).select("id", { count: "exact", head: true }).eq("site_id", sidv); if (extra) qq = extra(qq); const r = await qq; return r.error ? 0 : r.count || 0; };
