@@ -244,7 +244,7 @@
       const draw = () => row.replaceChildren(...opts.map(([v, t]) => h("button", { type: "button", class: "chip", "data-banner": key + ":" + v, "aria-pressed": String(banner[key] === v), text: t, onclick: () => { banner[key] = v; draw(); } })));
       draw(); redraws.push(draw); return row; };
     // the address printed on the coaster (comictable.com/name): on or off
-    const addrOn = h("input", { type: "checkbox", role: "switch", checked: cs0.addr !== false, "aria-label": "Print my address on the coaster" });
+    const addrOn = h("input", { type: "checkbox", role: "switch", checked: cs0.addr === true, "aria-label": "Print my address on the coaster" });
     const addrRow = h("div", { class: "switch-row" }, h("div", null, h("b", { text: "Address on the coaster" }), h("div", { class: "hint", text: "comictable.com/" + (c.handle || c.id) + " printed under your name." })), h("label", { class: "switch" }, addrOn, h("span")));
     const bannerBox = h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Name banner" }),
       bannerRow("Where the banner sits", "pos", [["low", "Lower"], ["mid", "Middle"], ["top", "Top"], ["none", "No banner"]]),

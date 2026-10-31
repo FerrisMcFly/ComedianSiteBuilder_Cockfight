@@ -161,7 +161,7 @@ test("comictable.com/<address> finds the comic; an old link with their id still 
   const mk = (path, rows) => new JSDOM(html, { runScripts: "dangerously", url: "https://comictable.com" + path, beforeParse(w) {
     w.fetch = async (u) => { const t = u.split("/rest/v1/")[1]; const body = t.startsWith("comics?") ? rows(t) : []; return { ok: true, status: 200, json: async () => body }; };
   } });
-  const lev = { id: "lev", handle: "lev-fer", name: "Lev Fer" };
+  const lev = { id: "lev", handle: "lev-fer", name: "Lev Fer", coaster: { addr: true } };
   const a = mk("/lev-fer", (t) => t.includes("handle=eq.lev-fer") ? [lev] : []);
   const b = mk("/lev", (t) => t.includes("id=eq.lev") ? [lev] : []);
   opened.push(a.window, b.window);
@@ -273,8 +273,10 @@ test("the coaster photo and the name banner follow the comic's choices", async (
   for (const k of ["banner-top", "shape-plain", "tilt-straight", "print-color"]) assert.ok(front.classList.contains(k), k);
   const none = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { banner: { pos: "none" } } }] });
   assert.equal(none.d.querySelector(".front .ribbon"), null, "no banner at all");
-  const bare = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { addr: false } }] });
-  assert.equal(bare.d.querySelector(".front .addr"), null, "the address on the coaster can be switched off");
+  const bare = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: {} }] });
+  assert.equal(bare.d.querySelector(".front .addr"), null, "no address printed on the coaster unless they switch it on");
+  const withAddr = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { addr: true } }] });
+  assert.match(withAddr.d.querySelector(".front .addr").textContent, /comictable\.com\/lev-fer/);
 });
 
 test("the back is the comic's: their words and lettering, what's behind the code, or no code at all", async () => {

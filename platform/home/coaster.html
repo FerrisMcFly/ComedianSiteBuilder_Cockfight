@@ -714,7 +714,7 @@ body.preview .coaster { animation: none; }
       el("div", { class: "rim2", "aria-hidden": "true" }),
       doodles(),
       bpos === "none" ? null : el("div", { class: "ribbon" }, nameEl),
-      cs.addr === false ? null : el("div", { class: "addr" }, ["comictable.com/", el("br"), handle])]).concat(wearOn(false))));
+      cs.addr !== true ? null : el("div", { class: "addr" }, ["comictable.com/", el("br"), handle])]).concat(wearOn(false))));
     var qr = el("div", { class: "qr" }), qrShown = false;
     // the back is the comic's too: their own words, lettering, what's behind the QR code, and its size
     var bk = cs.back || {}, bArt = ["look", "plain", "doodles", "image"].indexOf(bk.art) >= 0 ? bk.art : "look";
