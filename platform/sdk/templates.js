@@ -5,7 +5,9 @@
                                        k.socials(), k.join({ ... }), k.has(feature)
    Flavor text (a tabloid's headline, a VHS label's joke) is never baked in: every line comes from k.t(key, default),
    which reads the site's Design settings (the template's theme.json lists them), so the comic can retype it.
-   Lines can use {name}, {next_venue}, {next_city}, {next_date} and {next_day}. */
+   Lines can use {name}, {next_venue}, {next_city}, {next_date} and {next_day}.
+   Photo shape (founder, Oct 31): every template offers the comic's photo in the template's own shape or as a round
+   Coaster. k.coaster says which; k.coasterPhoto() is the round one, the same everywhere. */
 (function (root) {
   "use strict";
   var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -55,6 +57,10 @@
         if (!s.tickets) return el("span", { class: (cls || "") + " soon", text: "Soon" });
         return el("a", { class: cls || "", href: s.tickets, target: "_blank", rel: "noopener", text: label || (s.free ? "RSVP" : "Tickets") });
       },
+      coaster: theme.photo_shape === "coaster" && !!me.photo,
+      coasterPhoto: function (cls) {
+        return el("div", { class: "ct-coaster " + (cls || "") }, [el("div", { class: "ct-coaster-rim" }, [el("img", { src: me.photo, alt: D.site.name })])]);
+      },
       video: function () { var v = (D.videos || []).filter(function (x) { return !x.short; })[0] || (D.videos || [])[0]; return D.features.videos === false ? null : v || null; },
       podcast: function () {
         if (D.features.podcast === false) return null;
@@ -88,6 +94,12 @@
     return k;
   }
 
+  // the round Coaster: a pulp-board coaster with the photo printed on it. Same look in every template.
+  var COASTER_CSS = ".ct-coaster{width:min(100%,420px);margin:0 auto;aspect-ratio:1/1;filter:drop-shadow(0 16px 28px rgba(0,0,0,.35))}" +
+    ".ct-coaster-rim{width:100%;height:100%;border-radius:50%;padding:7%;box-sizing:border-box;background:#EFE6D2;" +
+    "background-image:radial-gradient(rgba(120,95,60,.18) 1px,transparent 1.6px),radial-gradient(rgba(255,255,255,.5) 1px,transparent 1.6px);background-size:7px 7px,11px 11px;" +
+    "box-shadow:inset 0 0 0 3px rgba(120,95,60,.18),inset 0 0 0 calc(7% - 6px) #EFE6D2,inset 0 0 0 calc(7% - 4px) rgba(120,95,60,.35)}" +
+    ".ct-coaster img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}";
   root.CTT = {
     kit: kit,
     start: function (draw) {
@@ -96,6 +108,7 @@
         var k = kit(D), t = D.theme || {};
         document.title = D.site.name + (k.tagline ? " · " + k.tagline : "");
         if (/^#[0-9a-f]{6}$/i.test(t.accent || "")) document.documentElement.style.setProperty("--accent", t.accent);
+        if (!document.getElementById("ct-coaster-css")) document.head.append(el("style", { id: "ct-coaster-css", text: COASTER_CSS }));
         app.replaceChildren();
         draw(k, app);
       }, function (e) {

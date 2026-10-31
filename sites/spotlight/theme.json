@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Accent color", "help": "The main button and the month on each date.", "type": "color", "default": "#D23A24" },
     { "key": "photo_style", "label": "Photo", "type": "select", "options": [["bw", "Black and white"], ["color", "Color"]], "default": "bw" },
+    { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
     { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {next_day} and {next_date} fill in your next show." },
     { "key": "hero_button", "label": "Button under your name", "type": "text", "default": "Next show: {next_day} {next_date} →" },
     { "key": "shows_title", "label": "Shows heading", "type": "text", "default": "Shows" },

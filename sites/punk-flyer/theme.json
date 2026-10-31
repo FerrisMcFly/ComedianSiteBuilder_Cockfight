@@ -3,6 +3,7 @@
   "description": "A photocopied gig flyer: ransom-note name, tape, stamps and one loud color. A ComicTable template.",
   "settings": [
     { "key": "accent", "label": "Loud color", "help": "The tape, stickers and ticket buttons.", "type": "color", "default": "#FF5CA8" },
+    { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
     { "type": "heading", "label": "Words on the flyer", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
     { "key": "sticker", "label": "Sticker on your photo", "type": "text", "default": "LIVE! LOUD!" },
     { "key": "shows_title", "label": "Shows heading", "type": "text", "default": "Gigs" },

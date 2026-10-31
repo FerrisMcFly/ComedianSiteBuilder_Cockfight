@@ -26,6 +26,12 @@ img { display: block; max-width: 100%; }
 .hero { position: relative; min-height: min(78vh, 760px); background: #111; overflow: hidden; display: flex; align-items: flex-end; }
 .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%; }
 .hero.bw img { filter: grayscale(1) contrast(1.1); }
+.hero.round { min-height: 0; flex-direction: column; align-items: stretch; padding-top: 70px; background: radial-gradient(ellipse at 50% 30%, #2A2A2A, #111 70%); }
+.hero.round::after { display: none; }
+.hero.round .ct-coaster { position: relative; z-index: 2; width: min(78%, 420px); }
+.hero.round .ct-coaster img { position: static; }
+.hero.round h1 { text-align: center; padding-top: 22px; }
+.hero.round.bw .ct-coaster img { filter: grayscale(1) contrast(1.1); }
 .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.05) 35%, rgba(0,0,0,.75)); }
 .hero nav { position: absolute; top: 0; left: 0; right: 0; z-index: 2; }
 .hero nav .wrap { display: flex; gap: 22px; justify-content: flex-end; padding-top: 18px; padding-bottom: 18px; }
@@ -90,8 +96,8 @@ CTT.start(function (k, app) {
 
   var links = [k.has("shows") ? ["#shows", "Shows"] : null, video ? ["#watch", "Videos"] : null, pod ? ["#listen", "Podcast"] : null, join ? ["#join", "Contact"] : null].filter(Boolean);
   var words = k.name.trim().split(/\s+/);
-  app.append(el("header", { class: "hero" + (t.photo_style === "color" ? "" : " bw") }, [
-    k.photo ? el("img", { src: k.photo, alt: k.name }) : null,
+  app.append(el("header", { class: "hero" + (t.photo_style === "color" ? "" : " bw") + (k.coaster ? " round" : "") }, [
+    k.coaster ? k.coasterPhoto() : k.photo ? el("img", { src: k.photo, alt: k.name }) : null,
     el("nav", { "aria-label": "Sections" }, el("div", { class: "wrap" }, links.map(function (l) { return el("a", { href: l[0], text: l[1] }); }))),
     el("div", { class: "wrap", style: "width:100%" }, el("h1", null, words.length === 2 ? [words[0], el("br"), words[1]] : k.name))]));
 
