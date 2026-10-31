@@ -218,6 +218,35 @@
       } }, h("span", { class: "tpl-sw bg-" + ((t.page || {}).bg || "brick") }, h("i", { style: "background:" + pulp + ";box-shadow:0 0 0 3px " + ring })), h("b", { text: l }));
     }));
     const templateBox = h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Start from a template" }), tplRow);
+    // The photo on the coaster: their profile photo or one just for the coaster; move it, zoom it, etched or in color
+    let cPhoto = cs0.photo || "", printMode = ["ink", "color"].includes(cs0.print) ? cs0.print : "auto";
+    const photoY = h("input", { type: "range", min: "0", max: "100", value: String(cs0.photo_y >= 0 ? cs0.photo_y : 22), "aria-label": "Move the photo up or down" });
+    const photoZ = h("input", { type: "range", min: "100", max: "200", value: String(cs0.photo_zoom || 100), "aria-label": "Zoom the photo" });
+    const cFile = h("input", { type: "file", accept: "image/*", style: "display:none", "aria-label": "Photo just for the coaster" });
+    const photoNote = h("span", { class: "hint" });
+    const drawPhotoNote = () => { photoNote.textContent = cPhoto ? "Using a photo just for the coaster." : "Using your profile photo."; useProfile.hidden = !cPhoto; };
+    const useProfile = h("button", { type: "button", class: "chip", text: "Use my profile photo", onclick: () => { cPhoto = ""; drawPhotoNote(); } });
+    cFile.addEventListener("change", async () => {
+      if (!cFile.files[0]) return;
+      try { toast("Uploading…"); cPhoto = await uploadImage(cFile.files[0], c.id + "-coaster", { folder: c.id }); cFile.value = ""; drawPhotoNote(); cFile.dispatchEvent(new Event("input", { bubbles: true })); toast("On the coaster."); }
+      catch (e) { toast(errText(e), { bad: true }); }
+    });
+    const printRow = h("div", { class: "chips", role: "group", "aria-label": "How the photo is printed" });
+    const drawPrint = () => printRow.replaceChildren(...[["auto", "The look decides"], ["ink", "Etched, one ink"], ["color", "Full color photo"]].map(([v, t]) => h("button", { type: "button", class: "chip", "data-print": v, "aria-pressed": String(printMode === v), text: t, onclick: () => { printMode = v; drawPrint(); } })));
+    drawPrint(); redraws.push(drawPrint); drawPhotoNote();
+    const photoBox = h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Photo on the coaster" }),
+      h("div", { class: "chips" }, h("label", { class: "chip" }, "Use a different photo", cFile), useProfile), photoNote,
+      h("span", { class: "hint photo-size", text: "Best: a square photo, at least 1000 × 1000 pixels, with your face in the middle and some space above your head. JPG or PNG." }),
+      h("div", { class: "range-row" }, h("label", null, h("span", { text: "Up / down" }), photoY), h("label", null, h("span", { text: "Zoom" }), photoZ)), printRow);
+    // The banner with their name
+    const banner = { pos: "low", shape: "ribbon", tilt: "tilted", ...((cs0.banner && typeof cs0.banner === "object") ? cs0.banner : {}) };
+    const bannerRow = (label, key, opts) => { const row = h("div", { class: "chips", role: "group", "aria-label": label });
+      const draw = () => row.replaceChildren(...opts.map(([v, t]) => h("button", { type: "button", class: "chip", "data-banner": key + ":" + v, "aria-pressed": String(banner[key] === v), text: t, onclick: () => { banner[key] = v; draw(); } })));
+      draw(); redraws.push(draw); return row; };
+    const bannerBox = h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Name banner" }),
+      bannerRow("Where the banner sits", "pos", [["low", "Lower"], ["mid", "Middle"], ["top", "Top"], ["none", "No banner"]]),
+      bannerRow("Banner style", "shape", [["ribbon", "Ribbon"], ["band", "Straight band"], ["plain", "Just the name"]]),
+      bannerRow("Banner angle", "tilt", [["tilted", "Tilted"], ["straight", "Straight"]]));
     const pageBox = h("div", { class: "stack", style: "gap:4px" }, pickBox("Background", "bg"), pickBox("Shows look like", "dates"), pickBox("Ticket buttons", "buttons"), pickBox("Socials", "tiles"));
     const shownBox = pickBox("How many shows up front", "shown");
     // Where the QR code on the back goes (default: the fan list)
@@ -258,7 +287,7 @@
     return {
       url,
       // the pieces on their own, for the Coaster page (coasterPage) to lay out
-      parts: { templates: templateBox, letter: letterBox, doodles: doodleBox, page: pageBox, shown: shownBox, qr: qrBox, preview, looks: h("div", { class: "stack", style: "gap:10px;min-width:0" }, looks, customBox, customNote), wear: h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear" }), wearSeg),
+      parts: { photo: photoBox, banner: bannerBox, templates: templateBox, letter: letterBox, doodles: doodleBox, page: pageBox, shown: shownBox, qr: qrBox, preview, looks: h("div", { class: "stack", style: "gap:10px;min-width:0" }, looks, customBox, customNote), wear: h("div", { class: "btns" }, h("span", { class: "hint", text: "Wear" }), wearSeg),
         tapeUrl, tapeTitle, linksBox, plan: h("div", { class: "stack", style: "gap:8px" }, h("b", { text: "What's on " + yours + " Coaster" }),
           h("p", { class: "hint", style: "margin:0", text: "Up front, under More, or off. Drag to change the order." }), planRows), socBox, billsRow, proBox },
       // a line under the name: the Coaster's address, with Open
@@ -278,7 +307,8 @@
       patch() {
         const t = tapeUrl.value.trim();
         const out = { look, tape_url: t || null, tape_title: tapeTitle.value.trim() || null, on_bills: bills.checked };
-        if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, wear, links: linkList.length ? linkList.map((x) => x.key) : linkOrder, links_off: [...linkOff], page: { ...page }, letter, doodles: [...doodleSet], doodle_color: doodleColor, qr: { to: qrSel.value, ...(qrSel.value === "link" ? { link: qrLink.value.trim() } : {}) }, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
+        if ("coaster" in c) out.coaster = { ...plan, order: [...order], social_style: { ...soc }, wear, links: linkList.length ? linkList.map((x) => x.key) : linkOrder, links_off: [...linkOff], page: { ...page }, letter, doodles: [...doodleSet], doodle_color: doodleColor,
+          banner: { ...banner }, photo_y: +photoY.value, photo_zoom: +photoZ.value, ...(cPhoto ? { photo: cPhoto } : {}), ...(printMode !== "auto" ? { print: printMode } : {}), qr: { to: qrSel.value, ...(qrSel.value === "link" ? { link: qrLink.value.trim() } : {}) }, ...(look === "custom" ? { style: { ...style } } : (c.coaster && c.coaster.style ? { style: c.coaster.style } : {})) };
         return out;
       }
     };
@@ -363,7 +393,7 @@
         h("div", { class: "stack", style: "gap:8px" }, h("b", { text: "Socials" }),
           filled.length ? h("div", { class: "soc-list" }, filled.map(socRow)) : h("p", { class: "hint", style: "margin:0", text: "Paste the link to each one you use." }),
           empties.length ? h("details", { class: "quiet", open: !filled.length || null }, h("summary", { text: filled.length ? "Add another" : "All networks" }), h("div", { class: "soc-list", style: "margin-top:10px" }, empties.map(socRow))) : null)),
-      P ? part("2", "Look", "Templates, the coaster, lettering, doodles, the wall behind it", opts.open !== "basics" && opts.open !== "links" && opts.open !== "on", P.templates, h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Coaster colors (Custom: design your own)" }), P.looks), P.letter, P.doodles, P.wear, P.page) : null,
+      P ? part("2", "Look", "Templates, the coaster, lettering, doodles, the wall behind it", opts.open !== "basics" && opts.open !== "links" && opts.open !== "on", P.templates, P.photo, P.banner, h("div", { class: "pick-row" }, h("span", { class: "pick-l", text: "Coaster colors (Custom: design your own)" }), P.looks), P.letter, P.doodles, P.wear, P.page) : null,
       P ? part("3", "Links & QR", "Your buttons, where the QR code goes, how socials show", false, P.linksBox, P.qr, P.socBox) : null,
       P ? part("4", "What's on it", "Up front, under More or off, and in what order", false, P.plan, P.shown, P.billsRow, P.proBox) : null,
       msg);

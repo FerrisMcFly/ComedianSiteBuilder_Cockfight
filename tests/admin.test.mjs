@@ -769,6 +769,26 @@ test("search everything: ⌘K finds a setting, a show or a fan and jumps there",
   assert.equal(d.getElementById("searchBox"), null);
 });
 
+test("My Coaster: a photo just for the coaster (with the best size), moved and zoomed, and the name banner's place, style and angle", async () => {
+  const { w, d, db } = await open("#ct/me", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {}, photo_url: "https://p/sam.jpg" });
+  });
+  await wait(120);
+  const form = d.querySelector("main #coasterForm");
+  assert.match(form.querySelector(".photo-size").textContent, /1000 × 1000/);
+  set(w, form.querySelector('input[aria-label="Move the photo up or down"]'), "40");
+  set(w, form.querySelector('input[aria-label="Zoom the photo"]'), "130");
+  form.querySelector('[data-banner="pos:top"]').click();
+  form.querySelector('[data-banner="shape:band"]').click();
+  form.querySelector('[data-banner="tilt:straight"]').click();
+  form.querySelector('[data-print="color"]').click();
+  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const cs = db.comics.find((c) => c.id === "solo-sam").coaster;
+  assert.deepEqual(JSON.parse(JSON.stringify(cs.banner)), { pos: "top", shape: "band", tilt: "straight" });
+  assert.deepEqual([cs.photo_y, cs.photo_zoom, cs.print], [40, 130, "color"]);
+});
+
 test("people: give a comic their own login", async () => {
   const { w, d } = await open("#people");
   let sent = null;

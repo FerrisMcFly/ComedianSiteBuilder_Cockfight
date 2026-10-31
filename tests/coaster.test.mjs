@@ -69,11 +69,12 @@ test("shows as tickets with a button by status, and who else is on the bill link
   assert.equal(coaster.getAttribute("aria-pressed"), "true");
 });
 
-test("the name is printed on the coaster's band, and the page invites other comics to get one", async () => {
+test("the name is printed on the coaster's band; no big pitch at the bottom, just the menu", async () => {
   const { d } = await load("/tristan-bowling", { comics: [{ id: "tristan-bowling", name: "Tristan Bowling" }] });
   assert.equal(d.querySelector(".front .ribbon b").textContent, "Tristan Bowling");
   assert.equal(d.querySelector(".front .initials").textContent, "TB");
-  assert.equal([...d.querySelectorAll("a")].find((a) => /Get your own Coaster/.test(a.textContent)).getAttribute("href"), "/#coaster");
+  assert.doesNotMatch(d.querySelector("main").textContent, /Do comedy\?/, "no Do comedy? block");
+  assert.equal(d.querySelector(".ctmenu a").getAttribute("href"), "/#coaster", "Get your own Coaster lives in the menu");
   assert.ok(d.querySelector(".join .csb-signup"), "every Coaster can collect fans, even with no site");
 });
 
@@ -259,4 +260,17 @@ test("the whole-show podcast player, and Shorts the comic featured or hid", asyn
   const shorts = [...d.querySelectorAll(".short")];
   assert.deepEqual(shorts.map((b) => b.getAttribute("aria-label")), ["Play: Two", "Play: One"], "featured first, hidden gone");
   assert.ok(shorts[0].classList.contains("featured"));
+});
+
+test("the coaster photo and the name banner follow the comic's choices", async () => {
+  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", photo_url: "https://p/lev.jpg",
+    coaster: { photo: "https://p/coaster.jpg", photo_y: 40, photo_zoom: 130, print: "color", banner: { pos: "top", shape: "plain", tilt: "straight" } } }] });
+  const front = d.querySelector(".front");
+  const img = front.querySelector("img.portrait");
+  assert.equal(img.getAttribute("src"), "https://p/coaster.jpg", "a photo just for the coaster");
+  assert.equal(img.style.objectPosition, "center 40%");
+  assert.equal(img.style.transform, "scale(1.3)");
+  for (const k of ["banner-top", "shape-plain", "tilt-straight", "print-color"]) assert.ok(front.classList.contains(k), k);
+  const none = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { banner: { pos: "none" } } }] });
+  assert.equal(none.d.querySelector(".front .ribbon"), null, "no banner at all");
 });

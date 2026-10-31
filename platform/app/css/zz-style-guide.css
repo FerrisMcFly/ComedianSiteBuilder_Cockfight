@@ -254,3 +254,7 @@ span.lrow-av { font-size: 14px; }
 @media (max-width: 880px) { .top-search .ts-t, .top-search kbd { display: none; } .top-search { flex: none; width: 42px; justify-content: center; padding: 0; } }
 .sp-box { background: var(--panel); border: 1px solid var(--line); }
 .sp-item[aria-selected="true"] { background: var(--accent-soft); }
+
+.range-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 8px 0; }
+.range-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.range-row input[type="range"] { width: 100%; accent-color: var(--accent); background: none; padding: 0; }

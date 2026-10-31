@@ -441,6 +441,21 @@ a.tb:hover { filter: brightness(1.08); }
 .lcard { background: rgba(14, 10, 7, .82); border: 0; }
 .more-btn { background: rgba(10, 8, 7, .74); border: 0; }
 body.preview .coaster { animation: none; }
+/* ---------- the banner: lower (default), middle, top or none; ribbon, straight band or just the name; tilted or straight ---------- */
+.front.banner-low .ribbon { top: 63%; } .front.banner-low .addr { top: 81.5%; }
+.front.banner-mid .ribbon { top: 54%; } .front.banner-mid .addr { top: 74%; }
+.front.banner-top .ribbon { top: 8%; } .front.banner-top .addr { top: 82%; }
+.front.banner-none .addr { top: 80%; }
+.front.tilt-straight .ribbon, .front.tilt-straight .addr { transform: none; }
+.front.shape-band .ribbon { left: -2%; right: -2%; clip-path: none; height: 16%; }
+.front.shape-plain .ribbon { background: none; filter: none; clip-path: none; color: var(--print); }
+.front.shape-plain .ribbon b { text-shadow: 0 0 2cqw var(--pulp), 0 0 1cqw var(--pulp); }
+.front.banner-top .print img.portrait, .front.banner-top .print .hatch { -webkit-mask: radial-gradient(60% 56% at 50% 46%, #000 55%, transparent 97%); mask: radial-gradient(60% 56% at 50% 46%, #000 55%, transparent 97%); }
+.print img.portrait { transform-origin: 50% 30%; }
+.front.print-color .print img.portrait { filter: contrast(1.1) saturate(1.2); mix-blend-mode: normal; }
+.front.print-color .print .hatch { display: none; }
+.front.print-ink .print img.portrait { filter: grayscale(1) sepia(.35) contrast(1.25) brightness(1.5); mix-blend-mode: var(--photo-blend, multiply); }
+
 .pod iframe { width: 100%; border: 0; border-radius: 14px; display: block; background: #000; }
 .pod .pod-sp { height: 232px; } .pod .pod-apple { height: 175px; } .pod .pod-yt { aspect-ratio: 16 / 9; height: auto; }
 .shorts .short.featured { grid-column: span 2; }
@@ -678,12 +693,20 @@ body.preview .coaster { animation: none; }
       d.innerHTML = '<svg viewBox="0 0 100 100" fill="' + col + '" stroke="' + col + '" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">' + DOO.map(function (x) { return x[2]; }).join("") + "</svg>";
       return d;
     };
-    var front = el("div", { class: "face front" }, el("div", { class: "print" }, [art()].concat([
-      safe(c.photo_url) ? el("img", { class: "portrait", src: c.photo_url, alt: "" }) : el("div", { class: "initials", text: initials(c.name) }),
-      safe(c.photo_url) ? el("div", { class: "hatch", "aria-hidden": "true" }) : null,
+    // the photo on the coaster: their profile photo or one just for the coaster, moved and zoomed, etched or in color
+    var cph = safe(cs.photo) || safe(c.photo_url);
+    var py = Math.max(0, Math.min(100, +cs.photo_y >= 0 ? +cs.photo_y : 22)), pz = Math.max(100, Math.min(200, +cs.photo_zoom || 100));
+    var port = cph ? el("img", { class: "portrait", src: cph, alt: "" }) : null;
+    if (port) { port.style.objectPosition = "center " + py + "%"; if (pz > 100) port.style.transform = "scale(" + (pz / 100) + ")"; }
+    // the banner with their name: where it sits, its shape, and whether it tilts
+    var bn = cs.banner || {}, bpos = ["low", "mid", "top", "none"].indexOf(bn.pos) >= 0 ? bn.pos : "low",
+      bshape = ["ribbon", "band", "plain"].indexOf(bn.shape) >= 0 ? bn.shape : "ribbon", btilt = bn.tilt === "straight" ? "straight" : "tilted";
+    var front = el("div", { class: "face front banner-" + bpos + " shape-" + bshape + " tilt-" + btilt + (cs.print === "color" ? " print-color" : cs.print === "ink" ? " print-ink" : "") }, el("div", { class: "print" }, [art()].concat([
+      port || el("div", { class: "initials", text: initials(c.name) }),
+      port ? el("div", { class: "hatch", "aria-hidden": "true" }) : null,
       el("div", { class: "rim2", "aria-hidden": "true" }),
       doodles(),
-      el("div", { class: "ribbon" }, nameEl),
+      bpos === "none" ? null : el("div", { class: "ribbon" }, nameEl),
       el("div", { class: "addr" }, ["comictable.com/", el("br"), handle])]).concat(wearOn(false))));
     var qr = el("div", { class: "qr" });
     var back = el("div", { class: "face back" }, el("div", { class: "print" }, [art(), el("div", { class: "rim2", "aria-hidden": "true" })].concat(wearOn(true)).concat([
@@ -841,9 +864,6 @@ body.preview .coaster { animation: none; }
       parts.push(moreBtn, moreBox);
     }
 
-    // ---- every Coaster is an invitation ----
-    parts.push(el("section", { class: "own" }, [el("b", { text: "Do comedy?" }), el("p", { text: "Get a Coaster of your own: your Tape, dates and links in one place." }),
-      el("a", { class: "btn main", href: "/#coaster", text: "Get your own Coaster" })]));
     parts.push(el("footer", null, ["A Coaster on ", el("a", { href: "/", text: "ComicTable" })]));
     app.replaceChildren.apply(app, parts);
 
