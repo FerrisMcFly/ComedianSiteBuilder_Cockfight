@@ -39,6 +39,30 @@
     })();
     return card;
   }
+  // Deleting a site, for ComicTable admins: type its id to confirm. Its lineup, shows, posts, team and invites go with
+  // it; the comics' Coasters stay (their own dates and fans are theirs).
+  function deleteSiteBox(st, people, shows) {
+    const input = h("input", { "aria-label": "Type " + st.id + " to confirm", placeholder: st.id, autocapitalize: "none", spellcheck: "false", autocomplete: "off", style: "max-width:220px" });
+    const msg = h("div", { class: "err" });
+    const go = h("button", { class: "btn sm danger", type: "button", text: "Delete forever", disabled: true, onclick: async () => {
+      go.disabled = true; msg.textContent = "";
+      try {
+        const r = await sb.from("sites").delete().eq("id", st.id).select("id");
+        if (r.error) throw r.error;
+        if (!r.data || !r.data.length) throw new Error("It wasn't deleted. This needs the latest database upgrade (UPGRADE_V3_ALL.sql), and only ComicTable admins can delete sites.");
+        S.sites = await q(sb.from("sites").select("*").order("name", { ascending: true }));
+        if (S.site && S.site.id === st.id) { S.site = null; try { store.set("csb_site", ""); } catch (e) {} }
+        toast(st.name + " is deleted. The comics' Coasters are still there.");
+        route();
+      } catch (er) { msg.textContent = errText(er); go.disabled = false; }
+    } });
+    input.addEventListener("input", () => { go.disabled = input.value.trim() !== st.id; });
+    setTimeout(() => input.focus(), 0);
+    return h("div", { class: "del-site newclub stack", style: "flex:1 1 100%;gap:8px;margin-top:8px" },
+      h("b", { text: "Delete " + st.name + "?" }),
+      h("p", { class: "hint", style: "margin:0", text: "This can't be undone. Its lineup (" + people + (people === 1 ? " comic" : " comics") + "), its own shows and posts, its team and its address go with it. The comics' Coasters stay. Type " + st.id + " to confirm." }),
+      h("div", { class: "btns" }, input, go, h("button", { class: "btn sm ghost", type: "button", text: "Cancel", onclick: (e) => e.currentTarget.closest(".del-site").remove() })), msg);
+  }
   async function viewSites(main) {
     main.append(head("All sites", "", S.isOwner ? h("button", { class: "btn primary", type: "button", id: "addComicFromSites", text: "+ Add a comic", onclick: () => goCT("comics") }) : null));
     const wrap = h("div", { class: "stack" }); main.append(wrap);
@@ -108,7 +132,11 @@
             h("div", { class: "btns", style: "margin-top:6px;gap:6px" }, steps.map(([t, ok]) => h("span", { class: "pill" + (ok ? "" : " warn"), text: (ok ? "✓ " : "○ ") + t })))),
           h("div", { class: "btns" },
             st.id === sid() ? null : h("button", { class: "btn sm", type: "button", text: "Open", onclick: () => switchSite(st.id, "home") }),
-            h("a", { class: "btn sm ghost", href: st.domain ? "https://" + st.domain : PRESS_HOST + "/s/" + st.id + "/", target: "_blank", rel: "noopener", text: st.domain ? "Visit ↗" : "See it ↗" })));
+            h("a", { class: "btn sm ghost", href: st.domain ? "https://" + st.domain : PRESS_HOST + "/s/" + st.id + "/", target: "_blank", rel: "noopener", text: st.domain ? "Visit ↗" : "See it ↗" }),
+            S.isOwner ? h("button", { class: "btn sm ghost danger", type: "button", "data-delete-site": st.id, text: "Delete…", onclick: (e) => {
+              const row = e.currentTarget.closest(".switch-row"); if (row.querySelector(".del-site")) return;
+              row.append(deleteSiteBox(st, people, shows));
+            } }) : null));
       }));
       listCard.replaceChildren(h("h2", { text: "Sites (" + sites.length + ")" }), h("div", null, rows));
     } catch (e) { listCard.replaceChildren(h("h2", { text: "Sites" }), h("p", { class: "err", text: errText(e) })); }

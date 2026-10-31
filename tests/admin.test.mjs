@@ -44,7 +44,7 @@ function makeDb() {
         let data = null;
         if (op === "insert") { rows.push(...payload); data = single ? payload[0] : payload; }
         else if (op === "update") rows.filter((r) => f.every((fn) => fn(r))).forEach((r) => Object.assign(r, payload));
-        else if (op === "delete") db[t] = rows.filter((r) => !f.every((fn) => fn(r)));
+        else if (op === "delete") { data = rows.filter((r) => f.every((fn) => fn(r))); db[t] = rows.filter((r) => !f.every((fn) => fn(r))); }
         else if (op === "upsert") [].concat(payload).forEach((p) => { const i = rows.findIndex((r) => r.site_id === p.site_id && r.key === p.key); i >= 0 ? (rows[i] = p) : rows.push(p); });
         else data = rows.filter((r) => f.every((fn) => fn(r)));
         return Promise.resolve({ data: data ? JSON.parse(JSON.stringify(data)) : data, error: null }).then(res, rej);
@@ -431,6 +431,24 @@ test("set up a group site: several existing Coasters on one site", async () => {
   assert.match(d.getElementById("setupSite").textContent, /Step 4 of 4/);
   d.getElementById("suOpen").click(); await wait(120);
   assert.ok(d.getElementById("sitePick"), "site switcher appears once you have two sites");
+});
+
+test("ComicTable admins can delete a site, after typing its id; the comics' Coasters stay", async () => {
+  const { w, d, db } = await open("#ct/sites", (db) => { db.sites.push({ id: "test-site", name: "Test Site", features: {}, created_at: "2026-10-31" }); db.hosts.push({ id: "t1", site_id: "test-site", comic_id: "lev-fer", name: "Lev Fer" }); });
+  await wait(100);
+  d.querySelector('[data-delete-site="test-site"]').click(); await wait(10);
+  const box = d.querySelector(".del-site");
+  assert.match(box.textContent, /Delete Test Site\?.*can't be undone.*Coasters stay/s);
+  const go = [...box.querySelectorAll("button")].find((b) => b.textContent === "Delete forever");
+  assert.ok(go.disabled, "nothing happens until you type its id");
+  set(w, box.querySelector("input"), "test-sit"); assert.ok(go.disabled);
+  set(w, box.querySelector("input"), "test-site"); assert.ok(!go.disabled);
+  go.click(); await wait(150);
+  assert.ok(!db.sites.some((x) => x.id === "test-site"), "the site is gone");
+  assert.ok(db.comics.some((c) => c.id === "lev-fer"), "Lev's Coaster stays");
+  const staff = await open("#ct/sites", (db) => { db.platform_admins = [{ user_id: "u1", role: "staff" }]; });
+  await wait(100);
+  assert.equal(staff.d.querySelector("[data-delete-site]"), null, "staff can't delete sites");
 });
 
 test("people who aren't platform admins never see All sites", async () => {

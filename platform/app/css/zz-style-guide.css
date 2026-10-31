@@ -285,3 +285,4 @@ span.lrow-av { font-size: 14px; }
 .su-way span { color: var(--muted); }
 .su-way[aria-pressed="true"] { border-color: var(--accent); background: var(--raised); }
 @media (max-width: 560px) { .su-steps li { font-size: 0; } .su-steps li::before { content: counter(su); font-size: 12px; } .setup .card-head .hint { display: none; } }
+.del-site .btn.danger { background: var(--accent); color: var(--accent-ink); }

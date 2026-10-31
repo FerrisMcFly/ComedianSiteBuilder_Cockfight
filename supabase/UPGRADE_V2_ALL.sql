@@ -4109,3 +4109,10 @@ begin
         and (site_id is null or public.can_site(site_id, 'owner') or public.is_platform_admin()));
   end if;
 end $$;
+
+/* ---------------- deleting a site (founder, Oct 31) ---------------- */
+-- ComicTable admins (not staff) can delete a site from the dashboard. Its lineup, shows, posts, team and invites go
+-- with it (they cascade); the comics' Coasters stay, and fans keep their sign-ups on those Coasters.
+grant delete on sites to authenticated;
+drop policy if exists "super admins delete sites" on sites;
+create policy "super admins delete sites" on sites for delete to authenticated using (public.is_platform_owner());
