@@ -315,6 +315,31 @@
         onclick: () => { venue = v; club.value = v.name; city.value = [v.city, v.state].filter(Boolean).join(", "); list.replaceChildren(); } })));
     });
     const to12 = (t) => { const m = String(t || "").match(/^(\d{1,2}):(\d{2})/); if (!m) return null; const hh = +m[1]; return ((hh % 12) || 12) + ":" + m[2] + (hh >= 12 ? " PM" : " AM"); };
+    // paste a ticket link and the rest fills itself in (netlify/functions/ticket-info.mjs)
+    const paste = h("input", { type: "url", id: "pasteTix", placeholder: "Paste the ticket link (Eventbrite, Seetickets, the club's page…)", "aria-label": "Paste a ticket link", autocomplete: "off" });
+    const pasteMsg = h("div", { class: "hint", role: "status", "aria-live": "polite" });
+    let lastPasted = "";
+    const fillFrom = async () => {
+      const link = paste.value.trim();
+      if (!/^https:\/\//i.test(link) || link === lastPasted) return;
+      lastPasted = link; url.value = link; pasteMsg.textContent = "Reading the ticket page…";
+      try {
+        const r = await fetch("/.netlify/functions/ticket-info", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: JSON.stringify({ url: link }) });
+        const info = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(info.error || "That page couldn't be read.");
+        if (info.venue) { club.value = info.venue; venue = null;
+          try { const m = await q(sb.from("venues").select("id, name, city, state").ilike("name", info.venue.replace(/[%_,()]/g, "")).limit(2)); if (m.length === 1) { venue = m[0]; club.value = m[0].name; if (!info.city) city.value = [m[0].city, m[0].state].filter(Boolean).join(", "); } } catch (e) {} }
+        if (info.city) city.value = info.city;
+        if (info.date) date.value = info.date;
+        if (info.time) time.value = to24(info.time);
+        if (info.status) status.value = info.status;
+        pasteMsg.textContent = info.found ? "Filled in from " + (info.source || "the ticket page") + ". Check it, then " + (show ? "save" : "add the date") + "." : "The link's in. That page doesn't list the details, so fill in the rest.";
+      } catch (er) { pasteMsg.textContent = er.message + " The link's in; fill in the rest."; }
+    };
+    paste.addEventListener("paste", () => setTimeout(fillFrom, 0));
+    paste.addEventListener("change", fillFrom);
+    paste.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); lastPasted = ""; fillFrom(); } });
+    paste.style.flex = "1 1 auto"; paste.style.minWidth = "0";
     return h("form", { class: "newclub stack", style: "gap:10px;margin:12px 0", onsubmit: async (e) => {
       e.preventDefault(); msg.textContent = "";
       if (!date.value) { date.focus(); return; }
@@ -329,6 +354,7 @@
         route();
       } catch (er) { msg.textContent = /site_id|not-null|null value/i.test(errText(er)) ? "This needs the latest database upgrade." : errText(er); }
     } }, h("b", { text: show ? "Change this date" : "Add a date" }),
+      show ? null : h("div", { class: "stack", style: "gap:4px" }, h("div", { class: "btns", style: "flex-wrap:nowrap" }, paste, h("button", { class: "btn sm", type: "button", text: "Fill in", onclick: () => { lastPasted = ""; fillFrom(); } })), pasteMsg),
       h("div", { class: "grid" }, field("Club", club, "c6"), field("City", city, "c6")), list,
       h("div", { class: "grid" }, field("Date", date, "c3"), field("Time", time, "c3"), field("Tickets", url, "c3"), field("Status", status, "c3")), msg,
       h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: show ? "Save date" : "Add date" }),

@@ -645,6 +645,29 @@ test("someone on a comic's team (a manager) logs in with no Coaster of their own
   assert.ok(!btn(d, /Add to team/), "an Editor can see the team but not change it");
 });
 
+test("adding a date: paste the ticket link and the club, city, date, time and status fill themselves in", async () => {
+  const { w, d, db } = await open("", (db) => { db.platform_admins = []; db.admins = []; db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} }); });
+  await wait(100);
+  const asked = [];
+  w.fetch = async (u, o) => { asked.push([u, JSON.parse(o.body)]); return { ok: true, json: async () => ({ found: true, source: "eventbrite.com", venue: "Comedy Cellar", city: "New York, NY", date: fri, time: "9:30 PM", status: "few_left" }) }; };
+  w.location.hash = "#ct/dates"; await wait(100);
+  d.getElementById("addDateBtn").click(); await wait();
+  const f = d.querySelector("main form.newclub");
+  const paste = f.querySelector("#pasteTix");
+  paste.value = "https://www.eventbrite.com/e/lev-123"; paste.dispatchEvent(new w.Event("change")); await wait(80);
+  assert.deepEqual(asked.map((a) => [a[0], a[1].url]), [["/.netlify/functions/ticket-info", "https://www.eventbrite.com/e/lev-123"]]);
+  assert.equal(f.querySelector('input[aria-label="Club"]').value, "Comedy Cellar");
+  assert.equal(f.querySelector('input[aria-label="Date"]').value, fri);
+  assert.equal(f.querySelector('input[aria-label="Time"]').value, "21:30");
+  assert.equal(f.querySelector('select[aria-label="Tickets status"]').value, "few_left");
+  assert.match(f.textContent, /Filled in from eventbrite\.com/);
+  paste.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })); await wait(40);
+  assert.ok(!db.shows.some((x) => x.comic_id === "solo-sam"), "Enter in the link box fills in, it doesn't add yet");
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
+  const added = db.shows.find((x) => x.comic_id === "solo-sam");
+  assert.deepEqual([added.venue, added.city, added.date, added.time, added.url, added.status], ["Comedy Cellar", "New York, NY", fri, "9:30 PM", "https://www.eventbrite.com/e/lev-123", "few_left"]);
+});
+
 test("a comic manages their own team from their Coaster page", async () => {
   const { w, d } = await open("#ct/me", (db) => { db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} }); });
   const sent = [];
