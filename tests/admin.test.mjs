@@ -451,6 +451,18 @@ test("ComicTable admins can delete a site, after typing its id; the comics' Coas
   assert.equal(staff.d.querySelector("[data-delete-site]"), null, "staff can't delete sites");
 });
 
+test("Your own website: pick the pieces and copy one snippet; designers get a template example", async () => {
+  const { d } = await open("#settings");
+  await wait(80);
+  d.querySelector('[data-tab="embed"]').click(); await wait(10);
+  const snip = () => d.getElementById("embedSnippet").textContent;
+  assert.match(snip(), /data-comictable="shows".*data-comictable="fans".*embed\.js" data-site="cockfight"/s);
+  d.querySelector('[data-piece="next"]').click(); d.querySelector('[data-piece="fans"]').click(); d.querySelector('[data-piece="press"]').click(); await wait(10);
+  assert.match(snip(), /data-comictable="next".*data-comictable="shows".*data-comictable="press"/s);
+  assert.doesNotMatch(snip(), /"fans"/);
+  assert.match(d.getElementById("embedSnippet").closest("section").querySelector("details").textContent, /\{venue\}.*data-ct-if/s);
+});
+
 test("people who aren't platform admins never see All sites", async () => {
   const { d } = await open("", (db) => { db.platform_admins = []; });
   assert.ok(![...d.querySelectorAll(".nav-btn")].some((b) => /All sites/.test(b.textContent)));

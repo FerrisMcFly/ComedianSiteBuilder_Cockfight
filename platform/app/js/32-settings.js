@@ -13,13 +13,24 @@
       if (S.isPlatform) patch.domain = cleanDomain(domainIn.value) || null;
       try { await q(sb.from("sites").update(patch).eq("id", sid())); Object.assign(S.site, patch); route(); toast("Saved."); } catch (err) { toast(errText(err), { bad: true }); }
     } }, h("h2", { text: "Your site" }), h("div", { class: "grid" }, field("Site name", name, "c8"), field("Address", domainIn, "c4")), h("div", { class: "btns" }, h("button", { class: "btn primary", type: "submit", text: "Save" })));
-    // For comics who keep their own website: the snippet that puts this site's live content on it
-    const snippet = '<div data-comictable="shows"></div>\n<div data-comictable="fans"></div>\n<script src="https://comictable.com/embed.js" data-site="' + sid() + '"><\/script>';
+    // For comics who keep their own website: pick the pieces, copy one snippet (platform/embed/widgets.js has them all)
+    const PIECES = [["next", "Next show"], ["shows", "All shows"], ["profile", "Photo & bio"], ["socials", "Socials"], ["links", "Links"], ["videos", "Videos"], ["shorts", "Shorts"],
+      ["podcast", "Podcast player"], ["episodes", "Episodes"], ["news", "News"], ["live", "Live now banner"], ["merch", "Merch"], ["press", "Press kit"], ["coaster", "Coaster badge"], ["posts", "Blog posts"], ["fans", "Fan sign-up"]];
+    const picked = new Set(["shows", "fans"]);
+    const pre = h("pre", { class: "snippet", id: "embedSnippet" });
+    const snippetText = () => PIECES.filter(([k]) => picked.has(k)).map(([k]) => '<div data-comictable="' + k + '"></div>').join("\n") + '\n<script src="https://comictable.com/embed.js" data-site="' + sid() + '" data-accent="#e8402b"><\/script>';
+    const redraw = () => { pre.textContent = snippetText(); };
+    const designer = '<div data-comictable="shows" data-limit="4">\n  <template>\n    <div class="my-gig">\n      <b>{venue}</b> {weekday} {month} {day} · {city}\n      <a href="{tickets}" data-ct-if="tickets">Tickets</a> <em data-ct-if="status">{status}</em>\n    </div>\n  </template>\n  <p data-ct-empty>No shows right now.</p>\n</div>';
+    redraw();
     const embedCard = h("section", { class: "card stack" }, h("h2", { text: "Use on your own website" }),
-      h("p", { class: "sub", text: "Already have a site on Squarespace, Wix, WordPress or anything else? Paste this where you want your shows to appear. It stays up to date from this dashboard." }),
-      h("pre", { class: "snippet", text: snippet }),
-      h("div", { class: "hint", text: "Other pieces: data-comictable=\"episodes\", \"videos\" or \"posts\". Add data-limit=\"5\" to show fewer. Add data-accent=\"#ff3b6b\" to the script for your button color." }),
-      h("div", { class: "btns" }, h("button", { class: "btn sm", type: "button", text: "Copy snippet", onclick: async () => toast((await copyText(snippet)) ? "Copied. Paste it into your site's HTML or embed block." : "Couldn't copy. Select it and copy instead.") })));
+      h("p", { class: "sub", text: "Already have a site on Squarespace, Wix, WordPress or anything else? Pick what you want, then paste the snippet where it should appear. It stays up to date from ComicTable." }),
+      h("div", { class: "chips" }, PIECES.map(([k, l]) => h("button", { class: "chip", type: "button", "data-piece": k, "aria-pressed": String(picked.has(k)), text: l, onclick: (e) => { picked.has(k) ? picked.delete(k) : picked.add(k); e.currentTarget.setAttribute("aria-pressed", String(picked.has(k))); redraw(); } }))),
+      pre,
+      h("div", { class: "btns" }, h("button", { class: "btn sm primary", type: "button", text: "Copy snippet", onclick: async () => toast((await copyText(snippetText())) ? "Copied. Paste it into your site's HTML or embed block." : "Couldn't copy. Select it and copy instead.") })),
+      h("details", null, h("summary", { text: "For designers: your own HTML, filled in by ComicTable" }),
+        h("p", { class: "hint", text: "Put a <template> inside any box and it's repeated for each item, with {blanks} filled in: {venue}, {city}, {weekday}, {month}, {day}, {time}, {tickets}, {status} for shows; {name}, {title}, {bio}, {photo}, {coaster} for the profile; {title}, {url}, {thumbnail} for videos, and so on. data-ct-if keeps an element only when its blank has something in it. Add data-limit=\"5\" to show fewer." }),
+        h("pre", { class: "snippet", text: designer }),
+        h("button", { class: "btn sm", type: "button", text: "Copy example", onclick: async () => toast((await copyText(designer)) ? "Copied." : "Couldn't copy. Select it and copy instead.") })));
     // One page, four tabs, so nothing is buried at the bottom.
     const panes = [["general", "General", h("div", { class: "stack" }, siteCard, sectionsCard())], ["team", "Team", teamCard()], ["embed", "Your own website", embedCard]];
     if (!panes.some((x) => x[0] === SETTAB)) SETTAB = "general";
