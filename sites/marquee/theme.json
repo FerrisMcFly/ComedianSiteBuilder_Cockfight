@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Accent color", "help": "The ticket buttons.", "type": "color", "default": "#FFD86B" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it.", "type": "order", "options": [["shows", "Shows"], ["video", "Video"], ["podcast", "Podcast"], ["socials", "Socials"], ["join", "Sign-up"]] },
     { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
     { "key": "now_appearing", "label": "Above your name on the marquee", "type": "text", "default": "NOW APPEARING" },
     { "key": "shows_title", "label": "Letterboard heading", "type": "text", "default": "COMING UP" },

@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Accent color", "help": "The ring around your photo, ticket buttons and the sign-up box.", "type": "color", "default": "#E8742C" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it.", "type": "order", "options": [["shows", "Shows"], ["video", "Video"], ["podcast", "Podcast"], ["socials", "Socials"], ["join", "Sign-up"]] },
     { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
     { "key": "top_title", "label": "Show title at the top", "type": "text", "default": "{name} Tonight" },
     { "key": "on_air", "label": "Light at the top", "type": "text", "default": "ON AIR" },

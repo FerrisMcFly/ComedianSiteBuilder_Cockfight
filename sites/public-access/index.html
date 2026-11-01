@@ -70,7 +70,7 @@ h1 { margin: 0; font: 400 clamp(40px, 11vw, 64px)/1.05 var(--neon); color: #fff;
 .ctt-fine { font-size: 13px; color: var(--soft); }
 footer { padding: 14px 0 20px; text-align: center; font: 400 18px var(--vt); color: #8A86C9; text-transform: uppercase; }
 .ctt-down { padding: 60px 20px; text-align: center; }
-@media (min-width: 900px) { .tape { max-width: 980px; } .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; } .grid > .guide { margin-top: 26px; } }
+@media (min-width: 900px) { .tape { max-width: 980px; } .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; } .grid > .guide { margin-top: 26px; } .grid > .wide { grid-column: 1 / -1; } }
 </style>
 </head>
 <body>
@@ -96,23 +96,25 @@ CTT.start(function (k, app) {
   else tape.append(name);
   if (k.bio) tape.append(el("p", { class: "bio", text: k.bio }));
 
-  var grid = el("div", { class: "grid" }), side = el("div");
-  if (k.has("shows")) grid.append(el("section", { class: "guide", "aria-label": say("shows_title") || "Shows" }, [
+  var grid = el("div", { class: "grid" }); tape.append(grid);
+  // every section here is the comic's to reorder or hide (Design → Sections)
+  var S = {};
+  S.shows = function () { return (k.has("shows")) ? el("section", { class: "guide", "aria-label": say("shows_title") || "Shows" }, [
     say("shows_title") ? el("div", { class: "bar" }, [el("h2", { style: "margin:0;font:inherit", text: say("shows_title") }), shows[0] ? el("span", { text: shows[0].mon.toUpperCase() }) : null]) : null].concat(
     shows.length ? shows.map(function (s) {
       return el("div", { class: "row" + (s.sold ? " sold" : "") }, [el("span", { class: "d", text: s.dow.toUpperCase() + " " + s.dd }),
         el("span", { class: "w" }, [el("b", { text: s.venue }), el("span", { text: [s.city, s.few ? "A few left" : s.time].filter(Boolean).join(" · ") })]),
         s.sold ? el("span", { class: "gone", text: "SOLD OUT" }) : k.ticket(s, "tix", "TIX")]);
-    }) : [el("p", { class: "empty", text: "No dates right now." })])));
-  if (video) side.append(el("section", { class: "now", "aria-label": say("watch_title") || "Video" }, [say("watch_title") ? el("h2", { class: "h", text: say("watch_title") }) : null,
+    }) : [el("p", { class: "empty", text: "No dates right now." })])) : null; };
+  S.video = function () { return (video) ? el("section", { class: "now", "aria-label": say("watch_title") || "Video" }, [say("watch_title") ? el("h2", { class: "h", text: say("watch_title") }) : null,
     el("div", { class: "deck" }, [el("a", { class: "screen", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
-      el("div", { class: "label", text: video.title })])]));
-  if (pod) side.append(el("div", { class: "pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true" }),
-    el("div", null, [say("podcast_label") ? el("span", { class: "k", text: say("podcast_label") }) : null, el("b", { text: pod.name }), el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
-  grid.append(side); tape.append(grid);
+      el("div", { class: "label", text: video.title })])]) : null; };
+  S.podcast = function () { return (pod) ? el("div", { class: "pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true" }),
+    el("div", null, [say("podcast_label") ? el("span", { class: "k", text: say("podcast_label") }) : null, el("b", { text: pod.name }), el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]) : null; };
 
-  if (socials.length) tape.append(el("div", { class: "socials" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })));
-  if (join) tape.append(el("section", { class: "join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
+  S.socials = function () { return (socials.length) ? el("div", { class: "socials wide" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })) : null; };
+  S.join = function () { return (join) ? el("section", { class: "join wide", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]) : null; };
+  k.layout(["shows", "video", "podcast", "socials", "join"]).forEach(function (key) { var n = S[key] && S[key](); if (n) grid.append(n); });
   tape.append(el("footer", { text: ["Runs on ComicTable", say("footer")].filter(Boolean).join(" · ") }));
   app.append(tape);
 });

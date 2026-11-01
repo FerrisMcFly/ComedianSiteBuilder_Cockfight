@@ -74,3 +74,21 @@ for (const tpl of TEMPLATES) {
     assert.match(shown, /The Stand/, "the page still works with every line cleared");
   });
 }
+
+for (const tpl of TEMPLATES) {
+  test(tpl + ": the comic can reorder and hide its sections (Design → Sections)", async () => {
+    const set = JSON.parse(read("sites/" + tpl + "/theme.json")).settings.find((s) => s.key === "sections");
+    assert.ok(set && set.type === "order", "a Sections setting");
+    const keys = set.options.map((o) => o[0]);
+    for (const k of ["shows", "video"]) assert.ok(keys.includes(k), "has a " + k + " section");
+    assert.match(read("sites/" + tpl + "/index.html"), /k\.layout\(/);
+    const text = async (sections) => { const d = await render(tpl, { sections }); d.querySelectorAll("script, style").forEach((n) => n.remove()); return d.body.textContent; };
+    const all = await text(keys.map((key) => ({ key, on: true })));
+    assert.ok(all.includes("Laugh Boston") && all.includes("Live at The Stand"));
+    assert.ok(!(await text([{ key: "shows", on: false }])).includes("Laugh Boston"), "shows hidden");
+    assert.ok(!(await text([{ key: "video", on: false }])).includes("Live at The Stand"), "video hidden");
+    const order = async (first) => { const t = await text([{ key: first, on: true }].concat(keys.filter((k) => k !== first).map((key) => ({ key, on: true })))); return t.indexOf("Laugh Boston") < t.indexOf("Live at The Stand"); };
+    assert.equal(await order("shows"), true, "shows first");
+    assert.equal(await order("video"), false, "video first");
+  });
+}

@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Glow color", "help": "The glow behind your name and the track numbers.", "type": "color", "default": "#E8B23A" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it.", "type": "order", "options": [["shows", "Tracklist (shows)"], ["video", "Video"], ["podcast", "Podcast"], ["socials", "Socials"], ["join", "Fan sign-up"]] },
     { "type": "heading", "label": "Words on the cover", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
     { "key": "volume", "label": "Top corner", "type": "text", "default": "VOL. 1" },
     { "key": "subtitle", "label": "Above your name", "type": "text", "default": "Live From The Stage" },

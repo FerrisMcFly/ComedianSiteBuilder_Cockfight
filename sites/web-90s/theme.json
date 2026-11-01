@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Headline color", "help": "The big welcome line.", "type": "color", "default": "#CC0066" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it.", "type": "order", "options": [["shows", "Shows"], ["video", "Video"], ["podcast", "Podcast"], ["socials", "Cool links"], ["join", "Guestbook (fan sign-up)"]] },
     { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
     { "key": "window_title", "label": "Window title bar", "type": "text", "default": "{name}'s Home Page" },
     { "key": "welcome", "label": "Welcome line", "type": "text", "default": "Welcome to {name}'s Home Page!!!" },

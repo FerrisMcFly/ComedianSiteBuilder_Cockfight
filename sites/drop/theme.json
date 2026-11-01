@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Accent color", "help": "The tag on your photo, the almost-full note and the sign-up button.", "type": "color", "default": "#E2231A" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it.", "type": "order", "options": [["shows", "Dates"], ["video", "Video"], ["podcast", "Podcast"], ["join", "Notify me sign-up"], ["socials", "Socials"]] },
     { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name. The countdown to your next show is worked out for you." },
     { "key": "drop_bar", "label": "Bar at the top", "type": "text", "default": "Drop 01 · Fall tour" },
     { "key": "countdown_label", "label": "Before the countdown", "type": "text", "default": "Next" },

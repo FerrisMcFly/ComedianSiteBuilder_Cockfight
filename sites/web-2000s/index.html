@@ -106,27 +106,30 @@ CTT.start(function (k, app) {
     say("mood") ? el("span", null, [el("b", { text: "Mood: " }), say("mood")]) : null,
     say("online") ? el("span", { class: "online" }, [el("i", { "aria-hidden": "true" }), say("online")]) : null])])));
 
-  if (pod) left.append(el("a", { class: "player", id: "player", href: (pod.links[0] || {}).url || "#", target: "_blank", rel: "noopener", "aria-label": "Listen to " + pod.name },
-    [el("span", { class: "play", "aria-hidden": "true" }), el("span", { class: "t" }, [el("span", null, [say("song_label") ? el("b", { text: say("song_label") + " " }) : null, pod.name]), el("span", { class: "bar", "aria-hidden": "true" }, el("i"))])]));
-
-  var linkItems = (join && say("contact_join") ? [el("a", { href: "#join", text: say("contact_join") })] : []).concat(socials.map(function (x) {
-    var a = el("a", { href: x.url, target: "_blank", rel: "noopener" }); a.insertAdjacentHTML("beforeend", x.svg); a.append(x.label); return a; }))
-    .concat(pod ? pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }) : []);
-  if (linkItems.length) left.append(box("contact_title", false, el("div", { class: "links" }, linkItems)));
   if (k.bio) left.append(box("about_title", false, el("div", { class: "body", text: k.bio })));
 
-  if (k.has("shows")) right.append(box("top_title", true, shows.length ? el("div", { class: "tops" }, shows.map(function (s) {
-    return el("div", { class: "t" + (s.sold ? " sold" : "") }, [el("div", { class: "sq", "aria-hidden": "true" }, [el("b", { text: String(s.day) }), s.mon.toUpperCase()]),
-      el("span", { class: "v", text: s.venue }), el("span", { text: s.sold ? "Sold out" : s.few ? "A few left" : s.label }),
-      s.sold ? null : k.ticket(s, "tk", s.free ? "RSVP" : "Tickets")]);
-  })) : el("p", { class: "empty", text: "No dates right now." }), "shows"));
-
-  if (video) right.append(box("videos_title", false, el("div", { class: "body" }, [
-    el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
-    el("a", { class: "vt", href: video.link, target: "_blank", rel: "noopener", text: video.title })]), "videos"));
-
-  if (join) right.append(el("section", { class: "box join", id: "join", "aria-label": say("join_title") || "Mailing list" }, [say("join_title") ? el("h2", { class: "hot", text: say("join_title") }) : null,
-    el("div", { class: "body" }, [say("join_line") ? el("p", { text: say("join_line") }) : null, join])]));
+  // the sections, in the comic's order (Design → Sections). The profile and About stay on the left.
+  var S = {
+    shows: function () { return k.has("shows") ? box("top_title", true, shows.length ? el("div", { class: "tops" }, shows.map(function (s) {
+      return el("div", { class: "t" + (s.sold ? " sold" : "") }, [el("div", { class: "sq", "aria-hidden": "true" }, [el("b", { text: String(s.day) }), s.mon.toUpperCase()]),
+        el("span", { class: "v", text: s.venue }), el("span", { text: s.sold ? "Sold out" : s.few ? "A few left" : s.label }),
+        s.sold ? null : k.ticket(s, "tk", s.free ? "RSVP" : "Tickets")]);
+    })) : el("p", { class: "empty", text: "No dates right now." }), "shows") : null; },
+    video: function () { return video ? box("videos_title", false, el("div", { class: "body" }, [
+      el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
+      el("a", { class: "vt", href: video.link, target: "_blank", rel: "noopener", text: video.title })]), "videos") : null; },
+    podcast: function () { return pod ? el("a", { class: "player", id: "player", href: (pod.links[0] || {}).url || "#", target: "_blank", rel: "noopener", "aria-label": "Listen to " + pod.name },
+      [el("span", { class: "play", "aria-hidden": "true" }), el("span", { class: "t" }, [el("span", null, [say("song_label") ? el("b", { text: say("song_label") + " " }) : null, pod.name]), el("span", { class: "bar", "aria-hidden": "true" }, el("i"))])]) : null; },
+    socials: function () {
+      var linkItems = (join && say("contact_join") ? [el("a", { href: "#join", text: say("contact_join") })] : []).concat(socials.map(function (x) {
+        var a = el("a", { href: x.url, target: "_blank", rel: "noopener" }); a.insertAdjacentHTML("beforeend", x.svg); a.append(x.label); return a; }))
+        .concat(pod ? pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }) : []);
+      return linkItems.length ? box("contact_title", false, el("div", { class: "links" }, linkItems)) : null;
+    },
+    join: function () { return join ? el("section", { class: "box join", id: "join", "aria-label": say("join_title") || "Mailing list" }, [say("join_title") ? el("h2", { class: "hot", text: say("join_title") }) : null,
+      el("div", { class: "body" }, [say("join_line") ? el("p", { text: say("join_line") }) : null, join])]) : null; }
+  };
+  k.layout(["podcast", "socials", "shows", "video", "join"]).forEach(function (key) { var n = S[key] && S[key](); if (n) right.append(n); });
 
   app.append(el("div", { class: "page" }, [left, right]), el("footer", { text: "© " + new Date().getFullYear() + " " + k.name + " · Runs on ComicTable" }));
 });

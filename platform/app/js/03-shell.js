@@ -55,7 +55,7 @@
       { id: "rules", label: "Moderation", render: viewModeration }]) },
     { id: "website", label: "Website", ico: "🎨", bottom: true, render: tabbed("website", "Website", "Your site's about info and its look. News and links are under Posts.", [
       { id: "about", label: "About", render: viewProfile },
-      { id: "look", label: "Look", render: viewTheme }]) },
+      { id: "look", label: "Design", render: viewSiteEditor }]) },
     { id: "people", label: "Lineup", ico: "🎤", bottom: true, render: viewPeople },
     { id: "settings", label: "Settings", ico: "⚙️", bottom: true, render: viewSettings },
     // not in the menu: a comic's press kit, opened from their Lineup card (it belongs to their Coaster)

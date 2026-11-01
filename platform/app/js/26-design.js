@@ -3,15 +3,16 @@
      ====================================================== */
   // "order" setting: a list the comic arranges and switches on or off. Saved as [{ key, on }].
   // Options the design adds later show up at the end, with their default.
-  function orderPicker(st, v) {
+  function orderPicker(st, v, onChange) {
     const opts = (st.options || []).map((o) => Array.isArray(o) ? { key: o[0], label: o[1], help: o[2] || "", on: o[3] !== false } : { key: o.key, label: o.label || o.key, help: o.help || "", on: o.on !== false });
     const saved = Array.isArray(v) ? v.filter((x) => x && opts.some((o) => o.key === x.key)) : [];
     let items = saved.map((x) => ({ ...opts.find((o) => o.key === x.key), on: !!x.on })).concat(opts.filter((o) => !saved.some((x) => x.key === o.key)));
     const box = h("div", { class: "order-list" });
-    const draw = () => box.replaceChildren(...items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off"), "data-drag": it.key }, grip(it.label),
+    let drawn = false;
+    const draw = () => { if (drawn && onChange) onChange(); drawn = true; return box.replaceChildren(...items.map((it, i) => h("div", { class: "order-row" + (it.on ? "" : " off"), "data-drag": it.key }, grip(it.label),
       h("div", { style: "min-width:0;flex:1 1 220px" }, h("b", { text: it.label }), it.help ? h("div", { class: "hint", text: it.help }) : null),
       h("div", { class: "btns" },
-        h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: it.on, "aria-label": "Show " + it.label, onchange: (e) => { it.on = e.target.checked; draw(); } }), h("span"))))));
+        h("label", { class: "switch" }, h("input", { type: "checkbox", role: "switch", checked: it.on, "aria-label": "Show " + it.label, onchange: (e) => { it.on = e.target.checked; draw(); } }), h("span")))))); };
     sortable(box, (from, to) => { arrMove(items, from, to); draw(); });
     draw();
     return { el: box, get value() { return items.map((x) => ({ key: x.key, on: x.on })); } };
@@ -74,11 +75,20 @@
   const isHomeSetting = (st) => st.page === "home" || (st.type === "heading" ? /home screen/i.test(st.label || "") : /^home($|_)/.test(st.key || ""));
   // One form for a set of design settings. Saves only those keys, so the two pages don't overwrite each other.
   function settingsForm(list, saveLabel) {
-    const vals = Object.assign({}, S.site.theme || {});
+    const set = settingRows(list, Object.assign({}, S.site.theme || {}));
+    const save = h("button", { class: "btn primary", type: "submit", text: saveLabel });
+    return h("form", { class: "card stack", onsubmit: async (e) => {
+      e.preventDefault(); save.disabled = true;
+      try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, set.read()) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
+      save.disabled = false;
+    } }, set.el, h("div", { class: "btns" }, save));
+  }
+  // The rows for a list of design settings, and read() for their values. onChange: called on any change (the editor).
+  function settingRows(list, vals, onChange) {
     const inputs = {};
     // "order": a list the comic arranges and switches on or off (menu order, Home screen sections).
     // Saved as [{ key, on }]. Options the design adds later show up at the end, with their default.
-    const orderList = (st, v) => { const o = orderPicker(st, v); inputs[st.key] = o; return o.el; };
+    const orderList = (st, v) => { const o = orderPicker(st, v, onChange); inputs[st.key] = o; return o.el; };
     const rows = list.map((st) => {
       if (st.type === "heading") return h("div", { class: "set-head" }, h("h2", { text: st.label }), st.help ? h("p", { class: "hint", text: st.help }) : null);
       const v = st.key in vals ? vals[st.key] : st.default;
@@ -106,14 +116,10 @@
       else input = (inputs[st.key] = h("input", { value: v ?? "", placeholder: st.placeholder || "", "aria-label": st.label, style: "max-width:260px" }));
       return h("div", { class: "switch-row" }, h("div", null, h("b", { text: st.label }), st.help ? h("div", { class: "hint", text: st.help }) : null), input);
     });
-    const save = h("button", { class: "btn primary", type: "submit", text: saveLabel });
-    return h("form", { class: "card stack", onsubmit: async (e) => {
-      e.preventDefault(); save.disabled = true;
-      const out = {};
-      for (const st of list) { if (st.type === "heading") continue; const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; }
-      try { await saveSite({ theme: Object.assign({}, S.site.theme || {}, out) }, "Saved. Refresh your site to see it."); } catch (err) { toast(errText(err), { bad: true }); }
-      save.disabled = false;
-    } }, h("div", { class: "switches" }, rows), h("div", { class: "btns" }, save));
+    const read = () => { const out = {}; for (const st of list) { if (st.type === "heading" || !inputs[st.key]) continue; const el = inputs[st.key]; out[st.key] = st.type === "toggle" ? el.checked : el.value; } return out; };
+    const el = h("div", { class: "switches" }, rows);
+    if (onChange) { el.addEventListener("input", onChange); el.addEventListener("change", onChange); el.addEventListener("click", (e) => { if (e.target.closest(".soc-pick")) setTimeout(onChange, 0); }); }
+    return { el, read };
   }
   // Which parts of the site are on (Shows, Podcast, Forum…). Off hides it from the site and the menu; nothing is deleted.
   function sectionsCard() {

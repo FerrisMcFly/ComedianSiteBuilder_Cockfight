@@ -32,7 +32,7 @@ h1 { margin: 14px 0 0; color: #fff; font: 400 clamp(76px, 22vw, 180px)/0.86 var(
 .round { margin-top: 24px; }
 .bio { margin: 20px 2px 0; font-weight: 800; font-size: 17px; }
 .grid { display: grid; gap: 0 36px; }
-@media (min-width: 900px) { .grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: start; grid-template-areas: "shows video" "join video" "join pod" "join soc" "join ."; grid-template-rows: auto auto auto auto 1fr; } .a-shows { grid-area: shows; } .a-video { grid-area: video; } .a-pod { grid-area: pod; } .a-soc { grid-area: soc; } .a-join { grid-area: join; } .hero-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; align-items: center; } .hero-row .bio { font-size: 22px; } }
+@media (min-width: 900px) { .grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: start; } .hero-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; align-items: center; } .hero-row .bio { font-size: 22px; } }
 .h { margin: 28px 0 10px; font: 400 clamp(30px, 7vw, 40px)/1 var(--big); text-transform: uppercase; }
 .gig { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 10px; background: var(--ink); color: #fff; }
 .gig .d { width: 78px; flex: none; text-align: center; background: var(--sun); color: var(--ink); padding: 6px 0; line-height: 1; }
@@ -96,20 +96,21 @@ CTT.start(function (k, app) {
   var pic = k.coaster ? el("div", { class: "round" }, [k.coasterPhoto()]) : k.photo ? el("div", { class: "photo" }, [el("img", { src: k.photo, alt: k.name })]) : null;
   page.append(el("div", { class: "hero-row" }, [pic, k.bio ? el("p", { class: "bio", text: k.bio }) : null]));
 
-  var grid = el("div", { class: "grid" }), joinBox = null;
-  if (k.has("shows")) grid.append(el("section", { class: "a-shows", "aria-label": say("shows_title") || "Shows" }, [say("shows_title") ? el("h2", { class: "h", text: say("shows_title") }) : el("div", { style: "height:28px" })].concat(
+  var grid = el("div", { class: "grid" }), S = {};
+  S.shows = function () { return k.has("shows") ? el("section", { class: "a-shows", "aria-label": say("shows_title") || "Shows" }, [say("shows_title") ? el("h2", { class: "h", text: say("shows_title") }) : el("div", { style: "height:28px" })].concat(
     shows.length ? shows.map(function (s) {
       return el("div", { class: "gig" + (s.sold ? " sold" : "") }, [el("span", { class: "d" }, [el("small", { text: s.dow.toUpperCase() }), el("b", { text: (s.mm.replace(/^0/, "")) + "/" + s.day })]),
         el("span", { class: "w" }, [el("b", { text: s.venue }), s.few && !s.sold ? el("span", { class: "hot", text: "A few left" }) : el("span", { text: s.city })]),
         s.sold ? el("span", { class: "gone", text: "FULL" }) : k.ticket(s, "tix", "TIX")]);
-    }) : [el("p", { class: "empty", text: "No dates right now." })])));
-  if (join) joinBox = (el("section", { class: "join a-join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
-  if (video) grid.append(el("div", { class: "vidbox a-video" }, [el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
-    el("p", { class: "vtitle", text: video.title })]));
-  if (pod) grid.append(el("div", { class: "pod a-pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
-    el("div", null, [el("b", { text: pod.name }), el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
-  if (socials.length) grid.append(el("div", { class: "socials a-soc" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })));
-  if (joinBox) grid.append(joinBox);
+    }) : [el("p", { class: "empty", text: "No dates right now." })])) : null; };
+  S.join = function () { return join ? el("section", { class: "join a-join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]) : null; };
+  S.video = function () { return video ? el("div", { class: "vidbox a-video" }, [el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
+    el("p", { class: "vtitle", text: video.title })]) : null; };
+  S.podcast = function () { return pod ? el("div", { class: "pod a-pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
+    el("div", null, [el("b", { text: pod.name }), el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]) : null; };
+  S.socials = function () { return socials.length ? el("div", { class: "socials a-soc" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })) : null; };
+  // two columns on a wide screen, filled left to right in the comic's order
+  k.layout(["shows", "video", "podcast", "socials", "join"]).forEach(function (key) { var n = S[key] && S[key](); if (n) grid.append(n); });
   page.append(grid);
   app.append(page, el("footer", { text: "© " + new Date().getFullYear() + " " + k.name + " · Runs on ComicTable" }));
 });

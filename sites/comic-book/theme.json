@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Cover color", "help": "The cover panel and the podcast art.", "type": "color", "default": "#2F6BFF" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it.", "type": "order", "options": [["shows", "Shows"], ["video", "Video"], ["podcast", "Podcast"], ["socials", "Socials"], ["join", "Fan sign-up"]] },
     { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name, {next_city} your next show's city." },
     { "key": "issue", "label": "Top left of the cover", "type": "text", "default": "ISSUE #1" },
     { "key": "cover_right", "label": "Top right of the cover", "type": "text", "default": "{next_city}" },

@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Player color", "help": "The player's body, the ticket buttons and the progress bar.", "type": "color", "default": "#D6336C" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it. The little screen's menu follows.", "type": "order", "options": [["shows", "Shows"], ["video", "Video"], ["podcast", "Podcast"], ["socials", "Socials"], ["join", "Fan sign-up"]] },
     { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name. The player's menu uses the headings." },
     { "key": "shows_title", "label": "Shows heading", "type": "text", "default": "Shows" },
     { "key": "watch_title", "label": "Video heading", "type": "text", "default": "Now Playing" },

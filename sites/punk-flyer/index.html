@@ -100,21 +100,23 @@ CTT.start(function (k, app) {
     say("sticker") ? el("span", { class: "sticker", text: say("sticker") }) : null]));
   if (k.bio) flyer.append(el("p", { class: "bio", text: k.bio }));
 
-  if (k.has("shows")) flyer.append(el("section", { class: "block", "aria-label": say("shows_title") || "Shows" }, [say("shows_title") ? el("h2", { class: "h", text: say("shows_title") }) : null].concat(
+  // every section below the bio is the comic's to reorder or hide (Design → Sections)
+  var S = {};
+  S.shows = function () { if (!k.has("shows")) return null; return el("section", { class: "block", "aria-label": say("shows_title") || "Shows" }, [say("shows_title") ? el("h2", { class: "h", text: say("shows_title") }) : null].concat(
     shows.length ? shows.map(function (s) {
       return el("div", { class: "gig" }, [el("div", { class: "when" }, [el("b", { text: s.dow.toUpperCase() + " " + s.mm + "." + s.dd }), el("span", { text: [s.venue, s.city].filter(Boolean).join(" — ") }), s.few ? el("span", { class: "hot", text: "a few left" }) : null]),
         s.sold ? el("span", { class: "stamp", text: "SOLD OUT" }) : k.ticket(s, "tix", "TIX")]);
-    }) : [el("p", { class: "empty", text: "No gigs right now." })])));
+    }) : [el("p", { class: "empty", text: "No gigs right now." })])); };
 
-  if (video) flyer.append(el("section", { class: "block", "aria-label": say("watch_title") || "Video" }, [say("watch_title") ? el("h2", { class: "h alt", text: say("watch_title") }) : null,
+  S.video = function () { if (!video) return null; return el("section", { class: "block", "aria-label": say("watch_title") || "Video" }, [say("watch_title") ? el("h2", { class: "h alt", text: say("watch_title") }) : null,
     el("a", { class: "vid", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
-    el("span", { text: video.title })]));
+    el("span", { text: video.title })]); };
 
-  if (pod) flyer.append(el("div", { class: "pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
-    el("div", null, [el("b", { text: pod.name }), say("podcast_line") ? el("span", { text: say("podcast_line") }) : null, el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
-
-  if (socials.length) flyer.append(el("div", { class: "socials" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })));
-  if (join) flyer.append(el("section", { class: "join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
+  S.podcast = function () { if (!pod) return null; return el("div", { class: "pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
+    el("div", null, [el("b", { text: pod.name }), say("podcast_line") ? el("span", { text: say("podcast_line") }) : null, el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]); };
+  S.socials = function () { return socials.length ? el("div", { class: "socials" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })) : null; };
+  S.join = function () { return join ? el("section", { class: "join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]) : null; };
+  k.layout(["shows", "video", "podcast", "socials", "join"]).forEach(function (key) { var n = S[key] && S[key](); if (n) flyer.append(n); });
   flyer.append(el("footer", { text: ["© " + new Date().getFullYear() + " " + k.name, "runs on ComicTable", say("footer")].filter(Boolean).join(" · ") }));
   app.append(flyer);
 });

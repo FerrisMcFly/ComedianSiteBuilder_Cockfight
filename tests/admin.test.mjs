@@ -240,10 +240,10 @@ test("profile and theme settings save to the site", async () => {
   assert.equal(db.sites[0].profile.tagline, "The funniest podcast");
   w.location.hash = "theme"; await wait(80);
   assert.match(d.querySelector("h1").textContent, /^Website$/); assert.match(d.querySelector(".tab-panel").textContent, /90s Cantina/);
-  assert.equal(d.querySelector('.page-tabs [aria-selected="true"]').textContent, "Look");
-  const splash = d.querySelector('input[aria-label="Rooster splash screen"]'); splash.checked = false;
-  d.querySelector('select[aria-label="Scrolling banner speed"]').value = "fast";
-  splash.form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(40);
+  assert.equal(d.querySelector('.page-tabs [aria-selected="true"]').textContent, "Design");
+  const splash = d.querySelector('input[aria-label="Rooster splash screen"]'); splash.checked = false; splash.dispatchEvent(new w.Event("change", { bubbles: true }));
+  const speed = d.querySelector('select[aria-label="Scrolling banner speed"]'); speed.value = "fast"; speed.dispatchEvent(new w.Event("change", { bubbles: true }));
+  await wait(1200);
   assert.equal(db.sites[0].theme.splash, false); assert.equal(db.sites[0].theme.banner_speed, "fast"); assert.equal(db.sites[0].theme.music, true);
 });
 
@@ -1123,9 +1123,7 @@ test("Design: look settings and the site's sections; home screen settings live o
   set(w, d.querySelector('textarea[aria-label="Your loading-screen jokes"]'), "One\n\n  Two  \n");
   const rows = () => [...d.querySelectorAll(".order-row")];
   assert.deepEqual(rows().map((r) => r.querySelector("b").textContent), ["Tour Dates", "Clips"]);
-  press(w, rows()[1].querySelector(".drag-grip"), "ArrowUp"); await wait();
-  const form = d.querySelector('textarea[aria-label="Your loading-screen jokes"]').form;
-  form.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
+  press(w, rows()[1].querySelector(".drag-grip"), "ArrowUp"); await wait(1200);
   assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.menu)).map((x) => x.key), ["clips", "shows"]);
   assert.equal(db.sites[0].theme.accent, "#ffb238");
   assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.tip_lines)), ["One", "Two"]);
@@ -1137,6 +1135,31 @@ test("Design: look settings and the site's sections; home screen settings live o
   const sw = hrows[2].querySelector("input[type=checkbox]"); sw.checked = true; sw.dispatchEvent(new w.Event("change"));
   [...d.querySelectorAll("form.card")].find((f) => /Save layout/.test(f.textContent)).dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(60);
   assert.deepEqual(JSON.parse(JSON.stringify(db.sites[0].theme.home)), [{ key: "me", on: true }, { key: "shows", on: true }, { key: "clips", on: true }]);
+});
+
+test("the site editor: template gallery, look, words and sections, saving by itself with Undo, and a live preview", async () => {
+  const spot = JSON.parse(readFileSync(new URL("../sites/spotlight/theme.json", import.meta.url), "utf8"));
+  const { w, d, db } = await open("#website/look", (db) => { db.sites[0].theme = { way: "template", template: "spotlight" }; }, spot);
+  await wait(120);
+  const parts = [...d.querySelectorAll("#siteEditor details.cp-part")];
+  assert.deepEqual(parts.map((p) => p.querySelector(".cp-t b").textContent), ["Template", "Look", "Words", "Sections", "What shows"]);
+  assert.ok(parts[0].open, "Template opens first");
+  const cards = [...d.querySelectorAll("[data-site-template]")];
+  assert.ok(cards.length >= 19, "the whole gallery");
+  assert.equal(d.querySelector('[data-site-template="spotlight"]').getAttribute("aria-pressed"), "true");
+  assert.match(d.querySelector('[data-site-template="punk-flyer"] img').getAttribute("src"), /\/templates\/punk-flyer\.jpg$/);
+  assert.match(d.getElementById("sitePreview").getAttribute("src"), /\/s\/cockfight\/\?preview=1&template=spotlight/);
+  d.querySelector('[data-site-template="punk-flyer"]').click(); await wait(1300);
+  assert.equal(db.sites[0].theme.template, "punk-flyer", "switching template saves by itself");
+  assert.match(d.getElementById("sitePreview").getAttribute("src"), /template=punk-flyer/);
+  set(w, d.querySelector('input[aria-label="Shows heading"]'), "Tour"); await wait(1300);
+  assert.equal(db.sites[0].theme.shows_title, "Tour");
+  assert.ok(d.querySelector('[data-part="sections"] .order-row'), "sections to drag");
+  d.getElementById("siteUndo").click(); await wait(200);
+  assert.notEqual(db.sites[0].theme.shows_title, "Tour", "Undo puts it back");
+  assert.ok(!d.querySelector('select[aria-label="Socials show as"]'), "socials settings follow the Coaster, not here");
+  d.querySelector('[data-device="desktop"]').click();
+  assert.match(d.querySelector(".site-stage").className, /desktop/);
 });
 
 test("Profile: the link preview card updates as you type and saves", async () => {

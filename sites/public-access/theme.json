@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Neon color", "help": "The glow, the frame and the ticket buttons.", "type": "color", "default": "#FF3EA5" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it.", "type": "order", "options": [["shows", "Shows"], ["video", "Video"], ["podcast", "Podcast"], ["socials", "Socials"], ["join", "Sign-up"]] },
     { "type": "heading", "label": "Words on the screen", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
     { "key": "channel", "label": "Channel number", "type": "text", "default": "CH 03" },
     { "key": "osd", "label": "Top-right display", "type": "text", "default": "▶ PLAY" },

@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Accent color", "help": "The date tiles, sparkle and sign-up box.", "type": "color", "default": "#FF5FC8" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it.", "type": "order", "options": [["shows", "Shows"], ["video", "Video"], ["podcast", "Podcast"], ["socials", "Socials"], ["join", "Sign-up"]] },
     { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
     { "key": "status", "label": "Status at the top", "type": "text", "default": "{name} is online" },
     { "key": "now_playing", "label": "Top-right", "type": "text", "default": "♪ now playing" },

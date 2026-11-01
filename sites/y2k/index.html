@@ -66,7 +66,7 @@ img { display: block; max-width: 100%; }
 .ctt-fine { font-size: 13px; } .ctt-fine a { color: #fff; }
 footer { padding: 14px; text-align: center; font-weight: 800; font-size: 13px; color: var(--soft); }
 .ctt-down { padding: 60px 20px; text-align: center; }
-@media (min-width: 900px) { .page { max-width: 1000px; } .join { max-width: 620px; margin: 28px auto; } .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; } }
+@media (min-width: 900px) { .page { max-width: 1000px; } .join { max-width: 620px; margin: 28px auto; } .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 24px; align-items: start; } .cols > .wide { grid-column: 1 / -1; justify-self: center; width: 100%; } }
 </style>
 </head>
 <body>
@@ -92,20 +92,22 @@ CTT.start(function (k, app) {
     k.coaster ? k.coasterPhoto() : k.photo ? el("div", { class: "chromeframe" }, el("img", { src: k.photo, alt: k.name })) : null,
     el("h1", { text: k.name }), k.bio ? el("p", { text: k.bio }) : null]));
 
-  var left = el("div"), right = el("div");
-  if (k.has("shows")) left.append(el("section", { class: "glass", "aria-label": say("shows_title") || "Shows" }, [say("shows_title") ? el("h2", { text: say("shows_title") }) : null].concat(
+  var cols = el("div", { class: "cols" }); page.append(cols);
+  // every section here is the comic's to reorder or hide (Design → Sections)
+  var S = {};
+  S.shows = function () { return (k.has("shows")) ? el("section", { class: "glass", "aria-label": say("shows_title") || "Shows" }, [say("shows_title") ? el("h2", { text: say("shows_title") }) : null].concat(
     shows.length ? shows.map(function (s) {
       return el("div", { class: "show" + (s.sold ? " sold" : "") }, [el("span", { class: "tile" }, [el("span", { text: s.mon.toUpperCase() }), el("b", { text: String(s.day) })]),
         el("span", { class: "w" }, [el("b", { text: s.venue }), el("span", { text: [s.city, s.few ? "a few left!" : ""].filter(Boolean).join(" · ") })]),
         s.sold ? el("span", { class: "gone", text: "sold out" }) : k.ticket(s, "tix", "tix")]);
-    }) : [el("p", { class: "empty", text: "No dates right now." })])));
-  if (video) right.append(el("div", { class: "player" }, [el("a", { class: "screen", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
-    el("div", { class: "cap", text: video.title })]));
-  if (pod) right.append(el("div", { class: "pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
-    el("div", null, [el("b", { text: pod.name }), say("podcast_line") ? el("span", { class: "sub", text: say("podcast_line") }) : null, el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]));
-  if (socials.length) right.append(el("div", { class: "socials" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })));
-  page.append(el("div", { class: "cols" }, [left, right]));
-  if (join) page.append(el("section", { class: "join", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]));
+    }) : [el("p", { class: "empty", text: "No dates right now." })])) : null; };
+  S.video = function () { return (video) ? el("div", { class: "player" }, [el("a", { class: "screen", href: video.link, target: "_blank", rel: "noopener", "aria-label": "Watch " + video.title }, [el("img", { src: video.thumbnail, alt: "", loading: "lazy" }), el("i", { "aria-hidden": "true" })]),
+    el("div", { class: "cap", text: video.title })]) : null; };
+  S.podcast = function () { return (pod) ? el("div", { class: "pod" }, [pod.art ? el("img", { class: "art", src: pod.art, alt: "" }) : el("span", { class: "art", "aria-hidden": "true", text: (pod.name.indexOf(" ") > 0 ? pod.name.split(/\s+/).map(function (w) { return w[0]; }).join("") : pod.name).slice(0, 2).toUpperCase() }),
+    el("div", null, [el("b", { text: pod.name }), say("podcast_line") ? el("span", { class: "sub", text: say("podcast_line") }) : null, el("div", { class: "links" }, pod.links.map(function (l) { return el("a", { href: l.url, target: "_blank", rel: "noopener", text: l.label }); }))])]) : null; };
+  S.socials = function () { return (socials.length) ? el("div", { class: "socials" }, socials.map(function (x) { return el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.label }); })) : null; };
+  S.join = function () { return (join) ? el("section", { class: "join wide", "aria-label": "Mailing list" }, [say("join_title") ? el("h2", { text: say("join_title") }) : null, say("join_line") ? el("p", { text: say("join_line") }) : null, join]) : null; };
+  k.layout(["shows", "video", "podcast", "socials", "join"]).forEach(function (key) { var n = S[key] && S[key](); if (n) cols.append(n); });
   page.append(el("footer", { text: ["Runs on ComicTable", say("footer")].filter(Boolean).join(" ✦ ") }));
   app.append(page);
 });

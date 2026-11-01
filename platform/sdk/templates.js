@@ -60,6 +60,13 @@
         if (!s.tickets) return el("span", { class: (cls || "") + " soon", text: "Soon" });
         return el("a", { class: cls || "", href: s.tickets, target: "_blank", rel: "noopener", text: label || (s.free ? "RSVP" : "Tickets") });
       },
+      // the template's sections in the comic's order (Design → Sections, saved as theme.sections [{ key, on }]).
+      // defaults: the template's own keys in its own order. New sections a template adds later show up at the end.
+      layout: function (defaults) {
+        var saved = Array.isArray(theme.sections) ? theme.sections.filter(function (x) { return x && defaults.indexOf(x.key) >= 0; }) : [];
+        var seen = {}; saved.forEach(function (x) { seen[x.key] = 1; });
+        return saved.filter(function (x) { return x.on !== false; }).map(function (x) { return x.key; }).concat(defaults.filter(function (key) { return !seen[key]; }));
+      },
       coaster: theme.photo_shape === "coaster" && !!me.photo,
       coasterPhoto: function (cls) {
         return el("div", { class: "ct-coaster " + (cls || "") }, [el("div", { class: "ct-coaster-rim" }, [el("img", { src: me.photo, alt: D.site.name })])]);
@@ -108,12 +115,27 @@
     start: function (draw) {
       var app = document.getElementById("app");
       root.CSB.load().then(function (D) {
-        var k = kit(D), t = D.theme || {};
-        document.title = D.site.name + (k.tagline ? " · " + k.tagline : "");
-        if (/^#[0-9a-f]{6}$/i.test(t.accent || "")) document.documentElement.style.setProperty("--accent", t.accent);
-        if (!document.getElementById("ct-coaster-css")) document.head.append(el("style", { id: "ct-coaster-css", text: COASTER_CSS }));
-        app.replaceChildren();
-        draw(k, app);
+        var saved = D.theme || {};
+        var paint = function (theme) {
+          D.theme = theme;
+          var k = kit(D), t = theme || {};
+          document.title = D.site.name + (k.tagline ? " · " + k.tagline : "");
+          document.documentElement.style.removeProperty("--accent");
+          if (/^#[0-9a-f]{6}$/i.test(t.accent || "")) document.documentElement.style.setProperty("--accent", t.accent);
+          if (!document.getElementById("ct-coaster-css")) document.head.append(el("style", { id: "ct-coaster-css", text: COASTER_CSS }));
+          app.replaceChildren();
+          draw(k, app);
+        };
+        paint(saved);
+        // The site editor (dashboard → Design) shows this page in a frame with ?preview=1 and sends unsaved changes,
+        // so the comic sees every edit live. Only the dashboard on this same address can do that, and only for show.
+        if (/[?&]preview=1/.test(location.search) && root.parent !== root) {
+          root.addEventListener("message", function (e) {
+            if (e.origin !== location.origin || !e.data || e.data.type !== "ct-site-preview" || typeof e.data.theme !== "object") return;
+            var y = root.scrollY; paint(e.data.theme); root.scrollTo(0, y);
+          });
+          root.parent.postMessage({ type: "ct-site-preview-ready" }, location.origin);
+        }
       }, function (e) {
         app.replaceChildren(el("p", { class: "ctt-down", text: "Couldn't load right now. Refresh to try again." }));
         if (root.console) console.warn(e);

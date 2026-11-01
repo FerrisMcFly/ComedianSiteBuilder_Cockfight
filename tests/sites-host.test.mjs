@@ -54,6 +54,9 @@ test("comictable.com/s/<id>/ shows a site before it has an address, on previews 
   assert.deepEqual(await go("https://deploy-preview-36--comictable.netlify.app/s/rita-ramos/"), { rewrite: "/designs/starter.html" });
   assert.match((await go("https://comictable.com/s/rita-ramos/config.js")).body, /rita-ramos/);
   assert.deepEqual(await go("https://comictable.com/s/rita-ramos/sdk/csb.js"), { rewrite: "/sdk/csb.js" });
+  assert.deepEqual(await go("https://comictable.com/s/rita-ramos/?preview=1&template=punk-flyer"), { rewrite: "/designs/punk-flyer.html" }, "the editor previews another template");
+  assert.deepEqual(await go("https://comictable.com/s/rita-ramos/?template=punk-flyer"), { rewrite: "/designs/starter.html" }, "only in preview");
+  assert.deepEqual(await go("https://comictable.com/s/rita-ramos/?preview=1&template=nope"), { rewrite: "/designs/starter.html" });
 });
 
 test("comictable.com's own pages pass straight through; unknown addresses say so", async () => {

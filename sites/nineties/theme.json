@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Pop color", "help": "The ticket buttons and the block behind your photo.", "type": "color", "default": "#FF4F9A" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it.", "type": "order", "options": [["shows", "Shows"], ["video", "Video"], ["podcast", "Podcast"], ["socials", "Socials"], ["join", "Fan sign-up"]] },
     { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
     { "key": "shows_title", "label": "Shows heading", "type": "text", "default": "Catch the show!" },
     { "key": "video_title", "label": "Video heading", "type": "text", "default": "Previously on…" },

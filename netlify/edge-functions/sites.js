@@ -63,7 +63,10 @@ export default async (req, context) => {
   if (path === "/robots.txt") return new Response("User-agent: *\nAllow: /\n", { headers: { "content-type": "text/plain" } });
   if (path !== "/" && path !== "/index.html") return page(404, "Page not found", "Try the home page.");
   // the design page itself is a plain file on this project; hand it over without fetching
-  return new URL("/designs/" + designsFor(site)[0] + ".html", req.url);
+  // the site editor previews another template before the comic switches: /s/<id>/?preview=1&template=<template>
+  const q = new URL(req.url).searchParams, trying = q.get("preview") === "1" ? q.get("template") : null;
+  const design = trying && DESIGNS.includes(trying) ? trying : designsFor(site)[0];
+  return new URL("/designs/" + design + ".html", req.url);
 };
 
 // comictable.com's own files skip this entirely

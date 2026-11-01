@@ -4,6 +4,7 @@
   "settings": [
     { "key": "accent", "label": "Accent color", "help": "The Top Shows and sign-up headers.", "type": "color", "default": "#F26522" },
     { "key": "photo_shape", "label": "Your photo", "type": "select", "options": [["square", "This template's shape"], ["coaster", "Round, like your Coaster"]], "default": "square" },
+    { "key": "sections", "label": "Sections", "help": "Drag to reorder. Switch one off to hide it.", "type": "order", "options": [["podcast", "Profile song (podcast)"], ["socials", "Contact links"], ["shows", "Top shows"], ["video", "Videos"], ["join", "Fan sign-up"]] },
     { "type": "heading", "label": "Words on the page", "help": "Retype any of these, or clear one to take it off the page. {name} fills in your name." },
     { "key": "mood", "label": "Mood", "type": "text", "default": "ready to perform" },
     { "key": "online", "label": "Online status", "type": "text", "default": "Online Now!" },
