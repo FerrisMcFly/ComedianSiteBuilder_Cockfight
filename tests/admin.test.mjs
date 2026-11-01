@@ -749,6 +749,32 @@ test("a comic's Fans: everyone on their list, by where they joined, searchable",
   assert.match(d.querySelector("main .drow").textContent, /met at The Stand/);
 });
 
+test("a comic's Fans: where they are (top cities, by count) and who lives near each upcoming show", async () => {
+  const soon = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
+  const { d } = await open("#ct/fans", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+    db.venues.find((v) => v.id === "v1").lat = 42.35; db.venues.find((v) => v.id === "v1").lng = -71.06;
+    db.shows.push({ id: "sn1", comic_id: "solo-sam", date: soon, venue: "Laugh Boston", venue_id: "v1", city: "Boston, MA" });
+    db.comic_fans = [
+      { comic_id: "solo-sam", name: "Rae", email: "rae@x.com", city: "Boston", state: "MA", lat: 42.36, lng: -71.05, created_at: "2026-10-01" },
+      { comic_id: "solo-sam", name: "Kim", email: "kim@x.com", city: "Boston", state: "MA", lat: 42.36, lng: -71.05, created_at: "2026-10-03" },
+      { comic_id: "solo-sam", name: "Al", email: "al@x.com", city: "Cambridge", state: "MA", lat: 42.37, lng: -71.11, created_at: "2026-10-04" },
+      { comic_id: "solo-sam", name: "Dee", email: "dee@x.com", city: "Denver", state: "CO", lat: 39.74, lng: -104.99, created_at: "2026-10-05" },
+      { comic_id: "solo-sam", name: "Jo", email: "jo@x.com", created_at: "2025-01-01" }];
+  });
+  await wait(200);
+  const where = d.querySelector("main #fansWhere");
+  assert.ok(where, "Where they are");
+  assert.deepEqual([...where.querySelectorAll(".fc-name")].map((x) => x.textContent), ["Boston, MA", "Cambridge, MA", "Denver, CO"], "most fans first");
+  assert.equal(where.querySelector(".fan-cities b").textContent, "2");
+  assert.match(where.textContent, /1 signed up before ZIP codes/);
+  const near = d.querySelector("main #fansNear");
+  assert.match(near.textContent, /Laugh Boston/);
+  assert.match(near.textContent, /3 fans nearby/, "Boston and Cambridge are within 50 miles; Denver isn't");
+  assert.ok([...near.querySelectorAll("button")].some((b) => b.textContent === "Download them"));
+});
+
 test("My Coaster: four parts, one open at a time; the page around the coaster and the QR code are the comic's choice, and it saves by itself", async () => {
   const { w, d, db } = await open("#ct/me", (db) => {
     db.platform_admins = []; db.admins = [];

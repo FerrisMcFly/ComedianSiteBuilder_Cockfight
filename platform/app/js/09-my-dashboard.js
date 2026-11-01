@@ -86,7 +86,7 @@
     main.append(head("Fans", "Everyone on your list, from your Coaster, your sites and the lineups you've been on."));
     const card = h("section", { class: "card" }, h("p", { class: "hint", text: "Loading…" })); main.append(card);
     let rows;
-    try { rows = await q(sb.from("comic_fans").select("name,email,zip,city,state,met_at,source,site_id,created_at").eq("comic_id", me.id).order("created_at", { ascending: false }).limit(10000)); }
+    try { rows = await q(sb.from("comic_fans").select("name,email,zip,city,state,lat,lng,met_at,source,site_id,created_at").eq("comic_id", me.id).order("created_at", { ascending: false }).limit(10000)); }
     catch (e) { card.replaceChildren(h("p", { class: "err", text: /comic_fans/.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) })); return; }
     if (!rows.length) { card.replaceChildren(empty("No fans yet", "Fans who join on your Coaster or any of your sites show up here.")); return; }
     const where = [...new Set(rows.map((r) => r.site_id).filter(Boolean))];
@@ -108,8 +108,67 @@
     const csv = () => { const s = shown(), esc = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
       const blob = new Blob([["Name", "Email", "ZIP", "City", "State", "Where we met", "Joined on", "Date"].join(",") + "\n" + s.map((r) => [r.name, r.email, r.zip, r.city, r.state, r.met_at, r.site_id ? siteName(r.site_id) : "Coaster", String(r.created_at).slice(0, 10)].map(esc).join(",")).join("\n")], { type: "text/csv" });
       const a = h("a", { href: URL.createObjectURL(blob), download: (me.handle || me.id) + "-fans.csv" }); document.body.append(a); a.click(); a.remove(); };
-    card.replaceChildren(h("div", { class: "toolbar" }, search, h("button", { class: "btn sm", type: "button", text: "Download", onclick: csv })), chips, count, list);
+    card.replaceChildren(h("h2", { text: "Everyone" }), h("div", { class: "toolbar" }, search, h("button", { class: "btn sm", type: "button", text: "Download", onclick: csv })), chips, count, list);
     drawChips(); draw();
+    main.insertBefore(fansWhere(rows), card);
+    main.insertBefore(fansNearShows(me, rows, (list, name) => downloadFans(list, name, siteName)), card);
+  }
+  const fanMiles = (a, b, c, d) => { const r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2; return 7918 * Math.asin(Math.sqrt(x)); };
+  function downloadFans(list, name, siteName) {
+    const esc = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+    const blob = new Blob([["Name", "Email", "ZIP", "City", "State", "Joined on", "Date"].join(",") + "\n" + list.map((r) => [r.name, r.email, r.zip, r.city, r.state, r.site_id ? siteName(r.site_id) : "Coaster", String(r.created_at).slice(0, 10)].map(esc).join(",")).join("\n")], { type: "text/csv" });
+    const a = h("a", { href: URL.createObjectURL(blob), download: name + ".csv" }); document.body.append(a); a.click(); a.remove();
+  }
+  // Where fans are: top cities, and a map of them (city dots, never a person's exact spot)
+  function fansWhere(rows) {
+    const byCity = new Map();
+    rows.forEach((r) => { const k = [r.city, r.state].filter(Boolean).join(", "); if (!k) return; const c = byCity.get(k) || { name: k, n: 0, lat: r.lat, lng: r.lng }; c.n++; if (c.lat == null && r.lat != null) { c.lat = r.lat; c.lng = r.lng; } byCity.set(k, c); });
+    const cities = [...byCity.values()].sort((a, b) => b.n - a.n);
+    const known = rows.filter((r) => r.city || r.state).length;
+    const top = cities.slice(0, 8), most = top.length ? top[0].n : 1;
+    const map = h("div", { class: "fan-map", id: "fanMap", role: "img", "aria-label": "Map of where your fans are" });
+    const card = h("section", { class: "card stack", id: "fansWhere" }, h("div", { class: "card-head" }, h("h2", { text: "Where they are" }), h("span", { class: "hint", text: cities.length + (cities.length === 1 ? " city" : " cities") })),
+      top.length ? h("div", { class: "fan-where" },
+        h("ol", { class: "fan-cities" }, top.map((c) => h("li", null, h("span", { class: "fc-name", text: c.name }), h("span", { class: "fc-bar", "aria-hidden": "true" }, h("i", { style: "width:" + Math.max(4, Math.round(c.n / most * 100)) + "%" })), h("b", { text: c.n.toLocaleString() })))),
+        map) : h("p", { class: "hint", style: "margin:0", text: "As fans sign up with their ZIP code, their cities show up here." }),
+      known < rows.length ? h("p", { class: "hint", style: "margin:0", text: (rows.length - known) + " signed up before ZIP codes were asked for, so their city isn't known." }) : null);
+    const dots = cities.filter((c) => c.lat != null);
+    if (dots.length) loadMap(map, dots);
+    return card;
+  }
+  // Leaflet (cdnjs) and a dark map (CARTO, OpenStreetMap), loaded only when there's something to show
+  function loadMap(box, dots) {
+    const go = () => {
+      if (!window.L || !box.isConnected) return;
+      const m = L.map(box, { scrollWheelZoom: false, attributionControl: true });
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 12, attribution: "© OpenStreetMap contributors © CARTO" }).addTo(m);
+      const pts = dots.map((c) => { L.circleMarker([c.lat, c.lng], { radius: 4 + Math.sqrt(c.n) * 3, color: "#E66A4B", weight: 1, fillColor: "#E66A4B", fillOpacity: .55 }).bindTooltip(c.name + ": " + c.n).addTo(m); return [c.lat, c.lng]; });
+      if (pts.length === 1) m.setView(pts[0], 8); else m.fitBounds(pts, { padding: [24, 24], maxZoom: 9 });
+    };
+    if (window.L) return setTimeout(go, 0);
+    if (!document.getElementById("leafletCss")) document.head.append(h("link", { id: "leafletCss", rel: "stylesheet", href: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" }));
+    const sc = h("script", { src: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" }); sc.addEventListener("load", () => setTimeout(go, 0)); document.head.append(sc);
+  }
+  // Fans near each upcoming show: within 50 miles of the club, with their emails one tap away
+  function fansNearShows(me, rows, download) {
+    const card = h("section", { class: "card stack", id: "fansNear" }, h("div", { class: "card-head" }, h("h2", { text: "Near your next shows" }), h("span", { class: "hint", text: "Within 50 miles" })), h("p", { class: "hint", text: "Loading…" }));
+    (async () => {
+      let dates = [];
+      try { dates = (await q(sb.rpc("comic_shows", { p_comic: me.id }))).filter((d) => d.date >= today()).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6); } catch (e) {}
+      const vids = [...new Set(dates.map((d) => d.venue_id).filter(Boolean))];
+      let vs = [];
+      try { if (vids.length) vs = await q(sb.from("venues").select("id,lat,lng,city,state").in("id", vids)); } catch (e) {}
+      const at = {}; vs.forEach((v) => { at[v.id] = v; });
+      const located = rows.filter((r) => r.lat != null);
+      const lines = dates.map((d) => {
+        const v = at[d.venue_id];
+        const near = v && v.lat != null ? located.filter((r) => fanMiles(v.lat, v.lng, r.lat, r.lng) <= 50) : null;
+        return h("div", { class: "drow" }, dateTile(d.date), h("span", { class: "drow-main" }, h("b", { text: d.venue || d.city || "Show" }), h("span", { text: [d.city, near ? near.length + " fan" + (near.length === 1 ? "" : "s") + " nearby" : "Pick the club from the list on Shows to see who's nearby"].filter(Boolean).join(" · ") })),
+          near && near.length ? h("button", { class: "btn sm", type: "button", text: "Download them", onclick: () => download(near, (me.handle || me.id) + "-fans-near-" + slug(d.venue || d.city || "show") + "-" + d.date) }) : null);
+      });
+      card.replaceChildren(card.firstChild, lines.length ? h("div", { class: "drows" }, lines) : h("p", { class: "hint", style: "margin:0", text: "No shows coming up. Add one and you'll see who lives nearby." }));
+    })();
+    return card;
   }
 
   // A comic's Podcast / YouTube (Coaster): their own channel, which Shorts show, and the whole-show podcast player.

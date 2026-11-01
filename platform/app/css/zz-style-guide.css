@@ -303,3 +303,14 @@ span.lrow-av { font-size: 14px; }
 @media (max-width: 1100px) { .site-ed { grid-template-columns: 1fr; } .site-stage.phone .site-screen { height: 560px; } }
 .site-ed-name { padding: 0 4px; }
 .site-ed .switch-row { flex-wrap: wrap; } .site-ed .switch-row > input:not([type]) { max-width: none !important; flex: 1 1 260px; }
+
+/* ---------- Fans: where they are ---------- */
+.fan-where { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 22px; align-items: start; }
+.fan-cities { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fan-cities li { display: grid; grid-template-columns: minmax(0, 9em) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 14px; }
+.fc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-bar { height: 8px; border-radius: 999px; background: var(--raised); overflow: hidden; }
+.fc-bar i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.fan-map { height: 300px; border-radius: 14px; background: var(--raised); overflow: hidden; z-index: 0; }
+@media (max-width: 800px) { .fan-where { grid-template-columns: 1fr; } }
+#fansWhere, #fansNear { margin-bottom: 18px; }
