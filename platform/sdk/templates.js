@@ -110,8 +110,26 @@
     "background-image:radial-gradient(rgba(120,95,60,.18) 1px,transparent 1.6px),radial-gradient(rgba(255,255,255,.5) 1px,transparent 1.6px);background-size:7px 7px,11px 11px;" +
     "box-shadow:inset 0 0 0 3px rgba(120,95,60,.18),inset 0 0 0 calc(7% - 6px) #EFE6D2,inset 0 0 0 calc(7% - 4px) rgba(120,95,60,.35)}" +
     ".ct-coaster img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}";
+  // A comic's name never breaks mid-word ("DANIE / L BRIDG / E-"): words stay whole and wrap only at spaces and
+  // hyphens, and a heading whose longest word is too wide for its box shrinks until it fits. Every template's h1 gets
+  // this; one that sizes its own name (Punk Flyer's .name) is left alone. Only a name too long even at 40% size breaks.
+  var FIT_CSS = "#app h1:not(.name){overflow-wrap:normal;word-break:normal}#app h1.ct-fit-last{overflow-wrap:anywhere}";
+  function fitNames(app) {
+    [].forEach.call(app.querySelectorAll("h1:not(.name)"), function (h) {
+      h.style.fontSize = ""; h.classList.remove("ct-fit-last");
+      if (!h.clientWidth) return;
+      // the room it has: its own box, or its parent's content box when the heading grows with its text (flex, inline-block)
+      var par = h.parentElement, ps = par ? getComputedStyle(par) : null;
+      var parentRoom = par ? par.clientWidth - parseFloat(ps.paddingLeft) - parseFloat(ps.paddingRight) : Infinity;
+      var tooWide = function () { return h.scrollWidth > Math.min(h.clientWidth, parentRoom) + 1; };
+      var full = parseFloat(getComputedStyle(h).fontSize) || 0, size = full;
+      while (tooWide() && size > full * 0.4) { size = Math.floor(size * 0.94); h.style.fontSize = size + "px"; }
+      if (tooWide()) h.classList.add("ct-fit-last");
+    });
+  }
   root.CTT = {
     kit: kit,
+    fitNames: fitNames,
     start: function (draw) {
       var app = document.getElementById("app");
       root.CSB.load().then(function (D) {
@@ -123,10 +141,15 @@
           document.documentElement.style.removeProperty("--accent");
           if (/^#[0-9a-f]{6}$/i.test(t.accent || "")) document.documentElement.style.setProperty("--accent", t.accent);
           if (!document.getElementById("ct-coaster-css")) document.head.append(el("style", { id: "ct-coaster-css", text: COASTER_CSS }));
+          if (!document.getElementById("ct-fit-css")) document.head.append(el("style", { id: "ct-fit-css", text: FIT_CSS }));
           app.replaceChildren();
           draw(k, app);
+          fitNames(app);
+          if (root.requestAnimationFrame) requestAnimationFrame(function () { fitNames(app); });
         };
         paint(saved);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fitNames(app); });
+        var resized; root.addEventListener("resize", function () { clearTimeout(resized); resized = setTimeout(function () { fitNames(app); }, 100); });
         // The site editor (dashboard → Design) shows this page in a frame with ?preview=1 and sends unsaved changes,
         // so the comic sees every edit live. Only the dashboard on this same address can do that, and only for show.
         if (/[?&]preview=1/.test(location.search) && root.parent !== root) {

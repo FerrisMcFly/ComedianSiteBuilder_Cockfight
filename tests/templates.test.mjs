@@ -92,3 +92,10 @@ for (const tpl of TEMPLATES) {
     assert.equal(await order("video"), false, "video first");
   });
 }
+
+test("a comic's name never breaks mid-word: the kit keeps words whole and shrinks a name that's too wide", () => {
+  const kit = readFileSync(new URL("../platform/sdk/templates.js", import.meta.url), "utf8");
+  assert.match(kit, /#app h1:not\(\.name\)\{overflow-wrap:normal;word-break:normal\}/);
+  assert.match(kit, /draw\(k, app\);\s*fitNames\(app\);/);
+  assert.match(kit, /fonts\.ready\.then\(function \(\) \{ fitNames\(app\); \}\)/);
+});
