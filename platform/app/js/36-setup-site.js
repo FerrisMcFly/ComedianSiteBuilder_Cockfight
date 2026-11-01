@@ -46,8 +46,8 @@
     return [h("div", { class: "su-ways" }, (extra || []).concat(SITE_WAYS).map(([k, l, line]) => h("button", { class: "su-way", type: "button", "data-way": k, "aria-pressed": String(st.way === k), onclick: () => { st.way = k; redraw(); } },
         h("b", { text: l }), h("span", { text: line })))),
       st.way === "template" ? h("div", null, h("b", { text: "Template" }),
-        h("div", { class: "su-ways", style: "margin-top:8px" }, SITE_TEMPLATES.map(([k, l, line]) => h("button", { class: "su-way", type: "button", "data-site-template": k, "aria-pressed": String(st.template === k), onclick: () => { st.template = k; redraw(); } },
-          h("b", { text: l }), h("span", { text: line }))))) : null];
+        h("div", { class: "tpl-gallery", style: "margin-top:8px" }, SITE_TEMPLATES.map(([k, l, line]) => h("button", { class: "tpl-card", type: "button", "data-site-template": k, "aria-pressed": String(st.template === k), onclick: () => { st.template = k; redraw(); } },
+          h("img", { src: PRESS_HOST + "/templates/" + k + ".jpg", alt: "", loading: "lazy" }), h("b", { text: l }), h("small", { text: line }))))) : null];
   }
   // makes the site and puts the comics on its lineup. ownerComic: a solo comic's own site, so their invite makes them its Owner.
   async function makeSite(st, comics, ownerComic) {
