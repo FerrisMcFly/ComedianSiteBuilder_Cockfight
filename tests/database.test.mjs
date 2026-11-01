@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "27_invites.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "27_invites.sql", "99_rules.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "27_invites.sql", "28_ticket_taps.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "27_invites.sql", "28_ticket_taps.sql", "99_rules.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -537,6 +537,23 @@ test("invite links: a site's owner can invite an unclaimed comic on their site; 
   await q(`update comics set user_id = '${OTHER}' where id = 'nia-new'`);
   assert.match(await as(SITE, `insert into invites (comic_id, site_id) values ('nia-new', 'cockfight')`), /row-level security|violates/, "a claimed Coaster can't be invited again");
   await q(`delete from invites where comic_id = 'nia-new'`); await q(`delete from hosts where id = 'cockfight-nia'`); await q(`delete from comics where id = 'nia-new'`);
+});
+
+test("ticket taps: counted by the go function, readable only as counts, only for shows you can see", async () => {
+  const TAMI = "77777777-7777-7777-7777-777777777781", STRANGER = "77777777-7777-7777-7777-777777777782";
+  await q(`insert into auth.users values ('${TAMI}', 'tami@x'), ('${STRANGER}', 'x@x') on conflict do nothing`);
+  await q(`insert into comics (id, name, user_id) values ('tami-taps', 'Tami Taps', '${TAMI}') on conflict do nothing`);
+  const show = (await q(`insert into shows (comic_id, date, venue, city, url) values ('tami-taps', current_date + 3, 'The Stand', 'New York, NY', 'https://t/1') returning id`))[0].id;
+  await q(`insert into ticket_taps (show_id, comic_id, source) values ('${show}', 'tami-taps', 'coaster'), ('${show}', 'tami-taps', 'site')`);
+  await q(`insert into ticket_taps (show_id, comic_id, source, created_at) values ('${show}', 'tami-taps', 'site', now() - interval '20 days')`);
+  const mine = await rows(TAMI, `select * from ticket_tap_counts(array['${show}']::uuid[])`);
+  assert.deepEqual(mine.map((r) => [Number(r.taps), Number(r.week)]), [[3, 2]]);
+  assert.equal(Number((await rows(TAMI, `select ticket_taps_30d('tami-taps') as n`))[0].n), 3);
+  assert.deepEqual(await rows(STRANGER, `select * from ticket_tap_counts(array['${show}']::uuid[])`), [], "nobody else sees her numbers");
+  assert.equal(Number((await rows(STRANGER, `select ticket_taps_30d('tami-taps') as n`))[0].n), 0);
+  assert.match(await as(TAMI, `select * from ticket_taps`), /permission denied/, "the rows themselves stay private");
+  assert.match(await as(null, `insert into ticket_taps (show_id) values ('${show}')`), /permission denied/, "nobody adds taps from outside");
+  await q(`delete from shows where id = '${show}'`); await q(`delete from comics where id = 'tami-taps'`);
 });
 
 test("Coaster teams: the comic and their team change the Coaster; a site's team only looks after Coasters nobody has claimed", async () => {

@@ -58,6 +58,7 @@ function makeDb() {
       : name === "comic_shows" ? { data: JSON.parse(JSON.stringify(db.shows.filter((x) => x.date >= fri.slice(0, 4) + "-01-03").filter((x) => x.comic_id === args.p_comic || (x.host && (db.hosts.find((h) => h.id === x.host) || {}).comic_id === args.p_comic)).map((x) => ({ ...x, site_name: "Cockfight", event: false })))), error: null }
       : name === "fans_near_shows" ? { data: db.shows.filter((x) => x.date >= fri).map((x) => ({ show_id: x.id, fans: (db.fans || []).length })), error: null }
       : name === "fans_near_show" ? { data: JSON.parse(JSON.stringify(db.fans || [])), error: null }
+      : name === "ticket_tap_counts" ? { data: db.tapsOn ? (args.p_shows || []).map((id) => ({ show_id: id, taps: 12, week: 3 })) : [], error: null }
       : name === "create_site" ? (db.sites.push({ id: args.p_id, name: args.p_name, domain: args.p_domain, features: {}, created_at: "2026-10-27" }), db.admins.push({ user_id: "u1", site_id: args.p_id, role: "owner" }), { data: null, error: null })
       : name === "venue_slots" && args.v === "v1" ? { data: [{ dow: 5, show_time: "7:30 PM", uses: 3 }, { dow: 5, show_time: "10:00 PM", uses: 2 }], error: null } : { data: [], error: null },
     from, storage: { from: (bucket) => ({ upload: async (path) => { (db.uploads = db.uploads || []).push(bucket + "/" + path); return { error: null }; }, remove: async (paths) => { (db.removed = db.removed || []).push(...paths); return { error: null }; }, getPublicUrl: (path) => ({ data: { publicUrl: "https://s/storage/v1/object/public/" + bucket + "/" + path } }) }) } };
@@ -597,9 +598,11 @@ test("a comic with their own login gets Coaster and Dates in the sidebar: one Co
   card.querySelector("textarea").value = "Lev's own words";
   card.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait(80);
   assert.equal(db.comics.find((c) => c.id === "lev-fer").bio, "Lev's own words");
+  db.tapsOn = true;
   w.location.hash = "#ct/dates"; await wait(100);
   main = d.querySelector("main");
   assert.match(main.textContent, /Shows.*Comedy Cellar.*everywhere/s);
+  assert.match(main.textContent, /12 ticket taps/, "how many tapped Tickets, per show");
   // nobody without a comic login sees Coaster or Dates
   const other = await open("");
   assert.ok(![...other.d.querySelectorAll(".nav-btn")].some((b) => /Dates$/.test(b.textContent.trim())));

@@ -96,6 +96,9 @@
         vs.filter((v) => v.lat != null).forEach((v) => { near[v.id] = fs.filter((f) => mi(v.lat, v.lng, f.lat, f.lng) <= 50).length; });
       }
     } catch (e) {}
+    // Tickets taps per show (comictable.com/go counts them; 28_ticket_taps.sql). Quietly nothing before the upgrade.
+    const taps = {};
+    try { (await q(sb.rpc("ticket_tap_counts", { p_shows: dates.map((d) => d.id) }))).forEach((t) => (taps[t.show_id] = t)); } catch (e) {}
     // where each date shows: everywhere (their own), or a group's live show on that site
     const sites = [...new Map(dates.filter((d) => d.event && d.site_id).map((d) => [d.site_id, d.site_name])).entries()];
     let pick = "";
@@ -107,6 +110,7 @@
         h("span", { class: "drow-main" }, h("b", { text: d.venue || d.city || "Show" }),
           h("span", { text: [d.city, DOW[parseISO(d.date).getDay()] + (d.time ? " " + d.time : ""), d.event ? d.site_name + " live show" : "everywhere"].filter(Boolean).join(" · ") })),
         d.venue_id && near[d.venue_id] != null ? h("span", { class: "near", text: near[d.venue_id] + " fan" + (near[d.venue_id] === 1 ? "" : "s") + " nearby" }) : null,
+        taps[d.id] ? h("span", { class: "near taps", title: taps[d.id].week + " in the last 7 days", text: Number(taps[d.id].taps).toLocaleString() + " ticket tap" + (Number(taps[d.id].taps) === 1 ? "" : "s") }) : null,
         statusPill(d),
         h("span", { class: "btns" }, d.url ? h("a", { class: "btn sm ghost", href: d.url, target: "_blank", rel: "noopener", text: "Tickets ↗" }) : null,
           mine ? h("button", { class: "btn sm", type: "button", text: "Edit", onclick: () => { const open = r.nextElementSibling && r.nextElementSibling.matches("form.newclub"); if (open) r.nextElementSibling.remove(); else r.after(coasterDateForm(me, d)); } })

@@ -57,6 +57,8 @@
     const next = shows[0];
     hello.textContent = next ? "Next up: " + (next.venue || next.city) + ", " + relDay(next.date) + (next.time ? " at " + next.time : "") + "." : "No shows on the books yet. Add one and it's everywhere at once.";
     nums.append(numCard("shows", shows.length, "Upcoming shows", true, () => goCT("dates")));
+    // Tickets taps in the last 30 days (comictable.com/go); left off until there's at least one
+    q(sb.rpc("ticket_taps_30d", { p_comic: me.id })).then((n) => { n = Number(n) || 0; if (n) nums.insertBefore(numCard("shows", n.toLocaleString(), "Ticket taps, last 30 days", true, () => goCT("dates")), nums.children[1] || null); }, () => {});
     if (fans) {
       const month = fans.filter((f) => Date.now() - Date.parse(f.created_at) < 30 * 864e5).length;
       nums.append(numCard("fans", fans.length.toLocaleString(), "Fans on your list", false, () => goCT("fans")));

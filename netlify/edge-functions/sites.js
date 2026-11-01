@@ -30,7 +30,8 @@ export function designsFor(site) {
   return [...new Set(list)];
 }
 
-export const configFor = (site, cfg) => "window.COMICTABLE_CONFIG = " + JSON.stringify({ SITE_ID: site.id, SITE_NAME: site.name, LOGIN_DOMAIN: cfg.LOGIN_DOMAIN || "comictable.com", SUPABASE_URL: cfg.SUPABASE_URL, SUPABASE_ANON_KEY: cfg.SUPABASE_ANON_KEY }, null, 2) + ";\n";
+// GO_URL: where Tickets taps are counted (comictable.com/go). On comictable.com or a preview, that same address.
+export const configFor = (site, cfg, origin) => "window.COMICTABLE_CONFIG = " + JSON.stringify({ SITE_ID: site.id, SITE_NAME: site.name, LOGIN_DOMAIN: cfg.LOGIN_DOMAIN || "comictable.com", SUPABASE_URL: cfg.SUPABASE_URL, SUPABASE_ANON_KEY: cfg.SUPABASE_ANON_KEY, GO_URL: origin || "https://comictable.com" }, null, 2) + ";\n";
 
 const page = (status, title, line) => new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${title}</title>
 <style>body{margin:0;min-height:100vh;display:grid;place-content:center;gap:8px;padding:24px;text-align:center;background:#13100E;color:#F3EAD7;font:16px/1.5 system-ui,sans-serif}h1{margin:0;font:900 34px/1 system-ui,sans-serif;text-transform:uppercase}p{margin:0;color:#A89F92}a{color:#E66A4B}</style></head>
@@ -56,7 +57,8 @@ export default async (req, context) => {
   try { site = await lookup(r.by, r.key); } catch (e) { console.log("sites: lookup failed", r.by, r.key, String(e && e.message || e)); return page(503, "Back in a minute", "This site couldn't load. Try again shortly."); }
   if (!site) return page(404, "Nothing here yet", r.by === "domain" ? "This address isn't set up on ComicTable yet." : "There's no site with that name.");
   const path = r.path.replace(/^\/?/, "/");
-  if (path === "/config.js") return new Response(configFor(site, platformCfg), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=0, must-revalidate", "netlify-cdn-cache-control": "public, max-age=60" } });
+  const own = new URL(req.url), goOrigin = r.by === "id" ? own.origin : "https://comictable.com";
+  if (path === "/config.js") return new Response(configFor(site, platformCfg, goOrigin), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=0, must-revalidate", "netlify-cdn-cache-control": "public, max-age=60" } });
   if (path.startsWith("/sdk/")) return new URL(path, req.url);
   if (path === "/join" || path.startsWith("/join/")) return new URL("/join.html", req.url);
   if (path === "/admin" || path === "/admin.html" || path === "/login" || path === "/dashboard") return Response.redirect("https://comictable.com/login", 302);

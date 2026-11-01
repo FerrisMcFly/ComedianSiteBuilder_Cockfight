@@ -27,6 +27,10 @@ export const sitesHostModule = () => "// Made by tools/build.mjs from platform/p
   "export const DESIGNS = " + JSON.stringify(readdirSync(join(root, "sites")).filter((d) => existsSync(join(root, "sites", d, "index.html"))).map((d) => d === "_starter" ? "starter" : d).sort()) + ";\n";
 if (!process.env.VITEST && !process.env.NO_COASTER_SYNC) writeFileSync(join(root, "netlify", "lib", "sites-host.mjs"), sitesHostModule());
 const logins = { LOGIN_DOMAIN: platform.login_domain || "comictable.com" };
+// Where Tickets taps are counted (comictable.com/go): the live site in production, the preview on a deploy preview,
+// nothing on a computer (links go straight to the ticket page).
+const GO_URL = process.env.CONTEXT === "production" ? (platform.site_url || "https://comictable.com") : process.env.CONTEXT === "deploy-preview" && process.env.DEPLOY_PRIME_URL && id === "platform" ? process.env.DEPLOY_PRIME_URL : "";
+const go = GO_URL ? { GO_URL } : {};
 const db = { SUPABASE_URL: platform.supabase_url, SUPABASE_ANON_KEY: platform.supabase_anon_key };
 
 rmSync(out, { recursive: true, force: true });
@@ -51,12 +55,12 @@ if (id === "platform") {
   for (const s of sites) cpSync(join(root, "sites", s, "index.html"), join(out, "designs", (s === "_starter" ? "starter" : s) + ".html"));
 
   // comictable.com/embed.js: the data kit plus small widgets, for comics who keep their own site
-  writeFileSync(join(out, "embed.js"), "/* ComicTable embed. See https://comictable.com */\n(function () {\nvar EMBED_CFG = " + JSON.stringify(db) + ";\n" +
+  writeFileSync(join(out, "embed.js"), "/* ComicTable embed. See https://comictable.com */\n(function () {\nvar EMBED_CFG = " + JSON.stringify({ ...db, ...go, SOURCE: "embed" }) + ";\n" +
     readFileSync(join(root, "platform", "sdk", "csb.js"), "utf8") + "\n" + readFileSync(join(root, "platform", "embed", "widgets.js"), "utf8") + "\n})();\n");
   writeFileSync(join(out, "_headers"), ["/app.html", "/login", "/dashboard"].map((p) => p + "\n  X-Robots-Tag: noindex, nofollow\n").join("") +
     "/embed.js\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=300\n");
   // comictable.com/join/<site>: the QR-code fan sign-up, for any comic (their own domain has /join too)
-  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/press/*  /press.html  200", "/admin  /login  301", "/admin.html  /login  301", "/join/*  /join.html  200", "/privacy  /privacy.html  200", "/invite/*  /invite.html  200",
+  writeFileSync(join(out, "_redirects"), ["/login  /app.html  200", "/dashboard  /app.html  200", "/press/*  /press.html  200", "/admin  /login  301", "/admin.html  /login  301", "/join/*  /join.html  200", "/privacy  /privacy.html  200", "/invite/*  /invite.html  200", "/go/*  /.netlify/functions/go  200",
     // comictable.com/<comic>: their Coaster. Last, so every real page and rule above wins.
     "/:comic  /.netlify/functions/coaster  200"].join("\n") + "\n");
   console.log(`Built the ComicTable admin into ${out} (${sites.length} site${sites.length === 1 ? "" : "s"} known)`);
@@ -74,6 +78,6 @@ if (id === "platform") {
   // The dashboard lives on comictable.com: a comic's own /admin goes there.
   const dash = platform.admin_url || "https://comictable.com/login";
   writeFileSync(join(out, "_redirects"), `/admin  ${dash}  302\n/admin.html  ${dash}  302\n`);
-  writeConfig(out, { SITE_ID: site.id, SITE_NAME: site.name, ...logins, ...db }, site.name);
+  writeConfig(out, { SITE_ID: site.id, SITE_NAME: site.name, ...logins, ...db, ...(process.env.CONTEXT === "production" ? go : {}) }, site.name);
   console.log(`Built ${site.name} (${id}) into ${out}`);
 }

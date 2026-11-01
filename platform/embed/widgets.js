@@ -38,7 +38,7 @@
   var me = document.currentScript || [].slice.call(document.querySelectorAll("script[data-site]")).pop();
   var site = me && me.getAttribute("data-site");
   if (!site) { if (window.console) console.warn("ComicTable embed: add data-site=\"your-site-id\" to the script tag."); return; }
-  CSB.init({ SITE_ID: site, SUPABASE_URL: EMBED_CFG.SUPABASE_URL, SUPABASE_ANON_KEY: EMBED_CFG.SUPABASE_ANON_KEY });
+  CSB.init({ SITE_ID: site, SUPABASE_URL: EMBED_CFG.SUPABASE_URL, SUPABASE_ANON_KEY: EMBED_CFG.SUPABASE_ANON_KEY, GO_URL: EMBED_CFG.GO_URL, SOURCE: "embed" });
   var accent = (me.getAttribute("data-accent") || "").match(/^#[0-9a-f]{3,8}$/i) ? me.getAttribute("data-accent") : "currentColor";
 
   var css = ".ct-w{font:inherit;color:inherit;--ct-accent:" + accent + "}.ct-w *{box-sizing:border-box}" +

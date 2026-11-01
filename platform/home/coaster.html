@@ -546,6 +546,8 @@ body.preview .coaster { animation: none; }
   }
   var t0;
   function toast(msg) { var t = document.getElementById("toast"); t.textContent = msg; t.hidden = false; clearTimeout(t0); t0 = setTimeout(function () { t.hidden = true; }, 2400); }
+  // Tickets go through comictable.com/go/<show>, which counts the tap and sends the fan on (not in the editor's preview)
+  var tapUrl = function (d) { return d && /^[0-9a-f-]{36}$/i.test(String(d.id || "")) && safe(d.url) && !/[?&]preview=1/.test(location.search) ? location.origin + "/go/" + d.id + "?f=coaster" : d.url; };
   var safe = function (u) { return /^https:\/\//i.test(String(u || "").trim()) ? String(u).trim() : null; };
   var initials = function (n) { return String(n || "?").split(/\s+/).map(function (w) { return w[0] || ""; }).join("").slice(0, 2).toUpperCase(); };
   var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -798,7 +800,7 @@ body.preview .coaster { animation: none; }
     var tix = function (d) {
       var dt = dayOf(d), sold = d.status === "sold_out";
       var act = sold ? el("span", { class: "tb sold", text: "Sold out" })
-        : safe(d.url) ? el("a", { class: "tb " + (d.status === "few_left" ? "few" : "live"), href: d.url, target: "_blank", rel: "noopener", text: d.status === "free" ? "RSVP" : d.status === "few_left" ? "Few left" : "Tickets" })
+        : safe(d.url) ? el("a", { class: "tb " + (d.status === "few_left" ? "few" : "live"), href: tapUrl(d), target: "_blank", rel: "noopener", text: d.status === "free" ? "RSVP" : d.status === "few_left" ? "Few left" : "Tickets" })
         : d.status === "free" ? el("span", { class: "tb sold", text: "Free" }) : null;
       return el("article", { class: "tix" }, [
         el("div", { class: "when" }, [el("span", { text: DAY[dt.getDay()].toUpperCase() }), el("b", { text: MON[dt.getMonth()].toUpperCase() + " " + dt.getDate() })]),
@@ -901,7 +903,7 @@ body.preview .coaster { animation: none; }
     if (live) tabs.push(el("a", { class: "tab go", href: live.url, target: "_blank", rel: "noopener" }, [el("span", { class: "dot", "aria-hidden": "true" }), "Watch live"]));
     else if (next && safe(next.url) && next.status !== "sold_out" && plan.dates !== "off") {
       var nd = dayOf(next);
-      tabs.push(el("a", { class: "tab go", href: next.url, target: "_blank", rel: "noopener", "aria-label": (next.status === "free" ? "RSVP" : "Tickets") + " for " + DAY[nd.getDay()] + " " + MON[nd.getMonth()] + " " + nd.getDate() }, [ico(I_TIX), next.status === "free" ? "RSVP" : "Tickets"]));
+      tabs.push(el("a", { class: "tab go", href: tapUrl(next), target: "_blank", rel: "noopener", "aria-label": (next.status === "free" ? "RSVP" : "Tickets") + " for " + DAY[nd.getDay()] + " " + MON[nd.getMonth()] + " " + nd.getDate() }, [ico(I_TIX), next.status === "free" ? "RSVP" : "Tickets"]));
     }
     if (plan.join !== "off") tabs.push(el("button", { class: "tab" + (tabs.length ? "" : " go"), type: "button", onclick: function () {
         var b = document.querySelector('.links button[aria-expanded]');

@@ -36,7 +36,8 @@
   var cfg = {};
   function init(o) {
     o = o || root.CSB_CONFIG || root.COMICTABLE_CONFIG || {};
-    cfg = { url: String(o.SUPABASE_URL || o.url || "").replace(/\/$/, ""), key: o.SUPABASE_ANON_KEY || o.key || "", site: o.SITE_ID || o.site || "" };
+    cfg = { url: String(o.SUPABASE_URL || o.url || "").replace(/\/$/, ""), key: o.SUPABASE_ANON_KEY || o.key || "", site: o.SITE_ID || o.site || "",
+      go: /^https:\/\//.test(o.GO_URL || "") ? String(o.GO_URL).replace(/\/$/, "") : "", from: o.SOURCE || "site" };
     return CSB;
   }
   // SUPABASE_URL and SUPABASE_ANON_KEY are always needed; SITE_ID for anything about one site (not a Coaster's own list).
@@ -69,6 +70,11 @@
   function todayISO() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   function timeKey(t) { var m = String(t || "").match(/(\d{1,2})(?::(\d{2}))?\s*([ap])?/i); if (!m) return "99:99"; var H = +m[1]; if ((m[3] || "").toLowerCase() === "p" && H < 12) H += 12; if ((m[3] || "").toLowerCase() === "a" && H === 12) H = 0; return String(H).padStart(2, "0") + ":" + (m[2] || "00"); }
 
+  // A Tickets link that counts the tap on the way (comictable.com/go/<show>), when this page knows where /go lives.
+  function tapLink(id, url) {
+    if (!url || !/^https?:\/\//i.test(url) || !cfg.go || !/^[0-9a-f-]{36}$/i.test(String(id || ""))) return url || "";
+    return cfg.go + "/go/" + id + "?f=" + encodeURIComponent(cfg.from) + (cfg.site ? "&s=" + encodeURIComponent(cfg.site) : "");
+  }
   /* ---------------- content ---------------- */
   function load() {
     ready(); site();
@@ -96,7 +102,7 @@
       var shows = r[2].filter(function (x) { return x.date >= today; }).map(function (x) {
         // person: whose solo date it is. event: a show by the whole site (a live podcast), with lineup = people ids.
         return { id: x.id, person: x.host || "", event: !!x.event, lineup: x.lineup_hosts || [], date: x.date, time: x.time || "", venue: x.venue || "", city: x.city || "", venueId: x.venue_id || null,
-          tickets: x.url || "", status: x.status || "on_sale", note: x.note || "" };
+          tickets: tapLink(x.id, x.url), ticketsDirect: x.url || "", status: x.status || "on_sale", note: x.note || "" };
       }).sort(function (a, b) { return (a.date + timeKey(a.time)).localeCompare(b.date + timeKey(b.time)); });
       shows = dedupeShows(shows);
       // News (home_picks) took over from announcements: banners in News are what designs used to read as
@@ -722,6 +728,6 @@
     return out;
   }
 
-  var CSB = { showView: showView, showList: showList, dedupeShows: dedupeShows, signup: signup, init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, COASTER_PAGE: COASTER_PAGE, COASTER_LETTERING: COASTER_LETTERING, COASTER_DOODLES: COASTER_DOODLES, COASTER_TEMPLATES: COASTER_TEMPLATES, podcastEmbed: podcastEmbed, coasterPageStyle: coasterPage, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
+  var CSB = { showView: showView, showList: showList, dedupeShows: dedupeShows, signup: signup, init: init, load: load, elsewhere: elsewhere, homeCatalog: homeCatalog, homeArrange: homeArrange, homeFromSections: homeFromSections, SOCIALS: SOCIALS, COLUMN_SOCIALS: COLUMN_SOCIALS, socialsOf: socialsOf, SOCIAL_ICONS: SOCIAL_ICONS, socialIcon: socialIcon, SITE_OPTIONS: SITE_OPTIONS, liveEmbed: liveEmbed, listenLinks: listenLinks, siteOptions: siteOptions, socialLinks: socialLinks, COASTER_ITEMS: COASTER_ITEMS, COASTER_PAGE: COASTER_PAGE, COASTER_LETTERING: COASTER_LETTERING, COASTER_DOODLES: COASTER_DOODLES, COASTER_TEMPLATES: COASTER_TEMPLATES, podcastEmbed: podcastEmbed, tapLink: function (id, url) { return tapLink(id, url); }, coasterPageStyle: coasterPage, coasterPlan: coasterPlan, coasterOrder: coasterOrder, forum: forum, chat: chat, reportButton: reportButton, fans: fans, blog: blog, markdown: markdown, videoEmbed: videoEmbed, press: press, device: device, name: name, api: api, version: "1.5" };
   root.CSB = CSB;
 })(typeof window !== "undefined" ? window : globalThis);
