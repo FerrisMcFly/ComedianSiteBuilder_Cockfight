@@ -89,3 +89,12 @@ test("the build puts every design on comictable.com, and the host never fetches 
   assert.doesNotMatch(src, /fetch\(new URL\(/, "no fetches back to its own site");
   assert.equal(mod.config.path, "/*");
 });
+
+test("only comictable.com's project runs the shared host; Cockfight's and Lev's own projects never take over their domains", () => {
+  const src = readFileSync(new URL("../tools/build.mjs", import.meta.url), "utf8");
+  assert.match(src, /if \(!hostsSites\(id\) && process\.env\.NETLIFY === "true"\) rmSync\(join\(root, "netlify", "edge-functions", "sites\.js"\)/);
+  const pos = src.indexOf("hostsSites(id) &&"), host = src.indexOf("const hostsSites");
+  assert.ok(host > 0 && host < pos, "decided before anything else is built");
+  assert.ok(new Function("return " + src.match(/export const hostsSites = (\(site\) => [^;]+);/)[1])()("platform"));
+  for (const s of ["cockfight", "lev-fer", undefined]) assert.ok(!new Function("return " + src.match(/export const hostsSites = (\(site\) => [^;]+);/)[1])()(s), String(s));
+});

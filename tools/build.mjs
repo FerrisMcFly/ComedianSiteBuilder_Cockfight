@@ -10,6 +10,11 @@ import { adminPage } from "./admin-page.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const id = process.argv[2] || process.env.SITE || "cockfight";
 const platform = JSON.parse(readFileSync(join(root, "platform", "platform.json"), "utf8"));
+// The shared site host (netlify/edge-functions/sites.js) belongs to comictable.com's project only. On a comic's own
+// project (Cockfight, Lev) it would take over their domain and point it at designs that project doesn't have, so it's
+// left out of their deploys: Netlify packages edge functions after this build runs. (Nov 2: this took Cockfight down.)
+export const hostsSites = (site) => site === "platform";
+if (!hostsSites(id) && process.env.NETLIFY === "true") rmSync(join(root, "netlify", "edge-functions", "sites.js"), { force: true });
 const out = resolve(root, process.env.OUT_DIR || "dist");
 const sites = readdirSync(join(root, "sites")).filter((d) => existsSync(join(root, "sites", d, "site.json")));
 const writeConfig = (dir, cfg, label) => writeFileSync(join(dir, "config.js"),
