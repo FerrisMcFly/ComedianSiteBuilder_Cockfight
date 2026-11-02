@@ -57,15 +57,15 @@ test("a blog post opens on its own page", async () => {
   assert.equal(d.querySelector("article .body").innerHTML, "<p>It was <strong>hot</strong>.</p>");
 });
 
-test("fans sign up with their city", async () => {
+test("fans sign up with name, email and ZIP", async () => {
   const { w, d, posts } = await load(base);
   const f = d.querySelector(".fans form");
   f.querySelector("input[type=email]").value = "fan@x.com";
-  const city = f.querySelectorAll("input")[1]; city.value = "bos"; city.dispatchEvent(new w.Event("input"));
-  await wait(300);
-  f.querySelector(".picks button").click();
   f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait();
-  assert.deepEqual(posts.find((p) => p[0] === "rpc/join_fans")[1], { p_site: "lev-fer", p_email: "fan@x.com", p_place: 1, p_radius: 50 });
+  assert.match(f.querySelector(".msg").textContent, /ZIP/);
+  f.querySelector("input[autocomplete=name]").value = "Sam"; f.querySelector("input[autocomplete=postal-code]").value = "02118";
+  f.dispatchEvent(new w.Event("submit", { cancelable: true })); await wait();
+  assert.deepEqual(posts.find((p) => p[0] === "rpc/join_list")[1], { p_site: "lev-fer", p_email: "fan@x.com", p_name: "Sam", p_zip: "02118", p_met: null, p_source: "site" });
   assert.match(f.querySelector(".msg").textContent, /You're on the list/);
 });
 

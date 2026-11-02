@@ -312,15 +312,6 @@ footer img { width: 28px; height: 28px; }
           <li><b>Your dates, everywhere.</b><span>Add a show once. Every ComicTable site you're on lists it.</span></li>
           <li><b>Also on the bill.</b><span>When other comics on ComicTable add the same show, it says so. You promote each other without lifting a finger.</span></li>
         </ul>
-        <div id="coasterBox">
-          <form class="cform" id="coasterForm" novalidate>
-            <input id="cName" placeholder="Your name" autocomplete="name" maxlength="120" aria-label="Your name">
-            <input id="cEmail" type="email" placeholder="Email" autocomplete="email" maxlength="200" aria-label="Email">
-            <input class="full" id="cLinks" placeholder="Instagram or anywhere we can see you (optional)" maxlength="500" aria-label="Where can we see you?">
-            <div class="msg full" id="cMsg" role="status" aria-live="polite"></div>
-            <div class="full"><button class="btn red" type="submit" id="cSend">Get your Coaster early</button></div>
-          </form>
-        </div>
       </div>
       <div class="coaster-wrap" aria-hidden="true">
         <div class="coaster"><div class="inner">
@@ -532,26 +523,6 @@ footer img { width: 28px; height: 28px; }
       });
     }).catch(function () { /* keep the page as written */ });
   })();
-  // Coaster waitlist: goes to the same inbox as site requests, marked so it's easy to spot
-  $("coasterForm").addEventListener("submit", async function (e) {
-    e.preventDefault();
-    var msg = $("cMsg"), send = $("cSend"), v = function (id) { return $(id).value.trim(); };
-    var row = { name: v("cName"), email: v("cEmail"), act: "Coaster waitlist", links: v("cLinks") || null, note: "Wants a Coaster (early access)." };
-    msg.textContent = "";
-    if (!row.name) { msg.textContent = "Add your name."; $("cName").focus(); return; }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)) { msg.textContent = "Add an email we can reach you at."; $("cEmail").focus(); return; }
-    send.disabled = true;
-    try {
-      var r = await fetch(CFG.SUPABASE_URL + "/rest/v1/site_requests", { method: "POST",
-        headers: { "Content-Type": "application/json", apikey: CFG.SUPABASE_ANON_KEY, Authorization: "Bearer " + CFG.SUPABASE_ANON_KEY, Prefer: "return=minimal" }, body: JSON.stringify(row) });
-      if (!r.ok) throw new Error(r.status);
-      var d = document.createElement("p"), p = document.createElement("p");
-      d.className = "cdone"; d.textContent = "You're on the list, " + row.name.split(" ")[0] + ".";
-      p.className = "intro"; p.style.margin = "0"; p.textContent = "We'll email " + row.email + " when Coasters open.";
-      $("coasterBox").replaceChildren(d, p);
-    } catch (err) { send.disabled = false; msg.textContent = "That didn't send. Check your connection and try again."; }
-  });
-
   $("askForm").addEventListener("submit", async function (e) {
     e.preventDefault();
     var msg = $("aMsg"), send = $("aSend"), v = function (id) { return $(id).value.trim(); };

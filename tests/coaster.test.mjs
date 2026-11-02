@@ -29,7 +29,8 @@ test("a Coaster: photo, name, bio, socials, the Tape, their sites, press kit and
     sites: [{ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay" }, { id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com" }] });
   assert.ok(asked[0].includes("handle=eq.lev-fer"), "looks up the address first");
   assert.equal(d.title, "Lev Fer · ComicTable");
-  assert.equal(d.body.className, "look-spooky");
+  assert.ok(d.body.classList.contains("look-spooky"));
+  assert.deepEqual(["bg-brick", "dates-tickets", "btns-status", "soc-tiles"].map((k) => d.body.classList.contains(k)), [true, true, true, true], "the reference page by default: brick, torn tickets, status buttons, social tiles");
   assert.equal(d.querySelector("h1").textContent, "Lev Fer");
   assert.match(d.querySelector(".bio").textContent, /Short one/);
   assert.deepEqual([...d.querySelectorAll(".socials a")].map((a) => a.getAttribute("aria-label")), ["Instagram", "Threads"], "logos by default, named for screen readers");
@@ -37,12 +38,12 @@ test("a Coaster: photo, name, bio, socials, the Tape, their sites, press kit and
   assert.match(d.querySelector(".cap").textContent, /Live at the Cellar/);
   d.querySelector(".frame .play").click();
   assert.match(d.querySelector(".frame iframe").src, /youtube-nocookie\.com\/embed\/abcdefghijk/);
-  const links = [...d.querySelectorAll(".links a")].map((a) => a.getAttribute("href"));
+  const links = [...d.querySelectorAll(".links a")].map((a) => a.getAttribute("href")).filter((h) => !/privacy/.test(h));
   assert.deepEqual(links, ["https://levfer.gay", "https://cockfightpodcast.com", "mailto:book@lev.example", "/press/lev-fer"]);
   assert.match(d.querySelector(".lcard").textContent, /My website.*levfer\.gay/, "their own site says My website");
 });
 
-test("next dates with tickets, and who else is on the bill links to their Coaster", async () => {
+test("shows as tickets with a button by status, and who else is on the bill links to their Coaster", async () => {
   const { d } = await load("/lev-fer", {
     comics: [{ id: "lev-fer", name: "Lev Fer" }],
     "rpc/comic_shows": [
@@ -50,70 +51,83 @@ test("next dates with tickets, and who else is on the bill links to their Coaste
       { id: "s2", date: day(5), time: "9:30 PM", venue: "The Stand", city: "New York", status: "sold_out" },
       { id: "s3", date: day(6), venue: "Gone", status: "cancelled" }],
     "rpc/also_on_bill": [{ show_id: "s1", comic_id: "colum-tyrrell", name: "Colum Tyrrell", photo_url: null }] });
-  const rows = d.querySelectorAll(".stub");
+  const rows = d.querySelectorAll(".tix");
   assert.equal(rows.length, 2, "cancelled dates don't show");
-  assert.match(rows[0].textContent, /Comedy Cellar.*New York · 8pm/);
-  assert.equal(rows[0].querySelector("a.btn").getAttribute("href"), "https://tix/1");
-  assert.match(rows[1].textContent, /Sold out/);
-  assert.match(rows[1].textContent, /New York · 9:30pm/, "a 9:30 PM show says 9:30pm");
-  const other = rows[0].querySelector(".bill a");
+  assert.match(rows[0].textContent, /Comedy Cellar.*New York.*8pm/);
+  assert.equal(rows[0].querySelector("a.tb.live").getAttribute("href"), "https://tix/1");
+  assert.equal(rows[0].querySelector("a.tb").textContent, "Tickets");
+  assert.equal(rows[1].querySelector(".tb.sold").textContent, "Sold out");
+  assert.match(rows[1].textContent, /9:30pm/, "a 9:30 PM show says 9:30pm");
+  const other = d.querySelector(".billbar a");
   assert.equal(other.getAttribute("href"), "/colum-tyrrell");
   assert.match(other.textContent, /CTColum Tyrrell/);
   // tap the coaster: it flips to a QR code
   const coaster = d.querySelector(".coaster");
-  assert.match(d.querySelector(".back").textContent, /Lev's Coaster.*comictable\.com\/lev-fer/s, "no fan list: the QR goes to the Coaster");
+  assert.match(d.querySelector(".back").textContent, /Join Lev Fer's list.*comictable\.com\/lev-fer#join/s, "no site with a list: the QR joins the comic's own list");
   coaster.click();
   assert.ok(coaster.classList.contains("flipped"));
   assert.equal(coaster.getAttribute("aria-pressed"), "true");
 });
 
-test("the name is printed on the coaster's band, and the page invites other comics to get one", async () => {
+test("the name is printed on the coaster's band; no sign-up pitch anywhere", async () => {
   const { d } = await load("/tristan-bowling", { comics: [{ id: "tristan-bowling", name: "Tristan Bowling" }] });
-  assert.equal(d.querySelector(".front .band b").textContent, "Tristan Bowling");
+  assert.equal(d.querySelector(".front .ribbon b").textContent, "Tristan Bowling");
   assert.equal(d.querySelector(".front .initials").textContent, "TB");
-  assert.equal([...d.querySelectorAll("a")].find((a) => /Get your own Coaster/.test(a.textContent)).getAttribute("href"), "/#coaster");
-  assert.ok(!d.querySelector(".join"), "no fan list without a site that has one");
+  assert.doesNotMatch(d.querySelector("main").textContent, /Do comedy\?/, "no Do comedy? block");
+  assert.ok(![...d.querySelectorAll("a")].some((a) => /Get your own Coaster/.test(a.textContent)), "no self sign-up anywhere (invite-only for now)");
+  assert.ok(d.querySelector(".join .csb-signup"), "every Coaster can collect fans, even with no site");
 });
 
-test("fans can join the comic's list from the Coaster", async () => {
-  const sent = [];
-  const sdk2 = sdk.replace(/<\/script/g, "<\\/script");
-  const dom = new JSDOM(html, { runScripts: "dangerously", url: "https://comictable.com/lev-fer", beforeParse(w) {
-    w.fetch = async (u, o) => { const t = u.split("/rest/v1/")[1].split("?")[0]; if (o && o.body) sent.push([t, JSON.parse(o.body)]);
-      const data = { comics: [{ id: "lev-fer", name: "Lev Fer" }], hosts: [{ site_id: "lev-fer" }], sites: [{ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay", features: { fans: true } }],
-        places: [{ id: 7, name: "Boston", state: "MA", country: "US" }], "rpc/join_fans": "joined" };
-      return { ok: true, status: 200, text: async () => JSON.stringify(data[t] ?? []), json: async () => data[t] ?? [] }; };
-  } });
-  opened.push(dom.window);
-  await new Promise((r) => setTimeout(r, 80));
-  const d = dom.window.document, w = dom.window;
-  [...d.querySelectorAll("button")].find((b) => b.textContent === "Join my list").click();
-  const form = d.querySelector(".join");
-  assert.ok(!form.hidden);
-  form.querySelector('input[type="email"]').value = "fan@x.com";
-  const city = form.querySelector('input[aria-label="Your city"]'); city.value = "Bos"; city.dispatchEvent(new w.Event("input"));
-  await new Promise((r) => setTimeout(r, 30));
-  form.querySelector("li button").click();
-  form.querySelector('button[type="submit"]').click();
-  await new Promise((r) => setTimeout(r, 30));
-  const join = sent.find((x) => x[0] === "rpc/join_fans")[1];
-  assert.deepEqual([join.p_site, join.p_email, join.p_place, join.p_met], ["lev-fer", "fan@x.com", 7, "Coaster"]);
+test("fans join with name, email and ZIP: the site's list when there is one, otherwise the comic's own", async () => {
+  async function joinOn(data) {
+    const sent = [];
+    const dom = new JSDOM(html, { runScripts: "dangerously", url: "https://comictable.com/lev-fer", beforeParse(w) {
+      w.fetch = async (u, o) => { const t = u.split("/rest/v1/")[1].split("?")[0]; if (o && o.body) sent.push([t, JSON.parse(o.body)]);
+        const all = { comics: [{ id: "lev-fer", name: "Lev Fer" }], "rpc/join_list": "joined", "rpc/join_coaster": "joined", ...data };
+        return { ok: true, status: 200, text: async () => JSON.stringify(all[t] ?? []), json: async () => all[t] ?? [] }; };
+    } });
+    opened.push(dom.window);
+    await new Promise((r) => setTimeout(r, 80));
+    const d = dom.window.document, w = dom.window;
+    [...d.querySelectorAll("button")].find((b) => b.textContent === "Join my list").click();
+    const form = d.querySelector(".join");
+    assert.ok(!form.hidden);
+    assert.equal(form.querySelector('select'), null, "no miles question");
+    form.querySelector('input[name="name"]').value = "Sam";
+    form.querySelector('input[type="email"]').value = "fan@x.com";
+    form.querySelector('input[name="zip"]').value = "021";
+    form.querySelector("form").dispatchEvent(new w.Event("submit", { cancelable: true }));
+    assert.match(form.textContent, /5-digit ZIP/);
+    form.querySelector('input[name="zip"]').value = "02116";
+    form.querySelector("form").dispatchEvent(new w.Event("submit", { cancelable: true }));
+    await new Promise((r) => setTimeout(r, 30));
+    return { d, sent };
+  }
+  let { d, sent } = await joinOn({ hosts: [{ site_id: "lev-fer" }], sites: [{ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay", features: { fans: true } }] });
+  const join = sent.find((x) => x[0] === "rpc/join_list")[1];
+  assert.deepEqual([join.p_site, join.p_email, join.p_name, join.p_zip], ["lev-fer", "fan@x.com", "Sam", "02116"]);
   assert.match(d.querySelector(".join").textContent, /on Lev's list/);
-  assert.match(d.querySelector(".back").textContent, /Join Lev's list.*levfer\.gay\/join/s, "with a fan list, the coaster's QR is the sign-up");
+  assert.match(d.querySelector(".back").textContent, /Join Lev Fer's list.*levfer\.gay\/join/s, "with a fan list, the coaster's QR is the sign-up");
+  ({ d, sent } = await joinOn({}));
+  const own = sent.find((x) => x[0] === "rpc/join_coaster")[1];
+  assert.deepEqual([own.p_comic, own.p_email, own.p_zip], ["lev-fer", "fan@x.com", "02116"]);
 });
 
-test("lots of dates: the next one, six more under More, then all of them", async () => {
+test("lots of dates: the next three, then all of them; the comic picks how many show", async () => {
   const shows = Array.from({ length: 9 }, (_, i) => ({ id: "s" + i, date: day(i + 1), venue: "Club " + i }));
-  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer" }], "rpc/comic_shows": shows });
-  assert.equal(d.querySelectorAll(".stub").length, 7, "the next one up front, then six under More");
-  [...d.querySelectorAll("button")].find((b) => /All 8 dates/.test(b.textContent)).click();
-  assert.equal(d.querySelectorAll(".stub").length, 9);
+  let { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer" }], "rpc/comic_shows": shows });
+  assert.equal(d.querySelectorAll(".tix").length, 3, "the next three");
+  [...d.querySelectorAll("button")].find((b) => /All 9 dates/.test(b.textContent)).click();
+  assert.equal(d.querySelectorAll(".tix").length, 9);
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { page: { shown: "1", dates: "chalk", bg: "velvet", buttons: "outline", tiles: "plain" } } }], "rpc/comic_shows": shows }));
+  assert.equal(d.querySelectorAll(".tix").length, 1);
+  assert.deepEqual(["bg-velvet", "dates-chalk", "btns-outline", "soc-plain"].map((k) => d.body.classList.contains(k)), [true, true, true, true]);
 });
 
 test("an unknown name says so, and an unknown look falls back to classic", async () => {
   assert.match((await load("/nobody", {})).d.body.textContent, /No one here yet/);
   const { d } = await load("/x", { comics: [{ id: "x", name: "X", look: "neon" }] });
-  assert.equal(d.body.className, "look-classic");
+  assert.ok(d.body.classList.contains("look-classic"));
 });
 
 test("simple by default, with the rest under More; the comic chooses what goes where", async () => {
@@ -147,13 +161,13 @@ test("comictable.com/<address> finds the comic; an old link with their id still 
   const mk = (path, rows) => new JSDOM(html, { runScripts: "dangerously", url: "https://comictable.com" + path, beforeParse(w) {
     w.fetch = async (u) => { const t = u.split("/rest/v1/")[1]; const body = t.startsWith("comics?") ? rows(t) : []; return { ok: true, status: 200, json: async () => body }; };
   } });
-  const lev = { id: "lev", handle: "lev-fer", name: "Lev Fer" };
+  const lev = { id: "lev", handle: "lev-fer", name: "Lev Fer", coaster: { addr: true } };
   const a = mk("/lev-fer", (t) => t.includes("handle=eq.lev-fer") ? [lev] : []);
   const b = mk("/lev", (t) => t.includes("id=eq.lev") ? [lev] : []);
   opened.push(a.window, b.window);
   await new Promise((r) => setTimeout(r, 100));
   assert.equal(a.window.document.querySelector("h1").textContent, "Lev Fer");
-  assert.equal(a.window.document.querySelector(".band span").textContent, "comictable.com/lev-fer");
+  assert.equal(a.window.document.querySelector(".front .addr").textContent, "comictable.com/lev-fer");
   assert.equal(b.window.document.querySelector("h1").textContent, "Lev Fer");
   assert.equal(b.window.location.pathname, "/lev-fer");
 });
@@ -181,9 +195,10 @@ test("the dock: tickets for the next show always in reach, plus Share", async ()
   const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer" }],
     "rpc/comic_shows": [{ id: "s1", date: day(2), venue: "The Stand", url: "https://t/1", status: "on_sale" }] });
   const dock = d.querySelector(".dock");
-  assert.match(dock.querySelector("a.btn.main").textContent, /^Tickets · /);
-  assert.equal(dock.querySelector("a.btn.main").getAttribute("href"), "https://t/1");
-  assert.equal(dock.querySelector("button").getAttribute("aria-label"), "Share Lev Fer's Coaster");
+  assert.equal(dock.querySelector("a.tab.go").textContent, "Tickets");
+  assert.match(dock.querySelector("a.tab.go").getAttribute("aria-label"), /^Tickets for /);
+  assert.equal(dock.querySelector("a.tab.go").getAttribute("href"), "https://t/1");
+  assert.equal([...dock.querySelectorAll(".tab")].pop().getAttribute("aria-label"), "Share Lev Fer's Coaster");
 });
 
 test("wear: fresh by default; used and well loved add glass rings (well loved: drips and scuffs too), the same every visit", async () => {
@@ -204,8 +219,79 @@ test("live and Shorts: a LIVE badge and Watch live while one of their sites is s
     sites: [{ id: "lev-fer", name: "Lev Fer", domain: "levfer.gay", features: {}, live: { url: "https://twitch.tv/levfer", title: "Crowd work", started_at: new Date().toISOString() } }],
     videos: [{ youtube_id: "shortshort1", title: "A short", published: "2026-10-01" }] });
   assert.match(d.querySelector(".live-badge").textContent, /LIVE · Crowd work/);
-  assert.match(d.querySelector(".dock a.btn.main").textContent, /Watch live/);
+  assert.match(d.querySelector(".dock a.tab.go").textContent, /Watch live/);
   assert.equal(d.querySelectorAll(".shorts .short").length, 1);
   d.querySelector(".short").click();
   assert.match(d.querySelector(".short.playing iframe").getAttribute("src"), /embed\/shortshort1/);
+});
+
+test("link buttons: their own site first by default; the comic's order and hidden ones win", async () => {
+  const sites = [{ id: "cockfight", name: "Cockfight", domain: "cockfightpodcast.com" }, { id: "lev-fer", name: "Lev Fer", domain: "levfer.gay" }];
+  const base = { hosts: [{ site_id: "cockfight" }, { site_id: "lev-fer" }], sites };
+  let { d } = await load("/lev-fer", { ...base, comics: [{ id: "lev-fer", name: "Lev Fer", website: "https://linktr.ee/levfer" }] });
+  assert.deepEqual([...d.querySelectorAll(".lcard b")].map((b) => b.textContent), ["My website", "Cockfight", "Linktree"]);
+  assert.equal(d.querySelector(".lcard.main"), null, "no button is singled out");
+  ({ d } = await load("/lev-fer", { ...base, comics: [{ id: "lev-fer", name: "Lev Fer", website: "https://linktr.ee/levfer", coaster: { links: ["website", "site:lev-fer", "site:cockfight"], links_off: ["site:cockfight"] } }] }));
+  assert.deepEqual([...d.querySelectorAll(".lcard b")].map((b) => b.textContent), ["Linktree", "My website"]);
+});
+
+test("the QR code on the back goes where the comic picked", async () => {
+  let { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { qr: { to: "coaster" } } }] });
+  assert.match(d.querySelector(".back").textContent, /Find Lev here.*comictable\.com\/lev-fer/s);
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { qr: { to: "link", link: "https://linktr.ee/lev" } } }] }));
+  assert.match(d.querySelector(".back").textContent, /Scan me.*linktr\.ee\/lev/s);
+});
+
+test("lettering and doodles: the name in the comic's lettering, doodles in the coaster's ink", async () => {
+  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { letter: "western", doodles: ["crown", "mic"], doodle_color: "band" } }] });
+  const name = d.querySelector(".front .ribbon b");
+  assert.match(name.style.fontFamily, /Rye/);
+  assert.ok(d.getElementById("font-western"), "its font loads only when it's used");
+  const svg = d.querySelector(".front .doodles svg");
+  assert.equal(svg.getAttribute("fill"), "var(--ring)");
+  assert.equal(svg.querySelectorAll("path, rect").length >= 3, true);
+});
+
+test("the whole-show podcast player, and Shorts the comic featured or hid", async () => {
+  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { podcast: { name: "Cockfight", spotify: "https://open.spotify.com/show/4rOoJ6Egrf8K2IrywzwOMk" },
+    shorts: { featured: ["BBBBBBBBBBB"], hidden: ["CCCCCCCCCCC"] }, shorts_on: true } }],
+    videos: [{ youtube_id: "AAAAAAAAAAA", title: "One" }, { youtube_id: "BBBBBBBBBBB", title: "Two" }, { youtube_id: "CCCCCCCCCCC", title: "Three" }] });
+  assert.equal(d.querySelector(".pod iframe").getAttribute("src"), "https://open.spotify.com/embed/show/4rOoJ6Egrf8K2IrywzwOMk");
+  const shorts = [...d.querySelectorAll(".short")];
+  assert.deepEqual(shorts.map((b) => b.getAttribute("aria-label")), ["Play: Two", "Play: One"], "featured first, hidden gone");
+  assert.ok(shorts[0].classList.contains("featured"));
+});
+
+test("the coaster photo and the name banner follow the comic's choices", async () => {
+  const { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", photo_url: "https://p/lev.jpg",
+    coaster: { photo: "https://p/coaster.jpg", photo_y: 40, photo_zoom: 130, print: "color", banner: { pos: "top", shape: "plain", tilt: "straight" } } }] });
+  const front = d.querySelector(".front");
+  const img = front.querySelector("img.portrait");
+  assert.equal(img.getAttribute("src"), "https://p/coaster.jpg", "a photo just for the coaster");
+  assert.equal(img.style.objectPosition, "center 40%");
+  assert.equal(img.style.transform, "scale(1.3)");
+  for (const k of ["banner-top", "shape-plain", "tilt-straight", "print-color"]) assert.ok(front.classList.contains(k), k);
+  const none = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { banner: { pos: "none" } } }] });
+  assert.equal(none.d.querySelector(".front .ribbon"), null, "no banner at all");
+  const bare = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: {} }] });
+  assert.equal(bare.d.querySelector(".front .addr"), null, "no address printed on the coaster unless they switch it on");
+  const withAddr = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { addr: true } }] });
+  assert.match(withAddr.d.querySelector(".front .addr").textContent, /comictable\.com\/lev-fer/);
+});
+
+test("the back is the comic's: their words and lettering, what's behind the code, or no code at all", async () => {
+  let { d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { back: { kind: "qr", say: "Find me after the show", line: false, url: false, qr: "l", art: "plain" } } }] });
+  let back = d.querySelector(".back");
+  assert.match(back.querySelector(".hand").textContent, /Find me after the show/);
+  assert.equal(back.querySelector(".scan"), null); assert.equal(back.querySelector(".url"), null);
+  assert.ok(back.classList.contains("qr-l"));
+  assert.equal(back.querySelector(".art"), null, "plain behind the code");
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { back: { kind: "show" } } }], "rpc/comic_shows": [{ id: "s1", date: day(3), time: "20:00", venue: "Comedy Cellar", city: "New York" }] }));
+  back = d.querySelector(".back");
+  assert.match(back.textContent, /Next up.*Comedy Cellar/s);
+  assert.equal(back.querySelector(".qr"), null, "no QR code on this back");
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { back: { kind: "picture", image: "https://p/logo.png" } } }] }));
+  assert.equal(d.querySelector(".back .back-full").getAttribute("src"), "https://p/logo.png");
+  ({ d } = await load("/lev-fer", { comics: [{ id: "lev-fer", name: "Lev Fer", coaster: { back: { kind: "words", say: "Tip your bartender" } } }] }));
+  assert.match(d.querySelector(".back .hand.big").textContent, /Tip your bartender/);
 });

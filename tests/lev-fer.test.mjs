@@ -170,14 +170,11 @@ test("tour dates, blog post, about and socials come from ComicTable", async () =
   assert.match(d.querySelector(".net a").textContent, /Instagram/);
 });
 
-test("fans join the mailing list with their city", async () => {
+test("fans join the mailing list with name, email and ZIP", async () => {
   const { w, d, posts } = await load(full, "#/list");
-  d.getElementById("m-email").value = "fan@x.com";
-  const city = d.getElementById("m-city"); city.value = "bos"; city.dispatchEvent(new w.Event("input"));
-  await wait(300);
-  d.querySelector(".places button").click();
+  d.getElementById("m-name").value = "Sam"; d.getElementById("m-email").value = "fan@x.com"; d.getElementById("m-zip").value = "02118";
   d.querySelector("form.signup").dispatchEvent(new w.Event("submit", { cancelable: true })); await wait();
-  assert.deepEqual(posts.find((p) => p[0] === "rpc/join_fans")[1], { p_site: "lev-fer", p_email: "fan@x.com", p_place: 1, p_radius: 50 });
+  assert.deepEqual(posts.find((p) => p[0] === "rpc/join_list")[1], { p_site: "lev-fer", p_email: "fan@x.com", p_name: "Sam", p_zip: "02118", p_met: null, p_source: "site" });
   assert.match(d.querySelector(".msg").textContent, /You're on the list/);
 });
 

@@ -770,26 +770,23 @@ footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; font: 12px v
     var rules = (D.community || {}).chat_rules; if (rules) app.append(el("p", { class: "mini", text: rules }));
   }
 
-  // mailing list: email + city picked from the list + how far they'd go
+  // mailing list: name, email and ZIP
   function viewList(app) {
     app.append.apply(app, head("Mailing List", "One email when Lev plays near you · no spam"));
-    var chosen = null, seq = 0, timer;
+    var name = el("input", { id: "m-name", autocomplete: "name", maxlength: 80, placeholder: "First name is fine" });
     var email = el("input", { id: "m-email", type: "email", autocomplete: "email", placeholder: "you@email.com" });
-    var city = el("input", { id: "m-city", autocomplete: "off", placeholder: "Start typing your city" });
-    var picks = el("div", { class: "places full", role: "listbox", "aria-label": "Cities" });
+    var zip = el("input", { id: "m-zip", inputmode: "numeric", autocomplete: "postal-code", maxlength: 5, placeholder: "12345" });
     var msg = el("div", { class: "msg full", role: "status", "aria-live": "polite" }), send = el("button", { class: "btn big full", type: "submit", text: "Join the list", style: "justify-self:start" });
-    city.addEventListener("input", function () {
-      chosen = null; clearTimeout(timer); var my = ++seq, q = city.value;
-      timer = setTimeout(function () { CSB.fans.places(q).then(function (list) { if (my !== seq) return; picks.replaceChildren.apply(picks, list.map(function (p) { return el("button", { type: "button", role: "option", text: p.label, onclick: function () { chosen = p; city.value = p.label; picks.replaceChildren(); send.focus(); } }); })); }); }, 200);
-    });
     app.append(el("form", { class: "signup", novalidate: true, onsubmit: function (e) {
       e.preventDefault();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) { msg.textContent = "Add your email."; email.focus(); return; }
-      if (!chosen) { msg.textContent = "Pick your city from the list as you type."; city.focus(); return; }
+      var z = zip.value.replace(/\D/g, "");
+      if (z.length !== 5) { msg.textContent = "Add your 5-digit ZIP code."; zip.focus(); return; }
       send.disabled = true; msg.textContent = "";
-      CSB.fans.join({ email: email.value.trim(), placeId: chosen.id, radius: 50 }).then(function () { send.disabled = false; msg.textContent = "You're on the list. You'll hear about shows near " + chosen.label + "."; },
+      CSB.fans.join({ email: email.value.trim(), name: name.value.trim(), zip: z }).then(function (r) { send.disabled = false; msg.textContent = r === "updated" ? "You're already on the list. Thanks!" : "You're on the list. You'll hear about shows near you."; },
         function (er) { send.disabled = false; msg.textContent = er.message; });
-    } }, [el("label", { for: "m-email" }, ["Email", email]), el("label", { for: "m-city" }, ["City", city]), picks, send, msg]));
+    } }, [el("label", { for: "m-name" }, ["Name", name]), el("label", { for: "m-email" }, ["Email", email]), el("label", { for: "m-zip" }, ["ZIP code", zip]), send, msg,
+      el("p", { class: "mini full" }, [document.createTextNode("Only emails about shows near you. Unsubscribe anytime. "), el("a", { href: "https://comictable.com/privacy", text: "Privacy" })])]));
   }
 
   function viewAbout(app) {
