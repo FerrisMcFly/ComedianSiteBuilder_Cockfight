@@ -1,5 +1,5 @@
 -- ComicTable v3: every database change since v2 (home screen, photo uploads, press kit, QR fan sign-up, more socials, comictable.com showcase, roles, Coasters, News, media, forum safety, the Coaster-first foundation) in one file. Paste it all into Supabase → SQL Editor and click Run.
--- Same as running 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 99 in order. Safe to run again, and safe if you already ran some of them.
+-- Same as running 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 99 in order. Safe to run again, and safe if you already ran some of them.
 
 -- ============================== 15_home_picks.sql ==============================
 -- Home picks: what a comic wants visitors to see first on their site's home screen.
@@ -687,6 +687,62 @@ begin
 end $$;
 revoke all on function public.ticket_taps_30d(text) from public;
 grant execute on function public.ticket_taps_30d(text) to authenticated;
+
+-- ============================== 29_fan_sync.sql ==============================
+-- Mailchimp sync (Step 5, item 51): a comic connects their own Mailchimp audience once (dashboard → Fans), and every
+-- fan on their list goes into it, tagged "ComicTable" and with their city. New fans follow every 30 minutes
+-- (netlify/functions/fan-sync-scheduled.mjs). People who unsubscribed in Mailchimp are never subscribed again.
+-- The comic's Mailchimp key is stored encrypted by the server and is never readable from the dashboard: only the
+-- fan-sync functions (service key) touch this table.
+-- Run once in Supabase → SQL Editor, after 28_ticket_taps.sql (then 99_rules.sql). Safe to run again.
+
+create table if not exists fan_syncs (
+  comic_id text primary key references comics(id) on delete cascade,
+  provider text not null default 'mailchimp' check (provider in ('mailchimp')),
+  secret text not null,                 -- the comic's API key, encrypted (AES-GCM) by the server
+  key_hint text,                        -- its last 4 characters, to show which key is connected
+  list_id text not null,
+  list_name text,
+  synced_until timestamptz,             -- fans who joined up to here have been sent
+  last_run timestamptz,
+  last_count int not null default 0,    -- new people added on the last run
+  last_error text,
+  connected_by uuid,
+  created_at timestamptz not null default now()
+);
+alter table fan_syncs enable row level security;
+revoke all on fan_syncs from anon, authenticated;
+
+-- ============================== 30_fan_email.sql ==============================
+-- Emailing fans (Step 5, item 50): on Fans → "Near your next shows", a comic emails the fans within 50 miles of a
+-- show (netlify/functions/fan-email.mjs, sent through Resend). One email per show, at most three a week, and every
+-- email has a one-tap unsubscribe (comictable.com/unsub/<token>, netlify/functions/unsub.mjs) that takes the person
+-- off every list they joined on ComicTable, as the privacy page promises.
+-- Only the server functions (service key) read or write this table.
+-- Run once in Supabase → SQL Editor, after 29_fan_sync.sql (then 99_rules.sql). Safe to run again.
+
+create table if not exists fan_emails (
+  id uuid primary key default gen_random_uuid(),
+  comic_id text not null references comics(id) on delete cascade,
+  show_id uuid references shows(id) on delete set null,
+  subject text not null check (char_length(subject) <= 150),
+  body text not null check (char_length(body) <= 3000),
+  sent_count int not null default 0,
+  status text not null default 'sending' check (status in ('sending', 'sent', 'failed')),
+  sent_by uuid,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists fan_emails_one_per_show on fan_emails (show_id) where show_id is not null;
+create index if not exists fan_emails_comic on fan_emails (comic_id, created_at);
+alter table fan_emails enable row level security;
+revoke all on fan_emails from anon, authenticated;
+
+-- Tickets taps from these emails are counted like the rest (comictable.com/go/<show>?f=email)
+alter table ticket_taps drop constraint if exists ticket_taps_source_check;
+alter table ticket_taps add constraint ticket_taps_source_check check (source in ('site', 'coaster', 'embed', 'email', 'other'));
+
+-- Invite links can also go by email (dashboard → the invite card → Email it). Once per link.
+alter table invites add column if not exists emailed_at timestamptz;
 
 -- ============================== 99_rules.sql ==============================
 -- ComicTable's access rules: every function and policy that decides who can do what, in one place.

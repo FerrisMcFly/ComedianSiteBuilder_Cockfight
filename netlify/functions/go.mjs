@@ -1,11 +1,11 @@
-// comictable.com/go/<show>?f=site|coaster|embed&s=<site>: a Tickets tap. Counts it (ticket_taps, 28_ticket_taps.sql)
+// comictable.com/go/<show>?f=site|coaster|embed|email&s=<site>: a Tickets tap. Counts it (ticket_taps, 28_ticket_taps.sql)
 // and sends the fan straight on to that show's ticket page. It only ever goes to the ticket link saved on the show,
 // so nobody can use it to send people somewhere else. Link-preview robots and the like aren't counted.
 import { createClient } from "@supabase/supabase-js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ROBOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|embedly|whatsapp|discord|slack|telegram|skype|vkshare|pinterest|headless|lighthouse|curl|wget|python|node-fetch|axios/i;
-const SOURCES = ["site", "coaster", "embed"];
+const SOURCES = ["site", "coaster", "embed", "email"];
 const away = (to) => new Response(null, { status: 302, headers: { Location: to, "Cache-Control": "no-store", "Referrer-Policy": "no-referrer-when-downgrade" } });
 
 export const isRobot = (ua) => !ua || ROBOT.test(ua);

@@ -375,6 +375,11 @@ test("+ Add a comic: their Coaster first, then their invite link, then a website
   assert.match(flow(), /Step 2 of 3/);
   assert.deepEqual(db.invites.map((x) => [x.comic_id, x.site_id]), [[comic.id, null]], "the invite is for her Coaster");
   assert.match(flow(), /Text it/);
+  const sentInv = []; w.fetch = async (u, o) => { sentInv.push([u, JSON.parse(o.body)]); return { ok: true, json: async () => ({ sent: true }) }; };
+  set(w, d.getElementById("inviteEmail"), "rita@x.com");
+  d.getElementById("inviteEmail").form.requestSubmit(); await wait(30);
+  assert.deepEqual(sentInv.map((x) => [x[0], x[1].email]), [["/.netlify/functions/invite-email", "rita@x.com"]], "or email it");
+  assert.match(flow(), /Sent to rita@x\.com/);
   d.getElementById("acNext2").click(); await wait(20);
   assert.match(flow(), /Step 3 of 3.*A website too\?/s);
   assert.equal(d.querySelector('[data-way="none"]').getAttribute("aria-pressed"), "true", "a website is optional");
@@ -773,6 +778,68 @@ test("a comic's Fans: where they are (top cities, by count) and who lives near e
   assert.match(near.textContent, /Laugh Boston/);
   assert.match(near.textContent, /3 fans nearby/, "Boston and Cambridge are within 50 miles; Denver isn't");
   assert.ok([...near.querySelectorAll("button")].some((b) => b.textContent === "Download them"));
+});
+
+test("a comic's Fans: email the fans near a show; once sent the show says so, and it's off until email is switched on", async () => {
+  const soon = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
+  const { w, d, db } = await open("#ct/fans", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+    db.venues.find((v) => v.id === "v1").lat = 42.35; db.venues.find((v) => v.id === "v1").lng = -71.06;
+    db.shows.push({ id: "sn1", comic_id: "solo-sam", date: soon, time: "8:00 PM", venue: "Laugh Boston", venue_id: "v1", city: "Boston, MA" });
+    db.comic_fans = [{ comic_id: "solo-sam", name: "Rae", email: "rae@x.com", city: "Boston", state: "MA", lat: 42.36, lng: -71.05, created_at: "2026-10-01" },
+      { comic_id: "solo-sam", name: "Kim", email: "kim@x.com", city: "Boston", state: "MA", lat: 42.36, lng: -71.05, created_at: "2026-10-03" }];
+  });
+  const asked = []; let ready = false;
+  w.fetch = async (u, o) => { const b = JSON.parse(o.body); asked.push([u, b]);
+    if (u === "/.netlify/functions/fan-email") return { ok: true, json: async () => (b.action === "info" ? { ready, left: 3, per_week: 3, sent: {} } : { sent: 2 }) };
+    return { ok: true, json: async () => ({ connected: false }) }; };
+  w.location.hash = "#ct/dates"; await wait(80); w.location.hash = "#ct/fans"; await wait(200);
+  let near = d.querySelector("main #fansNear");
+  near.querySelector('[data-email-show="sn1"]').click(); await wait();
+  let form = near.querySelector("#fanMail");
+  assert.equal(form.querySelector("#fanMailSubject").value, "Solo Sam: Laugh Boston, " + ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][+soon.slice(5, 7) - 1] + " " + +soon.slice(8, 10));
+  assert.match(form.querySelector("#fanMailMessage").value, /^I'm at Laugh Boston in Boston on .+ at 8:00 PM\. Come out/);
+  assert.equal(form.querySelector("#fanMailSend").textContent, "Send to 2 fans");
+  assert.ok(form.querySelector("#fanMailSend").disabled, "not until email is switched on");
+  assert.match(form.textContent, /switches on once ComicTable finishes setting up email/);
+  ready = true; w.location.hash = "#ct/dates"; await wait(80); w.location.hash = "#ct/fans"; await wait(200);
+  near = d.querySelector("main #fansNear");
+  near.querySelector('[data-email-show="sn1"]').click(); await wait();
+  form = near.querySelector("#fanMail");
+  form.querySelector("#fanMailMessage").value = "Boston! Two shows Friday.";
+  form.querySelector("#fanMailSend").click(); await wait(60);
+  const sent = asked.find((a) => a[1].action === "send");
+  assert.deepEqual(sent[1], { action: "send", comic: "solo-sam", show_id: "sn1", subject: form.querySelector("#fanMailSubject").value, message: "Boston! Two shows Friday." });
+  assert.ok(!near.querySelector("#fanMail"), "the form closes");
+  assert.ok(!near.querySelector('[data-email-show="sn1"]'));
+  assert.match(near.textContent, /Emailed 2/);
+});
+
+test("a comic's Fans: connect Mailchimp with a key and an audience; once connected it shows where they go, and the key never comes back", async () => {
+  const { w, d } = await open("#ct/fans", (db) => {
+    db.platform_admins = []; db.admins = [];
+    db.comics.push({ id: "solo-sam", handle: "solo-sam", name: "Solo Sam", user_id: "u1", look: "classic", coaster: {} });
+    db.comic_fans = [{ comic_id: "solo-sam", name: "Rae", email: "rae@x.com", city: "Boston", state: "MA", created_at: "2026-10-01" }];
+  });
+  const asked = []; let st = { connected: false };
+  w.fetch = async (u, o) => { const b = JSON.parse(o.body); if (u !== "/.netlify/functions/fan-sync") return { ok: true, json: async () => ({ ready: false, left: 3, sent: {} }) }; asked.push([u, b]);
+    const out = b.action === "audiences" ? { audiences: [{ id: "aud1", name: "Sam's list", members: 12 }] } : b.action === "connect" ? (st = { connected: true, list_name: "Sam's list", key_hint: "cdef", last_run: new Date().toISOString(), last_count: 1, last_error: null }) : b.action === "disconnect" ? (st = { connected: false }) : st;
+    return { ok: true, json: async () => out }; };
+  w.location.hash = "#ct/dates"; await wait(80); w.location.hash = "#ct/fans"; await wait(150);
+  const card = d.querySelector("main #fanSync");
+  assert.match(card.textContent, /Send them to Mailchimp/);
+  const fakeKey = "0123456789abcdef".repeat(2) + "-us21"; // made up, Mailchimp's shape
+  card.querySelector("#mcKey").value = fakeKey;
+  card.querySelector("#mcConnect").click(); await wait();
+  assert.equal(card.querySelector("#mcList").hidden, false);
+  assert.match(card.querySelector("#mcList").textContent, /Sam's list \(12\)/);
+  card.querySelector("#mcConnect").click(); await wait();
+  assert.deepEqual(asked.map((a) => a[1].action), ["status", "audiences", "connect"]);
+  assert.deepEqual(asked[2][1], { action: "connect", comic: "solo-sam", key: fakeKey, list_id: "aud1" });
+  assert.equal(asked[2][0], "/.netlify/functions/fan-sync");
+  assert.match(card.textContent, /Connected/); assert.match(card.textContent, /Sam's list/); assert.match(card.textContent, /Key ending cdef/); assert.match(card.textContent, /1 new fan/);
+  assert.ok(!card.querySelector("#mcKey"), "no key box once connected");
 });
 
 test("My Coaster: four parts, one open at a time; the page around the coaster and the QR code are the comic's choice, and it saves by itself", async () => {

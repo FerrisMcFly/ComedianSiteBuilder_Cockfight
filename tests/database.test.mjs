@@ -29,7 +29,7 @@ test("all database files run, and the upgrades can run twice", async () => {
     grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;`);
   for (const f of ["01_setup.sql", "02_seed.sql", "03_permissions.sql"]) await db.exec(file(f));
   await db.exec(`insert into auth.users values ('${OWNER}', 'owner@x'), ('${COMIC}', 'comic@x'); insert into admins (user_id) values ('${OWNER}');`);
-  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "27_invites.sql", "28_ticket_taps.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "27_invites.sql", "28_ticket_taps.sql", "99_rules.sql"]) await db.exec(file(f));
+  for (const f of ["04_platform.sql", "05_venues.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "27_invites.sql", "28_ticket_taps.sql", "29_fan_sync.sql", "30_fan_email.sql", "99_rules.sql", "04_platform.sql", "06_community.sql", "07_more_sources.sql", "08_create_sites.sql", "09_places.sql", "10_fans.sql", "11_comics.sql", "12_show_finder.sql", "13_me.sql", "14_blog.sql", "15_home_picks.sql", "16_photo_uploads.sql", "17_press_kit.sql", "18_fan_signup.sql", "19_more_socials.sql", "20_showcase.sql", "21_coasters.sql", "22_news.sql", "23_media.sql", "24_safety.sql", "25_foundation.sql", "26_customize.sql", "27_invites.sql", "28_ticket_taps.sql", "29_fan_sync.sql", "30_fan_email.sql", "99_rules.sql"]) await db.exec(file(f));
   await db.exec(`insert into sites (id, name) values ('othercomic', 'Other'); insert into admins (user_id, site_id) values ('${COMIC}', 'othercomic');`);
   assert.equal((await q("select count(*)::int n from venues"))[0].n, 109);
   assert.equal((await q("select count(*)::int n from episodes where site_id = 'cockfight'"))[0].n, 47);
@@ -554,6 +554,31 @@ test("ticket taps: counted by the go function, readable only as counts, only for
   assert.match(await as(TAMI, `select * from ticket_taps`), /permission denied/, "the rows themselves stay private");
   assert.match(await as(null, `insert into ticket_taps (show_id) values ('${show}')`), /permission denied/, "nobody adds taps from outside");
   await q(`delete from shows where id = '${show}'`); await q(`delete from comics where id = 'tami-taps'`);
+});
+
+test("Mailchimp sync: the saved key is out of reach of everyone, even the comic; only the server functions use it", async () => {
+  const MIA = "77777777-7777-7777-7777-777777777791";
+  await q(`insert into auth.users values ('${MIA}', 'mia@x') on conflict do nothing`);
+  await q(`insert into comics (id, name, user_id) values ('mia-mc', 'Mia', '${MIA}') on conflict do nothing`);
+  await q(`insert into fan_syncs (comic_id, secret, list_id) values ('mia-mc', 'v1.sealed', 'aud1')`);
+  assert.match(await as(MIA, `select secret from fan_syncs`), /permission denied/);
+  assert.match(await as(null, `select * from fan_syncs`), /permission denied/);
+  assert.match(await as(MIA, `update fan_syncs set list_id = 'x'`), /permission denied/);
+  await q(`delete from comics where id = 'mia-mc'`);
+  assert.equal((await q(`select count(*)::int as n from fan_syncs where comic_id = 'mia-mc'`))[0].n, 0, "goes when the Coaster goes");
+});
+
+test("fan emails: private to the server, one per show; taps from emails are counted", async () => {
+  const NIA = "77777777-7777-7777-7777-777777777792";
+  await q(`insert into auth.users values ('${NIA}', 'nia@x') on conflict do nothing`);
+  await q(`insert into comics (id, name, user_id) values ('nia-mail', 'Nia', '${NIA}') on conflict do nothing`);
+  const show = (await q(`insert into shows (comic_id, date, venue, url) values ('nia-mail', current_date + 3, 'The Stand', 'https://t/1') returning id`))[0].id;
+  await q(`insert into fan_emails (comic_id, show_id, subject, body) values ('nia-mail', '${show}', 'Hi', 'Come out')`);
+  assert.match(await as(NIA, `select * from fan_emails`), /permission denied/);
+  assert.match(String(await q(`insert into fan_emails (comic_id, show_id, subject, body) values ('nia-mail', '${show}', 'Again', 'Come out')`).catch((e) => e.message)), /duplicate|unique/);
+  await q(`insert into ticket_taps (show_id, comic_id, source) values ('${show}', 'nia-mail', 'email')`);
+  assert.match(String(await q(`insert into ticket_taps (show_id, comic_id, source) values ('${show}', 'nia-mail', 'fax')`).catch((e) => e.message)), /check/);
+  await q(`delete from shows where id = '${show}'`); await q(`delete from comics where id = 'nia-mail'`);
 });
 
 test("Coaster teams: the comic and their team change the Coaster; a site's team only looks after Coasters nobody has claimed", async () => {

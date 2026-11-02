@@ -79,7 +79,23 @@
         h("div", { class: "btns" },
           h("a", { class: "btn primary", href: "sms:?&body=" + encodeURIComponent(text), text: "Text it" }),
           h("button", { class: "btn", type: "button", text: "Copy link", onclick: async () => toast((await copyText(link)) ? "Link copied." : link) }),
-          h("button", { class: "btn ghost", type: "button", text: "Copy the message", onclick: async () => toast((await copyText(text)) ? "Message copied. Paste it in a text." : text) })));
+          h("button", { class: "btn ghost", type: "button", text: "Copy the message", onclick: async () => toast((await copyText(text)) ? "Message copied. Paste it in a text." : text) })),
+        emailIt());
+      // or email it (netlify/functions/invite-email.mjs), once per link
+      function emailIt() {
+        const to = h("input", { type: "email", id: "inviteEmail", placeholder: first + "'s email", "aria-label": "Their email", autocomplete: "off" });
+        const msg = h("div", { class: "hint", role: "status", "aria-live": "polite" });
+        const go = h("button", { class: "btn sm", type: "submit", text: "Email it" });
+        return h("form", { class: "stack", style: "gap:6px", onsubmit: async (e) => {
+          e.preventDefault(); go.disabled = true; msg.textContent = "Sending…";
+          try {
+            const r = await fetch("/.netlify/functions/invite-email", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: JSON.stringify({ token: inv.token, email: to.value.trim() }) });
+            const b = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(b.error || "That didn't send.");
+            msg.textContent = "Sent to " + to.value.trim() + "."; to.disabled = true;
+          } catch (er) { msg.textContent = er.message; go.disabled = false; }
+        } }, h("div", { class: "toolbar" }, to, go), msg);
+      }
     })();
     return box;
   }

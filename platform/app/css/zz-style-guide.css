@@ -313,4 +313,9 @@ span.lrow-av { font-size: 14px; }
 .fc-bar i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
 .fan-map { height: 300px; border-radius: 14px; background: var(--raised); overflow: hidden; z-index: 0; }
 @media (max-width: 800px) { .fan-where { grid-template-columns: 1fr; } }
-#fansWhere, #fansNear { margin-bottom: 18px; }
+#fansWhere, #fansNear { margin-bottom: 18px; } #fanSync { margin-top: 18px; }
+.fan-mail { margin: 2px 0 14px; padding: 16px; border-radius: 14px; background: var(--raised); }
+.fan-mail textarea { min-height: 110px; }
+#fansNear .drow { flex-wrap: wrap; row-gap: 10px; }
+#fansNear .drow-main { flex: 1 1 200px; }
+#fansNear .drow .btns { margin-left: auto; }

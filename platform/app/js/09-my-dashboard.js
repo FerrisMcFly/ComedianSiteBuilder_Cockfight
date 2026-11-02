@@ -88,7 +88,7 @@
     let rows;
     try { rows = await q(sb.from("comic_fans").select("name,email,zip,city,state,lat,lng,met_at,source,site_id,created_at").eq("comic_id", me.id).order("created_at", { ascending: false }).limit(10000)); }
     catch (e) { card.replaceChildren(h("p", { class: "err", text: /comic_fans/.test(errText(e)) ? "This needs the latest database upgrade." : errText(e) })); return; }
-    if (!rows.length) { card.replaceChildren(empty("No fans yet", "Fans who join on your Coaster or any of your sites show up here.")); return; }
+    if (!rows.length) { card.replaceChildren(empty("No fans yet", "Fans who join on your Coaster or any of your sites show up here.")); main.append(fanSyncCard(me)); return; }
     const where = [...new Set(rows.map((r) => r.site_id).filter(Boolean))];
     let pick = "", t = "";
     const list = h("div", { class: "drows" });
@@ -112,6 +112,92 @@
     drawChips(); draw();
     main.insertBefore(fansWhere(rows), card);
     main.insertBefore(fansNearShows(me, rows, (list, name) => downloadFans(list, name, siteName)), card);
+    main.append(fanSyncCard(me));
+  }
+  // Email the fans near one show (netlify/functions/fan-email.mjs): the comic writes a note, the email adds the show,
+  // a Tickets button and a one-tap unsubscribe. One per show, three a week.
+  function fanMailForm(me, d, count, mail, done) {
+    const when = d.date ? MON[+d.date.slice(5, 7) - 1] + " " + +d.date.slice(8, 10) : "";
+    const subject = h("input", { id: "fanMailSubject", "aria-label": "Subject", maxlength: "150", value: (me.name || "") + ": " + [d.venue || d.city, when].filter(Boolean).join(", ") });
+    const message = h("textarea", { id: "fanMailMessage", "aria-label": "Your note", rows: "5", maxlength: "3000" });
+    message.value = "I'm at " + (d.venue || "a show") + (d.city ? " in " + d.city.split(",")[0] : "") + " on " + when + (d.time ? " at " + d.time : "") + ". Come out and bring a friend!";
+    const msg = h("div", { class: "hint", role: "status", "aria-live": "polite" });
+    const off = !mail.ready ? "Emailing fans switches on once ComicTable finishes setting up email." : !mail.left ? "That's " + (mail.per_week || 3) + " emails this week. Try again in a few days." : "";
+    const send = h("button", { class: "btn primary", type: "submit", id: "fanMailSend", disabled: off ? true : null, text: "Send to " + count + " " + (count === 1 ? "fan" : "fans") });
+    const form = h("form", { class: "fan-mail stack", id: "fanMail", onsubmit: async (e) => {
+      e.preventDefault(); if (off) return;
+      send.disabled = true; msg.textContent = "Sending…";
+      try {
+        const r = await fetch("/.netlify/functions/fan-email", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: JSON.stringify({ action: "send", comic: me.id, show_id: d.id, subject: subject.value, message: message.value }) });
+        const b = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(b.error || "That didn't send. Try again.");
+        toast("Sent to " + b.sent + " " + (b.sent === 1 ? "fan" : "fans") + "."); done(b.sent);
+      } catch (er) { msg.textContent = er.message; send.disabled = false; }
+    } },
+      h("label", { class: "field" }, h("span", { text: "Subject" }), subject),
+      h("label", { class: "field" }, h("span", { text: "Your note" }), message),
+      h("p", { class: "hint", style: "margin:0", text: "The email adds the show, a Get tickets button and an unsubscribe link. It goes out once per show; three a week at most." }),
+      off ? h("p", { class: "hint", style: "margin:0", text: off }) : null,
+      h("div", { class: "btns" }, send), msg);
+    return form;
+  }
+  // Mailchimp: connect once, and every fan goes into the comic's own audience, new ones every 30 minutes
+  // (netlify/functions/fan-sync.mjs). The key goes to the server once and never comes back.
+  function fanSyncCard(me) {
+    const card = h("section", { class: "card stack", id: "fanSync" });
+    const call = async (action, extra) => {
+      const r = await fetch("/.netlify/functions/fan-sync", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: JSON.stringify({ action, comic: me.id, ...(extra || {}) }) });
+      const b = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(b.error || "That didn't work. Try again.");
+      return b;
+    };
+    const top = (right) => h("div", { class: "card-head" }, h("h2", { text: "Send them to Mailchimp" }), right || null);
+    const connected = (st) => {
+      const msg = h("div", { class: "hint", role: "status", "aria-live": "polite" });
+      const busy = (btn, on) => { btn.disabled = on; };
+      const now = h("button", { class: "btn sm", type: "button", text: "Send now", onclick: async () => { busy(now, true); msg.textContent = "Sending…";
+        try { const b = await call("sync"); draw(b); toast(b.last_count ? b.last_count + " new " + (b.last_count === 1 ? "fan" : "fans") + " sent to Mailchimp." : "Mailchimp is up to date."); } catch (e) { msg.textContent = e.message; busy(now, false); } } });
+      const off = sure("Disconnect", async () => {
+        try { draw(await call("disconnect")); toast("Mailchimp disconnected. Fans already sent stay in your audience."); } catch (e) { toast(e.message, { bad: true }); } });
+      card.replaceChildren(top(h("span", { class: "pill ok", text: "Connected" })),
+        h("p", { style: "margin:0" }, "New fans go into ", h("b", { text: st.list_name || "your audience" }), ", tagged ComicTable and their city. ", h("span", { class: "hint", text: "Key ending " + (st.key_hint || "····") + "." })),
+        h("p", { class: "hint", style: "margin:0", text: st.last_run ? "Last sent " + ago(st.last_run) + ": " + (st.last_count ? st.last_count + " new " + (st.last_count === 1 ? "fan" : "fans") : "nobody new") + ". It checks every 30 minutes." : "It checks every 30 minutes." }),
+        st.last_error ? h("p", { class: "err", style: "margin:0", text: st.last_error }) : null,
+        h("div", { class: "toolbar" }, now, off), msg);
+    };
+    const setup = () => {
+      const keyIn = h("input", { type: "password", id: "mcKey", placeholder: "Your Mailchimp API key (ends in -us21 or similar)", "aria-label": "Mailchimp API key", autocomplete: "off", spellcheck: "false" });
+      const pick = h("select", { id: "mcList", "aria-label": "Mailchimp audience", hidden: true });
+      const msg = h("div", { class: "hint", role: "status", "aria-live": "polite" });
+      const go = h("button", { class: "btn sm primary", type: "button", id: "mcConnect", text: "Find my audiences" });
+      let found = null;
+      go.onclick = async () => {
+        go.disabled = true;
+        try {
+          if (!found) {
+            msg.textContent = "Checking with Mailchimp…";
+            found = (await call("audiences", { key: keyIn.value.trim() })).audiences;
+            if (!found.length) { found = null; throw new Error("That Mailchimp account has no audiences yet. Make one in Mailchimp first."); }
+            pick.replaceChildren(...found.map((a) => h("option", { value: a.id, text: a.name + " (" + a.members.toLocaleString() + ")" })));
+            pick.hidden = false; keyIn.disabled = true; go.textContent = "Connect"; msg.textContent = "Pick the audience your fans should go into.";
+          } else {
+            msg.textContent = "Connecting and sending your fans…";
+            const st = await call("connect", { key: keyIn.value.trim(), list_id: pick.value });
+            draw(st); toast(st.last_count ? st.last_count + " " + (st.last_count === 1 ? "fan" : "fans") + " sent to Mailchimp." : "Connected to Mailchimp.");
+            return;
+          }
+        } catch (e) { msg.textContent = e.message; }
+        go.disabled = false;
+      };
+      card.replaceChildren(top(),
+        h("p", { style: "margin:0", text: "Connect your Mailchimp once and every fan on your list goes into your audience, tagged ComicTable and their city. New fans follow every 30 minutes. Anyone who unsubscribed there stays unsubscribed." }),
+        h("div", { class: "toolbar" }, keyIn, pick, go), msg,
+        h("p", { class: "hint", style: "margin:0" }, "In Mailchimp: Profile → Extras → API keys → Create a key. ", h("a", { href: "https://mailchimp.com/help/about-api-keys/", target: "_blank", rel: "noopener", text: "How to find it" })));
+    };
+    const draw = (st) => st && st.connected ? connected(st) : setup();
+    card.append(top(), h("p", { class: "hint", text: "Loading…" }));
+    call("status").then(draw, (e) => { card.replaceChildren(top(), h("p", { class: "hint", style: "margin:0", text: e.message })); });
+    return card;
   }
   const fanMiles = (a, b, c, d) => { const r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2; return 7918 * Math.asin(Math.sqrt(x)); };
   function downloadFans(list, name, siteName) {
@@ -160,11 +246,18 @@
       try { if (vids.length) vs = await q(sb.from("venues").select("id,lat,lng,city,state").in("id", vids)); } catch (e) {}
       const at = {}; vs.forEach((v) => { at[v.id] = v; });
       const located = rows.filter((r) => r.lat != null);
+      let mail = { ready: false, left: 0, sent: {} };
+      try { const r = await fetch("/.netlify/functions/fan-email", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: JSON.stringify({ action: "info", comic: me.id }) }); if (r.ok) mail = { ...mail, ...(await r.json()) }; } catch (e) {}
       const lines = dates.map((d) => {
         const v = at[d.venue_id];
         const near = v && v.lat != null ? located.filter((r) => fanMiles(v.lat, v.lng, r.lat, r.lng) <= 50) : null;
-        return h("div", { class: "drow" }, dateTile(d.date), h("span", { class: "drow-main" }, h("b", { text: d.venue || d.city || "Show" }), h("span", { text: [d.city, near ? near.length + " fan" + (near.length === 1 ? "" : "s") + " nearby" : "Pick the club from the list on Shows to see who's nearby"].filter(Boolean).join(" · ") })),
-          near && near.length ? h("button", { class: "btn sm", type: "button", text: "Download them", onclick: () => download(near, (me.handle || me.id) + "-fans-near-" + slug(d.venue || d.city || "show") + "-" + d.date) }) : null);
+        const done = mail.sent && mail.sent[d.id];
+        const slot = h("div", { class: "fan-mail-slot" });
+        const row = h("div", { class: "drow" }, dateTile(d.date), h("span", { class: "drow-main" }, h("b", { text: d.venue || d.city || "Show" }), h("span", { text: [d.city, near ? near.length + " fan" + (near.length === 1 ? "" : "s") + " nearby" : "Pick the club from the list on Shows to see who's nearby"].filter(Boolean).join(" · ") })),
+          near && near.length ? h("span", { class: "btns" },
+            done ? h("span", { class: "pill ok", text: "Emailed " + done.count + " " + (done.at ? ago(done.at) : "") }) : h("button", { class: "btn sm primary", type: "button", "data-email-show": d.id, text: "Email them", onclick: () => { slot.firstChild ? slot.replaceChildren() : slot.replaceChildren(fanMailForm(me, d, near.length, mail, (n) => { mail.left = Math.max(0, mail.left - 1); mail.sent[d.id] = { count: n, at: new Date().toISOString() }; row.querySelector("[data-email-show]").replaceWith(h("span", { class: "pill ok", text: "Emailed " + n })); slot.replaceChildren(); })); } }),
+            h("button", { class: "btn sm", type: "button", text: "Download them", onclick: () => download(near, (me.handle || me.id) + "-fans-near-" + slug(d.venue || d.city || "show") + "-" + d.date) })) : null);
+        return h("div", null, row, slot);
       });
       card.replaceChildren(card.firstChild, lines.length ? h("div", { class: "drows" }, lines) : h("p", { class: "hint", style: "margin:0", text: "No shows coming up. Add one and you'll see who lives nearby." }));
     })();
